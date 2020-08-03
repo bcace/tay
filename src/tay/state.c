@@ -1,4 +1,5 @@
 #include "state.h"
+#include "tay.h"
 #include <stdlib.h>
 #include <assert.h>
 
@@ -48,7 +49,7 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
     return index;
 }
 
-void tay_add_perception(TayState *state, int group1, int group2, TAY_PERCEPTION_FUNC func) {
+void tay_add_perception(TayState *state, int group1, int group2, void (*func)(void *, void *, void *)) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->perception = func;
@@ -56,7 +57,7 @@ void tay_add_perception(TayState *state, int group1, int group2, TAY_PERCEPTION_
     p->group2 = group2;
 }
 
-void tay_add_action(TayState *state, int group, TAY_ACTION_FUNC func) {
+void tay_add_action(TayState *state, int group, void (*func)(void *, void *)) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->action = func;

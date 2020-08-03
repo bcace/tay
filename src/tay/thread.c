@@ -1,5 +1,6 @@
 #include "thread.h"
 #include "state.h"
+#include "tay.h"
 #include <stdlib.h>
 #include <assert.h>
 #include <windows.h>

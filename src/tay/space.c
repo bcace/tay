@@ -1,4 +1,5 @@
 #include "state.h"
+#include "tay.h"
 #include "thread.h"
 #include <stdlib.h>
 
@@ -28,7 +29,7 @@ static void _plain_add(TaySpace *space, TayAgent *agent, int group) {
     g->first[thread] = agent;
 }
 
-static void _plain_perception(TaySpace *space, int group1, int group2, TAY_PERCEPTION_FUNC func, void *context) {
+static void _plain_perception(TaySpace *space, int group1, int group2, void (*func)(void *, void *, void *), void *context) {
     Plain *p = space->storage;
     for (int i = 0; i < runner.count; ++i) {
         TayAgent *b = p->groups[group1].first[i];
@@ -50,7 +51,7 @@ static void _plain_perception(TaySpace *space, int group1, int group2, TAY_PERCE
     }
 }
 
-static void _plain_action(TaySpace *space, int group, TAY_ACTION_FUNC func, void *context) {
+static void _plain_action(TaySpace *space, int group, void(*func)(void *, void *), void *context) {
     Plain *p = space->storage;
     for (int i = 0; i < runner.count; ++i)
         tay_thread_set_action(i, context, func, p->groups[group].first[i], 0);
