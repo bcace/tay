@@ -6,10 +6,10 @@
 
 
 typedef struct TayGroup {
-    void *storage;      /* agents storage */
-    struct TayAgent *first;    /* single linked list of available agents from storage */
-    int size;           /* agent size in bytes */
-    int capacity;       /* max. number of agents */
+    void *storage;          /* agents storage */
+    struct TayAgent *first; /* single linked list of available agents from storage */
+    int size;               /* agent size in bytes */
+    int capacity;           /* max. number of agents */
 } TayGroup;
 
 typedef struct TayPass {
@@ -24,6 +24,7 @@ typedef struct TaySpace {
     void (*add)(struct TaySpace *space, struct TayAgent *agent, int group);
     void (*perception)(struct TaySpace *space, int group1, int group2, void (*func)(void *, void *, void *), void *context);
     void (*action)(struct TaySpace *space, int group, void (*func)(void *, void *), void *context);
+    void (*iter)(struct TaySpace *space, int group, void (*func)(void *));
 } TaySpace;
 
 typedef struct TayState {

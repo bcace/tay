@@ -58,6 +58,13 @@ static void _plain_action(TaySpace *space, int group, void(*func)(void *, void *
     tay_runner_run();
 }
 
+static void _plain_iter(TaySpace *space, int group, void (*func)(void *)) {
+    Plain *p = space->storage;
+    for (int i = 0; i < runner.count; ++i)
+        for (TayAgent *a = p->groups[group].first[i]; a; a = a->next)
+            func(a);
+}
+
 void space_plain_init(TaySpace *space) {
     Plain *p = calloc(1, sizeof(Plain));
     space->storage = p;
@@ -65,4 +72,5 @@ void space_plain_init(TaySpace *space) {
     space->add = _plain_add;
     space->perception = _plain_perception;
     space->action = _plain_action;
+    space->iter = _plain_iter;
 }
