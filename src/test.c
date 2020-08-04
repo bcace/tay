@@ -1,6 +1,7 @@
 #include "test.h"
 #include "tay.h"
 #include "vec.h"
+#include "thread.h"
 #include <stdlib.h>
 
 
@@ -16,15 +17,12 @@ typedef struct {
 typedef struct {
     float perception_r;
     float space_r;
-    int perception_calls;
-    int actual_perception_calls;
 } Context;
 
 static void _agent_perception_actual(Agent *a, vec d, float l, Context *c) {
     vec n = vec_div_scalar(d, l);
     a->acc = vec_add(a->acc, n);
     ++a->acc_count;
-    ++c->actual_perception_calls;
 }
 
 /* NOTE: only b agent can write to itself, can only read from a */
@@ -33,7 +31,6 @@ static void _agent_perception(Agent *a, Agent *b, Context *c) {
     float l = vec_length(d);
     if (l < c->perception_r)
         _agent_perception_actual(a, d, l, c);
-    ++c->perception_calls;
 }
 
 static void _agent_action(Agent *a, Context *c) {
@@ -44,19 +41,18 @@ static void _agent_action(Agent *a, Context *c) {
     }
     a->p = vec_add(a->p, a->v);
     a->cluster_p = vec_add(a->cluster_p, a->v);
-
     if (a->cluster_p.x < -c->space_r) {
-        a->p.x += c->space_r - a->cluster_p.x;
+        a->p.x -= c->space_r + a->cluster_p.x;
         a->cluster_p.x = -c->space_r;
         a->v.x = -a->v.x;
     }
     if (a->cluster_p.y < -c->space_r) {
-        a->p.y += c->space_r - a->cluster_p.y;
+        a->p.y -= c->space_r + a->cluster_p.y;
         a->cluster_p.y = -c->space_r;
         a->v.y = -a->v.y;
     }
     if (a->cluster_p.z < -c->space_r) {
-        a->p.z += c->space_r - a->cluster_p.z;
+        a->p.z -= c->space_r + a->cluster_p.z;
         a->cluster_p.z = -c->space_r;
         a->v.z = -a->v.z;
     }
@@ -92,47 +88,50 @@ static void _make_cluster(struct TayState *state, int group, int count, float ra
     }
 }
 
-static void _inspect(Agent *a, Context *c) {
-    int brk = 0;
+#include <stdio.h>
+
+static void _inspect_agent(Agent *a, Context *context) {
+    printf("%g\n", a->p.x);
+    int hhh = 0;
 }
 
-// #include <stdio.h>
+static void _setup0(struct TayState *state, Context *context) {
+    context->perception_r = 50.0f;
+    context->space_r = 100.0f;
 
-// static void _dump_obj(Agent *agents, int count) {
-//     FILE *f;
-//     fopen_s(&f, "haha.obj", "w");
-//     for (int i = 0; i < count; ++i) {
-//         Agent *a = agents + i;
-//         fprintf(f, "v %g %g %g\n", a->p.x, a->p.y, a->p.z);
-//         fprintf(f, "v %g %g %g\n", a->p.x + 1.0f, a->p.y, a->p.z);
-//         fprintf(f, "v %g %g %g\n", a->p.x, a->p.y + 1.0f, a->p.z);
-//     }
-//     for (int i = 0; i < count; ++i)
-//         fprintf(f, "f %d %d %d\n", i * 3 + 1, i * 3 + 2, i * 3 + 3);
-//     fclose(f);
-// }
+    int g = tay_add_group(state, sizeof(Agent), 1000000);
+    tay_add_perception(state, g, g, _agent_perception);
+    tay_add_action(state, g, _agent_action);
 
-static void _test_case_one_group(int count) {
+    for (int i = 0; i < 2000; ++i)
+        _make_cluster(state, g, 1, 10, 1.0f, context);
+}
+
+static void _setup1(struct TayState *state, Context *context) {
+    context->perception_r = 50.0f;
+    context->space_r = 100.0f;
+
+    int g = tay_add_group(state, sizeof(Agent), 1000000);
+    tay_add_perception(state, g, g, _agent_perception);
+    tay_add_action(state, g, _agent_action);
+
+    _make_cluster(state, g, 2000, 10, 1.0f, context);
+}
+
+static void _test(void (*setup)(struct TayState *, Context *)) {
     struct TayState *s = tay_create_state(TAY_SPACE_PLAIN);
 
-    int g = tay_add_group(s, sizeof(Agent), 1000000);
-    tay_add_perception(s, g, g, _agent_perception);
-    tay_add_action(s, g, _agent_action);
+    srand(1);
+    Context context;
+    setup(s, &context);
 
-    Context context = { 50.0f, 100.0f, 0, 0 };
+    tay_run(s, 1000, &context);
 
-    _make_cluster(s, g, count / 2, 10, 1.0f, &context);
-    _make_cluster(s, g, count / 2, 10, 1.0f, &context);
-
-    tay_run(s, 100, &context);
-    // _inspect(s->groups[g].storage, &context);
-
-    // _dump_obj(s->groups[g].storage, count);
+    _inspect_agent(tay_get_storage(s, 0), &context);
 
     tay_destroy_state(s);
 }
 
 void test() {
-    srand(1);
-    _test_case_one_group(2000);
+    _test(_setup1);
 }

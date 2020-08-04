@@ -52,6 +52,7 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
 void tay_add_perception(TayState *state, int group1, int group2, void (*func)(void *, void *, void *)) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
+    p->type = TAY_PASS_PERCEPTION;
     p->perception = func;
     p->group1 = group1;
     p->group2 = group2;
@@ -60,30 +61,50 @@ void tay_add_perception(TayState *state, int group1, int group2, void (*func)(vo
 void tay_add_action(TayState *state, int group, void (*func)(void *, void *)) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
+    p->type = TAY_PASS_ACTION;
     p->action = func;
     p->group1 = group;
 }
 
-void *tay_alloc_agent(TayState *state, int group_index) {
-    assert(group_index >= 0 && group_index < TAY_MAX_GROUPS);
-    TayGroup *g = state->groups + group_index;
+void tay_add_post(struct TayState *state, void (*func)(void *)) {
+    assert(state->passes_count < TAY_MAX_PASSES);
+    TayPass *p = state->passes + state->passes_count++;
+    p->type = TAY_PASS_POST;
+    p->post = func;
+}
+
+void *tay_alloc_agent(TayState *state, int group) {
+    assert(group >= 0 && group < TAY_MAX_GROUPS);
+    TayGroup *g = state->groups + group;
     assert(g->first != 0);
     TayAgent *a = g->first;
     g->first = g->first->next;
-    state->space.add(&state->space, a, group_index);
+    state->space.add(&state->space, a, group);
     return a;
+}
+
+void *tay_get_storage(struct TayState *state, int group) {
+    assert(group >= 0 && group < TAY_MAX_GROUPS);
+    TayGroup *g = state->groups + group;
+    return g->storage;
 }
 
 void tay_run(TayState *state, int steps, void *context) {
     for (int i = 0; i < steps; ++i) {
         for (int j = 0; j < state->passes_count; ++j) {
             TayPass *p = state->passes + j;
-            if (p->perception)
+            if (p->type == TAY_PASS_PERCEPTION)
                 state->space.perception(&state->space, p->group1, p->group2, p->perception, context);
-            else if (p->action)
+            else if (p->type == TAY_PASS_ACTION)
                 state->space.action(&state->space, p->group1, p->action, context);
+            else if (p->type == TAY_PASS_POST)
+                state->space.post(&state->space, p->post, context);
             else
                 assert(0); /* not implemented */
         }
     }
+}
+
+void tay_iter_agents(struct TayState *state, int group, void (*func)(void *, void *), void *context) {
+    state->space.iter(&state->space, group, func, context);
 }

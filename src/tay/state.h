@@ -12,10 +12,20 @@ typedef struct TayGroup {
     int capacity;           /* max. number of agents */
 } TayGroup;
 
+typedef enum TayPassType {
+    TAY_PASS_PERCEPTION,
+    TAY_PASS_ACTION,
+    TAY_PASS_POST,
+} TayPassType;
+
 typedef struct TayPass {
     int group1, group2;
-    void (*perception)(void *, void *, void *);
-    void (*action)(void *, void *);
+    TayPassType type;
+    union {
+        void (*perception)(void *, void *, void *);
+        void (*action)(void *, void *);
+        void (*post)(void *);
+    };
 } TayPass;
 
 typedef struct TaySpace {
@@ -24,7 +34,8 @@ typedef struct TaySpace {
     void (*add)(struct TaySpace *space, struct TayAgent *agent, int group);
     void (*perception)(struct TaySpace *space, int group1, int group2, void (*func)(void *, void *, void *), void *context);
     void (*action)(struct TaySpace *space, int group, void (*func)(void *, void *), void *context);
-    void (*iter)(struct TaySpace *space, int group, void (*func)(void *));
+    void (*post)(struct TaySpace *space, void (*func)(void *), void *context);
+    void (*iter)(struct TaySpace *space, int group, void (*func)(void *, void *), void *context);
 } TaySpace;
 
 typedef struct TayState {

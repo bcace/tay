@@ -1,5 +1,6 @@
 ﻿.vs
 Debug
+Release
 x64
 *.vcxproj
 *.sln
