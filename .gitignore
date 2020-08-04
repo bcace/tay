@@ -1,0 +1,15 @@
+﻿.vs
+airfoils
+analysis
+Debug
+platform
+x64
+stash
+src/todo
+src/wings
+*.vcxproj
+*.sln
+*.log
+*.filters
+*.user
+*.dump
