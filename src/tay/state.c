@@ -4,10 +4,12 @@
 #include <assert.h>
 
 
-TayState *tay_create_state(TaySpaceType space_type) {
+TayState *tay_create_state(TaySpaceType space_type, int space_dimensions) {
     TayState *s = calloc(1, sizeof(TayState));
     if (space_type == TAY_SPACE_PLAIN)
         space_plain_init(&s->space);
+    else if (space_type == TAY_SPACE_TREE)
+        tree_init(&s->space, space_dimensions);
     else
         assert(0); /* not implemented */
     return s;
@@ -91,6 +93,7 @@ void *tay_get_storage(struct TayState *state, int group) {
 
 void tay_run(TayState *state, int steps, void *context) {
     for (int i = 0; i < steps; ++i) {
+        state->space.update(&state->space);
         for (int j = 0; j < state->passes_count; ++j) {
             TayPass *p = state->passes + j;
             if (p->type == TAY_PASS_PERCEPTION)
@@ -107,4 +110,23 @@ void tay_run(TayState *state, int steps, void *context) {
 
 void tay_iter_agents(struct TayState *state, int group, void (*func)(void *, void *), void *context) {
     state->space.iter(&state->space, group, func, context);
+}
+
+void space_init(TaySpace *space,
+                void *storage,
+                void (*destroy)(TaySpace *space),
+                void (*add)(TaySpace *space, TayAgent *agent, int group),
+                void (*perception)(TaySpace *space, int group1, int group2, void (*func)(void *, void *, void *), void *context),
+                void (*action)(TaySpace *space, int group, void (*func)(void *, void *), void *context),
+                void (*post)(TaySpace *space, void (*func)(void *), void *context),
+                void (*iter)(TaySpace *space, int group, void (*func)(void *, void *), void *context),
+                void (*update)(TaySpace *space)) {
+    space->storage = storage;
+    space->destroy = destroy;
+    space->add = add;
+    space->perception = perception;
+    space->action = action;
+    space->post = post;
+    space->iter = iter;
+    space->update = update;
 }

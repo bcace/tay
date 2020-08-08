@@ -3,12 +3,15 @@
 #include "vec.h"
 #include "thread.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 
 typedef struct {
-    TayAgent agent;
+    TayAgent base;
+    /* position variables (must be first, must be collection of floats) */
+    vec p;
     /* movement variables */
-    vec p, v, cluster_p;
+    vec v, cluster_p;
     /* control variables */
     vec acc, hea;
     int acc_count;
@@ -88,11 +91,8 @@ static void _make_cluster(struct TayState *state, int group, int count, float ra
     }
 }
 
-#include <stdio.h>
-
 static void _inspect_agent(Agent *a, Context *context) {
     printf("%g\n", a->p.x);
-    int hhh = 0;
 }
 
 static void _setup0(struct TayState *state, Context *context) {
@@ -119,13 +119,13 @@ static void _setup1(struct TayState *state, Context *context) {
 }
 
 static void _test(void (*setup)(struct TayState *, Context *)) {
-    struct TayState *s = tay_create_state(TAY_SPACE_PLAIN);
+    struct TayState *s = tay_create_state(TAY_SPACE_PLAIN, 3);
 
     srand(1);
     Context context;
     setup(s, &context);
 
-    tay_run(s, 1000, &context);
+    tay_run(s, 100, &context);
 
     _inspect_agent(tay_get_storage(s, 0), &context);
 
