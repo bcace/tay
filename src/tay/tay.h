@@ -11,7 +11,7 @@ typedef enum TaySpaceType {
     TAY_SPACE_TREE,
 } TaySpaceType;
 
-struct TayState *tay_create_state(TaySpaceType space_type, int space_dimensions);
+struct TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float *space_diameters);
 void tay_destroy_state(struct TayState *state);
 int tay_add_group(struct TayState *state, int agent_size, int agent_capacity);
 void tay_add_perception(struct TayState *state, int group1, int group2, void (*func)(void *, void *, void *));
