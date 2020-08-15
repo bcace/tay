@@ -120,7 +120,7 @@ static void _setup1(struct TayState *state, Context *context) {
 
 static void _test(void (*setup)(struct TayState *, Context *)) {
     float diameters[] = { 10.0f, 10.0f, 10.0f };
-    struct TayState *s = tay_create_state(TAY_SPACE_PLAIN, 3, diameters);
+    struct TayState *s = tay_create_state(TAY_SPACE_SIMPLE, 3, diameters);
 
     srand(1);
     Context context;

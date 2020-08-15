@@ -56,7 +56,7 @@ void space_init(TaySpace *space,
                 void (*post)(TaySpace *space, void (*func)(void *), void *context),
                 void (*iter)(TaySpace *space, int group, void (*func)(void *, void *), void *context),
                 void (*update)(TaySpace *space));
-void space_plain_init(TaySpace *space);
+void space_simple_init(TaySpace *space);
 void tree_init(TaySpace *space, int dimensions, float *diameters);
 
 #endif

@@ -6,8 +6,8 @@
 
 TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float *space_diameters) {
     TayState *s = calloc(1, sizeof(TayState));
-    if (space_type == TAY_SPACE_PLAIN)
-        space_plain_init(&s->space);
+    if (space_type == TAY_SPACE_SIMPLE)
+        space_simple_init(&s->space);
     else if (space_type == TAY_SPACE_TREE)
         tree_init(&s->space, space_dimensions, space_diameters);
     else

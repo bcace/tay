@@ -7,19 +7,19 @@
 typedef struct {
     TayAgent *first[TAY_MAX_THREADS];
     int receiving_thread;
-} PlainGroup;
+} SimpleGroup;
 
 typedef struct {
-    PlainGroup groups[TAY_MAX_GROUPS];
-} Plain;
+    SimpleGroup groups[TAY_MAX_GROUPS];
+} Simple;
 
 static void _destroy(TaySpace *space) {
     free(space->storage);
 }
 
 static void _add(TaySpace *space, TayAgent *agent, int group) {
-    Plain *p = space->storage;
-    PlainGroup *g = p->groups + group;
+    Simple *p = space->storage;
+    SimpleGroup *g = p->groups + group;
     int thread = (g->receiving_thread++) % runner.count;
     TayAgent *next = g->first[thread];
     agent->next = next;
@@ -27,7 +27,7 @@ static void _add(TaySpace *space, TayAgent *agent, int group) {
 }
 
 static void _perception(TaySpace *space, int group1, int group2, void (*func)(void *, void *, void *), void *context) {
-    Plain *p = space->storage;
+    Simple *p = space->storage;
     for (int i = 0; i < runner.count; ++i) {
         TayAgent *b = p->groups[group1].first[i];
         for (int j = 0; j < runner.count; ++j) {
@@ -49,19 +49,19 @@ static void _perception(TaySpace *space, int group1, int group2, void (*func)(vo
 }
 
 static void _action(TaySpace *space, int group, void(*func)(void *, void *), void *context) {
-    Plain *p = space->storage;
+    Simple *p = space->storage;
     for (int i = 0; i < runner.count; ++i)
         tay_thread_set_action(i, context, func, p->groups[group].first[i], 0);
     tay_runner_run();
 }
 
 static void _post(TaySpace *space, void (*func)(void *), void *context) {
-    Plain *p = space->storage;
+    Simple *p = space->storage;
     func(context);
 }
 
 static void _iter(TaySpace *space, int group, void (*func)(void *, void *), void *context) {
-    Plain *p = space->storage;
+    Simple *p = space->storage;
     for (int i = 0; i < runner.count; ++i)
         for (TayAgent *a = p->groups[group].first[i]; a; a = a->next)
             func(a, context);
@@ -70,7 +70,7 @@ static void _iter(TaySpace *space, int group, void (*func)(void *, void *), void
 static void _update(TaySpace *space) {
 }
 
-void space_plain_init(TaySpace *space) {
-    Plain *p = calloc(1, sizeof(Plain));
+void space_simple_init(TaySpace *space) {
+    Simple *p = calloc(1, sizeof(Simple));
     space_init(space, p, _destroy, _add, _perception, _action, _post, _iter, _update);
 }
