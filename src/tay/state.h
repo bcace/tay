@@ -20,21 +20,22 @@ typedef enum TayPassType {
 } TayPassType;
 
 typedef struct TayPass {
-    int group1, group2;
     TayPassType type;
+    int group1, group2;
     union {
         void (*perception)(void *, void *, void *);
         void (*action)(void *, void *);
         void (*post)(void *);
     };
+    float radii[TAY_MAX_DIMENSIONS];
 } TayPass;
 
 typedef struct TaySpace {
     void *storage;
     void (*destroy)(struct TaySpace *space);
     void (*add)(struct TaySpace *space, struct TayAgent *agent, int group);
-    void (*perception)(struct TaySpace *space, int group1, int group2, void (*func)(void *, void *, void *), void *context);
-    void (*action)(struct TaySpace *space, int group, void (*func)(void *, void *), void *context);
+    void (*perception)(struct TaySpace *space, TayPass *pass, void *context);
+    void (*action)(struct TaySpace *space, TayPass *pass, void *context);
     void (*post)(struct TaySpace *space, void (*func)(void *), void *context);
     void (*iter)(struct TaySpace *space, int group, void (*func)(void *, void *), void *context);
     void (*update)(struct TaySpace *space);
@@ -51,12 +52,12 @@ void space_init(TaySpace *space,
                 void *storage,
                 void (*destroy)(TaySpace *space),
                 void (*add)(TaySpace *space, struct TayAgent *agent, int group),
-                void (*perception)(TaySpace *space, int group1, int group2, void (*func)(void *, void *, void *), void *context),
-                void (*action)(TaySpace *space, int group, void (*func)(void *, void *), void *context),
+                void (*perception)(TaySpace *space, struct TayPass *pass, void *context),
+                void (*action)(TaySpace *space, struct TayPass *pass, void *context),
                 void (*post)(TaySpace *space, void (*func)(void *), void *context),
                 void (*iter)(TaySpace *space, int group, void (*func)(void *, void *), void *context),
                 void (*update)(TaySpace *space));
 void space_simple_init(TaySpace *space);
-void tree_init(TaySpace *space, int dimensions, float *diameters);
+void tree_init(TaySpace *space, int dimensions, float *radii);
 
 #endif

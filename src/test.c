@@ -4,6 +4,7 @@
 #include "thread.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 
 typedef struct {
@@ -76,63 +77,82 @@ static void _agent_action(Agent *a, Context *c) {
     }
 }
 
-static void _make_cluster(struct TayState *state, int group, int count, float radius, float speed, Context *context) {
+static void _make_cluster(TayState *state, int group, int count, float radius, float speed, Context *context) {
     vec cluster_p = vec_rand_scalar(-context->space_r, context->space_r);
     vec cluster_v = vec_rand_scalar(-1.0f, 1.0f);
     cluster_v = vec_normalize_to(cluster_v, speed);
     for (int i = 0; i < count; ++i) {
-        Agent *a = tay_alloc_agent(state, group);
+        Agent *a = tay_get_new_agent(state, group);
         a->cluster_p = cluster_p;
         a->p = vec_add(cluster_p, vec_rand_scalar(-radius, radius));
         a->v = cluster_v;
         a->acc = vec_null();
         a->acc_count = 0;
         a->hea = vec_make(1.0f, 0.0f, 0.0f);
+        tay_add_new_agent(state, group);
     }
 }
 
-static void _inspect_agent(Agent *a, Context *context) {
-    printf("%g\n", a->p.x);
+static inline void _eq(float a, float b) {
+    float c = a - b;
+    static float epsilon = 0.0001f;
+    assert(c > -epsilon && c < epsilon);
 }
 
-static void _setup0(struct TayState *state, Context *context) {
-    context->perception_r = 50.0f;
-    context->space_r = 100.0f;
+typedef enum {
+    RA_NONE,
+    RA_WRITE,
+    RA_COMPARE,
+} ResultsAction;
 
-    int g = tay_add_group(state, sizeof(Agent), 1000000);
-    tay_add_perception(state, g, g, _agent_perception);
-    tay_add_action(state, g, _agent_action);
-
-    for (int i = 0; i < 2000; ++i)
-        _make_cluster(state, g, 1, 10, 1.0f, context);
-}
-
-static void _setup1(struct TayState *state, Context *context) {
-    context->perception_r = 50.0f;
-    context->space_r = 100.0f;
-
-    int g = tay_add_group(state, sizeof(Agent), 1000000);
-    tay_add_perception(state, g, g, _agent_perception);
-    tay_add_action(state, g, _agent_action);
-
-    _make_cluster(state, g, 2000, 10, 1.0f, context);
-}
-
-static void _test(void (*setup)(struct TayState *, Context *)) {
-    float diameters[] = { 10.0f, 10.0f, 10.0f };
-    struct TayState *s = tay_create_state(TAY_SPACE_SIMPLE, 3, diameters);
+/* TODO: describe model case */
+static void _test_model_case1(TaySpaceType space_type, vec *results, ResultsAction results_action) {
+    int agents_count = 2000;
 
     srand(1);
+
     Context context;
-    setup(s, &context);
+    context.perception_r = 50.0f;
+    context.space_r = 100.0f;
+    float radii[] = { context.perception_r, context.perception_r, context.perception_r };
+
+    TayState *s = tay_create_state(space_type, 3, radii);
+
+    int g = tay_add_group(s, sizeof(Agent), agents_count);
+    tay_add_perception(s, g, g, _agent_perception, radii);
+    tay_add_action(s, g, _agent_action);
+
+    for (int i = 0; i < agents_count; ++i)
+        _make_cluster(s, g, 1, context.space_r, 1.0f, &context);
 
     tay_run(s, 100, &context);
 
-    _inspect_agent(tay_get_storage(s, 0), &context);
+    if (results_action == RA_WRITE) {
+        Agent *agents = tay_get_storage(s, g);
+        for (int i = 0; i < agents_count; ++i)
+            results[i] = agents[i].hea;
+    }
+    else if (results_action == RA_COMPARE) {
+        Agent *agents = tay_get_storage(s, g);
+        for (int i = 0; i < agents_count; ++i) {
+            vec a = agents[i].hea;
+            vec b = results[i];
+            _eq(a.x, b.x);
+            _eq(a.y, b.y);
+            _eq(a.z, b.z);
+        }
+    }
 
     tay_destroy_state(s);
 }
 
 void test() {
-    _test(_setup1);
+    vec *results = malloc(10000000);
+
+    /* testing model case 1 */
+
+    _test_model_case1(TAY_SPACE_SIMPLE, results, RA_WRITE);
+    _test_model_case1(TAY_SPACE_TREE, results, RA_COMPARE);
+
+    free(results);
 }
