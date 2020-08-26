@@ -105,8 +105,23 @@ typedef enum {
     RA_COMPARE,
 } ResultsAction;
 
+typedef struct {
+    vec data[100000];
+    int first_time;
+} Results;
+
+static Results *_create_results() {
+    Results *r = malloc(sizeof(Results));
+    r->first_time = 1;
+    return r;
+}
+
+static void _destroy_results(Results *r) {
+    free(r);
+}
+
 /* TODO: describe model case */
-static void _test_model_case1(TaySpaceType space_type, vec *results, ResultsAction results_action) {
+static void _test_model_case1(TaySpaceType space_type, Results *results) {
     int agents_count = 2000;
 
     srand(1);
@@ -127,19 +142,21 @@ static void _test_model_case1(TaySpaceType space_type, vec *results, ResultsActi
 
     tay_run(s, 100, &context);
 
-    if (results_action == RA_WRITE) {
-        Agent *agents = tay_get_storage(s, g);
-        for (int i = 0; i < agents_count; ++i)
-            results[i] = agents[i].hea;
-    }
-    else if (results_action == RA_COMPARE) {
-        Agent *agents = tay_get_storage(s, g);
-        for (int i = 0; i < agents_count; ++i) {
-            vec a = agents[i].hea;
-            vec b = results[i];
-            _eq(a.x, b.x);
-            _eq(a.y, b.y);
-            _eq(a.z, b.z);
+    if (results) {
+        if (results->first_time) {
+            Agent *agents = tay_get_storage(s, g);
+            for (int i = 0; i < agents_count; ++i)
+                results->data[i] = agents[i].hea;
+        }
+        else {
+            Agent *agents = tay_get_storage(s, g);
+            for (int i = 0; i < agents_count; ++i) {
+                vec a = agents[i].hea;
+                vec b = results->data[i];
+                _eq(a.x, b.x);
+                _eq(a.y, b.y);
+                _eq(a.z, b.z);
+            }
         }
     }
 
@@ -147,12 +164,17 @@ static void _test_model_case1(TaySpaceType space_type, vec *results, ResultsActi
 }
 
 void test() {
-    vec *results = malloc(10000000);
+
+#if 0
+    Results *r = _create_results();
+#else
+    Results *r = 0;
+#endif
 
     /* testing model case 1 */
 
-    _test_model_case1(TAY_SPACE_SIMPLE, results, RA_WRITE);
-    _test_model_case1(TAY_SPACE_TREE, results, RA_COMPARE);
+    // _test_model_case1(TAY_SPACE_SIMPLE, r);
+    _test_model_case1(TAY_SPACE_TREE, r);
 
-    free(results);
+    _destroy_results(r);
 }

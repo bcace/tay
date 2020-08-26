@@ -63,12 +63,12 @@ typedef struct {
     Box box;
 } Tree;
 
-const float radius_to_cell_size_ratio = 0.5f;
+const float radius_to_cell_size_ratio = 0.3f;
 
 static Tree *_init(int dimensions, float *radii) {
     Tree *t = calloc(1, sizeof(Tree));
     t->dimensions = dimensions;
-    t->nodes_cap = 10000;
+    t->nodes_cap = 100000;
     t->nodes = malloc(t->nodes_cap * sizeof(Node));
     t->available_node = 1; /* root node is always allocated */
     _clear_node(t->nodes);
