@@ -1,5 +1,6 @@
 #include "state.h"
 #include "tay.h"
+#include "thread.h"
 #include <stdlib.h>
 #include <assert.h>
 
@@ -7,7 +8,7 @@
 TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float *space_radii) {
     TayState *s = calloc(1, sizeof(TayState));
     if (space_type == TAY_SPACE_SIMPLE)
-        space_simple_init(&s->space);
+        space_simple_init(&s->space, space_dimensions);
     else if (space_type == TAY_SPACE_TREE)
         tree_init(&s->space, space_dimensions, space_radii);
     else
@@ -51,23 +52,23 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
     return index;
 }
 
-void tay_add_perception(TayState *state, int group1, int group2, void (*func)(void *, void *, void *), float *radii) {
+void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, struct TayThreadContext *), float *radii) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
-    p->type = TAY_PASS_PERCEPTION;
-    p->perception = func;
-    p->group1 = group1;
-    p->group2 = group2;
+    p->type = TAY_PASS_SEE;
+    p->see = func;
+    p->seer_group = seer_group;
+    p->seen_group = seen_group;
     for (int i = 0; i < TAY_MAX_DIMENSIONS; ++i)
         p->radii[i] = radii[i];
 }
 
-void tay_add_action(TayState *state, int group, void (*func)(void *, void *)) {
+void tay_add_act(TayState *state, int act_group, void (*func)(void *, struct TayThreadContext *)) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
-    p->type = TAY_PASS_ACTION;
-    p->action = func;
-    p->group1 = group;
+    p->type = TAY_PASS_ACT;
+    p->act = func;
+    p->act_group = act_group;
 }
 
 void tay_add_post(struct TayState *state, void (*func)(void *)) {
@@ -99,20 +100,38 @@ void *tay_get_storage(struct TayState *state, int group) {
     return g->storage;
 }
 
+#include <stdio.h>
+#include <time.h>
+
 void tay_run(TayState *state, int steps, void *context) {
+    struct timespec beg, end;
+    timespec_get(&beg, TIME_UTC);
+
+    tay_runner_clear_stats();
+
     for (int i = 0; i < steps; ++i) {
         state->space.update(&state->space);
         for (int j = 0; j < state->passes_count; ++j) {
             TayPass *p = state->passes + j;
-            if (p->type == TAY_PASS_PERCEPTION)
-                state->space.perception(&state->space, p, context);
-            else if (p->type == TAY_PASS_ACTION)
-                state->space.action(&state->space, p, context);
+            if (p->type == TAY_PASS_SEE)
+                state->space.see(&state->space, p, context);
+            else if (p->type == TAY_PASS_ACT)
+                state->space.act(&state->space, p, context);
             else if (p->type == TAY_PASS_POST)
                 state->space.post(&state->space, p->post, context);
             else
                 assert(0); /* not implemented */
         }
+    }
+
+    timespec_get(&end, TIME_UTC);
+    double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
+    double fps = steps / t;
+    printf("run time: %g sec, %g fps\n", t, fps);
+    for (int i = 0; i < runner.count; ++i) {
+        TayThread *t = runner.threads + i;
+        printf("  thread %d:\n", i);
+        printf("    runs: %d/%d\n", t->context.useful_see_runs, t->context.all_see_runs);
     }
 }
 
@@ -122,18 +141,20 @@ void tay_iter_agents(struct TayState *state, int group, void (*func)(void *, voi
 
 void space_init(TaySpace *space,
                 void *storage,
+                int dims,
                 void (*destroy)(TaySpace *space),
                 void (*add)(TaySpace *space, TayAgent *agent, int group),
-                void (*perception)(TaySpace *space, TayPass *pass, void *context),
-                void (*action)(TaySpace *space, TayPass *pass, void *context),
+                void (*see)(TaySpace *space, TayPass *pass, void *context),
+                void (*act)(TaySpace *space, TayPass *pass, void *context),
                 void (*post)(TaySpace *space, void (*func)(void *), void *context),
                 void (*iter)(TaySpace *space, int group, void (*func)(void *, void *), void *context),
                 void (*update)(TaySpace *space)) {
     space->storage = storage;
+    space->dims = dims;
     space->destroy = destroy;
     space->add = add;
-    space->perception = perception;
-    space->action = action;
+    space->see = see;
+    space->act = act;
     space->post = post;
     space->iter = iter;
     space->update = update;

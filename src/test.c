@@ -30,14 +30,19 @@ static void _agent_perception_actual(Agent *a, vec d, float l, Context *c) {
 }
 
 /* NOTE: only b agent can write to itself, can only read from a */
-static void _agent_perception(Agent *a, Agent *b, Context *c) {
+static void _agent_see(Agent *a, Agent *b, TayThreadContext *thread_context) {
     vec d = vec_sub(b->p, a->p);
     float l = vec_length(d);
-    if (l < c->perception_r)
+    ++thread_context->all_see_runs;
+    Context *c = thread_context->context;
+    if (l < c->perception_r) {
+        ++thread_context->useful_see_runs;
         _agent_perception_actual(a, d, l, c);
+    }
 }
 
-static void _agent_action(Agent *a, Context *c) {
+static void _agent_act(Agent *a, TayThreadContext *thread_context) {
+    Context *c = thread_context->context;
     if (a->acc_count) {
         a->hea = vec_normalize(vec_add(a->hea, vec_normalize_to(a->acc, 0.2f)));
         a->acc = vec_null();
@@ -122,20 +127,20 @@ static void _destroy_results(Results *r) {
 
 /* TODO: describe model case */
 static void _test_model_case1(TaySpaceType space_type, Results *results) {
-    int agents_count = 2000;
+    int agents_count = 1700;
 
     srand(1);
 
     Context context;
-    context.perception_r = 50.0f;
+    context.perception_r = 20.0f;
     context.space_r = 100.0f;
     float radii[] = { context.perception_r, context.perception_r, context.perception_r };
 
     TayState *s = tay_create_state(space_type, 3, radii);
 
     int g = tay_add_group(s, sizeof(Agent), agents_count);
-    tay_add_perception(s, g, g, _agent_perception, radii);
-    tay_add_action(s, g, _agent_action);
+    tay_add_see(s, g, g, _agent_see, radii);
+    tay_add_act(s, g, _agent_act);
 
     for (int i = 0; i < agents_count; ++i)
         _make_cluster(s, g, 1, context.space_r, 1.0f, &context);
@@ -173,7 +178,7 @@ void test() {
 
     /* testing model case 1 */
 
-    // _test_model_case1(TAY_SPACE_SIMPLE, r);
+//    _test_model_case1(TAY_SPACE_SIMPLE, r);
     _test_model_case1(TAY_SPACE_TREE, r);
 
     _destroy_results(r);

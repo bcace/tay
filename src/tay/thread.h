@@ -6,12 +6,18 @@
 
 typedef void *Handle;
 
-typedef struct TayThread {
+typedef struct TayThreadContext {
     void *context;
-    struct TayAgent *beg_a, *end_a; /* subjects */
-    struct TayAgent *beg_b, *end_b; /* objects */
-    void (*perception)(struct TayAgent *a, struct TayAgent *b, void *context);
-    void (*action)(struct TayAgent *a, void *context);
+    int all_see_runs;
+    int useful_see_runs;
+} TayThreadContext;
+
+typedef struct TayThread {
+    TayThreadContext context;
+    struct TayAgent *beg_a; /* seer agents */
+    struct TayAgent *beg_b; /* seen agents */
+    struct TayPass *pass;
+    int dims; /* needed for see only */
     int run;
     Handle thread;
     Handle beg_semaphore;
@@ -31,16 +37,18 @@ typedef struct TayRunner {
 } TayRunner;
 
 void tay_runner_init();
+void tay_runner_clear_stats();
 void tay_runner_start_threads(int threads_count);
-void tay_thread_set_perception(int index, void *context,
-                               void (*func)(struct TayAgent *a, struct TayAgent *b, void *context),
-                               struct TayAgent *beg_a, struct TayAgent *end_a,
-                               struct TayAgent *beg_b, struct TayAgent *end_b);
-void tay_thread_set_action(int index, void *context,
-                           void (*func)(struct TayAgent *a, void *context),
-                           struct TayAgent *beg_a, struct TayAgent *end_a);
+void tay_thread_set_see(int index, void *context,
+                               struct TayAgent *beg_a, struct TayAgent *beg_b,
+                               struct TayPass *pass,
+                               int dims);
+void tay_thread_set_act(int index, void *context,
+                           struct TayAgent *beg_a,
+                           struct TayPass *pass);
 void tay_runner_run();
 void tay_runner_stop_threads();
+void tay_runner_run_no_threads();
 
 extern TayRunner runner;
 

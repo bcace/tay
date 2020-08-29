@@ -7,7 +7,6 @@
 
 #define NODE_DIM_UNDECIDED  100
 #define NODE_DIM_LEAF       101
-#define AGENT_POSITION(__agent__) ((float *)(__agent__ + 1))
 
 
 typedef struct {
@@ -29,13 +28,6 @@ static void _update_box(Box *box, float *p, int dims) {
         if (p[i] > box->max[i])
             box->max[i] = p[i];
     }
-}
-
-static int _boxes_overlap(Box box1, Box box2, int dims) {
-    for (int i = 0; i < dims; ++i)
-        if (box1.min[i] > box2.max[i] || box1.max[i] < box2.min[i])
-            return 0;
-    return 1;
 }
 
 typedef struct Node {
@@ -63,7 +55,7 @@ typedef struct {
     Box box;
 } Tree;
 
-const float radius_to_cell_size_ratio = 0.3f;
+const float radius_to_cell_size_ratio = 0.4f;
 
 static Tree *_init(int dimensions, float *radii) {
     Tree *t = calloc(1, sizeof(Tree));
@@ -87,7 +79,7 @@ static void _destroy(TaySpace *space) {
 static void _add_to_non_sorted(Tree *tree, TayAgent *agent, int group) {
     agent->next = tree->first[group];
     tree->first[group] = agent;
-    _update_box(&tree->box, AGENT_POSITION(agent), tree->dimensions);
+    _update_box(&tree->box, TAY_AGENT_POSITION(agent), tree->dimensions);
 }
 
 static void _add(TaySpace *space, TayAgent *agent, int group) {
@@ -104,7 +96,7 @@ static void _move_agents_from_node_to_tree(Tree *tree, Node *node) {
         TayAgent *last = node->first[i];
         /* update global extents and find the last agent */
         while (1) {
-            _update_box(&tree->box, AGENT_POSITION(last), tree->dimensions);
+            _update_box(&tree->box, TAY_AGENT_POSITION(last), tree->dimensions);
             if (last->next)
                 last = last->next;
             else
@@ -141,7 +133,7 @@ static void _sort_agent(Tree *tree, Node *node, TayAgent *agent, int group) {
     }
     else {
         float mid = (node->box.max[node->dim] + node->box.min[node->dim]) * 0.5f;
-        float pos = AGENT_POSITION(agent)[node->dim];
+        float pos = TAY_AGENT_POSITION(agent)[node->dim];
         if (pos < mid) {
             if (node->lo == 0) {
                 assert(tree->available_node < tree->nodes_cap);
@@ -187,22 +179,21 @@ static void _update(TaySpace *space) {
 }
 
 static void _traverse_seen_neighbors(Node *seer_node, Node *seen_node, TayPass *pass, Box seer_box, int dims, void *context) {
-    if (_boxes_overlap(seer_box, seen_node->box, dims)) {
-        if (seen_node->first[pass->group2]) { /* if there are any "seen" agents */
-            for (TayAgent *a = seer_node->first[pass->group1]; a; a = a->next)
-                for (TayAgent *b = seen_node->first[pass->group2]; b; b = b->next)
-                    if (a != b)
-                        pass->perception(a, b, context);
-        }
-        if (seen_node->lo)
-            _traverse_seen_neighbors(seer_node, seen_node->lo, pass, seer_box, dims, context);
-        if (seen_node->hi)
-            _traverse_seen_neighbors(seer_node, seen_node->hi, pass, seer_box, dims, context);
+    for (int i = 0; i < dims; ++i)
+        if (seer_box.min[i] > seen_node->box.max[i] || seer_box.max[i] < seen_node->box.min[i])
+            return;
+    if (seen_node->first[pass->seen_group]) { /* if there are any "seen" agents */
+        tay_thread_set_see(0, context, seer_node->first[pass->seer_group], seen_node->first[pass->seen_group], pass, dims);
+        tay_runner_run_no_threads();
     }
+    if (seen_node->lo)
+        _traverse_seen_neighbors(seer_node, seen_node->lo, pass, seer_box, dims, context);
+    if (seen_node->hi)
+        _traverse_seen_neighbors(seer_node, seen_node->hi, pass, seer_box, dims, context);
 }
 
 static void _traverse_seers(Tree *tree, Node *node, TayPass *pass, void *context) {
-    if (node->first[pass->group1]) { /* if there are any "seeing" agents */
+    if (node->first[pass->seer_group]) { /* if there are any "seeing" agents */
         Box seer_box = node->box;
         for (int i = 0; i < tree->dimensions; ++i) {
             seer_box.min[i] -= pass->radii[i];
@@ -222,8 +213,8 @@ static void _see(TaySpace *space, TayPass *pass, void *context) {
 }
 
 static void _traverse_actors(Node *node, TayPass *pass, void *context) {
-    for (TayAgent *a = node->first[pass->group1]; a; a = a->next)
-        pass->action(a, context);
+    tay_thread_set_act(0, context, node->first[pass->act_group], pass);
+    tay_runner_run_no_threads();
     if (node->lo)
         _traverse_actors(node->lo, pass, context);
     if (node->hi)
@@ -245,6 +236,7 @@ static void _iter(TaySpace *space, int group, void (*func)(void *, void *), void
     // assert(0); /* not implemented */
 }
 
-void tree_init(TaySpace *space, int dimensions, float *radii) {
-    space_init(space, _init(dimensions, radii), _destroy, _add, _see, _act, _post, _iter, _update);
+void tree_init(TaySpace *space, int dims, float *radii) {
+    assert(runner.count == 1); /* currently can only run on a single thread */
+    space_init(space, _init(dims, radii), dims, _destroy, _add, _see, _act, _post, _iter, _update);
 }

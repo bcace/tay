@@ -13,6 +13,46 @@ void tay_runner_init() {
     runner.state = TAY_RUNNER_IDLE;
 }
 
+void tay_runner_clear_stats() {
+    for (int i = 0; i < TAY_MAX_THREADS; ++i) {
+        runner.threads[i].context.all_see_runs = 0;
+        runner.threads[i].context.useful_see_runs = 0;
+    }
+}
+
+static void _thread_work(TayThread *thread) {
+    if (thread->pass->type == TAY_PASS_SEE) {
+
+        TAY_SEE_FUNC see = thread->pass->see;
+        float *radii = thread->pass->radii;
+
+        for (TayAgent *a = thread->beg_a; a; a = a->next) { /* seer agents */
+            float *pa = TAY_AGENT_POSITION(a);
+
+            for (TayAgent *b = thread->beg_b; b; b = b->next) { /* seen agents */
+                float *pb = TAY_AGENT_POSITION(b);
+
+                if (a == b) /* this can be removed for cases where beg_a != beg_b */
+                    continue;
+
+                for (int i = 0; i < thread->dims; ++i) {
+                    float d = pa[i] - pb[i];
+                    if (d < -radii[i] || d > radii[i])
+                        goto OUTSIDE_RADII;
+                }
+
+                see(a, b, &thread->context);
+
+                OUTSIDE_RADII:;
+            }
+        }
+    }
+    else if (thread->pass->type == TAY_PASS_ACT) {
+        for (TayAgent *a = thread->beg_a; a; a = a->next)
+            thread->pass->act(a, &thread->context);
+    }
+}
+
 unsigned int WINAPI _thread_func(TayThread *thread) {
     while (1) {
         WaitForSingleObject(thread->beg_semaphore, INFINITE);
@@ -20,16 +60,7 @@ unsigned int WINAPI _thread_func(TayThread *thread) {
             ReleaseSemaphore(thread->end_semaphore, 1, 0);
             return 0;
         }
-        if (thread->perception) {
-            for (TayAgent *a = thread->beg_a; a != thread->end_a; a = a->next)
-                for (TayAgent *b = thread->beg_b; b != thread->end_b; b = b->next)
-                    if (a != b) /* this can be removed for cases where beg_a != beg_b */
-                        thread->perception(a, b, thread->context);
-        }
-        else if (thread->action) {
-            for (TayAgent *a = thread->beg_a; a != thread->end_a; a = a->next)
-                thread->action(a, thread->context);
-        }
+        _thread_work(thread);
         ReleaseSemaphore(thread->end_semaphore, 1, 0);
     }
     return 0;
@@ -49,6 +80,8 @@ void tay_runner_start_threads(int threads_count) {
 }
 
 void tay_runner_run() {
+    /* TODO: ensure that user initialized all tasks before running, currently we just assume
+    that the number of tasks is equal to the number of threads, and we don't check that anywhere. */
     assert(runner.state == TAY_RUNNER_WAITING);
     Handle end_semaphores[TAY_MAX_THREADS];
     for (int i = 0; i < runner.count; ++i) {
@@ -57,6 +90,12 @@ void tay_runner_run() {
         end_semaphores[i] = t->end_semaphore;
     }
     WaitForMultipleObjects(runner.count, end_semaphores, 1, INFINITE);
+}
+
+void tay_runner_run_no_threads() {
+    assert(runner.state == TAY_RUNNER_WAITING);
+    for (int i = 0; i < runner.count; ++i)
+        _thread_work(runner.threads + i);
 }
 
 void tay_runner_stop_threads() {
@@ -77,32 +116,28 @@ void tay_runner_stop_threads() {
 
 static void _init_task(TayThread *thread, void *context) {
     thread->run = 1;
-    thread->context = context;
+    thread->context.context = context;
 }
 
-void tay_thread_set_perception(int index, void *context,
-                               void (*func)(TayAgent *a, TayAgent *b, void *context),
-                               TayAgent *beg_a, TayAgent *end_a,
-                               TayAgent *beg_b, TayAgent *end_b) {
+void tay_thread_set_see(int index, void *context,
+                               TayAgent *beg_a, TayAgent *beg_b,
+                               TayPass *pass,
+                               int dims) {
     assert(index >= 0 && index < runner.count);
     TayThread *t = runner.threads + index;
     _init_task(t, context);
     t->beg_a = beg_a;
-    t->end_a = end_a;
     t->beg_b = beg_b;
-    t->end_b = end_b;
-    t->action = 0;
-    t->perception = func;
+    t->pass = pass;
+    t->dims = dims;
 }
 
-void tay_thread_set_action(int index, void *context,
-                           void (*func)(TayAgent *a, void *context),
-                           TayAgent *beg_a, TayAgent *end_a) {
+void tay_thread_set_act(int index, void *context,
+                           TayAgent *beg_a,
+                           TayPass *pass) {
     assert(index >= 0 && index < runner.count);
     TayThread *t = runner.threads + index;
     _init_task(t, context);
     t->beg_a = beg_a;
-    t->end_a = end_a;
-    t->action = func;
-    t->perception = 0;
+    t->pass = pass;
 }
