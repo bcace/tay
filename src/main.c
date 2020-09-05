@@ -4,7 +4,7 @@
 
 int main() {
     tay_runner_init();
-    tay_runner_start_threads(9);
+    tay_runner_start_threads(8);
     test();
     tay_runner_stop_threads();
     return 0;

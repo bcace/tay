@@ -6,6 +6,8 @@
 #include <float.h>
 #include <assert.h>
 
+#if 0
+
 #define NODE_DIM_UNDECIDED  100
 #define NODE_DIM_LEAF       101
 
@@ -304,7 +306,8 @@ static void _iter(TaySpace *space, int group, void (*func)(void *, void *), void
     // assert(0); /* not implemented */
 }
 
+#endif
+
 void tree_init(TaySpace *space, int dims, float *radii) {
-//    assert(runner.count == 1); /* currently can only run on a single thread */
-    space_init(space, _init(dims, radii), dims, _destroy, _add, _see, _act, _post, _iter, _update);
+    // space_init(space, _init(dims, radii), dims, _destroy, _add, _see, _act, _post, _iter, _update);
 }

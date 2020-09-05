@@ -30,19 +30,16 @@ static void _agent_perception_actual(Agent *a, vec d, float l, Context *c) {
 }
 
 /* NOTE: only b agent can write to itself, can only read from a */
-static void _agent_see(Agent *a, Agent *b, TayThreadContext *thread_context) {
+static void _agent_see(Agent *a, Agent *b, void *context) {
     vec d = vec_sub(b->p, a->p);
     float l = vec_length(d);
-    ++thread_context->all_see_runs;
-    Context *c = thread_context->context;
-    if (l < c->perception_r) {
-        ++thread_context->useful_see_runs;
+    Context *c = context;
+    if (l < c->perception_r)
         _agent_perception_actual(a, d, l, c);
-    }
 }
 
-static void _agent_act(Agent *a, TayThreadContext *thread_context) {
-    Context *c = thread_context->context;
+static void _agent_act(Agent *a, void *context) {
+    Context *c = context;
     if (a->acc_count) {
         a->hea = vec_normalize(vec_add(a->hea, vec_normalize_to(a->acc, 0.2f)));
         a->acc = vec_null();
@@ -178,8 +175,8 @@ void test() {
 
     /* testing model case 1 */
 
-   // _test_model_case1(TAY_SPACE_SIMPLE, r);
-    _test_model_case1(TAY_SPACE_TREE, r);
+    _test_model_case1(TAY_SPACE_SIMPLE, r);
+    // _test_model_case1(TAY_SPACE_TREE, r);
 
     _destroy_results(r);
 }

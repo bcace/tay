@@ -107,7 +107,7 @@ void tay_run(TayState *state, int steps, void *context) {
     struct timespec beg, end;
     timespec_get(&beg, TIME_UTC);
 
-    tay_runner_clear_stats();
+    // tay_runner_clear_stats();
 
     for (int i = 0; i < steps; ++i) {
         state->space.update(&state->space);
@@ -130,8 +130,8 @@ void tay_run(TayState *state, int steps, void *context) {
     printf("run time: %g sec, %g fps\n", t, fps);
     for (int i = 0; i < runner.count; ++i) {
         TayThread *t = runner.threads + i;
-        printf("  thread %d:\n", i);
-        printf("    runs: %d/%d\n", t->context.useful_see_runs, t->context.all_see_runs);
+        // printf("  thread %d:\n", i);
+        // printf("    runs: %d/%d\n", t->context.useful_see_runs, t->context.all_see_runs);
     }
 }
 

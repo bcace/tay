@@ -8,8 +8,8 @@
 #define TAY_AGENT_POSITION(__agent__) ((float *)(__agent__ + 1))
 
 
-typedef void (*TAY_SEE_FUNC)(void *, void *, struct TayThreadContext *);
-typedef void (*TAY_ACT_FUNC)(void *, struct TayThreadContext *);
+typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
+typedef void (*TAY_ACT_FUNC)(void *, void *);
 
 typedef struct TayGroup {
     void *storage;          /* agents storage */
