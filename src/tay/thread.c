@@ -21,34 +21,59 @@ void tay_runner_clear_stats() {
 }
 
 static void _thread_work(TayThread *thread) {
-    if (thread->pass->type == TAY_PASS_SEE) {
+    if (thread->pass == 0)
+        return;
+    else if (thread->pass->type == TAY_PASS_SEE) {
 
         TAY_SEE_FUNC see = thread->pass->see;
         float *radii = thread->pass->radii;
 
-        for (TayAgent *a = thread->beg_a; a; a = a->next) { /* seer agents */
-            float *pa = TAY_AGENT_POSITION(a);
+        int tasks_count = 1;
+        TayThreadSeeTask *tasks = &thread->see_task;
 
-            for (TayAgent *b = thread->beg_b; b; b = b->next) { /* seen agents */
-                float *pb = TAY_AGENT_POSITION(b);
+        if (thread->see_tasks_count != -1) {
+            tasks_count = thread->see_tasks_count;
+            tasks = thread->see_tasks;
+        }
 
-                if (a == b) /* this can be removed for cases where beg_a != beg_b */
-                    continue;
+        for (int task_i = 0; task_i < tasks_count; ++task_i) {
+            TayThreadSeeTask *task = tasks + task_i;
 
-                for (int i = 0; i < thread->dims; ++i) {
-                    float d = pa[i] - pb[i];
-                    if (d < -radii[i] || d > radii[i])
-                        goto OUTSIDE_RADII;
+            for (TayAgent *a = task->seer_agents; a; a = a->next) {
+                float *pa = TAY_AGENT_POSITION(a);
+
+                int seen_bundles_count = 1;
+                TayAgent **seen_bundles = &task->seen_agents;
+
+                if (task->seen_bundles_count != -1) {
+                    seen_bundles_count = task->seen_bundles_count;
+                    seen_bundles = task->seen_bundles;
                 }
 
-                see(a, b, &thread->context);
+                for (int bundle_i = 0; bundle_i < seen_bundles_count; ++bundle_i) {
 
-                OUTSIDE_RADII:;
+                    for (TayAgent *b = seen_bundles[bundle_i]; b; b = b->next) {
+                        float *pb = TAY_AGENT_POSITION(b);
+
+                        if (a == b) /* this can be removed for cases where beg_a != beg_b */
+                            continue;
+
+                        for (int k = 0; k < thread->dims; ++k) {
+                            float d = pa[k] - pb[k];
+                            if (d < -radii[k] || d > radii[k])
+                                goto OUTSIDE_RADII;
+                        }
+
+                        see(a, b, &thread->context);
+
+                        OUTSIDE_RADII:;
+                    }
+                }
             }
         }
     }
     else if (thread->pass->type == TAY_PASS_ACT) {
-        for (TayAgent *a = thread->beg_a; a; a = a->next)
+        for (TayAgent *a = thread->act_agents; a; a = a->next)
             thread->pass->act(a, &thread->context);
     }
 }
@@ -114,30 +139,47 @@ void tay_runner_stop_threads() {
     runner.state = TAY_RUNNER_IDLE;
 }
 
-static void _init_task(TayThread *thread, void *context) {
+static void _init_thread(TayThread *thread, void *context) {
     thread->run = 1;
     thread->context.context = context;
 }
 
 void tay_thread_set_see(int index, void *context,
-                               TayAgent *beg_a, TayAgent *beg_b,
-                               TayPass *pass,
-                               int dims) {
+                        TayAgent *seer_agents,
+                        TayAgent *seen_agents,
+                        TayPass *pass,
+                        int dims) {
     assert(index >= 0 && index < runner.count);
     TayThread *t = runner.threads + index;
-    _init_task(t, context);
-    t->beg_a = beg_a;
-    t->beg_b = beg_b;
+    _init_thread(t, context);
+    t->see_task.seer_agents = seer_agents;
+    t->see_task.seen_agents = seen_agents;
+    t->see_task.seen_bundles_count = -1;
+    t->see_tasks_count = -1;
+    t->pass = pass;
+    t->dims = dims;
+}
+
+void tay_thread_set_see_multiple(int index, void *context,
+                                 TayThreadSeeTask *see_tasks,
+                                 int see_tasks_count,
+                                 TayPass *pass,
+                                 int dims) {
+    assert(index >= 0 && index < runner.count);
+    TayThread *t = runner.threads + index;
+    _init_thread(t, context);
+    t->see_tasks = see_tasks;
+    t->see_tasks_count = see_tasks_count;
     t->pass = pass;
     t->dims = dims;
 }
 
 void tay_thread_set_act(int index, void *context,
-                           TayAgent *beg_a,
-                           TayPass *pass) {
+                        TayAgent *act_agents,
+                        TayPass *pass) {
     assert(index >= 0 && index < runner.count);
     TayThread *t = runner.threads + index;
-    _init_task(t, context);
-    t->beg_a = beg_a;
+    _init_thread(t, context);
+    t->act_agents = act_agents;
     t->pass = pass;
 }

@@ -2,11 +2,14 @@
 #include "tay.h"
 #include "thread.h"
 #include <stdlib.h>
+#include <math.h>
 #include <float.h>
 #include <assert.h>
 
 #define NODE_DIM_UNDECIDED  100
 #define NODE_DIM_LEAF       101
+
+#define TREE_THREADED 1
 
 
 typedef struct {
@@ -50,36 +53,52 @@ typedef struct {
     Node *nodes; /* nodes storage, first node is always the root node */
     int nodes_cap;
     int available_node;
-    int dimensions;
+    int dims;
     float diameters[TAY_MAX_DIMENSIONS];
     Box box;
+#if TREE_THREADED
+    TayThreadSeeTask *see_tasks;
+    int see_tasks_count;
+    TayAgent **seen_bundles; /* storage for see task bundles */
+    int seen_bundles_count;
+#endif
 } Tree;
 
 const float radius_to_cell_size_ratio = 0.4f;
 
-static Tree *_init(int dimensions, float *radii) {
+static Tree *_init(int dims, float *radii) {
     Tree *t = calloc(1, sizeof(Tree));
-    t->dimensions = dimensions;
+    t->dims = dims;
     t->nodes_cap = 100000;
     t->nodes = malloc(t->nodes_cap * sizeof(Node));
     t->available_node = 1; /* root node is always allocated */
     _clear_node(t->nodes);
-    _reset_box(&t->box, t->dimensions);
-    for (int i = 0; i < dimensions; ++i)
+    _reset_box(&t->box, t->dims);
+    for (int i = 0; i < dims; ++i)
         t->diameters[i] = radii[i] * radius_to_cell_size_ratio;
+#if TREE_THREADED
+    t->see_tasks = malloc(t->nodes_cap * sizeof(TayThreadSeeTask));
+    t->see_tasks_count = 0;
+    t->seen_bundles = malloc(t->nodes_cap * sizeof(TayAgent *));
+    t->seen_bundles_count = 0;
+#endif
     return t;
 }
 
 static void _destroy(TaySpace *space) {
     Tree *t = space->storage;
     free(t->nodes);
+#if TREE_THREADED
+    free(t->see_tasks);
+    free(t->seen_bundles);
+#endif
     free(t);
 }
 
 static void _add_to_non_sorted(Tree *tree, TayAgent *agent, int group) {
     agent->next = tree->first[group];
     tree->first[group] = agent;
-    _update_box(&tree->box, TAY_AGENT_POSITION(agent), tree->dimensions);
+    _update_box(&tree->box, TAY_AGENT_POSITION(agent), tree->dims);
 }
 
 static void _add(TaySpace *space, TayAgent *agent, int group) {
@@ -96,7 +115,7 @@ static void _move_agents_from_node_to_tree(Tree *tree, Node *node) {
         TayAgent *last = node->first[i];
         /* update global extents and find the last agent */
         while (1) {
-            _update_box(&tree->box, TAY_AGENT_POSITION(last), tree->dimensions);
+            _update_box(&tree->box, TAY_AGENT_POSITION(last), tree->dims);
             if (last->next)
                 last = last->next;
             else
@@ -125,7 +144,7 @@ static int _get_partition_dimension(float *min, float *max, float *diameters, in
 
 static void _sort_agent(Tree *tree, Node *node, TayAgent *agent, int group) {
     if (node->dim == NODE_DIM_UNDECIDED)
-        node->dim = _get_partition_dimension(node->box.min, node->box.max, tree->diameters, tree->dimensions);
+        node->dim = _get_partition_dimension(node->box.min, node->box.max, tree->diameters, tree->dims);
 
     if (node->dim == NODE_DIM_LEAF) {
         agent->next = node->first[group];
@@ -175,31 +194,50 @@ static void _update(TaySpace *space) {
         t->first[i] = 0;
     }
 
-    _reset_box(&t->box, t->dimensions);
+    _reset_box(&t->box, t->dims);
 }
 
-static void _traverse_seen_neighbors(Node *seer_node, Node *seen_node, TayPass *pass, Box seer_box, int dims, void *context) {
-    for (int i = 0; i < dims; ++i)
+static void _traverse_seen_neighbors(Tree *tree, Node *seer_node, Node *seen_node, TayPass *pass, Box seer_box, void *context) {
+    for (int i = 0; i < tree->dims; ++i)
         if (seer_box.min[i] > seen_node->box.max[i] || seer_box.max[i] < seen_node->box.min[i])
             return;
     if (seen_node->first[pass->seen_group]) { /* if there are any "seen" agents */
-        tay_thread_set_see(0, context, seer_node->first[pass->seer_group], seen_node->first[pass->seen_group], pass, dims);
+#if TREE_THREADED
+        TayThreadSeeTask *task = tree->see_tasks + tree->see_tasks_count;
+        task->seen_bundles[task->seen_bundles_count++] = seen_node->first[pass->seen_group];
+#else
+        assert(runner.count == 1);
+        tay_thread_set_see(0, context, seer_node->first[pass->seer_group], seen_node->first[pass->seen_group], pass, tree->dims);
         tay_runner_run_no_threads();
+#endif
     }
     if (seen_node->lo)
-        _traverse_seen_neighbors(seer_node, seen_node->lo, pass, seer_box, dims, context);
+        _traverse_seen_neighbors(tree, seer_node, seen_node->lo, pass, seer_box, context);
     if (seen_node->hi)
-        _traverse_seen_neighbors(seer_node, seen_node->hi, pass, seer_box, dims, context);
+        _traverse_seen_neighbors(tree, seer_node, seen_node->hi, pass, seer_box, context);
 }
 
 static void _traverse_seers(Tree *tree, Node *node, TayPass *pass, void *context) {
     if (node->first[pass->seer_group]) { /* if there are any "seeing" agents */
         Box seer_box = node->box;
-        for (int i = 0; i < tree->dimensions; ++i) {
+        for (int i = 0; i < tree->dims; ++i) {
             seer_box.min[i] -= pass->radii[i];
             seer_box.max[i] += pass->radii[i];
         }
-        _traverse_seen_neighbors(node, tree->nodes, pass, seer_box, tree->dimensions, context);
+
+#if TREE_THREADED
+        TayThreadSeeTask *task = tree->see_tasks + tree->see_tasks_count;
+        task->seer_agents = node->first[pass->seer_group];
+        task->seen_bundles = tree->seen_bundles + tree->seen_bundles_count;
+        task->seen_bundles_count = 0;
+#endif
+        _traverse_seen_neighbors(tree, node, tree->nodes, pass, seer_box, context);
+#if TREE_THREADED
+        if (task->seen_bundles_count) {
+            tree->seen_bundles_count += task->seen_bundles_count;
+            ++tree->see_tasks_count;
+        }
+#endif
     }
     if (node->lo)
         _traverse_seers(tree, node->lo, pass, context);
@@ -209,12 +247,42 @@ static void _traverse_seers(Tree *tree, Node *node, TayPass *pass, void *context
 
 static void _see(TaySpace *space, TayPass *pass, void *context) {
     Tree *t = space->storage;
+#if TREE_THREADED
+    /* collect thread tasks */
+    t->see_tasks_count = 0;
+    t->seen_bundles_count = 0;
+#endif
     _traverse_seers(t, t->nodes, pass, context);
+#if TREE_THREADED
+    /* distribute collected thread tasks among available threads */
+
+    int fill = (int)floor(t->see_tasks_count / (double)runner.count);
+    int rest = t->see_tasks_count - (runner.count - 1) * fill;
+
+    int i = 0;
+    for (; i < runner.count - 1; ++i)
+        tay_thread_set_see_multiple(i, context,
+                                    t->see_tasks + i * fill, fill,
+                                    pass,
+                                    t->dims);
+    tay_thread_set_see_multiple(i, context,
+                                t->see_tasks + i * fill, rest,
+                                pass,
+                                t->dims);
+    tay_runner_run();
+#endif
 }
 
 static void _traverse_actors(Node *node, TayPass *pass, void *context) {
-    tay_thread_set_act(0, context, node->first[pass->act_group], pass);
-    tay_runner_run_no_threads();
+    // TODO: parallelize this!
+//    tay_thread_set_act(0, context, node->first[pass->act_group], pass);
+#if TREE_THREADED
+//    for (int i = 1; i < runner.count; ++i)
+//        tay_thread_set_act(i, 0, 0, 0);
+#else
+//    assert(runner.count == 1);
+#endif
+//    tay_runner_run_no_threads();
     if (node->lo)
         _traverse_actors(node->lo, pass, context);
     if (node->hi)
@@ -228,7 +296,7 @@ static void _act(TaySpace *space, TayPass *pass, void *context) {
 
 static void _post(TaySpace *space, void (*func)(void *), void *context) {
     Tree *t = space->storage;
-    // assert(0); /* not implemented */
+    assert(0); /* not implemented */
 }
 
 static void _iter(TaySpace *space, int group, void (*func)(void *, void *), void *context) {
@@ -237,6 +305,6 @@ static void _iter(TaySpace *space, int group, void (*func)(void *, void *), void
 }
 
 void tree_init(TaySpace *space, int dims, float *radii) {
-    assert(runner.count == 1); /* currently can only run on a single thread */
+//    assert(runner.count == 1); /* currently can only run on a single thread */
     space_init(space, _init(dims, radii), dims, _destroy, _add, _see, _act, _post, _iter, _update);
 }

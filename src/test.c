@@ -127,12 +127,12 @@ static void _destroy_results(Results *r) {
 
 /* TODO: describe model case */
 static void _test_model_case1(TaySpaceType space_type, Results *results) {
-    int agents_count = 1700;
+    int agents_count = 4000;
 
     srand(1);
 
     Context context;
-    context.perception_r = 20.0f;
+    context.perception_r = 10.0f;
     context.space_r = 100.0f;
     float radii[] = { context.perception_r, context.perception_r, context.perception_r };
 
@@ -178,7 +178,7 @@ void test() {
 
     /* testing model case 1 */
 
-//    _test_model_case1(TAY_SPACE_SIMPLE, r);
+   // _test_model_case1(TAY_SPACE_SIMPLE, r);
     _test_model_case1(TAY_SPACE_TREE, r);
 
     _destroy_results(r);
