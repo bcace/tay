@@ -129,7 +129,7 @@ static void _test_model_case1(TaySpaceType space_type, Results *results) {
     srand(1);
 
     Context context;
-    context.perception_r = 10.0f;
+    context.perception_r = 40.0f;
     context.space_r = 100.0f;
     float radii[] = { context.perception_r, context.perception_r, context.perception_r };
 
@@ -149,6 +149,7 @@ static void _test_model_case1(TaySpaceType space_type, Results *results) {
             Agent *agents = tay_get_storage(s, g);
             for (int i = 0; i < agents_count; ++i)
                 results->data[i] = agents[i].hea;
+            results->first_time = 0;
         }
         else {
             Agent *agents = tay_get_storage(s, g);
@@ -167,7 +168,7 @@ static void _test_model_case1(TaySpaceType space_type, Results *results) {
 
 void test() {
 
-#if 0
+#if 1
     Results *r = _create_results();
 #else
     Results *r = 0;
@@ -175,8 +176,8 @@ void test() {
 
     /* testing model case 1 */
 
-    _test_model_case1(TAY_SPACE_SIMPLE, r);
-    // _test_model_case1(TAY_SPACE_TREE, r);
+//    _test_model_case1(TAY_SPACE_SIMPLE, r);
+    _test_model_case1(TAY_SPACE_TREE, r);
 
     _destroy_results(r);
 }

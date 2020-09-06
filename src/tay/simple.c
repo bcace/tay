@@ -61,7 +61,7 @@ static void _see_func(SeeContext *see_context) {
                     goto OUTSIDE_RADII;
             }
 
-            func(a, b, &see_context->context);
+            func(a, b, see_context->context);
 
             OUTSIDE_RADII:;
         }
@@ -100,7 +100,7 @@ static void _init_act_context(ActContext *act_context, TayPass *pass, TayAgent *
 
 static void _act_func(ActContext *act_context) {
     for (TayAgent *a = act_context->agents; a; a = a->next)
-        act_context->pass->act(a, &act_context->context);
+        act_context->pass->act(a, act_context->context);
 }
 
 static void _act(TaySpace *space, TayPass *pass, void *context) {
