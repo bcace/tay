@@ -193,34 +193,8 @@ static void _thread_traverse_seen(Tree *tree, Node *seer_node, Node *seen_node, 
     for (int i = 0; i < tree->dims; ++i)
         if (seer_box.min[i] > seen_node->box.max[i] || seer_box.max[i] < seen_node->box.min[i])
             return;
-    if (seen_node->first[pass->seen_group]) { /* if there are any "seen" agents */
-        TAY_SEE_FUNC func = pass->see;
-        float *radii = pass->radii;
-
-        TayAgent *seer_agents = seer_node->first[pass->seer_group];
-        TayAgent *seen_agents = seen_node->first[pass->seen_group];
-
-        for (TayAgent *a = seer_agents; a; a = a->next) {
-            float *pa = TAY_AGENT_POSITION(a);
-
-            for (TayAgent *b = seen_agents; b; b = b->next) {
-                float *pb = TAY_AGENT_POSITION(b);
-
-                if (a == b) /* this can be removed for cases where beg_a != beg_b */
-                    continue;
-
-                for (int k = 0; k < tree->dims; ++k) {
-                    float d = pa[k] - pb[k];
-                    if (d < -radii[k] || d > radii[k])
-                        goto OUTSIDE_RADII;
-                }
-
-                func(a, b, thread_context->context);
-
-                OUTSIDE_RADII:;
-            }
-        }
-    }
+    if (seen_node->first[pass->seen_group]) /* if there are any "seen" agents */
+        tay_see(seer_node->first[pass->seer_group], seen_node->first[pass->seen_group], pass->see, pass->radii, tree->dims, thread_context);
     if (seen_node->lo)
         _thread_traverse_seen(tree, seer_node, seen_node->lo, pass, seer_box, thread_context);
     if (seen_node->hi)

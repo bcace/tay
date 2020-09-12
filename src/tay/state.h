@@ -71,5 +71,6 @@ void space_init(TaySpace *space,
                 void (*update)(TaySpace *space));
 void space_simple_init(TaySpace *space, int dims);
 void tree_init(TaySpace *space, int dims, float *radii, float radius_to_cell_size_ratio);
+void tay_see(struct TayAgent *seer_agents, struct TayAgent *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, struct TayThreadContext *thread_context);
 
 #endif

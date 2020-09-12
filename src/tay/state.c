@@ -159,3 +159,26 @@ void space_init(TaySpace *space,
     space->iter = iter;
     space->update = update;
 }
+
+void tay_see(TayAgent *seer_agents, TayAgent *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, TayThreadContext *thread_context) {
+    for (TayAgent *a = seer_agents; a; a = a->next) {
+        float *pa = TAY_AGENT_POSITION(a);
+
+        for (TayAgent *b = seen_agents; b; b = b->next) {
+            float *pb = TAY_AGENT_POSITION(b);
+
+            if (a == b) /* this can be removed for cases where beg_a != beg_b */
+                continue;
+
+            for (int k = 0; k < dims; ++k) {
+                float d = pa[k] - pb[k];
+                if (d < -radii[k] || d > radii[k])
+                    goto OUTSIDE_RADII;
+            }
+
+            func(a, b, thread_context->context);
+
+            OUTSIDE_RADII:;
+        }
+    }
+}

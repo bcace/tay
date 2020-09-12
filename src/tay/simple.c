@@ -33,37 +33,15 @@ typedef struct {
     int dims;
 } SimpleSeeTask;
 
-static void _init_simple_see_task(SimpleSeeTask *see_context, TayPass *pass, TayAgent *seer_agents, TayAgent *seen_agents, int dims) {
-    see_context->pass = pass;
-    see_context->seer_agents = seer_agents;
-    see_context->seen_agents = seen_agents;
-    see_context->dims = dims;
+static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, TayAgent *seer_agents, TayAgent *seen_agents, int dims) {
+    task->pass = pass;
+    task->seer_agents = seer_agents;
+    task->seen_agents = seen_agents;
+    task->dims = dims;
 }
 
 static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
-    TAY_SEE_FUNC func = task->pass->see;
-    float *radii = task->pass->radii;
-
-    for (TayAgent *a = task->seer_agents; a; a = a->next) {
-        float *pa = TAY_AGENT_POSITION(a);
-
-        for (TayAgent *b = task->seen_agents; b; b = b->next) {
-            float *pb = TAY_AGENT_POSITION(b);
-
-            if (a == b) /* this can be removed for cases where beg_a != beg_b */
-                continue;
-
-            for (int k = 0; k < task->dims; ++k) {
-                float d = pa[k] - pb[k];
-                if (d < -radii[k] || d > radii[k])
-                    goto OUTSIDE_RADII;
-            }
-
-            func(a, b, thread_context->context);
-
-            OUTSIDE_RADII:;
-        }
-    }
+    tay_see(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
 }
 
 static void _see(TaySpace *space, TayPass *pass, void *context) {
