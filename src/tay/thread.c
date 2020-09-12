@@ -14,7 +14,7 @@ void tay_runner_init() {
 }
 
 static void _thread_work(TayThread *thread) {
-    thread->task_func(thread->task_context);
+    thread->task_func(thread->task, &thread->context);
 }
 
 unsigned int WINAPI _thread_func(TayThread *thread) {
@@ -82,50 +82,11 @@ static void _init_thread(TayThread *thread) {
     thread->run = 1;
 }
 
-void tay_thread_set_task(int index, void (*task_func)(void *), void *task_context) {
+void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *), void *task, void *context) {
     assert(index >= 0 && index < runner.count);
     TayThread *t = runner.threads + index;
     _init_thread(t);
     t->task_func = task_func;
-    t->task_context = task_context;
+    t->task = task;
+    t->context.context = context;
 }
-
-// void tay_thread_set_see(int index, void *context,
-//                         TayAgent *seer_agents,
-//                         TayAgent *seen_agents,
-//                         TayPass *pass,
-//                         int dims) {
-//     assert(index >= 0 && index < runner.count);
-//     TayThread *t = runner.threads + index;
-//     _init_thread(t, context);
-//     t->see_task.seer_agents = seer_agents;
-//     t->see_task.seen_agents = seen_agents;
-//     t->see_task.seen_bundles_count = -1;
-//     t->see_tasks_count = -1;
-//     t->pass = pass;
-//     t->dims = dims;
-// }
-
-// void tay_thread_set_see_multiple(int index, void *context,
-//                                  TayThreadSeeTask *see_tasks,
-//                                  int see_tasks_count,
-//                                  TayPass *pass,
-//                                  int dims) {
-//     assert(index >= 0 && index < runner.count);
-//     TayThread *t = runner.threads + index;
-//     _init_thread(t, context);
-//     t->see_tasks = see_tasks;
-//     t->see_tasks_count = see_tasks_count;
-//     t->pass = pass;
-//     t->dims = dims;
-// }
-
-// void tay_thread_set_act(int index, void *context,
-//                         TayAgent *act_agents,
-//                         TayPass *pass) {
-//     assert(index >= 0 && index < runner.count);
-//     TayThread *t = runner.threads + index;
-//     _init_thread(t, context);
-//     t->act_agents = act_agents;
-//     t->pass = pass;
-// }

@@ -29,7 +29,8 @@ static void _agent_perception_actual(Agent *a, vec d, float l, Context *c) {
     ++a->acc_count;
 }
 
-/* NOTE: only b agent can write to itself, can only read from a */
+/* Agent a is the seer (writes to itself) and agent b is the seen agent (is only read from),
+this should be somehow statically checked, so that the actual code doesn't do the wrong thing. */
 static void _agent_see(Agent *a, Agent *b, void *context) {
     vec d = vec_sub(b->p, a->p);
     float l = vec_length(d);
@@ -79,8 +80,8 @@ static void _agent_act(Agent *a, void *context) {
     }
 }
 
-static void _make_cluster(TayState *state, int group, int count, float radius, float speed, Context *context) {
-    vec cluster_p = vec_rand_scalar(-context->space_r, context->space_r);
+static void _make_cluster(TayState *state, int group, int count, float radius, float speed, float space_radius) {
+    vec cluster_p = vec_rand_scalar(-space_radius, space_radius);
     vec cluster_v = vec_rand_scalar(-1.0f, 1.0f);
     cluster_v = vec_normalize_to(cluster_v, speed);
     for (int i = 0; i < count; ++i) {
@@ -141,7 +142,7 @@ static void _test_model_case1(TaySpaceType space_type, float perception_r, float
     tay_add_act(s, g, _agent_act);
 
     for (int i = 0; i < agents_count; ++i)
-        _make_cluster(s, g, 1, space_r, 1.0f, &context);
+        _make_cluster(s, g, 1, space_r, 1.0f, space_r);
 
     printf("R: %g, r: %g\n", perception_r, radius_to_cell_size_ratio);
 
@@ -171,7 +172,7 @@ static void _test_model_case1(TaySpaceType space_type, float perception_r, float
 
 void test() {
 
-#if 0
+#if 1
     Results *r = _create_results();
 #else
     Results *r = 0;
@@ -182,8 +183,8 @@ void test() {
     for (int i = 2; i < 3; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-        for (int j = 0; j < 64; ++j) {
-            float ratio = 0.2f + 0.005f * j;
+        for (int j = 0; j < 16; ++j) {
+            float ratio = 0.2f + 0.2f * j;
 
             _test_model_case1(TAY_SPACE_TREE, perception_r, ratio, r);
         }
