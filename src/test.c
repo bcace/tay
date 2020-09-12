@@ -144,7 +144,7 @@ static void _test_model_case1(TaySpaceType space_type, float perception_r, float
     for (int i = 0; i < agents_count; ++i)
         _make_cluster(s, g, 1, space_r, 1.0f, space_r);
 
-    printf("R: %g, r: %g\n", perception_r, radius_to_cell_size_ratio);
+    printf("R: %g, r: %g, cell size: %g\n", perception_r, radius_to_cell_size_ratio, space_r * 2.0f / (perception_r * radius_to_cell_size_ratio));
 
     tay_run(s, 100, &context);
 

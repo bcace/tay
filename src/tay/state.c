@@ -3,6 +3,8 @@
 #include "thread.h"
 #include <stdlib.h>
 #include <assert.h>
+#include <stdio.h>
+#include <time.h>
 
 
 TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float *space_radii, float radius_to_cell_size_ratio) {
@@ -100,14 +102,11 @@ void *tay_get_storage(struct TayState *state, int group) {
     return g->storage;
 }
 
-#include <stdio.h>
-#include <time.h>
-
 void tay_run(TayState *state, int steps, void *context) {
     struct timespec beg, end;
     timespec_get(&beg, TIME_UTC);
 
-    // tay_runner_clear_stats();
+    tay_runner_reset_stats();
 
     for (int i = 0; i < steps; ++i) {
         state->space.update(&state->space);
@@ -127,12 +126,9 @@ void tay_run(TayState *state, int steps, void *context) {
     timespec_get(&end, TIME_UTC);
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
     double fps = steps / t;
-    printf("run time: %g sec, %g fps\n", t, fps);
-    for (int i = 0; i < runner.count; ++i) {
-        TayThread *t = runner.threads + i;
-        // printf("  thread %d:\n", i);
-        // printf("    runs: %d/%d\n", t->context.useful_see_runs, t->context.all_see_runs);
-    }
+
+    tay_runner_report_stats();
+    printf("run time: %g sec, %g fps\n\n", t, fps);
 }
 
 void tay_iter_agents(struct TayState *state, int group, void (*func)(void *, void *), void *context) {
@@ -170,11 +166,15 @@ void tay_see(TayAgent *seer_agents, TayAgent *seen_agents, TAY_SEE_FUNC func, fl
             if (a == b) /* this can be removed for cases where beg_a != beg_b */
                 continue;
 
+            ++thread_context->broad_see_phase;
+
             for (int k = 0; k < dims; ++k) {
                 float d = pa[k] - pb[k];
                 if (d < -radii[k] || d > radii[k])
                     goto OUTSIDE_RADII;
             }
+
+            ++thread_context->narrow_see_phase;
 
             func(a, b, thread_context->context);
 

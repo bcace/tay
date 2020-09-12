@@ -8,7 +8,8 @@ typedef void *Handle;
 
 typedef struct TayThreadContext {
     void *context; /* model context */
-    // TODO: add any instrumentation stuff here, this will all be thread-specific
+    int broad_see_phase;
+    int narrow_see_phase;
 } TayThreadContext;
 
 typedef struct TayThread {
@@ -39,6 +40,8 @@ void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *
 void tay_runner_run();
 void tay_runner_stop_threads();
 void tay_runner_run_no_threads();
+void tay_runner_reset_stats();
+void tay_runner_report_stats();
 
 extern TayRunner runner;
 

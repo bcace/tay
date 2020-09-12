@@ -122,6 +122,19 @@ static int _get_partition_dimension(float *min, float *max, float *diameters, in
     return max_d;
 }
 
+static int _natural_depth(float space_side, float radius_side):
+    float ratio = space_side / radius_side;
+    int depth = 0;
+    if (ratio > 1.0f) {
+        radius_side *= 2.0;
+        while (space_side / radius_side > 1.0f) {
+            radius_side *= 2.0f;
+            depth += 1;
+        }
+    }
+    return depth;
+}
+
 static void _sort_agent(Tree *tree, Node *node, TayAgent *agent, int group) {
     if (node->dim == NODE_DIM_UNDECIDED)
         node->dim = _get_partition_dimension(node->box.min, node->box.max, tree->diameters, tree->dims);

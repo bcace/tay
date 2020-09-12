@@ -2,6 +2,7 @@
 #include "state.h"
 #include "tay.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 #include <windows.h>
 
@@ -89,4 +90,25 @@ void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *
     t->task_func = task_func;
     t->task = task;
     t->context.context = context;
+}
+
+void tay_runner_reset_stats() {
+    for (int i = 0; i < TAY_MAX_THREADS; ++i) {
+        TayThreadContext *c = &runner.threads[i].context;
+        c->broad_see_phase = 0;
+        c->narrow_see_phase = 0;
+    }
+}
+
+void tay_runner_report_stats() {
+    int broad_see_phase = 0;
+    int narrow_see_phase = 0;
+    for (int i = 0; i < runner.count; ++i) {
+        TayThreadContext *c = &runner.threads[i].context;
+        printf("  thread %d\n", i);
+        printf("    see phases: %d/%d\n", c->narrow_see_phase, c->broad_see_phase);
+        broad_see_phase += c->broad_see_phase;
+        narrow_see_phase += c->narrow_see_phase;
+    }
+    printf("sum pf see phases: %d/%d\n", narrow_see_phase, broad_see_phase);
 }
