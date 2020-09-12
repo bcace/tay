@@ -69,6 +69,6 @@ void space_init(TaySpace *space,
                 void (*iter)(TaySpace *space, int group, void (*func)(void *, void *), void *context),
                 void (*update)(TaySpace *space));
 void space_simple_init(TaySpace *space, int dims);
-void tree_init(TaySpace *space, int dims, float *radii);
+void tree_init(TaySpace *space, int dims, float *radii, float radius_to_cell_size_ratio);
 
 #endif

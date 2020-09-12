@@ -9,10 +9,6 @@
 #define NODE_DIM_UNDECIDED  100
 #define NODE_DIM_LEAF       101
 
-#define TREE_THREADED 0
-
-
-const float radius_to_cell_size_ratio = 1.0f;
 
 typedef struct {
     float min[TAY_MAX_DIMENSIONS];
@@ -60,7 +56,7 @@ typedef struct {
     Box box;
 } Tree;
 
-static Tree *_init(int dims, float *radii) {
+static Tree *_init(int dims, float *radii, float radius_to_cell_size_ratio) {
     Tree *t = calloc(1, sizeof(Tree));
     t->dims = dims;
     t->nodes_cap = 100000;
@@ -318,6 +314,6 @@ static void _iter(TaySpace *space, int group, void (*func)(void *, void *), void
     // assert(0); /* not implemented */
 }
 
-void tree_init(TaySpace *space, int dims, float *radii) {
-    space_init(space, _init(dims, radii), dims, _destroy, _add, _see, _act, _post, _iter, _update);
+void tree_init(TaySpace *space, int dims, float *radii, float radius_to_cell_size_ratio) {
+    space_init(space, _init(dims, radii, radius_to_cell_size_ratio), dims, _destroy, _add, _see, _act, _post, _iter, _update);
 }

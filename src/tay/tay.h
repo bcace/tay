@@ -13,7 +13,7 @@ typedef enum TaySpaceType {
 
 typedef struct TayState TayState;
 
-TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float *space_radii);
+TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float *space_radii, float radius_to_cell_size_ratio);
 void tay_destroy_state(TayState *state);
 int tay_add_group(TayState *state, int agent_size, int agent_capacity);
 void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, struct TayThreadContext *), float *radii);

@@ -123,24 +123,27 @@ static void _destroy_results(Results *r) {
 }
 
 /* TODO: describe model case */
-static void _test_model_case1(TaySpaceType space_type, Results *results) {
+static void _test_model_case1(TaySpaceType space_type, float perception_r, float radius_to_cell_size_ratio, Results *results) {
     int agents_count = 4000;
+    float space_r = 100.0f;
 
     srand(1);
 
     Context context;
-    context.perception_r = 40.0f;
-    context.space_r = 100.0f;
-    float radii[] = { context.perception_r, context.perception_r, context.perception_r };
+    context.perception_r = perception_r;
+    context.space_r = space_r;
+    float radii[] = { perception_r, perception_r, perception_r };
 
-    TayState *s = tay_create_state(space_type, 3, radii);
+    TayState *s = tay_create_state(space_type, 3, radii, radius_to_cell_size_ratio);
 
     int g = tay_add_group(s, sizeof(Agent), agents_count);
     tay_add_see(s, g, g, _agent_see, radii);
     tay_add_act(s, g, _agent_act);
 
     for (int i = 0; i < agents_count; ++i)
-        _make_cluster(s, g, 1, context.space_r, 1.0f, &context);
+        _make_cluster(s, g, 1, space_r, 1.0f, &context);
+
+    printf("R: %g, r: %g\n", perception_r, radius_to_cell_size_ratio);
 
     tay_run(s, 100, &context);
 
@@ -168,7 +171,7 @@ static void _test_model_case1(TaySpaceType space_type, Results *results) {
 
 void test() {
 
-#if 1
+#if 0
     Results *r = _create_results();
 #else
     Results *r = 0;
@@ -176,8 +179,21 @@ void test() {
 
     /* testing model case 1 */
 
-//    _test_model_case1(TAY_SPACE_SIMPLE, r);
-    _test_model_case1(TAY_SPACE_TREE, r);
+    for (int i = 2; i < 3; ++i) {
+        float perception_r = 10.0f * (1 << i);
+
+        for (int j = 0; j < 64; ++j) {
+            float ratio = 0.2f + 0.005f * j;
+
+            _test_model_case1(TAY_SPACE_TREE, perception_r, ratio, r);
+        }
+
+        printf("reference:\n");
+
+        _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0.0f, r);
+
+        printf("\n");
+    }
 
     _destroy_results(r);
 }
