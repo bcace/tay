@@ -124,7 +124,7 @@ static void _destroy_results(Results *r) {
 }
 
 /* TODO: describe model case */
-static void _test_model_case1(TaySpaceType space_type, float perception_r, float radius_to_cell_size_ratio, Results *results) {
+static void _test_model_case1(TaySpaceType space_type, float perception_r, int max_depth_correction, Results *results) {
     int agents_count = 4000;
     float space_r = 100.0f;
 
@@ -135,7 +135,7 @@ static void _test_model_case1(TaySpaceType space_type, float perception_r, float
     context.space_r = space_r;
     float radii[] = { perception_r, perception_r, perception_r };
 
-    TayState *s = tay_create_state(space_type, 3, radii, radius_to_cell_size_ratio);
+    TayState *s = tay_create_state(space_type, 3, radii, max_depth_correction);
 
     int g = tay_add_group(s, sizeof(Agent), agents_count);
     tay_add_see(s, g, g, _agent_see, radii);
@@ -144,7 +144,7 @@ static void _test_model_case1(TaySpaceType space_type, float perception_r, float
     for (int i = 0; i < agents_count; ++i)
         _make_cluster(s, g, 1, space_r, 1.0f, space_r);
 
-    printf("R: %g, r: %g, cell size: %g\n", perception_r, radius_to_cell_size_ratio, space_r * 2.0f / (perception_r * radius_to_cell_size_ratio));
+    printf("R: %g, depth_correction: %d\n", perception_r, max_depth_correction);
 
     tay_run(s, 100, &context);
 
@@ -183,15 +183,12 @@ void test() {
     for (int i = 2; i < 3; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-        for (int j = 0; j < 16; ++j) {
-            float ratio = 0.2f + 0.2f * j;
-
-            _test_model_case1(TAY_SPACE_TREE, perception_r, ratio, r);
-        }
+        for (int j = 0; j < 4; ++j)
+            _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 
         printf("reference:\n");
 
-        _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0.0f, r);
+        _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
 
         printf("\n");
     }

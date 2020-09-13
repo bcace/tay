@@ -7,12 +7,12 @@
 #include <time.h>
 
 
-TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float *space_radii, float radius_to_cell_size_ratio) {
+TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float *space_radii, int max_depth_correction) {
     TayState *s = calloc(1, sizeof(TayState));
     if (space_type == TAY_SPACE_SIMPLE)
         space_simple_init(&s->space, space_dimensions);
     else if (space_type == TAY_SPACE_TREE)
-        tree_init(&s->space, space_dimensions, space_radii, radius_to_cell_size_ratio);
+        tree_init(&s->space, space_dimensions, space_radii, max_depth_correction);
     else
         assert(0); /* not implemented */
     return s;

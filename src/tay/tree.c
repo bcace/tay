@@ -31,11 +31,21 @@ static void _update_box(Box *box, float *p, int dims) {
     }
 }
 
+typedef struct {
+    int dims[TAY_MAX_DIMENSIONS];
+} Depths;
+
+static void _reset_depths(Depths *depths, int dims) {
+    for (int i = 0; i < dims; ++i)
+        depths->dims[i] = 0;
+}
+
 typedef struct Node {
     struct Node *lo, *hi; /* child partitions */
     TayAgent *first[TAY_MAX_GROUPS]; /* agents contained in this node (fork or leaf) */
     int dim; /* dimension along which the node's partition is divided into child partitions */
     Box box;
+    Depths depths;
 } Node;
 
 static void _clear_node(Node *node) {
@@ -52,20 +62,23 @@ typedef struct {
     int nodes_cap;
     int available_node;
     int dims;
-    float diameters[TAY_MAX_DIMENSIONS];
+    int max_depth_correction;
+    float radii[TAY_MAX_DIMENSIONS];
+    int max_depths[TAY_MAX_DIMENSIONS];
     Box box;
 } Tree;
 
-static Tree *_init(int dims, float *radii, float radius_to_cell_size_ratio) {
+static Tree *_init(int dims, float *radii, int max_depth_correction) {
     Tree *t = calloc(1, sizeof(Tree));
     t->dims = dims;
+    t->max_depth_correction = max_depth_correction;
     t->nodes_cap = 100000;
     t->nodes = malloc(t->nodes_cap * sizeof(Node));
     t->available_node = 1; /* root node is always allocated */
     _clear_node(t->nodes);
     _reset_box(&t->box, t->dims);
     for (int i = 0; i < dims; ++i)
-        t->diameters[i] = radii[i] * radius_to_cell_size_ratio;
+        t->radii[i] = radii[i];
     return t;
 }
 
@@ -122,22 +135,20 @@ static int _get_partition_dimension(float *min, float *max, float *diameters, in
     return max_d;
 }
 
-static int _natural_depth(float space_side, float radius_side):
-    float ratio = space_side / radius_side;
-    int depth = 0;
-    if (ratio > 1.0f) {
-        radius_side *= 2.0;
-        while (space_side / radius_side > 1.0f) {
-            radius_side *= 2.0f;
-            depth += 1;
+static void _sort_agent(Tree *tree, Node *node, TayAgent *agent, int group) {
+    if (node->dim == NODE_DIM_UNDECIDED) {
+        node->dim = NODE_DIM_LEAF;
+        float max_r = 0.0f;
+        for (int i = 0; i < tree->dims; ++i) {
+            if (node->depths.dims[i] >= tree->max_depths[i])
+                continue;
+            float r = (node->box.max[i] - node->box.min[i]) / tree->radii[i];
+            if (r > max_r) {
+                max_r = r;
+                node->dim = i;
+            }
         }
     }
-    return depth;
-}
-
-static void _sort_agent(Tree *tree, Node *node, TayAgent *agent, int group) {
-    if (node->dim == NODE_DIM_UNDECIDED)
-        node->dim = _get_partition_dimension(node->box.min, node->box.max, tree->diameters, tree->dims);
 
     if (node->dim == NODE_DIM_LEAF) {
         agent->next = node->first[group];
@@ -151,9 +162,11 @@ static void _sort_agent(Tree *tree, Node *node, TayAgent *agent, int group) {
                 assert(tree->available_node < tree->nodes_cap);
                 node->lo = tree->nodes + tree->available_node++;
                 _clear_node(node->lo);
+                node->lo->box = node->box;
+                node->lo->box.max[node->dim] = mid;
+                node->lo->depths = node->depths;
+                node->lo->depths.dims[node->dim]++;
             }
-            node->lo->box = node->box;
-            node->lo->box.max[node->dim] = mid;
             _sort_agent(tree, node->lo, agent, group);
         }
         else {
@@ -161,12 +174,23 @@ static void _sort_agent(Tree *tree, Node *node, TayAgent *agent, int group) {
                 assert(tree->available_node < tree->nodes_cap);
                 node->hi = tree->nodes + tree->available_node++;
                 _clear_node(node->hi);
+                node->hi->box = node->box;
+                node->hi->box.min[node->dim] = mid;
+                node->hi->depths = node->depths;
+                node->hi->depths.dims[node->dim]++;
             }
-            node->hi->box = node->box;
-            node->hi->box.min[node->dim] = mid;
             _sort_agent(tree, node->hi, agent, group);
         }
     }
+}
+
+static int _max_depth(float space_side, float see_side, int max_depth_correction) {
+    int depth = 0;
+    while ((space_side *= 0.5f) > see_side)
+        ++depth;
+    if ((depth += max_depth_correction) < 0)
+        depth = 0;
+    return depth;
 }
 
 static void _update(TaySpace *space) {
@@ -175,6 +199,10 @@ static void _update(TaySpace *space) {
     t->available_node = 1;
     _clear_node(t->nodes);
     t->nodes->box = t->box;
+    _reset_depths(&t->nodes->depths, t->dims);
+
+    for (int i = 0; i < t->dims; ++i)
+        t->max_depths[i] = _max_depth(t->box.max[i] - t->box.min[i], t->radii[i] * 2.0f, t->max_depth_correction);
 
     /* sort all agents from tree into nodes */
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
@@ -296,6 +324,6 @@ static void _iter(TaySpace *space, int group, void (*func)(void *, void *), void
     // assert(0); /* not implemented */
 }
 
-void tree_init(TaySpace *space, int dims, float *radii, float radius_to_cell_size_ratio) {
-    space_init(space, _init(dims, radii, radius_to_cell_size_ratio), dims, _destroy, _add, _see, _act, _post, _iter, _update);
+void tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction) {
+    space_init(space, _init(dims, radii, max_depth_correction), dims, _destroy, _add, _see, _act, _post, _iter, _update);
 }
