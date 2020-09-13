@@ -122,19 +122,6 @@ static void _move_agents_from_node_to_tree(Tree *tree, Node *node) {
     _move_agents_from_node_to_tree(tree, node->hi);
 }
 
-static int _get_partition_dimension(float *min, float *max, float *diameters, int dimensions) {
-    float max_r = 2.0f; /* partition side and cell side ratio must be > 2.0 for partition to occur */
-    int max_d = NODE_DIM_LEAF;
-    for (int i = 0; i < dimensions; ++i) {
-        float r = (max[i] - min[i]) / diameters[i];
-        if (r > max_r) {
-            max_r = r;
-            max_d = i;
-        }
-    }
-    return max_d;
-}
-
 static void _sort_agent(Tree *tree, Node *node, TayAgent *agent, int group) {
     if (node->dim == NODE_DIM_UNDECIDED) {
         node->dim = NODE_DIM_LEAF;
