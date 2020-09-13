@@ -166,7 +166,9 @@ void tay_see(TayAgent *seer_agents, TayAgent *seen_agents, TAY_SEE_FUNC func, fl
             if (a == b) /* this can be removed for cases where beg_a != beg_b */
                 continue;
 
+#if TAY_INSTRUMENT
             ++thread_context->broad_see_phase;
+#endif
 
             for (int k = 0; k < dims; ++k) {
                 float d = pa[k] - pb[k];
@@ -174,7 +176,9 @@ void tay_see(TayAgent *seer_agents, TayAgent *seen_agents, TAY_SEE_FUNC func, fl
                     goto OUTSIDE_RADII;
             }
 
+#if TAY_INSTRUMENT
             ++thread_context->narrow_see_phase;
+#endif
 
             func(a, b, thread_context->context);
 

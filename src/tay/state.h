@@ -4,6 +4,7 @@
 #define TAY_MAX_GROUPS      8
 #define TAY_MAX_PASSES      32
 #define TAY_MAX_DIMENSIONS  8
+#define TAY_INSTRUMENT      0
 
 #define TAY_AGENT_POSITION(__agent__) ((float *)(__agent__ + 1))
 

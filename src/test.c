@@ -172,7 +172,7 @@ static void _test_model_case1(TaySpaceType space_type, float perception_r, int m
 
 void test() {
 
-#if 1
+#if 0
     Results *r = _create_results();
 #else
     Results *r = 0;
@@ -180,7 +180,7 @@ void test() {
 
     /* testing model case 1 */
 
-    for (int i = 2; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         float perception_r = 10.0f * (1 << i);
 
         for (int j = 0; j < 4; ++j)
