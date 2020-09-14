@@ -12,14 +12,49 @@ To ensure this simulation runtime is flexible enough for most ABMs the following
 * Space should not have "walls", agents should not be forced to "bounce" off the edges or jump to the opposite side just because of the defficiencies of the implementation
 * Space should be able to handle agents that are not points (lines, polygons or bodies) equally efficiently (e.g. stationary terrain and building polygons as agents)
 * Any other type of interaction (e.g. connections) should work alongside the proximity system without any problems
+* (arbitrary number of action and interaction passes)
+* (arbitrary number of agent types (groups of agents with different attributes and behaviors) to which those actions and interactions apply)
 * Skipping random agents/interactions for a number of simulation steps should be supported (e.g. agent types that should be simulated at the same time but at different speeds)
 
 # Space partitioning
 
+If we don't use space partitioning in models where agents only interact with other agents if they're within some range we have to test proximity of each pair of agents, and in the case where 4000 agents move in a 400 x 400 x 400 box and interact at radius of 40, in 100 simulation steps we have to perform 1599600000 tests of which only 28991382 are positive (pair of agents that are close enough to interact). With the tree structure implemented in this project number of tests can be reduced to 71612980 (for the same number of actual interactions). Of course, this reduction isn't free, we just replace the large number of proximity tests with building the tree and its traversal to find neighboring nodes whose agents should be tested for interaction. Reducing this overhead is not simple because there are two conflicting influences: tree node traversal on one hand (reduced by decreasing tree depth) and proximity testing between agents of nodes that have been found to be close enough (reduced by increasing tree depth), which means an optimum tree depth can be found. Since both influences depend on space size and agent density, both of which can change over time, this optimal tree depth should be adjusted dynamically.
+
+## Tree depths
+
+Currently an initial tree depth is calculated for each dimension individually and an additional parameter that increases or decreases these initial depths is varied to show the position of this optimum for different models and cases. For example, for the case described above ...
+
+depth_correction: 0
+interactions/tests: 28991382/737226964
+run time: 1.87762 sec, 53.2589 fps
+
+depth_correction: 1
+interactions/tests: 28991382/154761512
+run time: 0.717073 sec, 139.456 fps
+
+depth_correction: 2
+interactions/tests: 28991382/95648922
+run time: 0.752878 sec, 132.824 fps
+
+depth_correction: 3
+interactions/tests: 28991382/71612980
+run time: 1.27378 sec, 78.5067 fps
+
+reference:
+depth_correction: 0
+interactions/tests: 28991382/1599600000
+run time: 4.1433 sec, 24.1353 fps
+
+All the experiments above were executed on 8 threads, and the last "reference" experiment is the case with no space partitioning but still multithreaded.
+
+(sampling run-times for adjusting tree depth automatically)
+
+## Tree structure
+
+For space partitioning an unbalanced k-d tree is used where space is always split in half, both leaf and non-leaf nodes can contain agents and tree depth is limited in each dimension individually according to interaction radius in that dimension and length of the smallest bounding box containing all agents in the same dimension.
+
 (why not grid? why not quad/octree?)
-(minimizing false positives)
-(tree implementation description, the way space is partitioned and how the execution is multithreaded)
-(optimum between minimizing false positives by increasing tree depth and minimizing tree traversal overhead by decreasing tree depth, related to interaction radii and can be adjusted at runtime automatically by sampling run-times of both)
+(tree implementation description, the way space is partitioned and how execution is multithreaded)
 
 # Multithreading
 
