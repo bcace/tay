@@ -12,9 +12,10 @@ To ensure this simulation runtime is flexible enough for most ABMs the following
 * Space should not have "walls", agents should not be forced to "bounce" off the edges or jump to the opposite side just because of the defficiencies of the implementation
 * Space should be able to handle agents that are not points (lines, polygons or bodies) equally efficiently (e.g. stationary terrain and building polygons as agents)
 * Any other type of interaction (e.g. connections) should work alongside the proximity system without any problems
+* Skipping random agents/interactions for a number of simulation steps should be supported (e.g. agent types that should be simulated at the same time but at different speeds)
 * (arbitrary number of action and interaction passes)
 * (arbitrary number of agent types (groups of agents with different attributes and behaviors) to which those actions and interactions apply)
-* Skipping random agents/interactions for a number of simulation steps should be supported (e.g. agent types that should be simulated at the same time but at different speeds)
+* (adding and removing agents)
 
 # Space partitioning
 
@@ -24,39 +25,49 @@ If we don't use space partitioning in models where agents only interact with oth
 
 Currently an initial tree depth is calculated for each dimension individually and an additional parameter that increases or decreases these initial depths is varied to show the position of this optimum for different models and cases. For example, for the case described above ...
 
-depth_correction: 0
-interactions/tests: 28991382/737226964
-run time: 1.87762 sec, 53.2589 fps
+(what is depth correction)
 
-depth_correction: 1
-interactions/tests: 28991382/154761512
-run time: 0.717073 sec, 139.456 fps
+| depth correction | interactions | tests | run-time (100 steps)
+| --- | --- | --- | ---
+| (no partitioning) | 28991382 | 1599600000 | 4.1433
+| 0 | 28991382 | 737226964 | 1.87762
+| 1 | 28991382 | 154761512 | 0.717073
+| 2 | 28991382 | 95648922 | 0.752878
+| 3 | 28991382 | 71612980 | 1.27378
 
-depth_correction: 2
-interactions/tests: 28991382/95648922
-run time: 0.752878 sec, 132.824 fps
-
-depth_correction: 3
-interactions/tests: 28991382/71612980
-run time: 1.27378 sec, 78.5067 fps
-
-reference:
-depth_correction: 0
-interactions/tests: 28991382/1599600000
-run time: 4.1433 sec, 24.1353 fps
-
-All the experiments above were executed on 8 threads, and the last "reference" experiment is the case with no space partitioning but still multithreaded.
+All the experiments above were executed on 8 threads, including the first run where space is not partitioned, but the workload is still optimally divided between threads.
 
 (sampling run-times for adjusting tree depth automatically)
 
 ## Tree structure
 
-For space partitioning an unbalanced k-d tree is used where space is always split in half, both leaf and non-leaf nodes can contain agents and tree depth is limited in each dimension individually according to interaction radius in that dimension and length of the smallest bounding box containing all agents in the same dimension.
+Currently the space is partitioned with an unbalanced k-d tree where both leaf and non-leaf nodes can contain (multiple) agents. Leaf nodes can contain multiple agents because, as described above, tree depth is limited. Non-leaf nodes must be able to contain agents because that's the most practical way of handling agents that are not points (which is exactly why a grid instead of a tree would not be appropriate).
 
-(why not grid? why not quad/octree?)
+The entire tree is updated at each step because agents are expected to move quickly, and profiling shows that updating the tree takes very little time (143 samples in tree update which includes teardown and buildup, compared to 12156 samples from worker threads). This is expected because tree update process consists of a single pass through the tree where agents are removed from each node, then a single pass where agents are sorted into a new tree. Creating new nodes along the way is a cheap operation which consists of incrementing a counter on the node pool and some very quick node initialization.
+
 (tree implementation description, the way space is partitioned and how execution is multithreaded)
 
-# Multithreading
+Once the tree is updated it can be used to efficiently execute proximity tests and interactions between agents of neighboring tree nodes. Each tree node searches the tree for neighboring nodes such that their bounding boxes plus the interaction radius overlap.
+
+(actions can be multi-threaded even more easily)
+
+Before describing how this phase is multi-threaded I should explain what kind of interaction between agents is performed. Most relevant to performance of multithreading is that the two agents in this interaction have two distinct roles: "seer" and "seen". Seer is the agent that reads values from the seen agent. This means that in this relationship seer agent is the one whose values get changes and seen agent is the one whose values only get read (don't change).
+
+If we can rely on interaction code being written so that one agent is written to and other is read from we can see how to easily multi-thread execution from the perspective of a tree structure. Each thread does the same traversal through the tree where each encountered node is a "seer" node, and each "seer" node from within its thread searches the tree for neighboring "seen" nodes (meaning nodes which contain agents that assume "seer" or "seen" role). Of course, each thread doesn't find neighbors for each tree node,
+
+ but only for neighbor nodes for certain nodes: if there are 4 threads, then first thread searches neighbors of 0-th, 4-th, 8-th ... nodes, and the second thread searches neighbors of 1-st, 5-th, 9-th ... nodes, and so on. Even if the tree is unbalanced, because of this node skipping workload ends up being well balanced between threads:
+
+| thread | interactions | tests
+| --- | --- | ---
+| 0 | 3455539 | 18478171
+| 1 | 3444997 | 18472097
+| 2 | 3612807 | 19238994
+| 3 | 3685869 | 19655973
+| 4 | 3622106 | 19365190
+| 5 | 3764484 | 20042284
+| 6 | 3814683 | 20309528
+| 7 | 3590897 | 19199275
+| all | 28991382 | 154761512
 
 (skipping tree nodes from threads, balanced workloads, determinism, parallelizable interaction and action code)
 
