@@ -12,7 +12,11 @@ If interactions are spatially limited then the usual procedure is to split the s
 
 ## Multithreading
 
-(To combine multithreading with that we have to know which data is written to and which is read from. Asymmetric interaction code, one agent can write to itself, other one's data is read-only. Once we know that we can organize multithreaded execution such that an agent can appear as a *seer* only in a single thread, but can appear as a *seen* agent in multiple threads.)
+[Readers-writers](https://en.wikipedia.org/wiki/Readers%E2%80%93writers_problem) problem is a common concurrency problem, and, as elaborated in [ochre](https://github.com/bcace/ochre), in ABM simulations we can solve the problem of concurrent read and write by double-buffering, and the *results* of multiple concurrent writes by using only commutative operations, but we still have to make sure that even those commutative writes don't actually happen at the same time.
+
+For this we can introduce the notion of a *see* agent interaction, a piece of code that describes interaction between two agents where one of those agents "perceives" the other. So both agents have their distinct roles in the context of that interaction: *seer* agent whose state changes as a result of that interaction (by a commutative write), and a *seen* agent whose state is read-only (in that thread, in another thread that same agent can have the role of the *seer* agent and because of double-buffering whatever writes happen in the second thread won't clash with any reads from the first thread).
+
+Once we have the interaction code where we know which of the two agents is read-only and which changes state, we can schedule that code to be executed in multiple threads, we only have to make sure that an agent is a *seer* agent only in one thread, but can be a *seen* agent in multiple other threads.
 
 ## Tree
 
