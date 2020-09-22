@@ -1,6 +1,6 @@
 # Tay
 
-Flexible simulation runtime for spatial ABMs. The goal of Tay is to provide various space partitioning and multithreading setups so that simulations of different models can run efficiently. Setups should be interchangeable so that as the models change during development, or as simulations are run on different hardware, the runtime can adapt to the needs of the model.
+Tay is a simulation runtime for spatial ABMs containing a collection of space partitioning and multithreading setups with the goal of testing their suitability for running efficient simulations of different types of models.
 
 ## Where does the performance (usually) go?
 
@@ -12,11 +12,15 @@ If interactions are spatially limited then the usual procedure is to split the s
 
 ## Multithreading
 
-[Readers-writers](https://en.wikipedia.org/wiki/Readers%E2%80%93writers_problem) problem is a common concurrency problem, and, as elaborated in [ochre](https://github.com/bcace/ochre), in ABM simulations we can solve the problem of concurrent read and write by double-buffering, and the *results* of multiple concurrent writes by using only commutative operations, but we still have to make sure that even those commutative writes don't actually happen at the same time.
+[Readers-writers](https://en.wikipedia.org/wiki/Readers%E2%80%93writers_problem) problem is a common concurrency problem, and, as elaborated in [ochre](https://github.com/bcace/ochre) in ABM simulations we can solve the problem of concurrent read and write by double-buffering, and ensure correct *results* of multiple concurrent writes by using only commutative operations, but we still have to make sure that those commutative writes don't actually happen at the same time.
 
-For this we can introduce the notion of a *see* agent interaction, a piece of code that describes interaction between two agents where one of those agents "perceives" the other. So both agents have their distinct roles in the context of that interaction: *seer* agent whose state changes as a result of that interaction (by a commutative write), and a *seen* agent whose state is read-only (in that thread, in another thread that same agent can have the role of the *seer* agent and because of double-buffering whatever writes happen in the second thread won't clash with any reads from the first thread).
+For this we can introduce a notion of a *see* agent interaction, a piece of code that describes interaction between two agents where one of those agents "perceives" the other. So both agents have their distinct roles in the context of that interaction: *seer* agent whose state changes as a result of that interaction (by a commutative write), and a *seen* agent whose state is read-only (in that thread, in another thread that same agent can have the role of the *seer* agent and because of double-buffering whatever writes happen in the second thread won't clash with any reads from the first thread).
 
-Once we have the interaction code where we know which of the two agents is read-only and which changes state, we can schedule that code to be executed in multiple threads, we only have to make sure that an agent is a *seer* agent only in one thread, but can be a *seen* agent in multiple other threads.
+Once we have the interaction code where we know which of the two agents is read-only and which changes state, we can schedule that code to be executed in multiple threads, we only have to make sure that an agent is a *seer* agent only in one thread, but can be a *seen* agent in multiple threads.
+
+Between interaction sections of a simulation step agents sometimes need action (*act*) passes, pieces of code that describe what each agent does by itself, usually to perform the *swap* phase of a double-buffered perception and then act on the perceived information. Since there is no interaction between agents at this time, these passes can be trivially multithreaded.
+
+> Since *act* pass is O(n), where worst case for a *see* phase is O(n^2) it's not usually that important to multithread the *act* phase, but there could be cases where the *act* code is so complicated and slow that the whole pass starts competing with the *see* passes for time, so we do it anyway.
 
 ## Tree
 
