@@ -2,9 +2,13 @@
 
 Tay is a simulation runtime for spatial ABMs containing a collection of space partitioning and multithreading setups with the goal of testing their suitability for running efficient simulations of different types of models.
 
-## Where does the performance (usually) go?
+## Performance problems in ABM simulations
 
-Agent interactions take up most of the simulation run time. However, in most models interactions between agents are limited in some way (not all agents have to interact) and that provides the opportunity for optimizations. Limiting interactions is usually done by having agents interact through connections ([interaction topology](https://en.wikipedia.org/wiki/Network_topology)), or agents interacting only with other agents that are within some given range (proximity). Interactions through proximity can be direct or through a shared environment ([particle mesh method](https://en.wikipedia.org/wiki/Particle_Mesh)). Of course, any of these methods can be combined; for example, agents can interact with other agents through their connections and every few steps update those connections by searching for best candidates to connect with among agents that are close enough.
+Agent interactions take up most of the simulation run time. However, in most models interactions between agents are limited in some way (not all agents have to interact) and that opens up the possibility for optimization. Limiting interactions is usually done by having agents interact through connections ([interaction topology](https://en.wikipedia.org/wiki/Network_topology)), or agents interacting only with other agents that are within some given range (proximity). Interactions through proximity can be *direct* or *indirect* - through a shared environment ([particle mesh method](https://en.wikipedia.org/wiki/Particle_Mesh)).
+
+> Communication methods can be combined. For example, agents can interact with other agents through their connections and every few steps update those connections by searching for best candidates to connect with among agents that are close enough.
+
+Optimal performance is usually achieved by a combination of a space partitioning structure that reduces the number of agents that have to be checked if they have to interact, and a multithreading scheme that works with that structure.
 
 ## Space partitioning
 
@@ -23,6 +27,12 @@ Between interaction sections of a simulation step agents sometimes need action (
 > Since *act* pass is O(n), where worst case for a *see* phase is O(n^2) it's not usually that important to multithread the *act* phase, but there could be cases where the *act* code is so complicated and slow that the *act* pass starts competing with the *see* passes for time, so we do it anyway.
 
 ## Implemented setups
+
+This section lists currently implemented setups. A setup is a combination of a space partition structure and a multithreading strategy for that structure.
+
+### Simple
+
+(no structure, just balancing workloads on multiple threads)
 
 ### Tree
 
