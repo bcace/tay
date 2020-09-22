@@ -20,11 +20,13 @@ Once we have the interaction code where we know which of the two agents is read-
 
 Between interaction sections of a simulation step agents sometimes need action (*act*) passes, pieces of code that describe what each agent does by itself, usually to perform the *swap* phase of a double-buffered perception and then act on the perceived information. Since there is no interaction between agents at this time, these passes can be trivially multithreaded.
 
-> Since *act* pass is O(n), where worst case for a *see* phase is O(n^2) it's not usually that important to multithread the *act* phase, but there could be cases where the *act* code is so complicated and slow that the whole pass starts competing with the *see* passes for time, so we do it anyway.
+> Since *act* pass is O(n), where worst case for a *see* phase is O(n^2) it's not usually that important to multithread the *act* phase, but there could be cases where the *act* code is so complicated and slow that the *act* pass starts competing with the *see* passes for time, so we do it anyway.
 
-## Tree
+## Implemented setups
 
-### Tree depths
+### Tree
+
+#### Tree depths
 
 Currently an initial tree depth is calculated for each dimension individually and an additional parameter that increases or decreases these initial depths is varied to show the position of this optimum for different models and cases. For example, for the case described above ...
 
@@ -42,7 +44,7 @@ All the experiments above were executed on 8 threads, including the first run wh
 
 (sampling run-times for adjusting tree depth automatically)
 
-### Tree structure
+#### Tree structure
 
 Currently the space is partitioned with an unbalanced k-d tree where both leaf and non-leaf nodes can contain (multiple) agents. Leaf nodes can contain multiple agents because, as described above, tree depth is limited. Non-leaf nodes must be able to contain agents because that's the most practical way of handling agents that are not points (which is exactly why a grid instead of a tree would not be appropriate).
 
