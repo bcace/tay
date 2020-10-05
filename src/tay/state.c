@@ -54,10 +54,11 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
     return index;
 }
 
-void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, struct TayThreadContext *), float *radii) {
+void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, struct TayThreadContext *), float *radii, void *context) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
+    p->context = context;
     p->see = func;
     p->seer_group = seer_group;
     p->seen_group = seen_group;
@@ -65,10 +66,11 @@ void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(v
         p->radii[i] = radii[i];
 }
 
-void tay_add_act(TayState *state, int act_group, void (*func)(void *, struct TayThreadContext *)) {
+void tay_add_act(TayState *state, int act_group, void (*func)(void *, struct TayThreadContext *), void *context) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
+    p->context = context;
     p->act = func;
     p->act_group = act_group;
 }
@@ -95,7 +97,7 @@ void *tay_get_storage(struct TayState *state, int group) {
     return g->storage;
 }
 
-void tay_run(TayState *state, int steps, void *context) {
+void tay_run(TayState *state, int steps) {
     struct timespec beg, end;
     timespec_get(&beg, TIME_UTC);
 
@@ -106,9 +108,9 @@ void tay_run(TayState *state, int steps, void *context) {
         for (int j = 0; j < state->passes_count; ++j) {
             TayPass *p = state->passes + j;
             if (p->type == TAY_PASS_SEE)
-                state->space.see(&state->space, p, context);
+                state->space.see(&state->space, p);
             else if (p->type == TAY_PASS_ACT)
-                state->space.act(&state->space, p, context);
+                state->space.act(&state->space, p);
             else
                 assert(0); /* not implemented */
         }
@@ -127,8 +129,8 @@ void space_init(TaySpace *space,
                 int dims,
                 void (*destroy)(TaySpace *space),
                 void (*add)(TaySpace *space, TayAgent *agent, int group),
-                void (*see)(TaySpace *space, TayPass *pass, void *context),
-                void (*act)(TaySpace *space, TayPass *pass, void *context),
+                void (*see)(TaySpace *space, TayPass *pass),
+                void (*act)(TaySpace *space, TayPass *pass),
                 void (*update)(TaySpace *space)) {
     space->storage = storage;
     space->dims = dims;

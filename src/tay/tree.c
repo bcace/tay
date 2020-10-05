@@ -251,7 +251,7 @@ static void _thread_see_traverse(TreeSeeTask *task, TayThreadContext *thread_con
     _thread_traverse_seers(task, task->tree->nodes, thread_context);
 }
 
-static void _see(TaySpace *space, TayPass *pass, void *context) {
+static void _see(TaySpace *space, TayPass *pass) {
     Tree *t = space->storage;
 
     static TreeSeeTask tasks[TAY_MAX_THREADS];
@@ -259,7 +259,7 @@ static void _see(TaySpace *space, TayPass *pass, void *context) {
     for (int i = 0; i < runner.count; ++i) {
         TreeSeeTask *task = tasks + i;
         _init_tree_see_task(task, t, pass, i);
-        tay_thread_set_task(i, _thread_see_traverse, task, context);
+        tay_thread_set_task(i, _thread_see_traverse, task, pass->context);
     }
 
     tay_runner_run();
@@ -283,22 +283,22 @@ static void _act_func(TreeActTask *t, TayThreadContext *thread_context) {
 static void _dummy_act_func(TreeActTask *t, TayThreadContext *thread_context) {
 }
 
-static void _traverse_actors(Node *node, TayPass *pass, void *context) {
+static void _traverse_actors(Node *node, TayPass *pass) {
     TreeActTask task;
     _init_tree_act_task(&task, pass, node->first[pass->act_group]);
-    tay_thread_set_task(0, _act_func, &task, context);
+    tay_thread_set_task(0, _act_func, &task, pass->context);
     for (int i = 1; i < runner.count; ++i)
         tay_thread_set_task(i, _dummy_act_func, 0, 0);
     tay_runner_run_no_threads();
     if (node->lo)
-        _traverse_actors(node->lo, pass, context);
+        _traverse_actors(node->lo, pass);
     if (node->hi)
-        _traverse_actors(node->hi, pass, context);
+        _traverse_actors(node->hi, pass);
 }
 
-static void _act(TaySpace *space, TayPass *pass, void *context) {
+static void _act(TaySpace *space, TayPass *pass) {
     Tree *t = space->storage;
-    _traverse_actors(t->nodes, pass, context);
+    _traverse_actors(t->nodes, pass);
 }
 
 void tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction) {

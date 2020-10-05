@@ -37,6 +37,7 @@ typedef struct TayPass {
         void (*post)(void *);
     };
     float radii[TAY_MAX_DIMENSIONS];
+    void *context;
 } TayPass;
 
 typedef struct TaySpace {
@@ -44,8 +45,8 @@ typedef struct TaySpace {
     int dims;
     void (*destroy)(struct TaySpace *space);
     void (*add)(struct TaySpace *space, struct TayAgent *agent, int group);
-    void (*see)(struct TaySpace *space, TayPass *pass, void *context);
-    void (*act)(struct TaySpace *space, TayPass *pass, void *context);
+    void (*see)(struct TaySpace *space, TayPass *pass);
+    void (*act)(struct TaySpace *space, TayPass *pass);
     void (*update)(struct TaySpace *space);
 } TaySpace;
 
@@ -61,8 +62,8 @@ void space_init(TaySpace *space,
                 int dims,
                 void (*destroy)(TaySpace *space),
                 void (*add)(TaySpace *space, struct TayAgent *agent, int group),
-                void (*see)(TaySpace *space, TayPass *pass, void *context),
-                void (*act)(TaySpace *space, TayPass *pass, void *context),
+                void (*see)(TaySpace *space, TayPass *pass),
+                void (*act)(TaySpace *space, TayPass *pass),
                 void (*update)(TaySpace *space));
 void space_simple_init(TaySpace *space, int dims);
 void tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction);

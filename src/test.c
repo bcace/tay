@@ -138,15 +138,15 @@ static void _test_model_case1(TaySpaceType space_type, float perception_r, int m
     TayState *s = tay_create_state(space_type, 3, radii, max_depth_correction);
 
     int g = tay_add_group(s, sizeof(Agent), agents_count);
-    tay_add_see(s, g, g, _agent_see, radii);
-    tay_add_act(s, g, _agent_act);
+    tay_add_see(s, g, g, _agent_see, radii, &context);
+    tay_add_act(s, g, _agent_act, &context);
 
     for (int i = 0; i < agents_count; ++i)
         _make_cluster(s, g, 1, space_r, 1.0f, space_r);
 
     printf("R: %g, depth_correction: %d\n", perception_r, max_depth_correction);
 
-    tay_run(s, 100, &context);
+    tay_run(s, 100);
 
     if (results) {
         if (results->first_time) {
@@ -172,7 +172,7 @@ static void _test_model_case1(TaySpaceType space_type, float perception_r, int m
 
 void test() {
 
-#if 0
+#if 1
     Results *r = _create_results();
 #else
     Results *r = 0;
@@ -180,15 +180,17 @@ void test() {
 
     /* testing model case 1 */
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 1; ++i) {
         float perception_r = 10.0f * (1 << i);
 
         for (int j = 0; j < 4; ++j)
             _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 
+#if 1
         printf("reference:\n");
 
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
+#endif
 
         printf("\n");
     }
