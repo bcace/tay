@@ -89,22 +89,10 @@ static void _act(TaySpace *space, TayPass *pass, void *context) {
     tay_runner_run();
 }
 
-static void _post(TaySpace *space, void (*func)(void *), void *context) {
-    Simple *s = space->storage;
-    func(context);
-}
-
-static void _iter(TaySpace *space, int group, void (*func)(void *, void *), void *context) {
-    Simple *s = space->storage;
-    for (int i = 0; i < runner.count; ++i)
-        for (TayAgent *a = s->groups[group].first[i]; a; a = a->next)
-            func(a, context);
-}
-
 static void _update(TaySpace *space) {
 }
 
 void space_simple_init(TaySpace *space, int dims) {
     Simple *s = calloc(1, sizeof(Simple));
-    space_init(space, s, dims, _destroy, _add, _see, _act, _post, _iter, _update);
+    space_init(space, s, dims, _destroy, _add, _see, _act, _update);
 }

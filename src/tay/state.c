@@ -73,13 +73,6 @@ void tay_add_act(TayState *state, int act_group, void (*func)(void *, struct Tay
     p->act_group = act_group;
 }
 
-void tay_add_post(struct TayState *state, void (*func)(void *)) {
-    assert(state->passes_count < TAY_MAX_PASSES);
-    TayPass *p = state->passes + state->passes_count++;
-    p->type = TAY_PASS_POST;
-    p->post = func;
-}
-
 void *tay_get_new_agent(TayState *state, int group) {
     assert(group >= 0 && group < TAY_MAX_GROUPS);
     TayGroup *g = state->groups + group;
@@ -116,8 +109,6 @@ void tay_run(TayState *state, int steps, void *context) {
                 state->space.see(&state->space, p, context);
             else if (p->type == TAY_PASS_ACT)
                 state->space.act(&state->space, p, context);
-            else if (p->type == TAY_PASS_POST)
-                state->space.post(&state->space, p->post, context);
             else
                 assert(0); /* not implemented */
         }
@@ -131,10 +122,6 @@ void tay_run(TayState *state, int steps, void *context) {
     printf("run time: %g sec, %g fps\n\n", t, fps);
 }
 
-void tay_iter_agents(struct TayState *state, int group, void (*func)(void *, void *), void *context) {
-    state->space.iter(&state->space, group, func, context);
-}
-
 void space_init(TaySpace *space,
                 void *storage,
                 int dims,
@@ -142,8 +129,6 @@ void space_init(TaySpace *space,
                 void (*add)(TaySpace *space, TayAgent *agent, int group),
                 void (*see)(TaySpace *space, TayPass *pass, void *context),
                 void (*act)(TaySpace *space, TayPass *pass, void *context),
-                void (*post)(TaySpace *space, void (*func)(void *), void *context),
-                void (*iter)(TaySpace *space, int group, void (*func)(void *, void *), void *context),
                 void (*update)(TaySpace *space)) {
     space->storage = storage;
     space->dims = dims;
@@ -151,8 +136,6 @@ void space_init(TaySpace *space,
     space->add = add;
     space->see = see;
     space->act = act;
-    space->post = post;
-    space->iter = iter;
     space->update = update;
 }
 

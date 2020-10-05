@@ -301,16 +301,6 @@ static void _act(TaySpace *space, TayPass *pass, void *context) {
     _traverse_actors(t->nodes, pass, context);
 }
 
-static void _post(TaySpace *space, void (*func)(void *), void *context) {
-    Tree *t = space->storage;
-    assert(0); /* not implemented */
-}
-
-static void _iter(TaySpace *space, int group, void (*func)(void *, void *), void *context) {
-    Tree *t = space->storage;
-    // assert(0); /* not implemented */
-}
-
 void tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction) {
-    space_init(space, _init(dims, radii, max_depth_correction), dims, _destroy, _add, _see, _act, _post, _iter, _update);
+    space_init(space, _init(dims, radii, max_depth_correction), dims, _destroy, _add, _see, _act, _update);
 }

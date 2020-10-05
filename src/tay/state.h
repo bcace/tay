@@ -22,7 +22,6 @@ typedef struct TayGroup {
 typedef enum TayPassType {
     TAY_PASS_SEE,
     TAY_PASS_ACT,
-    TAY_PASS_POST,
 } TayPassType;
 
 typedef struct TayPass {
@@ -47,8 +46,6 @@ typedef struct TaySpace {
     void (*add)(struct TaySpace *space, struct TayAgent *agent, int group);
     void (*see)(struct TaySpace *space, TayPass *pass, void *context);
     void (*act)(struct TaySpace *space, TayPass *pass, void *context);
-    void (*post)(struct TaySpace *space, void (*func)(void *), void *context);
-    void (*iter)(struct TaySpace *space, int group, void (*func)(void *, void *), void *context);
     void (*update)(struct TaySpace *space);
 } TaySpace;
 
@@ -66,8 +63,6 @@ void space_init(TaySpace *space,
                 void (*add)(TaySpace *space, struct TayAgent *agent, int group),
                 void (*see)(TaySpace *space, TayPass *pass, void *context),
                 void (*act)(TaySpace *space, TayPass *pass, void *context),
-                void (*post)(TaySpace *space, void (*func)(void *), void *context),
-                void (*iter)(TaySpace *space, int group, void (*func)(void *, void *), void *context),
                 void (*update)(TaySpace *space));
 void space_simple_init(TaySpace *space, int dims);
 void tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction);
