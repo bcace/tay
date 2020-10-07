@@ -9,6 +9,7 @@ typedef struct TayAgent {
 typedef enum TaySpaceType {
     TAY_SPACE_SIMPLE,
     TAY_SPACE_TREE,
+    TAY_SPACE_GRID,
 } TaySpaceType;
 
 typedef struct TayState TayState;

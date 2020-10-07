@@ -13,6 +13,8 @@ TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float 
         space_simple_init(&s->space, space_dimensions);
     else if (space_type == TAY_SPACE_TREE)
         tree_init(&s->space, space_dimensions, space_radii, max_depth_correction);
+    else if (space_type == TAY_SPACE_GRID)
+        grid_init(&s->space, space_dimensions, space_radii);
     else
         assert(0); /* not implemented */
     return s;
