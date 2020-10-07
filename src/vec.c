@@ -4,50 +4,50 @@
 
 
 vec vec_null() {
-    vec perception_r;
-    perception_r.x = perception_r.y = perception_r.z = 0.0f;
-    return perception_r;
+    vec r;
+    r.x = r.y = r.z = 0.0f;
+    return r;
 }
 
 vec vec_make(float x, float y, float z) {
-    vec perception_r;
-    perception_r.x = x;
-    perception_r.y = y;
-    perception_r.z = z;
-    return perception_r;
+    vec r;
+    r.x = x;
+    r.y = y;
+    r.z = z;
+    return r;
 }
 
 vec vec_rand_scalar(float min, float max) {
-    vec perception_r;
+    vec r;
     float range = max - min;
-    perception_r.x = min + rand() * range / (float)RAND_MAX;
-    perception_r.y = min + rand() * range / (float)RAND_MAX;
-    perception_r.z = min + rand() * range / (float)RAND_MAX;
-    return perception_r;
+    r.x = min + rand() * range / (float)RAND_MAX;
+    r.y = min + rand() * range / (float)RAND_MAX;
+    r.z = min + rand() * range / (float)RAND_MAX;
+    return r;
 }
 
 vec vec_rand(vec min, vec max) {
-    vec perception_r;
-    perception_r.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
-    perception_r.y = min.y + rand() * (max.y - min.y) / (float)RAND_MAX;
-    perception_r.z = min.z + rand() * (max.z - min.z) / (float)RAND_MAX;
-    return perception_r;
+    vec r;
+    r.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
+    r.y = min.y + rand() * (max.y - min.y) / (float)RAND_MAX;
+    r.z = min.z + rand() * (max.z - min.z) / (float)RAND_MAX;
+    return r;
 }
 
 vec vec_sub(vec a, vec b) {
-    vec perception_r;
-    perception_r.x = a.x - b.x;
-    perception_r.y = a.y - b.y;
-    perception_r.z = a.z - b.z;
-    return perception_r;
+    vec r;
+    r.x = a.x - b.x;
+    r.y = a.y - b.y;
+    r.z = a.z - b.z;
+    return r;
 }
 
 vec vec_add(vec a, vec b) {
-    vec perception_r;
-    perception_r.x = a.x + b.x;
-    perception_r.y = a.y + b.y;
-    perception_r.z = a.z + b.z;
-    return perception_r;
+    vec r;
+    r.x = a.x + b.x;
+    r.y = a.y + b.y;
+    r.z = a.z + b.z;
+    return r;
 }
 
 float vec_length(vec a) {
@@ -55,19 +55,19 @@ float vec_length(vec a) {
 }
 
 vec vec_mul_scalar(vec a, float s) {
-    vec perception_r;
-    perception_r.x = a.x * s;
-    perception_r.y = a.y * s;
-    perception_r.z = a.z * s;
-    return perception_r;
+    vec r;
+    r.x = a.x * s;
+    r.y = a.y * s;
+    r.z = a.z * s;
+    return r;
 }
 
 vec vec_div_scalar(vec a, float s) {
-    vec perception_r;
-    perception_r.x = a.x / s;
-    perception_r.y = a.y / s;
-    perception_r.z = a.z / s;
-    return perception_r;
+    vec r;
+    r.x = a.x / s;
+    r.y = a.y / s;
+    r.z = a.z / s;
+    return r;
 }
 
 vec vec_normalize(vec a) {

@@ -5,93 +5,123 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <math.h>
 
 
 typedef struct {
     TayAgent base;
     /* position variables (must be first, must be collection of floats) */
     vec p;
-    /* movement variables */
-    vec v, cluster_p;
+    vec v;
     /* control variables */
-    vec acc, hea;
-    int acc_count;
+    vec b_buffer;
+    int b_buffer_count;
+    vec f_buffer;
 } Agent;
 
 typedef struct {
-    float perception_r;
-    float space_r;
-} Context;
+    vec min;
+    vec max;
+} ActContext;
 
-static void _agent_perception_actual(Agent *a, vec d, float l, Context *c) {
-    vec n = vec_div_scalar(d, l);
-    a->acc = vec_add(a->acc, n);
-    ++a->acc_count;
-}
+typedef struct {
+    vec radii;
+} SeeContext;
+
+// typedef struct {
+//     float perception_r;
+//     float space_r;
+// } Context;
+
+// static void _agent_perception_actual(Agent *a, vec d, float l, Context *c) {
+//     vec n = vec_div_scalar(d, l);
+//     a->acc = vec_add(a->acc, n);
+//     ++a->acc_count;
+// }
+
+// static void _agent_see(Agent *a, Agent *b, void *context) {
+//     vec d = vec_sub(b->p, a->p);
+//     float l = vec_length(d);
+//     Context *c = context;
+//     if (l < c->perception_r)
+//         _agent_perception_actual(a, d, l, c);
+// }
 
 /* Agent a is the seer (writes to itself) and agent b is the seen agent (is only read from),
 this should be somehow statically checked, so that the actual code doesn't do the wrong thing. */
 static void _agent_see(Agent *a, Agent *b, void *context) {
-    vec d = vec_sub(b->p, a->p);
-    float l = vec_length(d);
-    Context *c = context;
-    if (l < c->perception_r)
-        _agent_perception_actual(a, d, l, c);
+    a->b_buffer = vec_add(a->b_buffer, vec_sub(b->p, a->p));
+    a->b_buffer_count++;
 }
 
-static void _agent_act(Agent *a, void *context) {
-    Context *c = context;
-    if (a->acc_count) {
-        a->hea = vec_normalize(vec_add(a->hea, vec_normalize_to(a->acc, 0.2f)));
-        a->acc = vec_null();
-        a->acc_count = 0;
+static void _agent_act(Agent *agent, void *context) {
+    ActContext *c = context;
+
+    /* buffer swap */
+
+    if (agent->b_buffer_count != 0) {
+        agent->f_buffer = vec_div_scalar(agent->b_buffer, (float)agent->b_buffer_count);
+        agent->b_buffer = vec_null();
+        agent->b_buffer_count = 0;
     }
-    a->p = vec_add(a->p, a->v);
-    a->cluster_p = vec_add(a->cluster_p, a->v);
-    if (a->cluster_p.x < -c->space_r) {
-        a->p.x -= c->space_r + a->cluster_p.x;
-        a->cluster_p.x = -c->space_r;
-        a->v.x = -a->v.x;
+
+    /* move */
+
+    agent->p = vec_add(agent->p, agent->v);
+
+    if (agent->p.x < c->min.x) {
+        agent->p.x = c->min.x;
+        agent->v.x = -agent->v.x;
     }
-    if (a->cluster_p.y < -c->space_r) {
-        a->p.y -= c->space_r + a->cluster_p.y;
-        a->cluster_p.y = -c->space_r;
-        a->v.y = -a->v.y;
+
+    if (agent->p.y < c->min.y) {
+        agent->p.y = c->min.y;
+        agent->v.y = -agent->v.y;
     }
-    if (a->cluster_p.z < -c->space_r) {
-        a->p.z -= c->space_r + a->cluster_p.z;
-        a->cluster_p.z = -c->space_r;
-        a->v.z = -a->v.z;
+
+    if (agent->p.z < c->min.z) {
+        agent->p.z = c->min.z;
+        agent->v.z = -agent->v.z;
     }
-    if (a->cluster_p.x > c->space_r) {
-        a->p.x += c->space_r - a->cluster_p.x;
-        a->cluster_p.x = c->space_r;
-        a->v.x = -a->v.x;
+
+    if (agent->p.x > c->max.x) {
+        agent->p.x = c->max.x;
+        agent->v.x = -agent->v.x;
     }
-    if (a->cluster_p.y > c->space_r) {
-        a->p.y += c->space_r - a->cluster_p.y;
-        a->cluster_p.y = c->space_r;
-        a->v.y = -a->v.y;
+
+    if (agent->p.y > c->max.y) {
+        agent->p.y = c->max.y;
+        agent->v.y = -agent->v.y;
     }
-    if (a->cluster_p.z > c->space_r) {
-        a->p.z += c->space_r - a->cluster_p.z;
-        a->cluster_p.z = c->space_r;
-        a->v.z = -a->v.z;
+
+    if (agent->p.z > c->max.z) {
+        agent->p.z = c->max.z;
+        agent->v.z = -agent->v.z;
     }
 }
 
-static void _make_cluster(TayState *state, int group, int count, float radius, float speed, float space_radius) {
-    vec cluster_p = vec_rand_scalar(-space_radius, space_radius);
-    vec cluster_v = vec_rand_scalar(-1.0f, 1.0f);
-    cluster_v = vec_normalize_to(cluster_v, speed);
+/* Note that this only makes agents with randomized directions. Should implement another
+one for all agents with same direction later. */
+static void _make_cluster(TayState *state, int group, int count, vec min, vec max, float velocity) {
     for (int i = 0; i < count; ++i) {
         Agent *a = tay_get_new_agent(state, group);
-        a->cluster_p = cluster_p;
-        a->p = vec_add(cluster_p, vec_rand_scalar(-radius, radius));
-        a->v = cluster_v;
-        a->acc = vec_null();
-        a->acc_count = 0;
-        a->hea = vec_make(1.0f, 0.0f, 0.0f);
+        a->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
+        a->p.y = min.y + rand() * (max.y - min.y) / (float)RAND_MAX;
+        a->p.z = min.z + rand() * (max.z - min.z) / (float)RAND_MAX;
+        a->v.x = -0.5f + rand() / (float)RAND_MAX;
+        a->v.y = -0.5f + rand() / (float)RAND_MAX;
+        a->v.z = -0.5f + rand() / (float)RAND_MAX;
+        float l = velocity / sqrtf(a->v.x * a->v.x + a->v.y * a->v.y + a->v.z * a->v.z);
+        a->v.x *= l;
+        a->v.y *= l;
+        a->v.z *= l;
+        a->b_buffer.x = 0.0f;
+        a->b_buffer.y = 0.0f;
+        a->b_buffer.z = 0.0f;
+        a->b_buffer_count = 0;
+        a->f_buffer.x = 0.0f;
+        a->f_buffer.y = 0.0f;
+        a->f_buffer.z = 0.0f;
         tay_add_new_agent(state, group);
     }
 }
@@ -119,32 +149,48 @@ static Results *_create_results() {
     return r;
 }
 
+static void _reset_results(Results *r) {
+    if (r)
+        r->first_time = 1;
+}
+
 static void _destroy_results(Results *r) {
-    free(r);
+    if (r)
+        free(r);
 }
 
 /* TODO: describe model case */
-static void _test_model_case1(TaySpaceType space_type, float perception_r, int max_depth_correction, Results *results) {
+static void _test_model_case1(TaySpaceType space_type, float see_radius, int max_depth_correction, Results *results) {
+    int dims = 3;
     int agents_count = 4000;
-    float space_r = 100.0f;
+    float space_size = 200.0f;
 
     srand(1);
 
-    Context context;
-    context.perception_r = perception_r;
-    context.space_r = space_r;
-    float radii[] = { perception_r, perception_r, perception_r };
+    float see_radii[] = { see_radius, see_radius, see_radius };
 
-    TayState *s = tay_create_state(space_type, 3, radii, max_depth_correction);
+    TayState *s = tay_create_state(space_type, dims, see_radii, max_depth_correction);
+
+    ActContext act_context;
+    act_context.min.x = 0.0f;
+    act_context.min.y = 0.0f;
+    act_context.min.z = 0.0f;
+    act_context.max.x = space_size;
+    act_context.max.y = space_size;
+    act_context.max.z = space_size;
+
+    SeeContext see_context;
+    see_context.radii.x = see_radius;
+    see_context.radii.y = see_radius;
+    see_context.radii.z = see_radius;
 
     int g = tay_add_group(s, sizeof(Agent), agents_count);
-    tay_add_see(s, g, g, _agent_see, radii, &context);
-    tay_add_act(s, g, _agent_act, &context);
+    tay_add_see(s, g, g, _agent_see, see_radii, &see_context);
+    tay_add_act(s, g, _agent_act, &act_context);
 
-    for (int i = 0; i < agents_count; ++i)
-        _make_cluster(s, g, 1, space_r, 1.0f, space_r);
+    _make_cluster(s, g, agents_count, vec_make(0.0f, 0.0f, 0.0f), vec_make(space_size, space_size, space_size), 1.0f);
 
-    printf("R: %g, depth_correction: %d\n", perception_r, max_depth_correction);
+    printf("R: %g, depth_correction: %d\n", see_radius, max_depth_correction);
 
     tay_run(s, 100);
 
@@ -152,13 +198,13 @@ static void _test_model_case1(TaySpaceType space_type, float perception_r, int m
         if (results->first_time) {
             Agent *agents = tay_get_storage(s, g);
             for (int i = 0; i < agents_count; ++i)
-                results->data[i] = agents[i].hea;
+                results->data[i] = agents[i].f_buffer;
             results->first_time = 0;
         }
         else {
             Agent *agents = tay_get_storage(s, g);
             for (int i = 0; i < agents_count; ++i) {
-                vec a = agents[i].hea;
+                vec a = agents[i].f_buffer;
                 vec b = results->data[i];
                 _eq(a.x, b.x);
                 _eq(a.y, b.y);
@@ -180,7 +226,7 @@ void test() {
 
     /* testing model case 1 */
 
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < 4; ++i) {
         float perception_r = 10.0f * (1 << i);
 
         for (int j = 0; j < 4; ++j)
@@ -191,8 +237,9 @@ void test() {
 
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
 #endif
-
         printf("\n");
+   
+        _reset_results(r);
     }
 
     _destroy_results(r);
