@@ -229,8 +229,8 @@ void test() {
     for (int i = 0; i < 4; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-        for (int j = 0; j < 4; ++j)
-            _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
+        // for (int j = 0; j < 4; ++j)
+        //     _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 
 #if 1
         printf("reference:\n");
@@ -238,7 +238,7 @@ void test() {
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
 #endif
         printf("\n");
-   
+
         _reset_results(r);
     }
 
