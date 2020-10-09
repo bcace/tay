@@ -129,11 +129,11 @@ void tay_run(TayState *state, int steps) {
 void space_init(TaySpace *space,
                 void *storage,
                 int dims,
-                void (*destroy)(TaySpace *space),
-                void (*add)(TaySpace *space, TayAgent *agent, int group),
-                void (*see)(TaySpace *space, TayPass *pass),
-                void (*act)(TaySpace *space, TayPass *pass),
-                void (*update)(TaySpace *space)) {
+                TAY_SPACE_DESTROY_FUNC destroy,
+                TAY_SPACE_ADD_FUNC add,
+                TAY_SPACE_SEE_FUNC see,
+                TAY_SPACE_ACT_FUNC act,
+                TAY_SPACE_UPDATE_FUNC update) {
     space->storage = storage;
     space->dims = dims;
     space->destroy = destroy;

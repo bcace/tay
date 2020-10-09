@@ -12,6 +12,12 @@
 typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 
+typedef void (*TAY_SPACE_DESTROY_FUNC)(struct TaySpace *space);
+typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpace *space, struct TayAgent *agent, int group);
+typedef void (*TAY_SPACE_SEE_FUNC)(struct TaySpace *space, struct TayPass *pass);
+typedef void (*TAY_SPACE_ACT_FUNC)(struct TaySpace *space, struct TayPass *pass);
+typedef void (*TAY_SPACE_UPDATE_FUNC)(struct TaySpace *space);
+
 typedef struct TayGroup {
     void *storage;          /* agents storage */
     struct TayAgent *first; /* single linked list of available agents from storage */
@@ -43,11 +49,11 @@ typedef struct TayPass {
 typedef struct TaySpace {
     void *storage;
     int dims;
-    void (*destroy)(struct TaySpace *space);
-    void (*add)(struct TaySpace *space, struct TayAgent *agent, int group);
-    void (*see)(struct TaySpace *space, TayPass *pass);
-    void (*act)(struct TaySpace *space, TayPass *pass);
-    void (*update)(struct TaySpace *space);
+    TAY_SPACE_DESTROY_FUNC destroy;
+    TAY_SPACE_ADD_FUNC add;
+    TAY_SPACE_SEE_FUNC see;
+    TAY_SPACE_ACT_FUNC act;
+    TAY_SPACE_UPDATE_FUNC update;
 } TaySpace;
 
 typedef struct TayState {
@@ -60,11 +66,11 @@ typedef struct TayState {
 void space_init(TaySpace *space,
                 void *storage,
                 int dims,
-                void (*destroy)(TaySpace *space),
-                void (*add)(TaySpace *space, struct TayAgent *agent, int group),
-                void (*see)(TaySpace *space, TayPass *pass),
-                void (*act)(TaySpace *space, TayPass *pass),
-                void (*update)(TaySpace *space));
+                TAY_SPACE_DESTROY_FUNC destroy,
+                TAY_SPACE_ADD_FUNC add,
+                TAY_SPACE_SEE_FUNC see,
+                TAY_SPACE_ACT_FUNC act,
+                TAY_SPACE_UPDATE_FUNC update);
 void space_simple_init(TaySpace *space, int dims);
 void tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction);
 void grid_init(TaySpace *space, int dims, float *radii);

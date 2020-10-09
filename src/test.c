@@ -28,25 +28,6 @@ typedef struct {
     vec radii;
 } SeeContext;
 
-// typedef struct {
-//     float perception_r;
-//     float space_r;
-// } Context;
-
-// static void _agent_perception_actual(Agent *a, vec d, float l, Context *c) {
-//     vec n = vec_div_scalar(d, l);
-//     a->acc = vec_add(a->acc, n);
-//     ++a->acc_count;
-// }
-
-// static void _agent_see(Agent *a, Agent *b, void *context) {
-//     vec d = vec_sub(b->p, a->p);
-//     float l = vec_length(d);
-//     Context *c = context;
-//     if (l < c->perception_r)
-//         _agent_perception_actual(a, d, l, c);
-// }
-
 /* Agent a is the seer (writes to itself) and agent b is the seen agent (is only read from),
 this should be somehow statically checked, so that the actual code doesn't do the wrong thing. */
 static void _agent_see(Agent *a, Agent *b, void *context) {
@@ -229,8 +210,8 @@ void test() {
     for (int i = 0; i < 4; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-        // for (int j = 0; j < 4; ++j)
-        //     _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
+        for (int j = 0; j < 4; ++j)
+            _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 
 #if 1
         printf("reference:\n");
