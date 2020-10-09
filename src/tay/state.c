@@ -34,7 +34,6 @@ void tay_destroy_state(TayState *state) {
 }
 
 int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
-    assert(agent_size >= sizeof(TayAgent));
     assert(agent_capacity != 0);
     int index = 0;
     for (; index < TAY_MAX_GROUPS; ++index)
@@ -42,13 +41,14 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
             break;
     assert(index < TAY_MAX_GROUPS);
     TayGroup *g = state->groups + index;
-    g->storage = calloc(agent_capacity, agent_size);
-    g->size = agent_size;
+    int agent_size_with_tag = agent_size + sizeof(TayAgent);
+    g->agent_size = agent_size;
+    g->storage = calloc(agent_capacity, agent_size_with_tag);
     g->capacity = agent_capacity;
     g->first = g->storage;
     TayAgent *prev = g->first;
     for (int i = 0; i < agent_capacity - 1; ++i) {
-        TayAgent *next = (TayAgent *)((char *)prev + agent_size);
+        TayAgent *next = (TayAgent *)((char *)prev + agent_size_with_tag);
         prev->next = next;
         prev = next;
     }
@@ -77,14 +77,14 @@ void tay_add_act(TayState *state, int act_group, void (*func)(void *, struct Tay
     p->act_group = act_group;
 }
 
-void *tay_get_new_agent(TayState *state, int group) {
+void *tay_get_available_agent(TayState *state, int group) {
     assert(group >= 0 && group < TAY_MAX_GROUPS);
     TayGroup *g = state->groups + group;
     assert(g->first != 0);
-    return g->first;
+    return TAY_AGENT_DATA(g->first);
 }
 
-void tay_add_new_agent(TayState *state, int group) {
+void tay_commit_available_agent(TayState *state, int group) {
     assert(group >= 0 && group < TAY_MAX_GROUPS);
     TayGroup *g = state->groups + group;
     assert(g->first != 0);
@@ -93,10 +93,10 @@ void tay_add_new_agent(TayState *state, int group) {
     state->space.add(&state->space, a, group);
 }
 
-void *tay_get_storage(struct TayState *state, int group) {
+void *tay_get_agent(TayState *state, int group, int index) {
     assert(group >= 0 && group < TAY_MAX_GROUPS);
     TayGroup *g = state->groups + group;
-    return g->storage;
+    return (char *)g->storage + (sizeof(TayAgent) + g->agent_size) * index + sizeof(TayAgent);
 }
 
 void tay_run(TayState *state, int steps) {
@@ -167,7 +167,7 @@ void tay_see(TayAgent *seer_agents, TayAgent *seen_agents, TAY_SEE_FUNC func, fl
             ++thread_context->narrow_see_phase;
 #endif
 
-            func(a, b, thread_context->context);
+            func(TAY_AGENT_DATA(a), TAY_AGENT_DATA(b), thread_context->context);
 
             OUTSIDE_RADII:;
         }

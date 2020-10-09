@@ -9,7 +9,6 @@
 
 
 typedef struct {
-    TayAgent base;
     /* position variables (must be first, must be collection of floats) */
     vec p;
     vec v;
@@ -85,7 +84,7 @@ static void _agent_act(Agent *agent, void *context) {
 one for all agents with same direction later. */
 static void _make_cluster(TayState *state, int group, int count, vec min, vec max, float velocity) {
     for (int i = 0; i < count; ++i) {
-        Agent *a = tay_get_new_agent(state, group);
+        Agent *a = tay_get_available_agent(state, group);
         a->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
         a->p.y = min.y + rand() * (max.y - min.y) / (float)RAND_MAX;
         a->p.z = min.z + rand() * (max.z - min.z) / (float)RAND_MAX;
@@ -103,7 +102,7 @@ static void _make_cluster(TayState *state, int group, int count, vec min, vec ma
         a->f_buffer.x = 0.0f;
         a->f_buffer.y = 0.0f;
         a->f_buffer.z = 0.0f;
-        tay_add_new_agent(state, group);
+        tay_commit_available_agent(state, group);
     }
 }
 
@@ -177,15 +176,16 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
 
     if (results) {
         if (results->first_time) {
-            Agent *agents = tay_get_storage(s, g);
-            for (int i = 0; i < agents_count; ++i)
-                results->data[i] = agents[i].f_buffer;
+            for (int i = 0; i < agents_count; ++i) {
+                Agent *agent = tay_get_agent(s, g, i);
+                results->data[i] = agent->f_buffer;
+            }
             results->first_time = 0;
         }
         else {
-            Agent *agents = tay_get_storage(s, g);
             for (int i = 0; i < agents_count; ++i) {
-                vec a = agents[i].f_buffer;
+                Agent *agent = tay_get_agent(s, g, i);
+                vec a = agent->f_buffer;
                 vec b = results->data[i];
                 _eq(a.x, b.x);
                 _eq(a.y, b.y);

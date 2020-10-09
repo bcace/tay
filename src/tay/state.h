@@ -6,7 +6,8 @@
 #define TAY_MAX_DIMENSIONS  8
 #define TAY_INSTRUMENT      0
 
-#define TAY_AGENT_POSITION(__agent__) ((float *)(__agent__ + 1))
+#define TAY_AGENT_POSITION(__agent_tag__) ((float *)(__agent_tag__ + 1))
+#define TAY_AGENT_DATA(__agent_tag__) ((void *)(__agent_tag__ + 1))
 
 
 typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
@@ -21,7 +22,7 @@ typedef void (*TAY_SPACE_UPDATE_FUNC)(struct TaySpace *space);
 typedef struct TayGroup {
     void *storage;          /* agents storage */
     struct TayAgent *first; /* single linked list of available agents from storage */
-    int size;               /* agent size in bytes */
+    int agent_size;         /* agent size in bytes */
     int capacity;           /* max. number of agents */
 } TayGroup;
 
