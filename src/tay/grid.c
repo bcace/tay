@@ -31,7 +31,7 @@ static void _destroy(TaySpace *space) {
     free(g);
 }
 
-static void _add(TaySpace *space, TayAgent *agent, int group) {
+static void _add(TaySpace *space, TayAgentTag *agent, int group) {
 
 }
 

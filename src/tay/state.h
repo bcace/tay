@@ -14,14 +14,18 @@ typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 
 typedef void (*TAY_SPACE_DESTROY_FUNC)(struct TaySpace *space);
-typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpace *space, struct TayAgent *agent, int group);
+typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpace *space, struct TayAgentTag *agent, int group);
 typedef void (*TAY_SPACE_SEE_FUNC)(struct TaySpace *space, struct TayPass *pass);
 typedef void (*TAY_SPACE_ACT_FUNC)(struct TaySpace *space, struct TayPass *pass);
 typedef void (*TAY_SPACE_UPDATE_FUNC)(struct TaySpace *space);
 
+typedef struct TayAgentTag {
+    struct TayAgentTag *next;
+} TayAgentTag;
+
 typedef struct TayGroup {
     void *storage;          /* agents storage */
-    struct TayAgent *first; /* single linked list of available agents from storage */
+    struct TayAgentTag *first; /* single linked list of available agents from storage */
     int agent_size;         /* agent size in bytes */
     int capacity;           /* max. number of agents */
 } TayGroup;
@@ -75,6 +79,6 @@ void space_init(TaySpace *space,
 void space_simple_init(TaySpace *space, int dims);
 void tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction);
 void grid_init(TaySpace *space, int dims, float *radii);
-void tay_see(struct TayAgent *seer_agents, struct TayAgent *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, struct TayThreadContext *thread_context);
+void tay_see(struct TayAgentTag *seer_agents, struct TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, struct TayThreadContext *thread_context);
 
 #endif

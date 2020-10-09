@@ -5,7 +5,7 @@
 
 
 typedef struct {
-    TayAgent *first[TAY_MAX_THREADS];
+    TayAgentTag *first[TAY_MAX_THREADS];
     int receiving_thread;
 } SimpleGroup;
 
@@ -17,23 +17,23 @@ static void _destroy(TaySpace *space) {
     free(space->storage);
 }
 
-static void _add(TaySpace *space, TayAgent *agent, int group) {
+static void _add(TaySpace *space, TayAgentTag *agent, int group) {
     Simple *s = space->storage;
     SimpleGroup *g = s->groups + group;
     int thread = (g->receiving_thread++) % runner.count;
-    TayAgent *next = g->first[thread];
+    TayAgentTag *next = g->first[thread];
     agent->next = next;
     g->first[thread] = agent;
 }
 
 typedef struct {
     TayPass *pass;
-    TayAgent *seer_agents;
-    TayAgent *seen_agents;
+    TayAgentTag *seer_agents;
+    TayAgentTag *seen_agents;
     int dims;
 } SimpleSeeTask;
 
-static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, TayAgent *seer_agents, TayAgent *seen_agents, int dims) {
+static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, TayAgentTag *seer_agents, TayAgentTag *seen_agents, int dims) {
     task->pass = pass;
     task->seer_agents = seer_agents;
     task->seen_agents = seen_agents;
@@ -49,10 +49,10 @@ static void _see(TaySpace *space, TayPass *pass) {
 
     Simple *s = space->storage;
     for (int i = 0; i < runner.count; ++i) {
-        TayAgent *b = s->groups[pass->seen_group].first[i];
+        TayAgentTag *b = s->groups[pass->seen_group].first[i];
 
         for (int j = 0; j < runner.count; ++j) {
-            TayAgent *a = s->groups[pass->seer_group].first[j];
+            TayAgentTag *a = s->groups[pass->seer_group].first[j];
 
             SimpleSeeTask *task = tasks + j;
             _init_simple_see_task(task, pass, a, b, space->dims);
@@ -64,16 +64,16 @@ static void _see(TaySpace *space, TayPass *pass) {
 
 typedef struct {
     TayPass *pass;
-    TayAgent *agents;
+    TayAgentTag *agents;
 } SimpleActTask;
 
-static void _init_simple_act_task(SimpleActTask *task, TayPass *pass, TayAgent *agents) {
+static void _init_simple_act_task(SimpleActTask *task, TayPass *pass, TayAgentTag *agents) {
     task->pass = pass;
     task->agents = agents;
 }
 
 static void _act_func(SimpleActTask *task, TayThreadContext *thread_context) {
-    for (TayAgent *a = task->agents; a; a = a->next)
+    for (TayAgentTag *a = task->agents; a; a = a->next)
         task->pass->act(TAY_AGENT_DATA(a), thread_context->context);
 }
 

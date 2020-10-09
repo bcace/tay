@@ -2,10 +2,6 @@
 #define tay_h
 
 
-typedef struct TayAgent {
-    struct TayAgent *next;
-} TayAgent;
-
 typedef enum TaySpaceType {
     TAY_SPACE_SIMPLE,
     TAY_SPACE_TREE,

@@ -42,7 +42,7 @@ static void _reset_depths(Depths *depths, int dims) {
 
 typedef struct Node {
     struct Node *lo, *hi; /* child partitions */
-    TayAgent *first[TAY_MAX_GROUPS]; /* agents contained in this node (fork or leaf) */
+    TayAgentTag *first[TAY_MAX_GROUPS]; /* agents contained in this node (fork or leaf) */
     int dim; /* dimension along which the node's partition is divided into child partitions */
     Box box;
     Depths depths;
@@ -57,7 +57,7 @@ static void _clear_node(Node *node) {
 }
 
 typedef struct {
-    TayAgent *first[TAY_MAX_GROUPS]; /* agents are kept here while not in nodes */
+    TayAgentTag *first[TAY_MAX_GROUPS]; /* agents are kept here while not in nodes */
     Node *nodes; /* nodes storage, first node is always the root node */
     int nodes_cap;
     int available_node;
@@ -88,13 +88,13 @@ static void _destroy(TaySpace *space) {
     free(t);
 }
 
-static void _add_to_non_sorted(Tree *tree, TayAgent *agent, int group) {
+static void _add_to_non_sorted(Tree *tree, TayAgentTag *agent, int group) {
     agent->next = tree->first[group];
     tree->first[group] = agent;
     _update_box(&tree->box, TAY_AGENT_POSITION(agent), tree->dims);
 }
 
-static void _add(TaySpace *space, TayAgent *agent, int group) {
+static void _add(TaySpace *space, TayAgentTag *agent, int group) {
     Tree *t = space->storage;
     _add_to_non_sorted(t, agent, group);
 }
@@ -105,7 +105,7 @@ static void _move_agents_from_node_to_tree(Tree *tree, Node *node) {
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         if (node->first[i] == 0)
             continue;
-        TayAgent *last = node->first[i];
+        TayAgentTag *last = node->first[i];
         /* update global extents and find the last agent */
         while (1) {
             _update_box(&tree->box, TAY_AGENT_POSITION(last), tree->dims);
@@ -122,7 +122,7 @@ static void _move_agents_from_node_to_tree(Tree *tree, Node *node) {
     _move_agents_from_node_to_tree(tree, node->hi);
 }
 
-static void _sort_agent(Tree *tree, Node *node, TayAgent *agent, int group) {
+static void _sort_agent(Tree *tree, Node *node, TayAgentTag *agent, int group) {
     if (node->dim == NODE_DIM_UNDECIDED) {
         node->dim = NODE_DIM_LEAF;
         float max_r = 0.0f;
@@ -193,9 +193,9 @@ static void _update(TaySpace *space) {
 
     /* sort all agents from tree into nodes */
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-        TayAgent *next = t->first[i];
+        TayAgentTag *next = t->first[i];
         while (next) {
-            TayAgent *a = next;
+            TayAgentTag *a = next;
             next = next->next;
             _sort_agent(t, t->nodes, a, i);
         }
@@ -267,16 +267,16 @@ static void _see(TaySpace *space, TayPass *pass) {
 
 typedef struct {
     TayPass *pass;
-    TayAgent *agents;
+    TayAgentTag *agents;
 } TreeActTask;
 
-static void _init_tree_act_task(TreeActTask *t, TayPass *pass, TayAgent *agents) {
+static void _init_tree_act_task(TreeActTask *t, TayPass *pass, TayAgentTag *agents) {
     t->pass = pass;
     t->agents = agents;
 }
 
 static void _act_func(TreeActTask *t, TayThreadContext *thread_context) {
-    for (TayAgent *a = t->agents; a; a = a->next)
+    for (TayAgentTag *a = t->agents; a; a = a->next)
         t->pass->act(TAY_AGENT_DATA(a), thread_context->context);
 }
 
