@@ -18,6 +18,7 @@ TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_r
         space_gpu_simple_init(&s->space, space_dims);
     else
         assert(0); /* not implemented */
+    s->running = TAY_STATE_STATUS_IDLE;
     return s;
 }
 
@@ -108,14 +109,26 @@ void *tay_get_agent_tag(TayState *state, int group, int index) {
     return (char *)g->storage + (sizeof(TayAgentTag) + g->agent_size) * index;
 }
 
+void tay_simulation_start(TayState *state) {
+    assert(state->running == TAY_STATE_STATUS_IDLE);
+    state->running = TAY_STATE_STATUS_RUNNING;
+    if (state->space.on_simulation_start)
+        state->space.on_simulation_start(&state->space, state);
+}
+
 void tay_run(TayState *state, int steps) {
+    assert(state->running == TAY_STATE_STATUS_RUNNING);
+
     struct timespec beg, end;
     timespec_get(&beg, TIME_UTC);
 
     tay_runner_reset_stats();
 
     for (int i = 0; i < steps; ++i) {
-        state->space.update(&state->space);
+
+        if (state->space.update)
+            state->space.update(&state->space);
+
         for (int j = 0; j < state->passes_count; ++j) {
             TayPass *p = state->passes + j;
             if (p->type == TAY_PASS_SEE)
@@ -131,8 +144,18 @@ void tay_run(TayState *state, int steps) {
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
     double fps = steps / t;
 
-    // tay_runner_report_stats();
+#if TAY_INSTRUMENT
+    tay_runner_report_stats();
+#endif
+
     printf("run time: %g sec, %g fps\n\n", t, fps);
+}
+
+void tay_simulation_end(TayState *state) {
+    assert(state->running == TAY_STATE_STATUS_RUNNING);
+    state->running = TAY_STATE_STATUS_IDLE;
+    if (state->space.on_simulation_end)
+        state->space.on_simulation_end(&state->space);
 }
 
 void space_init(TaySpace *space,
@@ -142,7 +165,9 @@ void space_init(TaySpace *space,
                 TAY_SPACE_ADD_FUNC add,
                 TAY_SPACE_SEE_FUNC see,
                 TAY_SPACE_ACT_FUNC act,
-                TAY_SPACE_UPDATE_FUNC update) {
+                TAY_SPACE_UPDATE_FUNC update,
+                TAY_SPACE_SIM_START_FUNC on_simulation_start,
+                TAY_SPACE_SIM_END_FUNC on_simulation_end) {
     space->storage = storage;
     space->dims = dims;
     space->destroy = destroy;

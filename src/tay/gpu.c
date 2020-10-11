@@ -1,6 +1,7 @@
 #include "gpu.h"
 #define CL_TARGET_OPENCL_VERSION 220
 #include <CL/opencl.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 
@@ -14,27 +15,29 @@ typedef struct GpuContext {
 
 static int _check_errors(int err, const char *text);
 
-int gpu_init(GpuContext *c) {
+GpuContext *gpu_create() {
+    GpuContext *c = malloc(sizeof(GpuContext));
+
     cl_platform_id platform_ids[32];
     cl_uint platforms_count;
     clGetPlatformIDs(1, platform_ids, &platforms_count);
 
     cl_int err = clGetDeviceIDs(platform_ids[0], CL_DEVICE_TYPE_GPU, 1, &c->device, 0);
     if (_check_errors(err, "clGetDeviceIDs"))
-        return err;
+        return 0;
 
     c->context = clCreateContext(0, 1, &c->device, 0, 0, &err);
     if (_check_errors(err, "clCreateContext"))
-        return err;
+        return 0;
 
     c->commands = clCreateCommandQueueWithProperties(c->context, c->device, 0, &err);
     if (_check_errors(err, "clCreateCommandQueueWithProperties"))
-        return err;
+        return 0;
 
-    return 0;
+    return c;
 }
 
-int gpu_release(GpuContext *c) {
+int gpu_destroy(GpuContext *c) {
     cl_int err;
 
     err = clReleaseProgram(c->program);
@@ -48,6 +51,8 @@ int gpu_release(GpuContext *c) {
     err = clReleaseContext(c->context);
     if (_check_errors(err, "clReleaseContext"))
         return err;
+
+    free(c);
 
     return 0;
 }

@@ -93,9 +93,6 @@ static void _act(TaySpace *space, TayPass *pass) {
     tay_runner_run();
 }
 
-static void _update(TaySpace *space) {
-}
-
 void space_simple_init(TaySpace *space, int dims) {
-    space_init(space, _init(), dims, _destroy, _add, _see, _act, _update);
+    space_init(space, _init(), dims, _destroy, _add, _see, _act, 0, 0, 0);
 }

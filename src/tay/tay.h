@@ -12,13 +12,18 @@ typedef struct TayState TayState;
 
 TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_radii, int max_depth_correction);
 void tay_destroy_state(TayState *state);
+
 int tay_add_group(TayState *state, int agent_size, int agent_capacity);
 void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, void *), float *radii, void *context);
 void tay_add_act(TayState *state, int act_group, void (*func)(void *, void *), void *context);
+
 void *tay_get_available_agent(TayState *state, int group);
 void tay_commit_available_agent(TayState *state, int group);
 void *tay_get_agent(TayState *state, int group, int index);
-void *tay_get_agent_tag(TayState *state, int gorup, int index);
+void *tay_get_agent_tag(TayState *state, int group, int index);
+
+void tay_simulation_start(TayState *state);
 void tay_run(TayState *state, int steps);
+void tay_simulation_end(TayState *state);
 
 #endif

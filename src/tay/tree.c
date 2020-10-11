@@ -302,5 +302,5 @@ static void _act(TaySpace *space, TayPass *pass) {
 }
 
 void space_tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction) {
-    space_init(space, _init(dims, radii, max_depth_correction), dims, _destroy, _add, _see, _act, _update);
+    space_init(space, _init(dims, radii, max_depth_correction), dims, _destroy, _add, _see, _act, _update, 0, 0);
 }

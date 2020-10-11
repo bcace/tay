@@ -19,6 +19,8 @@ typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpace *space, struct TayAgentTag *a
 typedef void (*TAY_SPACE_SEE_FUNC)(struct TaySpace *space, struct TayPass *pass);
 typedef void (*TAY_SPACE_ACT_FUNC)(struct TaySpace *space, struct TayPass *pass);
 typedef void (*TAY_SPACE_UPDATE_FUNC)(struct TaySpace *space);
+typedef void (*TAY_SPACE_SIM_START_FUNC)(struct TaySpace *space, struct TayState *state);
+typedef void (*TAY_SPACE_SIM_END_FUNC)(struct TaySpace *space);
 
 typedef struct TayAgentTag {
     struct TayAgentTag *next;
@@ -62,13 +64,21 @@ typedef struct TaySpace {
     TAY_SPACE_SEE_FUNC see;
     TAY_SPACE_ACT_FUNC act;
     TAY_SPACE_UPDATE_FUNC update;
+    TAY_SPACE_SIM_START_FUNC on_simulation_start;
+    TAY_SPACE_SIM_END_FUNC on_simulation_end;
 } TaySpace;
+
+typedef enum TayStateStatus {
+    TAY_STATE_STATUS_IDLE,
+    TAY_STATE_STATUS_RUNNING,
+} TayStateStatus;
 
 typedef struct TayState {
     TayGroup groups[TAY_MAX_GROUPS];
     TayPass passes[TAY_MAX_PASSES];
     int passes_count;
     TaySpace space;
+    TayStateStatus running;
 } TayState;
 
 void space_init(TaySpace *space,
@@ -78,7 +88,9 @@ void space_init(TaySpace *space,
                 TAY_SPACE_ADD_FUNC add,
                 TAY_SPACE_SEE_FUNC see,
                 TAY_SPACE_ACT_FUNC act,
-                TAY_SPACE_UPDATE_FUNC update);
+                TAY_SPACE_UPDATE_FUNC update,
+                TAY_SPACE_SIM_START_FUNC on_simulation_start,
+                TAY_SPACE_SIM_END_FUNC on_simulation_end);
 void space_simple_init(TaySpace *space, int dims);
 void space_tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction);
 void space_gpu_simple_init(TaySpace *space, int dims);

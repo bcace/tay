@@ -174,7 +174,9 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
 
     printf("R: %g, depth_correction: %d\n", see_radius, max_depth_correction);
 
+    tay_simulation_start(s);
     tay_run(s, 100);
+    tay_simulation_end(s);
 
     if (results) {
         if (results->first_time) {
