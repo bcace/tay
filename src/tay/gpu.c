@@ -5,81 +5,79 @@
 #include <assert.h>
 
 
-cl_device_id device = 0;
-cl_context context = 0;
-cl_command_queue commands = 0;
-cl_program program = 0;
+typedef struct GpuContext {
+    cl_device_id device;
+    cl_context context;
+    cl_command_queue commands;
+    cl_program program;
+} GpuContext;
 
 static int _check_errors(int err, const char *text);
 
-int gpu_init() {
-    assert(device == 0);
-    assert(context == 0);
-    assert(commands == 0);
-
+int gpu_init(GpuContext *c) {
     cl_platform_id platform_ids[32];
     cl_uint platforms_count;
     clGetPlatformIDs(1, platform_ids, &platforms_count);
 
-    cl_int err = clGetDeviceIDs(platform_ids[0], CL_DEVICE_TYPE_GPU, 1, &device, 0);
+    cl_int err = clGetDeviceIDs(platform_ids[0], CL_DEVICE_TYPE_GPU, 1, &c->device, 0);
     if (_check_errors(err, "clGetDeviceIDs"))
         return err;
 
-    context = clCreateContext(0, 1, &device, 0, 0, &err);
+    c->context = clCreateContext(0, 1, &c->device, 0, 0, &err);
     if (_check_errors(err, "clCreateContext"))
         return err;
 
-    commands = clCreateCommandQueueWithProperties(context, device, 0, &err);
+    c->commands = clCreateCommandQueueWithProperties(c->context, c->device, 0, &err);
     if (_check_errors(err, "clCreateCommandQueueWithProperties"))
         return err;
 
     return 0;
 }
 
-int gpu_release() {
+int gpu_release(GpuContext *c) {
     cl_int err;
 
-    err = clReleaseProgram(program);
+    err = clReleaseProgram(c->program);
     if (_check_errors(err, "clReleaseProgram"))
         return err;
 
-    err = clReleaseCommandQueue(commands);
+    err = clReleaseCommandQueue(c->commands);
     if (_check_errors(err, "clReleaseCommandQueue"))
         return err;
 
-    err = clReleaseContext(context);
+    err = clReleaseContext(c->context);
     if (_check_errors(err, "clReleaseContext"))
         return err;
 
     return 0;
 }
 
-int gpu_build_program(const char *source) {
-    assert(program == 0); // TODO: release old and create a new program here
+int gpu_build_program(GpuContext *c, const char *source) {
+    assert(c->program == 0); // TODO: release old and create a new program here
 
     cl_int err;
-    program = clCreateProgramWithSource(context, 1, &source, 0, &err);
+    c->program = clCreateProgramWithSource(c->context, 1, &source, 0, &err);
     if (_check_errors(err, "Failed to create program with source"))
         return err;
 
-    err = clBuildProgram(program, 1, &device, 0, 0, 0);
+    err = clBuildProgram(c->program, 1, &c->device, 0, 0, 0);
     if (_check_errors(err, "Failed to build program"))
         return err;
 
     return 0;
 }
 
-static GpuKernel _create_kernel(const char *name) {
+static GpuKernel _create_kernel(GpuContext *c, const char *name) {
     cl_int err;
-    GpuKernel kernel = clCreateKernel(program, name, &err);
+    GpuKernel kernel = clCreateKernel(c->program, name, &err);
     if (_check_errors(err, "clCreateKernel"))
         return 0;
 
     return kernel;
 }
 
-GpuKernel gpu_create_kernel1(const char *name, int size1, const void *arg1) {
-    GpuKernel kernel = _create_kernel(name);
+GpuKernel gpu_create_kernel1(GpuContext *c, const char *name, int size1, const void *arg1) {
+    GpuKernel kernel = _create_kernel(c, name);
     if (kernel == 0)
         return 0;
 
@@ -90,8 +88,8 @@ GpuKernel gpu_create_kernel1(const char *name, int size1, const void *arg1) {
     return kernel;
 }
 
-GpuKernel gpu_create_kernel2(const char *name, int size1, void *arg1, int size2, void *arg2) {
-    GpuKernel kernel = _create_kernel(name);
+GpuKernel gpu_create_kernel2(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2) {
+    GpuKernel kernel = _create_kernel(c, name);
     if (kernel == 0)
         return 0;
 
@@ -106,8 +104,8 @@ GpuKernel gpu_create_kernel2(const char *name, int size1, void *arg1, int size2,
     return kernel;
 }
 
-GpuKernel gpu_create_kernel3(const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3) {
-    GpuKernel kernel = _create_kernel(name);
+GpuKernel gpu_create_kernel3(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3) {
+    GpuKernel kernel = _create_kernel(c, name);
     if (kernel == 0)
         return 0;
 
@@ -126,8 +124,8 @@ GpuKernel gpu_create_kernel3(const char *name, int size1, void *arg1, int size2,
     return kernel;
 }
 
-GpuKernel gpu_create_kernel4(const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3, int size4, void *arg4) {
-    GpuKernel kernel = _create_kernel(name);
+GpuKernel gpu_create_kernel4(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3, int size4, void *arg4) {
+    GpuKernel kernel = _create_kernel(c, name);
     if (kernel == 0)
         return 0;
 
@@ -150,8 +148,8 @@ GpuKernel gpu_create_kernel4(const char *name, int size1, void *arg1, int size2,
     return kernel;
 }
 
-GpuKernel gpu_create_kernel5(const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3, int size4, void *arg4, int size5, void *arg5) {
-    GpuKernel kernel = _create_kernel(name);
+GpuKernel gpu_create_kernel5(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3, int size4, void *arg4, int size5, void *arg5) {
+    GpuKernel kernel = _create_kernel(c, name);
     if (kernel == 0)
         return 0;
 
@@ -185,7 +183,7 @@ int gpu_release_kernel(GpuKernel kernel) {
     return 0;
 }
 
-GpuBuffer gpu_create_buffer(GpuMemFlags device, GpuMemFlags host, int size) {
+GpuBuffer gpu_create_buffer(GpuContext *c, GpuMemFlags device, GpuMemFlags host, int size) {
     cl_mem_flags flags = 0;
     if (device == GPU_MEM_READ_ONLY)
         flags |= CL_MEM_READ_ONLY;
@@ -204,7 +202,7 @@ GpuBuffer gpu_create_buffer(GpuMemFlags device, GpuMemFlags host, int size) {
     else
         assert(0);
     cl_int err;
-    cl_mem buffer = clCreateBuffer(context, flags, size, 0, &err);
+    cl_mem buffer = clCreateBuffer(c->context, flags, size, 0, &err);
     if (_check_errors(err, "clCreateBuffer"))
         return 0;
 
@@ -218,31 +216,31 @@ int gpu_set_kernel_argument(GpuKernel kernel, GpuBuffer buffer, int size, void *
     return 0;
 }
 
-int gpu_enqueue_write_buffer(GpuBuffer buffer, GpuBlocking blocking, int size, void *arg) {
-    cl_int err = clEnqueueWriteBuffer(commands, buffer, blocking, 0, size, arg, 0, 0, 0);
+int gpu_enqueue_write_buffer(GpuContext *c, GpuBuffer buffer, GpuBlocking blocking, int size, void *arg) {
+    cl_int err = clEnqueueWriteBuffer(c->commands, buffer, blocking, 0, size, arg, 0, 0, 0);
     if (_check_errors(err, "clEnqueueWriteBuffer"))
         return 1;
     return 0;
 }
 
-int gpu_enqueue_read_buffer(GpuBuffer buffer, GpuBlocking blocking, int size, void *arg) {
-    cl_int err = clEnqueueReadBuffer(commands, buffer, blocking, 0, size, arg, 0, 0, 0);
+int gpu_enqueue_read_buffer(GpuContext *c, GpuBuffer buffer, GpuBlocking blocking, int size, void *arg) {
+    cl_int err = clEnqueueReadBuffer(c->commands, buffer, blocking, 0, size, arg, 0, 0, 0);
     if (_check_errors(err, "clEnqueueReadBuffer"))
         return 1;
     return 0;
 }
 
-int gpu_enqueue_kernel(GpuKernel kernel, int count) {
+int gpu_enqueue_kernel(GpuContext *c, GpuKernel kernel, int count) {
     size_t wide_count = count;
-    cl_int err = clEnqueueNDRangeKernel(commands, kernel, 1, 0, &wide_count, 0, 0, 0, 0);
+    cl_int err = clEnqueueNDRangeKernel(c->commands, kernel, 1, 0, &wide_count, 0, 0, 0, 0);
     if (_check_errors(err, "clEnqueueNDRangeKernel"))
         return 1;
-    clFinish(commands); /* must be here because each kernel represents a iteration phase, and also having a pointer to wide_count local variable wouldn't work */
+    clFinish(c->commands); /* must be here because each kernel represents a iteration phase, and also having a pointer to wide_count local variable wouldn't work */
     return 0;
 }
 
-int gpu_finish() {
-    cl_int err = clFinish(commands);
+int gpu_finish(GpuContext *c) {
+    cl_int err = clFinish(c->commands);
     if (_check_errors(err, "clFinish"))
         return 1;
     return 0;
