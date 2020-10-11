@@ -18,6 +18,7 @@ void tay_add_act(TayState *state, int act_group, void (*func)(void *, void *), v
 void *tay_get_available_agent(TayState *state, int group);
 void tay_commit_available_agent(TayState *state, int group);
 void *tay_get_agent(TayState *state, int group, int index);
+void *tay_get_agent_tag(TayState *state, int gorup, int index);
 void tay_run(TayState *state, int steps);
 
 #endif

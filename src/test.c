@@ -8,6 +8,7 @@
 #include <math.h>
 
 
+#pragma pack(push, 1)
 typedef struct {
     /* position variables (must be first, must be collection of floats) */
     vec p;
@@ -26,6 +27,7 @@ typedef struct {
 typedef struct {
     vec radii;
 } SeeContext;
+#pragma pack(pop)
 
 /* Agent a is the seer (writes to itself) and agent b is the seen agent (is only read from),
 this should be somehow statically checked, so that the actual code doesn't do the wrong thing. */
@@ -207,17 +209,26 @@ void test() {
 
     /* testing model case 1 */
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 3; ++i) {
         float perception_r = 10.0f * (1 << i);
 
+#if 0
         for (int j = 0; j < 4; ++j)
             _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
+#endif
 
 #if 1
+        printf("gpu:\n");
+
+        _test_model_case1(TAY_SPACE_GPU_SIMPLE, perception_r, 0, r);
+#endif
+
+#if 0
         printf("reference:\n");
 
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
 #endif
+
         printf("\n");
 
         _reset_results(r);

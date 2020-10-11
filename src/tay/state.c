@@ -8,6 +8,7 @@
 
 
 TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_radii, int max_depth_correction) {
+    assert(sizeof(TayAgentTag) == TAY_AGENT_TAG_SIZE);
     TayState *s = calloc(1, sizeof(TayState));
     if (space_type == TAY_SPACE_SIMPLE)
         space_simple_init(&s->space, space_dims);
@@ -43,6 +44,7 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
     TayGroup *g = state->groups + index;
     int agent_size_with_tag = agent_size + sizeof(TayAgentTag);
     g->agent_size = agent_size;
+    g->agent_size_with_tag = agent_size_with_tag;
     g->storage = calloc(agent_capacity, agent_size_with_tag);
     g->capacity = agent_capacity;
     g->first = g->storage;
@@ -90,13 +92,20 @@ void tay_commit_available_agent(TayState *state, int group) {
     assert(g->first != 0);
     TayAgentTag *a = g->first;
     g->first = a->next;
-    state->space.add(&state->space, a, group);
+    int index = (int)((char *)a - (char *)g->storage) / g->agent_size_with_tag;
+    state->space.add(&state->space, a, group, index);
 }
 
 void *tay_get_agent(TayState *state, int group, int index) {
     assert(group >= 0 && group < TAY_MAX_GROUPS);
     TayGroup *g = state->groups + group;
     return (char *)g->storage + (sizeof(TayAgentTag) + g->agent_size) * index + sizeof(TayAgentTag);
+}
+
+void *tay_get_agent_tag(TayState *state, int group, int index) {
+    assert(group >= 0 && group < TAY_MAX_GROUPS);
+    TayGroup *g = state->groups + group;
+    return (char *)g->storage + (sizeof(TayAgentTag) + g->agent_size) * index;
 }
 
 void tay_run(TayState *state, int steps) {

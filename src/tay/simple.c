@@ -13,11 +13,15 @@ typedef struct {
     SimpleGroup groups[TAY_MAX_GROUPS];
 } Simple;
 
+static Simple *_init() {
+    return calloc(1, sizeof(Simple));
+}
+
 static void _destroy(TaySpace *space) {
     free(space->storage);
 }
 
-static void _add(TaySpace *space, TayAgentTag *agent, int group) {
+static void _add(TaySpace *space, TayAgentTag *agent, int group, int index) {
     Simple *s = space->storage;
     SimpleGroup *g = s->groups + group;
     int thread = (g->receiving_thread++) % runner.count;
@@ -93,6 +97,5 @@ static void _update(TaySpace *space) {
 }
 
 void space_simple_init(TaySpace *space, int dims) {
-    Simple *s = calloc(1, sizeof(Simple));
-    space_init(space, s, dims, _destroy, _add, _see, _act, _update);
+    space_init(space, _init(), dims, _destroy, _add, _see, _act, _update);
 }

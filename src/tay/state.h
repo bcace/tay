@@ -5,6 +5,7 @@
 #define TAY_MAX_PASSES      32
 #define TAY_MAX_DIMENSIONS  8
 #define TAY_INSTRUMENT      0
+#define TAY_AGENT_TAG_SIZE  8
 
 #define TAY_AGENT_POSITION(__agent_tag__) ((float *)(__agent_tag__ + 1))
 #define TAY_AGENT_DATA(__agent_tag__) ((void *)(__agent_tag__ + 1))
@@ -14,7 +15,7 @@ typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 
 typedef void (*TAY_SPACE_DESTROY_FUNC)(struct TaySpace *space);
-typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpace *space, struct TayAgentTag *agent, int group);
+typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpace *space, struct TayAgentTag *agent, int group, int index);
 typedef void (*TAY_SPACE_SEE_FUNC)(struct TaySpace *space, struct TayPass *pass);
 typedef void (*TAY_SPACE_ACT_FUNC)(struct TaySpace *space, struct TayPass *pass);
 typedef void (*TAY_SPACE_UPDATE_FUNC)(struct TaySpace *space);
@@ -23,10 +24,12 @@ typedef struct TayAgentTag {
     struct TayAgentTag *next;
 } TayAgentTag;
 
+// TODO: turn storage into char *
 typedef struct TayGroup {
     void *storage;              /* agents storage */
     struct TayAgentTag *first;  /* single linked list of available agents from storage */
     int agent_size;             /* agent size in bytes */
+    int agent_size_with_tag;
     int capacity;               /* max. number of agents */
 } TayGroup;
 

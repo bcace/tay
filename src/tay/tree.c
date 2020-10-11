@@ -94,7 +94,7 @@ static void _add_to_non_sorted(Tree *tree, TayAgentTag *agent, int group) {
     _update_box(&tree->box, TAY_AGENT_POSITION(agent), tree->dims);
 }
 
-static void _add(TaySpace *space, TayAgentTag *agent, int group) {
+static void _add(TaySpace *space, TayAgentTag *agent, int group, int index) {
     Tree *t = space->storage;
     _add_to_non_sorted(t, agent, group);
 }
