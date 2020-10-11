@@ -41,9 +41,9 @@ static void _reset_depths(Depths *depths, int dims) {
 }
 
 typedef struct Node {
-    struct Node *lo, *hi; /* child partitions */
+    struct Node *lo, *hi;               /* child partitions */
     TayAgentTag *first[TAY_MAX_GROUPS]; /* agents contained in this node (fork or leaf) */
-    int dim; /* dimension along which the node's partition is divided into child partitions */
+    int dim;                            /* dimension along which the node's partition is divided into child partitions */
     Box box;
     Depths depths;
 } Node;
@@ -58,7 +58,7 @@ static void _clear_node(Node *node) {
 
 typedef struct {
     TayAgentTag *first[TAY_MAX_GROUPS]; /* agents are kept here while not in nodes */
-    Node *nodes; /* nodes storage, first node is always the root node */
+    Node *nodes;                        /* nodes storage, first node is always the root node */
     int nodes_cap;
     int available_node;
     int dims;
@@ -288,7 +288,7 @@ static void _traverse_actors(Node *node, TayPass *pass) {
     _init_tree_act_task(&task, pass, node->first[pass->act_group]);
     tay_thread_set_task(0, _act_func, &task, pass->context);
     for (int i = 1; i < runner.count; ++i)
-        tay_thread_set_task(i, _dummy_act_func, 0, 0);
+        tay_thread_set_task(i, _dummy_act_func, 0, 0); // horrible
     tay_runner_run_no_threads();
     if (node->lo)
         _traverse_actors(node->lo, pass);
@@ -301,6 +301,6 @@ static void _act(TaySpace *space, TayPass *pass) {
     _traverse_actors(t->nodes, pass);
 }
 
-void tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction) {
+void space_tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction) {
     space_init(space, _init(dims, radii, max_depth_correction), dims, _destroy, _add, _see, _act, _update);
 }

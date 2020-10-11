@@ -7,14 +7,14 @@
 #include <time.h>
 
 
-TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float *space_radii, int max_depth_correction) {
+TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_radii, int max_depth_correction) {
     TayState *s = calloc(1, sizeof(TayState));
     if (space_type == TAY_SPACE_SIMPLE)
-        space_simple_init(&s->space, space_dimensions);
+        space_simple_init(&s->space, space_dims);
     else if (space_type == TAY_SPACE_TREE)
-        tree_init(&s->space, space_dimensions, space_radii, max_depth_correction);
-    else if (space_type == TAY_SPACE_GRID)
-        grid_init(&s->space, space_dimensions, space_radii);
+        space_tree_init(&s->space, space_dims, see_radii, max_depth_correction);
+    else if (space_type == TAY_SPACE_GPU_SIMPLE)
+        space_gpu_simple_init(&s->space, space_dims);
     else
         assert(0); /* not implemented */
     return s;
@@ -122,7 +122,7 @@ void tay_run(TayState *state, int steps) {
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
     double fps = steps / t;
 
-    tay_runner_report_stats();
+    // tay_runner_report_stats();
     printf("run time: %g sec, %g fps\n\n", t, fps);
 }
 

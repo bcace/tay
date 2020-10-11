@@ -24,10 +24,10 @@ typedef struct TayAgentTag {
 } TayAgentTag;
 
 typedef struct TayGroup {
-    void *storage;          /* agents storage */
-    struct TayAgentTag *first; /* single linked list of available agents from storage */
-    int agent_size;         /* agent size in bytes */
-    int capacity;           /* max. number of agents */
+    void *storage;              /* agents storage */
+    struct TayAgentTag *first;  /* single linked list of available agents from storage */
+    int agent_size;             /* agent size in bytes */
+    int capacity;               /* max. number of agents */
 } TayGroup;
 
 typedef enum TayPassType {
@@ -77,8 +77,10 @@ void space_init(TaySpace *space,
                 TAY_SPACE_ACT_FUNC act,
                 TAY_SPACE_UPDATE_FUNC update);
 void space_simple_init(TaySpace *space, int dims);
-void tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction);
-void grid_init(TaySpace *space, int dims, float *radii);
+void space_tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction);
+void space_gpu_simple_init(TaySpace *space, int dims);
+
+/* Shared CPU version of see between linked lists of agents. */
 void tay_see(struct TayAgentTag *seer_agents, struct TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, struct TayThreadContext *thread_context);
 
 #endif

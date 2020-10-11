@@ -5,12 +5,12 @@
 typedef enum TaySpaceType {
     TAY_SPACE_SIMPLE,
     TAY_SPACE_TREE,
-    TAY_SPACE_GRID,
+    TAY_SPACE_GPU_SIMPLE,
 } TaySpaceType;
 
 typedef struct TayState TayState;
 
-TayState *tay_create_state(TaySpaceType space_type, int space_dimensions, float *space_radii, int max_depth_correction);
+TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_radii, int max_depth_correction);
 void tay_destroy_state(TayState *state);
 int tay_add_group(TayState *state, int agent_size, int agent_capacity);
 void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, void *), float *radii, void *context);
