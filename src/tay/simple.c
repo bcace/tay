@@ -17,11 +17,11 @@ static Simple *_init() {
     return calloc(1, sizeof(Simple));
 }
 
-static void _destroy(TaySpace *space) {
+static void _destroy(TaySpaceContainer *space) {
     free(space->storage);
 }
 
-static void _add(TaySpace *space, TayAgentTag *agent, int group, int index) {
+static void _add(TaySpaceContainer *space, TayAgentTag *agent, int group, int index) {
     Simple *s = space->storage;
     SimpleGroup *g = s->groups + group;
     int thread = (g->receiving_thread++) % runner.count;
@@ -48,7 +48,7 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
     tay_see(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
 }
 
-static void _see(TaySpace *space, TayPass *pass) {
+static void _see(TaySpaceContainer *space, TayPass *pass) {
     static SimpleSeeTask tasks[TAY_MAX_THREADS];
 
     Simple *s = space->storage;
@@ -81,7 +81,7 @@ static void _act_func(SimpleActTask *task, TayThreadContext *thread_context) {
         task->pass->act(TAY_AGENT_DATA(a), thread_context->context);
 }
 
-static void _act(TaySpace *space, TayPass *pass) {
+static void _act(TaySpaceContainer *space, TayPass *pass) {
     static SimpleActTask act_contexts[TAY_MAX_THREADS];
 
     Simple *s = space->storage;
@@ -93,6 +93,6 @@ static void _act(TaySpace *space, TayPass *pass) {
     tay_runner_run();
 }
 
-void space_simple_init(TaySpace *space, int dims) {
-    space_init(space, _init(), dims, _destroy, _add, _see, _act, 0, 0, 0);
+void space_simple_init(TaySpaceContainer *space, int dims) {
+    space_container_init(space, _init(), dims, _destroy, _add, _see, _act, 0, 0, 0);
 }

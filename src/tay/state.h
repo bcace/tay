@@ -14,13 +14,13 @@
 typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 
-typedef void (*TAY_SPACE_DESTROY_FUNC)(struct TaySpace *space);
-typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpace *space, struct TayAgentTag *agent, int group, int index);
-typedef void (*TAY_SPACE_SEE_FUNC)(struct TaySpace *space, struct TayPass *pass);
-typedef void (*TAY_SPACE_ACT_FUNC)(struct TaySpace *space, struct TayPass *pass);
-typedef void (*TAY_SPACE_UPDATE_FUNC)(struct TaySpace *space);
-typedef void (*TAY_SPACE_SIM_START_FUNC)(struct TaySpace *space, struct TayState *state);
-typedef void (*TAY_SPACE_SIM_END_FUNC)(struct TaySpace *space);
+typedef void (*TAY_SPACE_DESTROY_FUNC)(struct TaySpaceContainer *space);
+typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpaceContainer *space, struct TayAgentTag *agent, int group, int index);
+typedef void (*TAY_SPACE_SEE_FUNC)(struct TaySpaceContainer *space, struct TayPass *pass);
+typedef void (*TAY_SPACE_ACT_FUNC)(struct TaySpaceContainer *space, struct TayPass *pass);
+typedef void (*TAY_SPACE_UPDATE_FUNC)(struct TaySpaceContainer *space);
+typedef void (*TAY_SPACE_SIM_START_FUNC)(struct TaySpaceContainer *space, struct TayState *state);
+typedef void (*TAY_SPACE_SIM_END_FUNC)(struct TaySpaceContainer *space);
 
 typedef struct TayAgentTag {
     struct TayAgentTag *next;
@@ -56,7 +56,7 @@ typedef struct TayPass {
     void *context;
 } TayPass;
 
-typedef struct TaySpace {
+typedef struct TaySpaceContainer {
     void *storage;
     int dims;
     TAY_SPACE_DESTROY_FUNC destroy;
@@ -66,7 +66,7 @@ typedef struct TaySpace {
     TAY_SPACE_UPDATE_FUNC update;
     TAY_SPACE_SIM_START_FUNC on_simulation_start;
     TAY_SPACE_SIM_END_FUNC on_simulation_end;
-} TaySpace;
+} TaySpaceContainer;
 
 typedef enum TayStateStatus {
     TAY_STATE_STATUS_IDLE,
@@ -77,23 +77,23 @@ typedef struct TayState {
     TayGroup groups[TAY_MAX_GROUPS];
     TayPass passes[TAY_MAX_PASSES];
     int passes_count;
-    TaySpace space;
+    TaySpaceContainer space;
     TayStateStatus running;
 } TayState;
 
-void space_init(TaySpace *space,
-                void *storage,
-                int dims,
-                TAY_SPACE_DESTROY_FUNC destroy,
-                TAY_SPACE_ADD_FUNC add,
-                TAY_SPACE_SEE_FUNC see,
-                TAY_SPACE_ACT_FUNC act,
-                TAY_SPACE_UPDATE_FUNC update,
-                TAY_SPACE_SIM_START_FUNC on_simulation_start,
-                TAY_SPACE_SIM_END_FUNC on_simulation_end);
-void space_simple_init(TaySpace *space, int dims);
-void space_tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction);
-void space_gpu_simple_init(TaySpace *space, int dims);
+void space_container_init(TaySpaceContainer *space,
+                          void *storage,
+                          int dims,
+                          TAY_SPACE_DESTROY_FUNC destroy,
+                          TAY_SPACE_ADD_FUNC add,
+                          TAY_SPACE_SEE_FUNC see,
+                          TAY_SPACE_ACT_FUNC act,
+                          TAY_SPACE_UPDATE_FUNC update,
+                          TAY_SPACE_SIM_START_FUNC on_simulation_start,
+                          TAY_SPACE_SIM_END_FUNC on_simulation_end);
+void space_simple_init(TaySpaceContainer *space, int dims);
+void space_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction);
+void space_gpu_simple_init(TaySpaceContainer *space, int dims);
 
 /* Shared CPU version of see between linked lists of agents. */
 void tay_see(struct TayAgentTag *seer_agents, struct TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, struct TayThreadContext *thread_context);

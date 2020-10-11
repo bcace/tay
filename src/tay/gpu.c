@@ -15,12 +15,17 @@ typedef struct GpuContext {
 
 static int _check_errors(int err, const char *text);
 
-GpuContext *gpu_create() {
+GpuContext *gpu_create(void) {
     GpuContext *c = malloc(sizeof(GpuContext));
 
     cl_platform_id platform_ids[32];
     cl_uint platforms_count;
     clGetPlatformIDs(1, platform_ids, &platforms_count);
+
+    c->device = 0;
+    c->context = 0;
+    c->commands = 0;
+    c->program = 0;
 
     cl_int err = clGetDeviceIDs(platform_ids[0], CL_DEVICE_TYPE_GPU, 1, &c->device, 0);
     if (_check_errors(err, "clGetDeviceIDs"))
@@ -40,9 +45,11 @@ GpuContext *gpu_create() {
 int gpu_destroy(GpuContext *c) {
     cl_int err;
 
-    err = clReleaseProgram(c->program);
-    if (_check_errors(err, "clReleaseProgram"))
-        return err;
+    if (c->program) {
+        err = clReleaseProgram(c->program);
+        if (_check_errors(err, "clReleaseProgram"))
+            return err;
+    }
 
     err = clReleaseCommandQueue(c->commands);
     if (_check_errors(err, "clReleaseCommandQueue"))

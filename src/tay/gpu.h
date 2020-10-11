@@ -19,7 +19,7 @@ typedef enum GpuMemFlags {
 typedef void * GpuKernel;
 typedef void * GpuBuffer;
 
-GpuContext *gpu_create();
+GpuContext *gpu_create(void);
 int gpu_destroy(GpuContext *context);
 int gpu_build_program(GpuContext *context, const char *source);
 GpuKernel gpu_create_kernel1(GpuContext *context, const char *name, int size1, void *arg1);

@@ -30,38 +30,49 @@ static Space *_init() {
     return s;
 }
 
-static void _destroy(TaySpace *space) {
-    Space *s = (Space *)space;
+static void _destroy(TaySpaceContainer *container) {
+    Space *s = (Space *)container->storage;
     gpu_destroy(s->gpu);
     free(s);
 }
 
-static void _add(TaySpace *space, TayAgentTag *agent, int group, int index) {
-    Space *s = (Space *)space;
+static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, int index) {
+    Space *s = (Space *)container->storage;
     Tag *tag = (Tag *)agent;
     tag->next = s->first[group];
     s->first[group] = index;
 }
 
-static void _on_simulation_start(TaySpace *space, TayState *state) {
+static void _on_simulation_start(TaySpaceContainer *container, TayState *state) {
+    Space *s = (Space *)container->storage;
+
+    // gpu_build_program(kernels_source);
+
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage) {
+            // TODO: create buffers for
+            // s->agent_buffers[i] = gpu_create_buffer(s->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, group->capacity * group->agent_size_with_tag);
+        }
+    }
 }
 
-static void _on_simulation_end(TaySpace *space) {
+static void _on_simulation_end(TaySpaceContainer *container) {
 }
 
-static void _see(TaySpace *space, TayPass *pass) {
+static void _see(TaySpaceContainer *container, TayPass *pass) {
 }
 
-static void _act(TaySpace *space, TayPass *pass) {
+static void _act(TaySpaceContainer *container, TayPass *pass) {
 }
 
-static void _update(TaySpace *space) {
+static void _update(TaySpaceContainer *container) {
 }
 
-static void _release(TaySpace *space) {
+static void _release(TaySpaceContainer *container) {
 }
 
-void space_gpu_simple_init(TaySpace *space, int dims) {
+void space_gpu_simple_init(TaySpaceContainer *container, int dims) {
     assert(sizeof(Tag) == TAY_AGENT_TAG_SIZE);
-    space_init(space, _init(), dims, _destroy, _add, _see, _act, _update, _on_simulation_start, _on_simulation_end);
+    space_container_init(container, _init(), dims, _destroy, _add, _see, _act, _update, _on_simulation_start, _on_simulation_end);
 }

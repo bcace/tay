@@ -82,7 +82,7 @@ static Tree *_init(int dims, float *radii, int max_depth_correction) {
     return t;
 }
 
-static void _destroy(TaySpace *space) {
+static void _destroy(TaySpaceContainer *space) {
     Tree *t = space->storage;
     free(t->nodes);
     free(t);
@@ -94,7 +94,7 @@ static void _add_to_non_sorted(Tree *tree, TayAgentTag *agent, int group) {
     _update_box(&tree->box, TAY_AGENT_POSITION(agent), tree->dims);
 }
 
-static void _add(TaySpace *space, TayAgentTag *agent, int group, int index) {
+static void _add(TaySpaceContainer *space, TayAgentTag *agent, int group, int index) {
     Tree *t = space->storage;
     _add_to_non_sorted(t, agent, group);
 }
@@ -180,7 +180,7 @@ static int _max_depth(float space_side, float see_side, int max_depth_correction
     return depth;
 }
 
-static void _update(TaySpace *space) {
+static void _update(TaySpaceContainer *space) {
     Tree *t = space->storage;
     _move_agents_from_node_to_tree(t, t->nodes);
     t->available_node = 1;
@@ -251,7 +251,7 @@ static void _thread_see_traverse(TreeSeeTask *task, TayThreadContext *thread_con
     _thread_traverse_seers(task, task->tree->nodes, thread_context);
 }
 
-static void _see(TaySpace *space, TayPass *pass) {
+static void _see(TaySpaceContainer *space, TayPass *pass) {
     Tree *t = space->storage;
 
     static TreeSeeTask tasks[TAY_MAX_THREADS];
@@ -296,11 +296,11 @@ static void _traverse_actors(Node *node, TayPass *pass) {
         _traverse_actors(node->hi, pass);
 }
 
-static void _act(TaySpace *space, TayPass *pass) {
+static void _act(TaySpaceContainer *space, TayPass *pass) {
     Tree *t = space->storage;
     _traverse_actors(t->nodes, pass);
 }
 
-void space_tree_init(TaySpace *space, int dims, float *radii, int max_depth_correction) {
-    space_init(space, _init(dims, radii, max_depth_correction), dims, _destroy, _add, _see, _act, _update, 0, 0);
+void space_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction) {
+    space_container_init(space, _init(dims, radii, max_depth_correction), dims, _destroy, _add, _see, _act, _update, 0, 0);
 }

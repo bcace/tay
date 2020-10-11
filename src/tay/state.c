@@ -158,16 +158,16 @@ void tay_simulation_end(TayState *state) {
         state->space.on_simulation_end(&state->space);
 }
 
-void space_init(TaySpace *space,
-                void *storage,
-                int dims,
-                TAY_SPACE_DESTROY_FUNC destroy,
-                TAY_SPACE_ADD_FUNC add,
-                TAY_SPACE_SEE_FUNC see,
-                TAY_SPACE_ACT_FUNC act,
-                TAY_SPACE_UPDATE_FUNC update,
-                TAY_SPACE_SIM_START_FUNC on_simulation_start,
-                TAY_SPACE_SIM_END_FUNC on_simulation_end) {
+void space_container_init(TaySpaceContainer *space,
+                          void *storage,
+                          int dims,
+                          TAY_SPACE_DESTROY_FUNC destroy,
+                          TAY_SPACE_ADD_FUNC add,
+                          TAY_SPACE_SEE_FUNC see,
+                          TAY_SPACE_ACT_FUNC act,
+                          TAY_SPACE_UPDATE_FUNC update,
+                          TAY_SPACE_SIM_START_FUNC on_simulation_start,
+                          TAY_SPACE_SIM_END_FUNC on_simulation_end) {
     space->storage = storage;
     space->dims = dims;
     space->destroy = destroy;
@@ -175,6 +175,8 @@ void space_init(TaySpace *space,
     space->see = see;
     space->act = act;
     space->update = update;
+    space->on_simulation_start = on_simulation_start;
+    space->on_simulation_end = on_simulation_end;
 }
 
 void tay_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, TayThreadContext *thread_context) {
