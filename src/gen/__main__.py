@@ -31,8 +31,6 @@ kernels_cl = """
     kernels
 ).replace('__PACK__', '__attribute__((packed))').replace('__GLOBAL__', 'global').replace("\n", "\\n \\\n")
 
-# print(kernels_cl)
-
 # generate files
 
 with open('agent.h', 'w+') as f:
@@ -52,7 +50,7 @@ float4 float4_add(float4 a, float4 b);
 float4 float4_sub(float4 a, float4 b);
 float4 float4_div_scalar(float4 a, float s);
 
-extern const char *kernel_source;
+extern const char *agent_kernels_source;
 
 #pragma pack(pop)
 
@@ -69,7 +67,7 @@ with open('agent.c', 'w+') as f:
 
 {0}
 {1}
-const char *kernel_source = "{2}";
+const char *agent_kernels_source = "{2}";
 """.format(
     agent_c.replace('__GLOBAL__ ', ''),
     builtins_c,

@@ -33,7 +33,7 @@ float4 float4_add(float4 a, float4 b);
 float4 float4_sub(float4 a, float4 b);
 float4 float4_div_scalar(float4 a, float s);
 
-extern const char *kernel_source;
+extern const char *agent_kernels_source;
 
 #pragma pack(pop)
 

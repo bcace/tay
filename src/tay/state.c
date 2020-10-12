@@ -59,7 +59,7 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
     return index;
 }
 
-void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, struct TayThreadContext *), float *radii, void *context, int context_size) {
+void tay_add_see(TayState *state, int seer_group, int seen_group, TAY_SEE_FUNC func, float *radii, void *context, int context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
@@ -72,7 +72,7 @@ void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(v
         p->radii[i] = radii[i];
 }
 
-void tay_add_act(TayState *state, int act_group, void (*func)(void *, struct TayThreadContext *), void *context, int context_size) {
+void tay_add_act(TayState *state, int act_group, TAY_ACT_FUNC func, void *context, int context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;

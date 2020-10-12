@@ -50,7 +50,6 @@ typedef struct TayPass {
     union {
         TAY_SEE_FUNC see;
         TAY_ACT_FUNC act;
-        void (*post)(void *);
     };
     float radii[TAY_MAX_DIMENSIONS];
     void *context;

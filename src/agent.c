@@ -89,7 +89,7 @@ float4 float4_div_scalar(float4 a, float s) {
     return r;
 }
 
-const char *kernel_source = "\n \
+const char *agent_kernels_source = "\n \
 typedef struct __attribute__((packed)) Agent {\n \
     float4 p;\n \
     float4 v;\n \
