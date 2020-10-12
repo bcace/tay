@@ -1,6 +1,6 @@
 #include "test.h"
 #include "tay.h"
-#include "vec.h"
+#include "agent.h"
 #include "thread.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -8,83 +8,9 @@
 #include <math.h>
 
 
-#pragma pack(push, 1)
-typedef struct {
-    /* position variables (must be first, must be collection of floats) */
-    vec p;
-    vec v;
-    /* control variables */
-    vec b_buffer;
-    int b_buffer_count;
-    vec f_buffer;
-} Agent;
-
-typedef struct {
-    vec min;
-    vec max;
-} ActContext;
-
-typedef struct {
-    vec radii;
-} SeeContext;
-#pragma pack(pop)
-
-/* Agent a is the seer (writes to itself) and agent b is the seen agent (is only read from),
-this should be somehow statically checked, so that the actual code doesn't do the wrong thing. */
-static void _agent_see(Agent *a, Agent *b, void *context) {
-    a->b_buffer = vec_add(a->b_buffer, vec_sub(b->p, a->p));
-    a->b_buffer_count++;
-}
-
-static void _agent_act(Agent *agent, void *context) {
-    ActContext *c = context;
-
-    /* buffer swap */
-
-    if (agent->b_buffer_count != 0) {
-        agent->f_buffer = vec_div_scalar(agent->b_buffer, (float)agent->b_buffer_count);
-        agent->b_buffer = vec_null();
-        agent->b_buffer_count = 0;
-    }
-
-    /* move */
-
-    agent->p = vec_add(agent->p, agent->v);
-
-    if (agent->p.x < c->min.x) {
-        agent->p.x = c->min.x;
-        agent->v.x = -agent->v.x;
-    }
-
-    if (agent->p.y < c->min.y) {
-        agent->p.y = c->min.y;
-        agent->v.y = -agent->v.y;
-    }
-
-    if (agent->p.z < c->min.z) {
-        agent->p.z = c->min.z;
-        agent->v.z = -agent->v.z;
-    }
-
-    if (agent->p.x > c->max.x) {
-        agent->p.x = c->max.x;
-        agent->v.x = -agent->v.x;
-    }
-
-    if (agent->p.y > c->max.y) {
-        agent->p.y = c->max.y;
-        agent->v.y = -agent->v.y;
-    }
-
-    if (agent->p.z > c->max.z) {
-        agent->p.z = c->max.z;
-        agent->v.z = -agent->v.z;
-    }
-}
-
 /* Note that this only makes agents with randomized directions. Should implement another
 one for all agents with same direction later. */
-static void _make_cluster(TayState *state, int group, int count, vec min, vec max, float velocity) {
+static void _make_cluster(TayState *state, int group, int count, float4 min, float4 max, float velocity) {
     for (int i = 0; i < count; ++i) {
         Agent *a = tay_get_available_agent(state, group);
         a->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
@@ -121,7 +47,7 @@ typedef enum {
 } ResultsAction;
 
 typedef struct {
-    vec data[100000];
+    float4 data[10000000];
     int first_time;
 } Results;
 
@@ -144,7 +70,7 @@ static void _destroy_results(Results *r) {
 /* TODO: describe model case */
 static void _test_model_case1(TaySpaceType space_type, float see_radius, int max_depth_correction, Results *results) {
     int dims = 3;
-    int agents_count = 10000;
+    int agents_count = 4000;
     float space_size = 200.0f;
 
     srand(1);
@@ -167,10 +93,10 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
     see_context.radii.z = see_radius;
 
     int g = tay_add_group(s, sizeof(Agent), agents_count);
-    tay_add_see(s, g, g, _agent_see, see_radii, &see_context, sizeof(see_context));
-    tay_add_act(s, g, _agent_act, &act_context, sizeof(act_context));
+    tay_add_see(s, g, g, agent_see, see_radii, &see_context, sizeof(see_context));
+    tay_add_act(s, g, agent_act, &act_context, sizeof(act_context));
 
-    _make_cluster(s, g, agents_count, vec_make(0.0f, 0.0f, 0.0f), vec_make(space_size, space_size, space_size), 1.0f);
+    _make_cluster(s, g, agents_count, float4_make(0.0f, 0.0f, 0.0f), float4_make(space_size, space_size, space_size), 1.0f);
 
     printf("R: %g, depth_correction: %d\n", see_radius, max_depth_correction);
 
@@ -189,8 +115,8 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
         else {
             for (int i = 0; i < agents_count; ++i) {
                 Agent *agent = tay_get_agent(s, g, i);
-                vec a = agent->f_buffer;
-                vec b = results->data[i];
+                float4 a = agent->f_buffer;
+                float4 b = results->data[i];
                 _eq(a.x, b.x);
                 _eq(a.y, b.y);
                 _eq(a.z, b.z);
@@ -214,18 +140,18 @@ void test() {
     for (int i = 0; i < 3; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-#if 0
+#if 1
         for (int j = 0; j < 4; ++j)
             _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 #endif
 
-#if 1
+#if 0
         printf("gpu:\n");
 
         _test_model_case1(TAY_SPACE_GPU_SIMPLE, perception_r, 0, r);
 #endif
 
-#if 0
+#if 1
         printf("reference:\n");
 
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
