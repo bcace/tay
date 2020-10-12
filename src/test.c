@@ -167,8 +167,8 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
     see_context.radii.z = see_radius;
 
     int g = tay_add_group(s, sizeof(Agent), agents_count);
-    tay_add_see(s, g, g, _agent_see, see_radii, &see_context);
-    tay_add_act(s, g, _agent_act, &act_context);
+    tay_add_see(s, g, g, _agent_see, see_radii, &see_context, sizeof(see_context));
+    tay_add_act(s, g, _agent_act, &act_context, sizeof(act_context));
 
     _make_cluster(s, g, agents_count, vec_make(0.0f, 0.0f, 0.0f), vec_make(space_size, space_size, space_size), 1.0f);
 

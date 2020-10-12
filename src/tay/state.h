@@ -54,6 +54,7 @@ typedef struct TayPass {
     };
     float radii[TAY_MAX_DIMENSIONS];
     void *context;
+    int context_size;
 } TayPass;
 
 typedef struct TaySpaceContainer {
