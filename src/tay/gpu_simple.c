@@ -46,7 +46,16 @@ static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, in
 static void _on_simulation_start(TaySpaceContainer *container, TayState *state) {
     Space *s = (Space *)container->storage;
 
-    // gpu_build_program(kernels_source);
+    /* TODO: I have all kernels in a single source, and each kernel should be tied to its own pass.
+    On the other hand, it's ok that kernels have something in common because even CPU funcs share e.g.
+    agent definition at least.
+    So I should think about what that means for having some code that's global (shared between passes), even
+    for CPU execution. And not just structure definitions, also code.
+    Maybe a program object that has its entry points, or kernels, exposed and available for passes to
+    reference. Yes, that's it. Ultimately, on CPU this is going to be a program object containing compiled
+    code as well. */
+
+    // gpu_build_program(s->gpu, kernels_source);
 
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
