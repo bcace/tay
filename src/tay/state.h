@@ -26,7 +26,6 @@ typedef struct TayAgentTag {
     struct TayAgentTag *next;
 } TayAgentTag;
 
-// TODO: turn storage into char *
 typedef struct TayGroup {
     void *storage;              /* agents storage */
     struct TayAgentTag *first;  /* single linked list of available agents from storage */
@@ -57,7 +56,7 @@ typedef struct TayPass {
 } TayPass;
 
 typedef struct TaySpaceContainer {
-    void *storage;
+    void *storage; // TODO: can rename to space now
     int dims;
     TAY_SPACE_DESTROY_FUNC destroy;
     TAY_SPACE_ADD_FUNC add;

@@ -7,23 +7,23 @@
 typedef struct {
     TayAgentTag *first[TAY_MAX_THREADS];
     int receiving_thread;
-} SimpleGroup;
+} Group;
 
 typedef struct {
-    SimpleGroup groups[TAY_MAX_GROUPS];
-} Simple;
+    Group groups[TAY_MAX_GROUPS];
+} Space;
 
-static Simple *_init() {
-    return calloc(1, sizeof(Simple));
+static Space *_init() {
+    return calloc(1, sizeof(Space));
 }
 
 static void _destroy(TaySpaceContainer *space) {
     free(space->storage);
 }
 
-static void _add(TaySpaceContainer *space, TayAgentTag *agent, int group, int index) {
-    Simple *s = space->storage;
-    SimpleGroup *g = s->groups + group;
+static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, int index) {
+    Space *s = container->storage;
+    Group *g = s->groups + group;
     int thread = (g->receiving_thread++) % runner.count;
     TayAgentTag *next = g->first[thread];
     agent->next = next;
@@ -48,10 +48,10 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
     tay_see(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
 }
 
-static void _see(TaySpaceContainer *space, TayPass *pass) {
+static void _see(TaySpaceContainer *container, TayPass *pass) {
     static SimpleSeeTask tasks[TAY_MAX_THREADS];
 
-    Simple *s = space->storage;
+    Space *s = container->storage;
     for (int i = 0; i < runner.count; ++i) {
         TayAgentTag *b = s->groups[pass->seen_group].first[i];
 
@@ -59,7 +59,7 @@ static void _see(TaySpaceContainer *space, TayPass *pass) {
             TayAgentTag *a = s->groups[pass->seer_group].first[j];
 
             SimpleSeeTask *task = tasks + j;
-            _init_simple_see_task(task, pass, a, b, space->dims);
+            _init_simple_see_task(task, pass, a, b, container->dims);
             tay_thread_set_task(j, _see_func, task, pass->context);
         }
         tay_runner_run();
@@ -81,10 +81,10 @@ static void _act_func(SimpleActTask *task, TayThreadContext *thread_context) {
         task->pass->act(TAY_AGENT_DATA(a), thread_context->context);
 }
 
-static void _act(TaySpaceContainer *space, TayPass *pass) {
+static void _act(TaySpaceContainer *container, TayPass *pass) {
     static SimpleActTask act_contexts[TAY_MAX_THREADS];
 
-    Simple *s = space->storage;
+    Space *s = container->storage;
     for (int i = 0; i < runner.count; ++i) {
         SimpleActTask *task = act_contexts + i;
         _init_simple_act_task(task, pass, s->groups[pass->act_group].first[i]);
@@ -93,6 +93,6 @@ static void _act(TaySpaceContainer *space, TayPass *pass) {
     tay_runner_run();
 }
 
-void space_simple_init(TaySpaceContainer *space, int dims) {
-    space_container_init(space, _init(), dims, _destroy, _add, _see, _act, 0, 0, 0);
+void space_simple_init(TaySpaceContainer *container, int dims) {
+    space_container_init(container, _init(), dims, _destroy, _add, _see, _act, 0, 0, 0);
 }
