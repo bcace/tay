@@ -50,6 +50,7 @@ typedef struct TayPass {
         TAY_SEE_FUNC see;
         TAY_ACT_FUNC act;
     };
+    const char *func_name;
     float radii[TAY_MAX_DIMENSIONS];
     void *context;
     int context_size;
@@ -78,6 +79,7 @@ typedef struct TayState {
     int passes_count;
     TaySpaceContainer space;
     TayStateStatus running;
+    const char *source;
 } TayState;
 
 void space_container_init(TaySpaceContainer *space,

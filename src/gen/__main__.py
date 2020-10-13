@@ -12,23 +12,14 @@ builtins_c = read('gen/builtins.c')
 
 # generate opencl kernel source
 
-kernels = """
-kernel void see_kernel(global Agent *agents, global SeeContext *see_context) {
-}
-
-kernel void act_kernel(global Agent *agents, global ActContext *act_context) {
-}"""
-
 kernels_cl = """
 {0}
 {1}
 {2}
-{3}
 """.format(
     agent_h,
     builtins_c,
-    agent_c,
-    kernels
+    agent_c
 ).replace('__PACK__', '__attribute__((packed))').replace('__GLOBAL__', 'global').replace("\n", "\\n \\\n")
 
 # generate files

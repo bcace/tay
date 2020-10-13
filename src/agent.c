@@ -195,10 +195,4 @@ void agent_act(global Agent *agent, global ActContext *c) {\n \
     }\n \
 }\n \
 \n \
-\n \
-kernel void see_kernel(global Agent *agents, global SeeContext *see_context) {\n \
-}\n \
-\n \
-kernel void act_kernel(global Agent *agents, global ActContext *act_context) {\n \
-}\n \
 ";

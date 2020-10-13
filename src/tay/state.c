@@ -10,6 +10,9 @@
 TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_radii, int max_depth_correction) {
     assert(sizeof(TayAgentTag) == TAY_AGENT_TAG_SIZE);
     TayState *s = calloc(1, sizeof(TayState));
+    s->running = TAY_STATE_STATUS_IDLE;
+    s->source = 0;
+
     if (space_type == TAY_SPACE_SIMPLE)
         space_simple_init(&s->space, space_dims);
     else if (space_type == TAY_SPACE_TREE)
@@ -18,7 +21,7 @@ TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_r
         space_gpu_simple_init(&s->space, space_dims);
     else
         assert(0); /* not implemented */
-    s->running = TAY_STATE_STATUS_IDLE;
+
     return s;
 }
 
@@ -33,6 +36,10 @@ void tay_destroy_state(TayState *state) {
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         _clear_group(state->groups + i);
     free(state);
+}
+
+void tay_set_source(TayState *state, const char *source) {
+    state->source = source;
 }
 
 int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
@@ -59,26 +66,28 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
     return index;
 }
 
-void tay_add_see(TayState *state, int seer_group, int seen_group, TAY_SEE_FUNC func, float *radii, void *context, int context_size) {
+void tay_add_see(TayState *state, int seer_group, int seen_group, TAY_SEE_FUNC func, const char *func_name, float *radii, void *context, int context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
     p->context = context;
     p->context_size = context_size;
     p->see = func;
+    p->func_name = func_name;
     p->seer_group = seer_group;
     p->seen_group = seen_group;
     for (int i = 0; i < TAY_MAX_DIMENSIONS; ++i)
         p->radii[i] = radii[i];
 }
 
-void tay_add_act(TayState *state, int act_group, TAY_ACT_FUNC func, void *context, int context_size) {
+void tay_add_act(TayState *state, int act_group, TAY_ACT_FUNC func, const char *func_name, void *context, int context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
     p->context = context;
     p->context_size = context_size;
     p->act = func;
+    p->func_name = func_name;
     p->act_group = act_group;
 }
 
