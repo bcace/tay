@@ -73,8 +73,12 @@ int gpu_build_program(GpuContext *c, const char *source) {
         return err;
 
     err = clBuildProgram(c->program, 1, &c->device, 0, 0, 0);
-    if (_check_errors(err, "Failed to build program"))
+    if (_check_errors(err, "Failed to build program")) {
+        static char build_log[10024];
+        clGetProgramBuildInfo(c->program, c->device, CL_PROGRAM_BUILD_LOG, 10024, build_log, 0);
+        fprintf(stderr, build_log);
         return err;
+    }
 
     return 0;
 }

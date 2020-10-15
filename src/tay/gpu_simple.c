@@ -11,14 +11,14 @@ typedef int cl_int;
 
 const cl_int NULL_AGENT = -1;
 
-const char *SEE_KERNEL_SOURCE = "kernel pass_%d(global Agent *agents, global SeeContext *see_context) {\n\
+const char *SEE_KERNEL_SOURCE = "kernel void pass_%d(global Agent *agents, global SeeContext *see_context) {\n\
     int count = get_global_size(0);\n\
     global Agent *a = agents + get_global_id(0);\n\
     for (int i = 0; i < count; ++i)\n\
         %s(a, agents + i, see_context);\n\
 }\n";
 
-const char *ACT_KERNEL_SOURCE = "kernel pass_%d(global Agent *agents, global ActContext *act_context) {\n\
+const char *ACT_KERNEL_SOURCE = "kernel void pass_%d(global Agent *agents, global ActContext *act_context) {\n\
     %s(agents + get_global_id(0), act_context);\n\
 }\n";
 
@@ -65,6 +65,8 @@ static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, in
 static void _on_simulation_start(TaySpaceContainer *container, TayState *state) {
     Space *s = (Space *)container->storage;
 
+    s->bytes_written += sprintf_s(s->kernels_source + s->bytes_written, MAX_KERNEL_SOURCE_LENGTH - s->bytes_written, state->source);
+
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
 
@@ -84,7 +86,7 @@ static void _on_simulation_start(TaySpaceContainer *container, TayState *state) 
     }
 
     assert(state->source != 0);
-    gpu_build_program(s->gpu, state->source); // TODO: pass kernels_source in addition to state source
+    gpu_build_program(s->gpu, s->kernels_source);
 
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
