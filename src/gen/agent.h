@@ -1,4 +1,6 @@
+
 typedef struct __PACK__ Agent {
+    TayAgentTag tag;
     float4 p;
     float4 v;
     float4 b_buffer;

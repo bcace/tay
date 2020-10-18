@@ -82,7 +82,7 @@ static void _init_simple_act_task(SimpleActTask *task, TayPass *pass, TayAgentTa
 
 static void _act_func(SimpleActTask *task, TayThreadContext *thread_context) {
     for (TayAgentTag *a = task->agents; a; a = a->next)
-        task->pass->act(TAY_AGENT_DATA(a), thread_context->context);
+        task->pass->act(a, thread_context->context);
 }
 
 static void _act(TayState *state, int pass_index) { // TaySpaceContainer *container, TayPass *pass) {

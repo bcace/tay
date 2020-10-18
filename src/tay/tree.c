@@ -278,7 +278,7 @@ static void _init_tree_act_task(TreeActTask *t, TayPass *pass, TayAgentTag *agen
 
 static void _act_func(TreeActTask *t, TayThreadContext *thread_context) {
     for (TayAgentTag *a = t->agents; a; a = a->next)
-        t->pass->act(TAY_AGENT_DATA(a), thread_context->context);
+        t->pass->act(a, thread_context->context);
 }
 
 static void _dummy_act_func(TreeActTask *t, TayThreadContext *thread_context) {}

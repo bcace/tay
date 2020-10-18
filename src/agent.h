@@ -1,5 +1,7 @@
-#ifndef agent_h
-#define agent_h
+#ifndef tay_agent_h
+#define tay_agent_h
+
+#include "state.h"
 
 #pragma pack(push, 1)
 
@@ -7,7 +9,9 @@ typedef struct float4 {
     float x, y, z, w;
 } float4;
 
+
 typedef struct Agent {
+    TayAgentTag tag;
     float4 p;
     float4 v;
     float4 b_buffer;

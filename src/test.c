@@ -70,7 +70,7 @@ static void _destroy_results(Results *r) {
 /* TODO: describe model case */
 static void _test_model_case1(TaySpaceType space_type, float see_radius, int max_depth_correction, Results *results) {
     int dims = 3;
-    int agents_count = 4000;
+    int agents_count = 10000;
     float space_size = 200.0f;
 
     srand(1);
@@ -141,12 +141,12 @@ void test() {
     for (int i = 0; i < 3; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-#if 0
+#if 1
         for (int j = 0; j < 4; ++j)
             _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 #endif
 
-#if 0
+#if 1
         printf("reference:\n");
 
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);

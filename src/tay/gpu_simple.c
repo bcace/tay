@@ -69,7 +69,7 @@ static void _on_simulation_start(TaySpaceContainer *container, TayState *state) 
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
         if (group->storage)
-            s->agent_buffers[i] = gpu_create_buffer(s->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, group->capacity * group->agent_size_with_tag);
+            s->agent_buffers[i] = gpu_create_buffer(s->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, group->capacity * group->agent_size);
     }
 
     /* copy agent structs and behaviors code into the buffer */
@@ -136,7 +136,7 @@ static void _on_simulation_start(TaySpaceContainer *container, TayState *state) 
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
         if (group->storage)
-            gpu_enqueue_write_buffer(s->gpu, s->agent_buffers[i], GPU_BLOCKING, group->capacity * group->agent_size_with_tag, group->storage);
+            gpu_enqueue_write_buffer(s->gpu, s->agent_buffers[i], GPU_BLOCKING, group->capacity * group->agent_size, group->storage);
     }
 
     /* enqueue writing pass contexts to GPU */
@@ -161,7 +161,7 @@ static void _on_run_end(TaySpaceContainer *container, TayState *state) {
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
         if (group->storage)
-            gpu_enqueue_read_buffer(s->gpu, s->agent_buffers[i], GPU_BLOCKING, group->capacity * group->agent_size_with_tag, group->storage);
+            gpu_enqueue_read_buffer(s->gpu, s->agent_buffers[i], GPU_BLOCKING, group->capacity * group->agent_size, group->storage);
     }
 }
 
