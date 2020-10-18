@@ -74,122 +74,179 @@ int gpu_build_program(GpuContext *c, const char *source) {
 
     err = clBuildProgram(c->program, 1, &c->device, 0, 0, 0);
     if (_check_errors(err, "Failed to build program")) {
+
         static char build_log[10024];
         clGetProgramBuildInfo(c->program, c->device, CL_PROGRAM_BUILD_LOG, 10024, build_log, 0);
         fprintf(stderr, build_log);
+
         return err;
     }
 
     return 0;
 }
 
-static GpuKernel _create_kernel(GpuContext *c, const char *name) {
+GpuKernel gpu_create_kernel(GpuContext *c, const char *name) {
     cl_int err;
     GpuKernel kernel = clCreateKernel(c->program, name, &err);
     if (_check_errors(err, "clCreateKernel"))
         return 0;
-
     return kernel;
 }
 
-GpuKernel gpu_create_kernel1(GpuContext *c, const char *name, int size1, const void *arg1) {
-    GpuKernel kernel = _create_kernel(c, name);
-    if (kernel == 0)
-        return 0;
+// GpuKernel gpu_create_kernel1(GpuContext *c, const char *name, int size1, const void *arg1) {
+//     GpuKernel kernel = _create_kernel(c, name);
+//     if (kernel == 0)
+//         return 0;
 
-    cl_int err = clSetKernelArg(kernel, 0, size1, arg1);
+//     if (gpu_set_kernel_argument(kernel, 0, size1, arg1))
+//         return 0;
+
+//     return kernel;
+// }
+
+// GpuKernel gpu_create_kernel2(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2) {
+//     GpuKernel kernel = _create_kernel(c, name);
+//     if (kernel == 0)
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 0, size1, arg1))
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 1, size2, arg2))
+//         return 0;
+
+//     // cl_int err = clSetKernelArg(kernel, 0, size1, arg1);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     // err = clSetKernelArg(kernel, 1, size2, arg2);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     return kernel;
+// }
+
+// GpuKernel gpu_create_kernel3(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3) {
+//     GpuKernel kernel = _create_kernel(c, name);
+//     if (kernel == 0)
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 0, size1, arg1))
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 1, size2, arg2))
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 2, size3, arg3))
+//         return 0;
+
+//     // cl_int err = clSetKernelArg(kernel, 0, size1, arg1);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     // err = clSetKernelArg(kernel, 1, size2, arg2);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     // err = clSetKernelArg(kernel, 2, size3, arg3);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     return kernel;
+// }
+
+// GpuKernel gpu_create_kernel4(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3, int size4, void *arg4) {
+//     GpuKernel kernel = _create_kernel(c, name);
+//     if (kernel == 0)
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 0, size1, arg1))
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 1, size2, arg2))
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 2, size3, arg3))
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 3, size4, arg4))
+//         return 0;
+
+//     // cl_int err = clSetKernelArg(kernel, 0, size1, arg1);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     // err = clSetKernelArg(kernel, 1, size2, arg2);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     // err = clSetKernelArg(kernel, 2, size3, arg3);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     // err = clSetKernelArg(kernel, 3, size4, arg4);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     return kernel;
+// }
+
+// GpuKernel gpu_create_kernel5(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3, int size4, void *arg4, int size5, void *arg5) {
+//     GpuKernel kernel = _create_kernel(c, name);
+//     if (kernel == 0)
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 0, size1, arg1))
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 1, size2, arg2))
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 2, size3, arg3))
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 3, size4, arg4))
+//         return 0;
+
+//     if (gpu_set_kernel_argument(kernel, 4, size5, arg5))
+//         return 0;
+
+//     // cl_int err = clSetKernelArg(kernel, 0, size1, arg1);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     // err = clSetKernelArg(kernel, 1, size2, arg2);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     // err = clSetKernelArg(kernel, 2, size3, arg3);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     // err = clSetKernelArg(kernel, 3, size4, arg4);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     // err = clSetKernelArg(kernel, 4, size5, arg5);
+//     // if (_check_errors(err, "clSetKernelArg"))
+//     //     return 0;
+
+//     return kernel;
+// }
+
+static int _set_kernel_argument(GpuKernel kernel, int index, const void *arg, int arg_size) {
+    cl_int err = clSetKernelArg(kernel, index, arg_size, arg);
     if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    return kernel;
+        return err;
+    return 0;
 }
 
-GpuKernel gpu_create_kernel2(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2) {
-    GpuKernel kernel = _create_kernel(c, name);
-    if (kernel == 0)
-        return 0;
-
-    cl_int err = clSetKernelArg(kernel, 0, size1, arg1);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    err = clSetKernelArg(kernel, 1, size2, arg2);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    return kernel;
+int gpu_set_kernel_value_argument(GpuKernel kernel, int index, void *value, int value_size) {
+    return _set_kernel_argument(kernel, index, value, value_size);
 }
 
-GpuKernel gpu_create_kernel3(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3) {
-    GpuKernel kernel = _create_kernel(c, name);
-    if (kernel == 0)
-        return 0;
-
-    cl_int err = clSetKernelArg(kernel, 0, size1, arg1);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    err = clSetKernelArg(kernel, 1, size2, arg2);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    err = clSetKernelArg(kernel, 2, size3, arg3);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    return kernel;
-}
-
-GpuKernel gpu_create_kernel4(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3, int size4, void *arg4) {
-    GpuKernel kernel = _create_kernel(c, name);
-    if (kernel == 0)
-        return 0;
-
-    cl_int err = clSetKernelArg(kernel, 0, size1, arg1);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    err = clSetKernelArg(kernel, 1, size2, arg2);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    err = clSetKernelArg(kernel, 2, size3, arg3);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    err = clSetKernelArg(kernel, 3, size4, arg4);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    return kernel;
-}
-
-GpuKernel gpu_create_kernel5(GpuContext *c, const char *name, int size1, void *arg1, int size2, void *arg2, int size3, void *arg3, int size4, void *arg4, int size5, void *arg5) {
-    GpuKernel kernel = _create_kernel(c, name);
-    if (kernel == 0)
-        return 0;
-
-    cl_int err = clSetKernelArg(kernel, 0, size1, arg1);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    err = clSetKernelArg(kernel, 1, size2, arg2);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    err = clSetKernelArg(kernel, 2, size3, arg3);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    err = clSetKernelArg(kernel, 3, size4, arg4);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    err = clSetKernelArg(kernel, 4, size5, arg5);
-    if (_check_errors(err, "clSetKernelArg"))
-        return 0;
-
-    return kernel;
+int gpu_set_kernel_buffer_argument(GpuKernel kernel, int index, GpuBuffer *buffer) {
+    return _set_kernel_argument(kernel, index, buffer, sizeof(cl_mem));
 }
 
 int gpu_release_kernel(GpuKernel kernel) {
@@ -223,13 +280,6 @@ GpuBuffer gpu_create_buffer(GpuContext *c, GpuMemFlags device, GpuMemFlags host,
         return 0;
 
     return buffer;
-}
-
-int gpu_set_kernel_argument(GpuKernel kernel, GpuBuffer buffer, int size, void *arg) {
-    cl_int err = clSetKernelArg(kernel, 0, size, arg);
-    if (_check_errors(err, "clSetKernelArg"))
-        return err;
-    return 0;
 }
 
 int gpu_enqueue_write_buffer(GpuContext *c, GpuBuffer buffer, GpuBlocking blocking, int size, void *arg) {

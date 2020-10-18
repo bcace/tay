@@ -251,15 +251,16 @@ static void _thread_see_traverse(TreeSeeTask *task, TayThreadContext *thread_con
     _thread_traverse_seers(task, task->tree->nodes, thread_context);
 }
 
-static void _see(TaySpaceContainer *container, TayPass *pass) {
-    Tree *t = container->storage;
+static void _see(TayState *state, int pass_index) { // TaySpaceContainer *container, TayPass *pass) {
+    Tree *t = state->space.storage; // container->storage;
+    TayPass *p = state->passes + pass_index;
 
     static TreeSeeTask tasks[TAY_MAX_THREADS];
 
     for (int i = 0; i < runner.count; ++i) {
         TreeSeeTask *task = tasks + i;
-        _init_tree_see_task(task, t, pass, i);
-        tay_thread_set_task(i, _thread_see_traverse, task, pass->context);
+        _init_tree_see_task(task, t, p, i);
+        tay_thread_set_task(i, _thread_see_traverse, task, p->context);
     }
 
     tay_runner_run();
@@ -280,15 +281,14 @@ static void _act_func(TreeActTask *t, TayThreadContext *thread_context) {
         t->pass->act(TAY_AGENT_DATA(a), thread_context->context);
 }
 
-static void _dummy_act_func(TreeActTask *t, TayThreadContext *thread_context) {
-}
+static void _dummy_act_func(TreeActTask *t, TayThreadContext *thread_context) {}
 
 static void _traverse_actors(Node *node, TayPass *pass) {
     TreeActTask task;
     _init_tree_act_task(&task, pass, node->first[pass->act_group]);
     tay_thread_set_task(0, _act_func, &task, pass->context);
     for (int i = 1; i < runner.count; ++i)
-        tay_thread_set_task(i, _dummy_act_func, 0, 0); // horrible
+        tay_thread_set_task(i, _dummy_act_func, 0, 0); // TODO: this is horrible
     tay_runner_run_no_threads();
     if (node->lo)
         _traverse_actors(node->lo, pass);
@@ -296,11 +296,16 @@ static void _traverse_actors(Node *node, TayPass *pass) {
         _traverse_actors(node->hi, pass);
 }
 
-static void _act(TaySpaceContainer *container, TayPass *pass) {
-    Tree *t = container->storage;
-    _traverse_actors(t->nodes, pass);
+static void _act(TayState *state, int pass_index) { // TaySpaceContainer *container, TayPass *pass) {
+    Tree *t = state->space.storage; // container->storage;
+    TayPass *p = state->passes + pass_index;
+    _traverse_actors(t->nodes, p);
 }
 
 void space_tree_init(TaySpaceContainer *container, int dims, float *radii, int max_depth_correction) {
-    space_container_init(container, _init(dims, radii, max_depth_correction), dims, _destroy, _add, _see, _act, _update, 0, 0);
+    space_container_init(container, _init(dims, radii, max_depth_correction), dims, _destroy);
+    container->add = _add;
+    container->see = _see,
+    container->act = _act;
+    container->update = _update;
 }

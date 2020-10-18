@@ -48,19 +48,23 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
     tay_see(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
 }
 
-static void _see(TaySpaceContainer *container, TayPass *pass) {
+static void _see(TayState *state, int pass_index) { // TaySpaceContainer *container, TayPass *pass) {
     static SimpleSeeTask tasks[TAY_MAX_THREADS];
 
-    Space *s = container->storage;
+    Space *s = state->space.storage;
+    TayPass *p = state->passes + pass_index;
+    int dims = state->space.dims;
+
+    // Space *s = container->storage;
     for (int i = 0; i < runner.count; ++i) {
-        TayAgentTag *b = s->groups[pass->seen_group].first[i];
+        TayAgentTag *b = s->groups[p->seen_group].first[i];
 
         for (int j = 0; j < runner.count; ++j) {
-            TayAgentTag *a = s->groups[pass->seer_group].first[j];
+            TayAgentTag *a = s->groups[p->seer_group].first[j];
 
             SimpleSeeTask *task = tasks + j;
-            _init_simple_see_task(task, pass, a, b, container->dims);
-            tay_thread_set_task(j, _see_func, task, pass->context);
+            _init_simple_see_task(task, p, a, b, dims);
+            tay_thread_set_task(j, _see_func, task, p->context);
         }
         tay_runner_run();
     }
@@ -81,18 +85,23 @@ static void _act_func(SimpleActTask *task, TayThreadContext *thread_context) {
         task->pass->act(TAY_AGENT_DATA(a), thread_context->context);
 }
 
-static void _act(TaySpaceContainer *container, TayPass *pass) {
+static void _act(TayState *state, int pass_index) { // TaySpaceContainer *container, TayPass *pass) {
     static SimpleActTask act_contexts[TAY_MAX_THREADS];
 
-    Space *s = container->storage;
+    Space *s = state->space.storage; // container->storage;
+    TayPass *p = state->passes + pass_index;
+
     for (int i = 0; i < runner.count; ++i) {
         SimpleActTask *task = act_contexts + i;
-        _init_simple_act_task(task, pass, s->groups[pass->act_group].first[i]);
-        tay_thread_set_task(i, _act_func, task, pass->context);
+        _init_simple_act_task(task, p, s->groups[p->act_group].first[i]);
+        tay_thread_set_task(i, _act_func, task, p->context);
     }
     tay_runner_run();
 }
 
 void space_simple_init(TaySpaceContainer *container, int dims) {
-    space_container_init(container, _init(), dims, _destroy, _add, _see, _act, 0, 0, 0);
+    space_container_init(container, _init(), dims, _destroy);
+    container->add = _add;
+    container->see = _see;
+    container->act = _act;
 }

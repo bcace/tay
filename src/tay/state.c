@@ -2,6 +2,7 @@
 #include "tay.h"
 #include "thread.h"
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <stdio.h>
 #include <time.h>
@@ -141,15 +142,18 @@ void tay_run(TayState *state, int steps) {
             state->space.update(&state->space);
 
         for (int j = 0; j < state->passes_count; ++j) {
-            TayPass *p = state->passes + j;
+            TayPass *p = state->passes + j; // TODO: just get type directly
             if (p->type == TAY_PASS_SEE)
-                state->space.see(&state->space, p);
+                state->space.see(state, j);
             else if (p->type == TAY_PASS_ACT)
-                state->space.act(&state->space, p);
+                state->space.act(state, j);
             else
                 assert(0); /* not implemented */
         }
     }
+
+    if (state->space.on_run_end)
+        state->space.on_run_end(&state->space, state);
 
     timespec_get(&end, TIME_UTC);
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
@@ -172,22 +176,11 @@ void tay_simulation_end(TayState *state) {
 void space_container_init(TaySpaceContainer *space,
                           void *storage,
                           int dims,
-                          TAY_SPACE_DESTROY_FUNC destroy,
-                          TAY_SPACE_ADD_FUNC add,
-                          TAY_SPACE_SEE_FUNC see,
-                          TAY_SPACE_ACT_FUNC act,
-                          TAY_SPACE_UPDATE_FUNC update,
-                          TAY_SPACE_SIM_START_FUNC on_simulation_start,
-                          TAY_SPACE_SIM_END_FUNC on_simulation_end) {
+                          TAY_SPACE_DESTROY_FUNC destroy) {
+    memset(space, 0, sizeof(TaySpaceContainer)); /* so all function pointers are zeroed initially */
     space->storage = storage;
     space->dims = dims;
     space->destroy = destroy;
-    space->add = add;
-    space->see = see;
-    space->act = act;
-    space->update = update;
-    space->on_simulation_start = on_simulation_start;
-    space->on_simulation_end = on_simulation_end;
 }
 
 void tay_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, TayThreadContext *thread_context) {
