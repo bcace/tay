@@ -4,18 +4,40 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define MAX_KERNEL_SOURCE_LENGTH 100024
+#define MAX_KERNEL_SOURCE_LENGTH 10000
 
 typedef int cl_int;
 
 
 const cl_int NULL_AGENT = -1;
 
-const char *SEE_KERNEL_SOURCE = "kernel void pass_%d(global Agent *agents, global SeeContext *see_context) {\n\
-    int count = get_global_size(0);\n\
-    global Agent *a = agents + get_global_id(0);\n\
-    for (int i = 0; i < count; ++i)\n\
-        %s(a, agents + i, see_context);\n\
+const char *SEE_KERNEL_SOURCE = "kernel void pass_%d(global Agent *seer_agents, global Agent *seen_agents, global SeeContext *see_context, int first_seen, int dims) {\n\
+    global Agent *seer_agent = seer_agents + get_global_id(0);\n\
+    for (int i = first_seen; i != -1; i = seen_agents[i].tag.next) {\n\
+        global Agent *seen_agent = seen_agents + i;\n\
+        \n\
+        if (seer_agent == seen_agent)\n\
+            goto NARROW_PHASE_NEGATIVE;\n\
+        \n\
+        float4 d = seer_agent->p - seen_agent->p;\n\
+        if (d.x > see_context->radii.x || d.x < -see_context->radii.x)\n\
+            goto NARROW_PHASE_NEGATIVE;\n\
+        if (dims > 1) {\n\
+            if (d.y > see_context->radii.y || d.y < -see_context->radii.y)\n\
+                goto NARROW_PHASE_NEGATIVE;\n\
+        }\n\
+        if (dims > 2) {\n\
+            if (d.z > see_context->radii.z || d.z < -see_context->radii.z)\n\
+                goto NARROW_PHASE_NEGATIVE;\n\
+        }\n\
+        if (dims > 3) {\n\
+            if (d.w > see_context->radii.w || d.w < -see_context->radii.w)\n\
+                goto NARROW_PHASE_NEGATIVE;\n\
+        }\n\
+        \n\
+        %s(seer_agent, seen_agent, see_context);\n\
+        NARROW_PHASE_NEGATIVE:;\n\
+    }\n\
 }\n";
 
 const char *ACT_KERNEL_SOURCE = "kernel void pass_%d(global Agent *agents, global ActContext *act_context) {\n\
@@ -112,12 +134,12 @@ static void _on_simulation_start(TaySpaceContainer *container, TayState *state) 
             TayGroup *seer_group = state->groups + pass->seer_group;
             TayGroup *seen_group = state->groups + pass->seen_group;
 
-            // TODO: do this properly, this ignores the seen agents
-            // TODO: give up on gpu_create_kernel* functions, create the kernel and then set two types of arguments: direct and buffer
-
             kernel = gpu_create_kernel(s->gpu, pass_kernel_name);
             gpu_set_kernel_buffer_argument(kernel, 0, &s->agent_buffers[pass->seer_group]);
-            gpu_set_kernel_buffer_argument(kernel, 1, &s->pass_contexts[i]);
+            gpu_set_kernel_buffer_argument(kernel, 1, &s->agent_buffers[pass->seen_group]);
+            gpu_set_kernel_buffer_argument(kernel, 2, &s->pass_contexts[i]);
+            gpu_set_kernel_value_argument(kernel, 3, &s->first[pass->seen_group], sizeof(cl_int));
+            gpu_set_kernel_value_argument(kernel, 4, &container->dims, sizeof(int));
         }
         else if (pass->type == TAY_PASS_ACT) {
             TayGroup *act_group = state->groups + pass->act_group;

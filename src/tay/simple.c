@@ -48,14 +48,13 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
     tay_see(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
 }
 
-static void _see(TayState *state, int pass_index) { // TaySpaceContainer *container, TayPass *pass) {
+static void _see(TayState *state, int pass_index) {
     static SimpleSeeTask tasks[TAY_MAX_THREADS];
 
     Space *s = state->space.storage;
     TayPass *p = state->passes + pass_index;
     int dims = state->space.dims;
 
-    // Space *s = container->storage;
     for (int i = 0; i < runner.count; ++i) {
         TayAgentTag *b = s->groups[p->seen_group].first[i];
 
@@ -85,10 +84,10 @@ static void _act_func(SimpleActTask *task, TayThreadContext *thread_context) {
         task->pass->act(a, thread_context->context);
 }
 
-static void _act(TayState *state, int pass_index) { // TaySpaceContainer *container, TayPass *pass) {
+static void _act(TayState *state, int pass_index) {
     static SimpleActTask act_contexts[TAY_MAX_THREADS];
 
-    Space *s = state->space.storage; // container->storage;
+    Space *s = state->space.storage;
     TayPass *p = state->passes + pass_index;
 
     for (int i = 0; i < runner.count; ++i) {

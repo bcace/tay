@@ -36,7 +36,7 @@ static void _make_cluster(TayState *state, int group, int count, float4 min, flo
 
 static inline void _eq(float a, float b) {
     float c = a - b;
-    static float epsilon = 0.0001f;
+    static float epsilon = 0.001f;
     assert(c > -epsilon && c < epsilon);
 }
 
@@ -70,7 +70,7 @@ static void _destroy_results(Results *r) {
 /* TODO: describe model case */
 static void _test_model_case1(TaySpaceType space_type, float see_radius, int max_depth_correction, Results *results) {
     int dims = 3;
-    int agents_count = 10000;
+    int agents_count = 4000;
     float space_size = 200.0f;
 
     srand(1);

@@ -1,6 +1,8 @@
 float4 float4_null() {
     float4 r;
-    r.x = r.y = r.z = 0.0f;
+    r.x = 0.0f;
+    r.y = 0.0f;
+    r.z = 0.0f;
     return r;
 }
 

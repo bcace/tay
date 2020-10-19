@@ -11,7 +11,8 @@ void agent_act(Agent *agent, ActContext *c) {
     /* buffer swap */
 
     if (agent->b_buffer_count != 0) {
-        agent->f_buffer = float4_div_scalar(agent->b_buffer, (float)agent->b_buffer_count);
+        float4 n = float4_div_scalar(agent->b_buffer, (float)agent->b_buffer_count);
+        agent->f_buffer = float4_add(agent->f_buffer, n);
         agent->b_buffer = float4_null();
         agent->b_buffer_count = 0;
     }
@@ -53,7 +54,9 @@ void agent_act(Agent *agent, ActContext *c) {
 
 float4 float4_null() {
     float4 r;
-    r.x = r.y = r.z = 0.0f;
+    r.x = 0.0f;
+    r.y = 0.0f;
+    r.z = 0.0f;
     return r;
 }
 
@@ -117,7 +120,9 @@ typedef struct __attribute__((packed)) SeeContext {\n\
 \n\
 float4 float4_null() {\n\
     float4 r;\n\
-    r.x = r.y = r.z = 0.0f;\n\
+    r.x = 0.0f;\n\
+    r.y = 0.0f;\n\
+    r.z = 0.0f;\n\
     return r;\n\
 }\n\
 \n\
@@ -163,7 +168,8 @@ void agent_act(global Agent *agent, global ActContext *c) {\n\
     /* buffer swap */\n\
 \n\
     if (agent->b_buffer_count != 0) {\n\
-        agent->f_buffer = float4_div_scalar(agent->b_buffer, (float)agent->b_buffer_count);\n\
+        float4 n = float4_div_scalar(agent->b_buffer, (float)agent->b_buffer_count);\n\
+        agent->f_buffer = float4_add(agent->f_buffer, n);\n\
         agent->b_buffer = float4_null();\n\
         agent->b_buffer_count = 0;\n\
     }\n\

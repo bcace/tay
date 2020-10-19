@@ -8,7 +8,8 @@ void agent_act(__GLOBAL__ Agent *agent, __GLOBAL__ ActContext *c) {
     /* buffer swap */
 
     if (agent->b_buffer_count != 0) {
-        agent->f_buffer = float4_div_scalar(agent->b_buffer, (float)agent->b_buffer_count);
+        float4 n = float4_div_scalar(agent->b_buffer, (float)agent->b_buffer_count);
+        agent->f_buffer = float4_add(agent->f_buffer, n);
         agent->b_buffer = float4_null();
         agent->b_buffer_count = 0;
     }

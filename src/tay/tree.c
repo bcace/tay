@@ -57,7 +57,7 @@ static void _clear_node(Node *node) {
 }
 
 typedef struct {
-    TayAgentTag *first[TAY_MAX_GROUPS]; /* agents are kept here while not in nodes */
+    TayAgentTag *first[TAY_MAX_GROUPS]; /* agents are kept here while not in nodes, will be sorted into the tree at next step */
     Node *nodes;                        /* nodes storage, first node is always the root node */
     int nodes_cap;
     int available_node;
