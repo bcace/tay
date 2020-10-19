@@ -6,37 +6,42 @@
 
 #define MAX_KERNEL_SOURCE_LENGTH 10000
 
-typedef int cl_int;
 
+const int NULL_AGENT = -1;
 
-const cl_int NULL_AGENT = -1;
+/* TODO: both these kernels should test whether the agent is alive at all.
+This could be done by looking the agent up in the info array. */
 
 const char *SEE_KERNEL_SOURCE = "kernel void pass_%d(global Agent *seer_agents, global Agent *seen_agents, global SeeContext *see_context, int first_seen, int dims) {\n\
     global Agent *seer_agent = seer_agents + get_global_id(0);\n\
-    for (int i = first_seen; i != -1; i = seen_agents[i].tag.next) {\n\
+    int i = first_seen;\n\
+    while (i != -1) {\n\
         global Agent *seen_agent = seen_agents + i;\n\
         \n\
         if (seer_agent == seen_agent)\n\
-            goto NARROW_PHASE_NEGATIVE;\n\
+            goto SKIP_SEE;\n\
         \n\
         float4 d = seer_agent->p - seen_agent->p;\n\
         if (d.x > see_context->radii.x || d.x < -see_context->radii.x)\n\
-            goto NARROW_PHASE_NEGATIVE;\n\
+            goto SKIP_SEE;\n\
         if (dims > 1) {\n\
             if (d.y > see_context->radii.y || d.y < -see_context->radii.y)\n\
-                goto NARROW_PHASE_NEGATIVE;\n\
+                goto SKIP_SEE;\n\
         }\n\
         if (dims > 2) {\n\
             if (d.z > see_context->radii.z || d.z < -see_context->radii.z)\n\
-                goto NARROW_PHASE_NEGATIVE;\n\
+                goto SKIP_SEE;\n\
         }\n\
         if (dims > 3) {\n\
             if (d.w > see_context->radii.w || d.w < -see_context->radii.w)\n\
-                goto NARROW_PHASE_NEGATIVE;\n\
+                goto SKIP_SEE;\n\
         }\n\
         \n\
         %s(seer_agent, seen_agent, see_context);\n\
-        NARROW_PHASE_NEGATIVE:;\n\
+        \n\
+        SKIP_SEE:;\n\
+        \n\
+        i = seen_agent->tag.next;\n\
     }\n\
 }\n";
 
@@ -46,13 +51,13 @@ const char *ACT_KERNEL_SOURCE = "kernel void pass_%d(global Agent *agents, globa
 
 #pragma pack(push, 1)
 typedef struct {
-    cl_int next;
-    cl_int padding; /* size of this struct has to be equal to TAY_AGENT_TAG_SIZE */
+    int next;
+    int padding;
 } Tag;
 #pragma pack(pop)
 
 typedef struct {
-    cl_int first[TAY_MAX_GROUPS];
+    int first[TAY_MAX_GROUPS];
     GpuContext *gpu;
     GpuBuffer agent_buffers[TAY_MAX_GROUPS];
     GpuBuffer pass_contexts[TAY_MAX_PASSES];
@@ -112,7 +117,7 @@ static void _on_simulation_start(TaySpaceContainer *container, TayState *state) 
         else if (pass->type == TAY_PASS_ACT)
             s->bytes_written += sprintf_s(s->kernels_source + s->bytes_written, MAX_KERNEL_SOURCE_LENGTH - s->bytes_written, ACT_KERNEL_SOURCE, i, pass->func_name);
         else
-            assert(0); /* not implemented */
+            assert(0); /* unhandled pass type */
 
         assert(s->bytes_written < MAX_KERNEL_SOURCE_LENGTH);
     }
@@ -138,7 +143,7 @@ static void _on_simulation_start(TaySpaceContainer *container, TayState *state) 
             gpu_set_kernel_buffer_argument(kernel, 0, &s->agent_buffers[pass->seer_group]);
             gpu_set_kernel_buffer_argument(kernel, 1, &s->agent_buffers[pass->seen_group]);
             gpu_set_kernel_buffer_argument(kernel, 2, &s->pass_contexts[i]);
-            gpu_set_kernel_value_argument(kernel, 3, &s->first[pass->seen_group], sizeof(cl_int));
+            gpu_set_kernel_value_argument(kernel, 3, &s->first[pass->seen_group], sizeof(int));
             gpu_set_kernel_value_argument(kernel, 4, &container->dims, sizeof(int));
         }
         else if (pass->type == TAY_PASS_ACT) {
@@ -189,6 +194,7 @@ static void _on_run_end(TaySpaceContainer *container, TayState *state) {
 
 void space_gpu_simple_init(TaySpaceContainer *container, int dims) {
     assert(sizeof(Tag) == TAY_AGENT_TAG_SIZE);
+    assert(sizeof(cl_int) == sizeof(int));
     space_container_init(container, _init(), dims, _destroy);
     container->add = _add;
     container->see = _pass;
