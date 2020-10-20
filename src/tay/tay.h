@@ -6,6 +6,7 @@ typedef enum TaySpaceType {
     TAY_SPACE_SIMPLE,
     TAY_SPACE_TREE,
     TAY_SPACE_GPU_SIMPLE,
+    TAY_SPACE_GPU_TREE,
 } TaySpaceType;
 
 typedef struct TayState TayState;

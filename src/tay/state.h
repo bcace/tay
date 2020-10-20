@@ -89,6 +89,7 @@ void space_container_init(TaySpaceContainer *space,
 void space_simple_init(TaySpaceContainer *space, int dims);
 void space_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction);
 void space_gpu_simple_init(TaySpaceContainer *space, int dims);
+void space_gpu_tree_init(TaySpaceContainer *space, int dims);
 
 /* Shared CPU version of see between linked lists of agents. */
 void tay_see(struct TayAgentTag *seer_agents, struct TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, struct TayThreadContext *thread_context);

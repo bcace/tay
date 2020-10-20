@@ -194,7 +194,6 @@ static void _on_run_end(TaySpaceContainer *container, TayState *state) {
 
 void space_gpu_simple_init(TaySpaceContainer *container, int dims) {
     assert(sizeof(Tag) == TAY_AGENT_TAG_SIZE);
-    assert(sizeof(cl_int) == sizeof(int));
     space_container_init(container, _init(), dims, _destroy);
     container->add = _add;
     container->see = _pass;
