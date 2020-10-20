@@ -180,7 +180,7 @@ static int _max_depth(float space_side, float see_side, int max_depth_correction
     return depth;
 }
 
-static void _update(TaySpaceContainer *container) {
+static void _on_step_start(TaySpaceContainer *container) {
     Tree *t = container->storage;
     _move_agents_from_node_to_tree(t, t->nodes);
     t->available_node = 1;
@@ -307,5 +307,5 @@ void space_tree_init(TaySpaceContainer *container, int dims, float *radii, int m
     container->add = _add;
     container->see = _see,
     container->act = _act;
-    container->update = _update;
+    container->on_step_start = _on_step_start;
 }

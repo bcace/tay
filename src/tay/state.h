@@ -17,7 +17,7 @@ typedef void (*TAY_SPACE_DESTROY_FUNC)(struct TaySpaceContainer *space);
 typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpaceContainer *space, struct TayAgentTag *agent, int group, int index);
 typedef void (*TAY_SPACE_SEE_FUNC)(struct TayState *state, int pass_index);
 typedef void (*TAY_SPACE_ACT_FUNC)(struct TayState *state, int pass_index);
-typedef void (*TAY_SPACE_UPDATE_FUNC)(struct TaySpaceContainer *space);
+typedef void (*TAY_SPACE_STEP_START_FUNC)(struct TaySpaceContainer *space);
 typedef void (*TAY_SPACE_SIM_START_FUNC)(struct TaySpaceContainer *space, struct TayState *state);
 typedef void (*TAY_SPACE_SIM_END_FUNC)(struct TaySpaceContainer *space);
 typedef void (*TAY_SPACE_RUN_END_FUNC)(struct TaySpaceContainer *space, struct TayState *state);
@@ -62,7 +62,7 @@ typedef struct TaySpaceContainer {
     TAY_SPACE_ADD_FUNC add;
     TAY_SPACE_SEE_FUNC see;
     TAY_SPACE_ACT_FUNC act;
-    TAY_SPACE_UPDATE_FUNC update;
+    TAY_SPACE_STEP_START_FUNC on_step_start;
     TAY_SPACE_SIM_START_FUNC on_simulation_start;
     TAY_SPACE_SIM_END_FUNC on_simulation_end;
     TAY_SPACE_RUN_END_FUNC on_run_end;

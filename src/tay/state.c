@@ -132,8 +132,8 @@ void tay_run(TayState *state, int steps) {
 
     for (int i = 0; i < steps; ++i) {
 
-        if (state->space.update)
-            state->space.update(&state->space);
+        if (state->space.on_step_start)
+            state->space.on_step_start(&state->space);
 
         for (int j = 0; j < state->passes_count; ++j) {
             TayPass *p = state->passes + j; // TODO: just get type directly
