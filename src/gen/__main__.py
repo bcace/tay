@@ -13,8 +13,7 @@ _BUILTINS_C = read('gen/builtins.c')
 
 _AGENT_TAG = """
 typedef struct __attribute__((packed)) TayAgentTag {
-    int next;
-    int padding;
+    global struct TayAgentTag *next;
 } TayAgentTag;
 """
 
@@ -58,8 +57,8 @@ extern const char *agent_kernels_source;
 #endif
 """.format(
     _BUILTINS_H,
-    _AGENT_H.replace('__HEADER_START__', '').replace('__PACK__ ', '')
-    )
+    _AGENT_H
+    ).replace('__PACK__ ', '')
 )
 
 with open('agent.c', 'w+') as f:

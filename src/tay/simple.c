@@ -25,8 +25,7 @@ static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, in
     Space *s = container->storage;
     Group *g = s->groups + group;
     int thread = (g->receiving_thread++) % runner.count;
-    TayAgentTag *next = g->first[thread];
-    agent->next = next;
+    agent->next = g->first[thread];
     g->first[thread] = agent;
 }
 
