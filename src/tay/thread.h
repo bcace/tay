@@ -4,7 +4,7 @@
 #define TAY_MAX_THREADS 64
 
 
-typedef void *Handle;
+typedef void * Handle;
 
 typedef struct TayThreadContext {
     void *context; /* model context */

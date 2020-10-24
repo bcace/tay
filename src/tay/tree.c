@@ -6,7 +6,7 @@
 #include <float.h>
 #include <assert.h>
 
-#define NODE_DIM_LEAF       101
+#define TREE_SPACE_CELL_LEAF_DIM       101
 
 
 typedef struct {
@@ -115,7 +115,7 @@ static void _move_agents_from_cell_to_space(Space *space, Cell *cell) {
 }
 
 static inline void _decide_cell_split(Cell *cell, int dims, int *max_depths, float *radii, Depths cell_depths) {
-    cell->dim = NODE_DIM_LEAF;
+    cell->dim = TREE_SPACE_CELL_LEAF_DIM;
     float max_r = 0.0f;
     for (int i = 0; i < dims; ++i) {
         if (cell_depths.dims[i] >= max_depths[i])
@@ -129,7 +129,7 @@ static inline void _decide_cell_split(Cell *cell, int dims, int *max_depths, flo
 }
 
 static void _sort_agent(Space *space, Cell *cell, TayAgentTag *agent, int group, Depths cell_depths) {
-    if (cell->dim == NODE_DIM_LEAF) {
+    if (cell->dim == TREE_SPACE_CELL_LEAF_DIM) {
         agent->next = cell->first[group];
         cell->first[group] = agent;
     }
