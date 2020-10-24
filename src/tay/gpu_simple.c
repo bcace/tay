@@ -96,10 +96,6 @@ static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, in
     s->first[group] = agent;
 }
 
-static inline int _agent_index(TayGroup *group, TayAgentTag *tag) {
-    return (tag != 0) ? (int)((char *)tag - (char *)group->storage) / group->agent_size : -1;
-}
-
 static void _on_simulation_start(TaySpaceContainer *container, TayState *state) {
     Space *s = (Space *)container->storage;
 
@@ -156,7 +152,7 @@ static void _on_simulation_start(TaySpaceContainer *container, TayState *state) 
             TayGroup *seer_group = state->groups + pass->seer_group;
             TayGroup *seen_group = state->groups + pass->seen_group;
 
-            int first_i = _agent_index(seen_group, s->first[pass->seen_group]);
+            int first_i = group_index_to_tag(seen_group, s->first[pass->seen_group]);
 
             kernel = gpu_create_kernel(s->gpu, pass_kernel_name);
             gpu_set_kernel_buffer_argument(kernel, 0, &s->agent_buffers[pass->seer_group]);
@@ -187,8 +183,8 @@ static void _on_simulation_start(TaySpaceContainer *container, TayState *state) 
             gpu_enqueue_write_buffer(s->gpu, s->agent_buffers[i], GPU_BLOCKING, group->capacity * group->agent_size, group->storage);
 
             for (TayAgentTag *tag = s->first[i]; tag; tag = tag->next) {
-                int this_i = _agent_index(group, tag); // (int)((char *)tag - (char *)group->storage) / group->agent_size;
-                int next_i = _agent_index(group, tag->next); // ? (int)((char *)tag->next - (char *)group->storage) / group->agent_size : -1;
+                int this_i = group_index_to_tag(group, tag);
+                int next_i = group_index_to_tag(group, tag->next);
                 s->next_indices[this_i] = next_i;
             }
 

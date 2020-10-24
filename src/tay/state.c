@@ -177,6 +177,10 @@ void space_container_init(TaySpaceContainer *space,
     space->destroy = destroy;
 }
 
+int group_index_to_tag(TayGroup *group, TayAgentTag *tag) {
+    return (tag != 0) ? (int)((char *)tag - (char *)group->storage) / group->agent_size : -1;
+}
+
 void tay_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, TayThreadContext *thread_context) {
     for (TayAgentTag *a = seer_agents; a; a = a->next) {
         float *pa = TAY_AGENT_POSITION(a);

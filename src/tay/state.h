@@ -91,6 +91,8 @@ void space_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_d
 void space_gpu_simple_init(TaySpaceContainer *space, int dims);
 void space_gpu_tree_init(TaySpaceContainer *space, int dims);
 
+int group_index_to_tag(TayGroup *group, TayAgentTag *tag);
+
 /* Shared CPU version of see between linked lists of agents. */
 void tay_see(struct TayAgentTag *seer_agents, struct TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, struct TayThreadContext *thread_context);
 
