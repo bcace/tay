@@ -9,7 +9,6 @@
 
 
 TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_radii, int max_depth_correction) {
-    assert(sizeof(TayAgentTag) == TAY_AGENT_TAG_SIZE); /* make sure all versions of the agent tag occupy the same space */
     TayState *s = calloc(1, sizeof(TayState));
     s->running = TAY_STATE_STATUS_IDLE;
     s->source = 0;
@@ -21,7 +20,7 @@ TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_r
     else if (space_type == TAY_SPACE_GPU_SIMPLE)
         space_gpu_simple_init(&s->space, space_dims);
     else if (space_type == TAY_SPACE_GPU_TREE)
-        space_gpu_tree_init(&s->space, space_dims);
+        space_gpu_tree_init(&s->space, space_dims, see_radii, max_depth_correction);
     else
         assert(0); /* not implemented */
 

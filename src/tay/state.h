@@ -5,7 +5,6 @@
 #define TAY_MAX_PASSES      32
 #define TAY_MAX_DIMENSIONS  8
 #define TAY_INSTRUMENT      0
-#define TAY_AGENT_TAG_SIZE  8
 
 #define TAY_AGENT_POSITION(__agent_tag__) ((float *)(__agent_tag__ + 1))
 
@@ -89,7 +88,7 @@ void space_container_init(TaySpaceContainer *space,
 void space_simple_init(TaySpaceContainer *space, int dims);
 void space_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction);
 void space_gpu_simple_init(TaySpaceContainer *space, int dims);
-void space_gpu_tree_init(TaySpaceContainer *space, int dims);
+void space_gpu_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction);
 
 int group_index_to_tag(TayGroup *group, TayAgentTag *tag);
 

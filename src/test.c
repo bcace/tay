@@ -37,7 +37,10 @@ static void _make_cluster(TayState *state, int group, int count, float4 min, flo
 static inline void _eq(float a, float b) {
     float c = a - b;
     static float epsilon = 0.001f;
-    assert(c > -epsilon && c < epsilon);
+    if (c < -epsilon || c > epsilon) {
+        fprintf(stderr, "result error\n");
+        assert(0);
+    }
 }
 
 typedef enum {
@@ -141,12 +144,12 @@ void test() {
     for (int i = 0; i < 3; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-#if 0
+#if 1
         for (int j = 0; j < 4; ++j)
             _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 #endif
 
-#if 0
+#if 1
         printf("reference:\n");
 
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);

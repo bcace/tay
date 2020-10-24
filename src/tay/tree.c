@@ -6,7 +6,6 @@
 #include <float.h>
 #include <assert.h>
 
-#define NODE_DIM_UNDECIDED  100
 #define NODE_DIM_LEAF       101
 
 
@@ -51,7 +50,6 @@ typedef struct Node {
 static void _clear_node(Node *node) {
     node->lo = 0;
     node->hi = 0;
-    node->dim = NODE_DIM_UNDECIDED;
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         node->first[i] = 0;
 }
@@ -122,21 +120,21 @@ static void _move_agents_from_node_to_tree(Tree *tree, Node *node) {
     _move_agents_from_node_to_tree(tree, node->hi);
 }
 
-static void _sort_agent(Tree *tree, Node *node, TayAgentTag *agent, int group) {
-    if (node->dim == NODE_DIM_UNDECIDED) {
-        node->dim = NODE_DIM_LEAF;
-        float max_r = 0.0f;
-        for (int i = 0; i < tree->dims; ++i) {
-            if (node->depths.dims[i] >= tree->max_depths[i])
-                continue;
-            float r = (node->box.max[i] - node->box.min[i]) / tree->radii[i];
-            if (r > max_r) {
-                max_r = r;
-                node->dim = i;
-            }
+static inline void _decide_node_split(Node *node, int dims, int *max_depths, float *radii) {
+    node->dim = NODE_DIM_LEAF;
+    float max_r = 0.0f;
+    for (int i = 0; i < dims; ++i) {
+        if (node->depths.dims[i] >= max_depths[i])
+            continue;
+        float r = (node->box.max[i] - node->box.min[i]) / radii[i];
+        if (r > max_r) {
+            max_r = r;
+            node->dim = i;
         }
     }
+}
 
+static void _sort_agent(Tree *tree, Node *node, TayAgentTag *agent, int group) {
     if (node->dim == NODE_DIM_LEAF) {
         agent->next = node->first[group];
         node->first[group] = agent;
@@ -153,6 +151,7 @@ static void _sort_agent(Tree *tree, Node *node, TayAgentTag *agent, int group) {
                 node->lo->box.max[node->dim] = mid;
                 node->lo->depths = node->depths;
                 node->lo->depths.dims[node->dim]++;
+                _decide_node_split(node->lo, tree->dims, tree->max_depths, tree->radii);
             }
             _sort_agent(tree, node->lo, agent, group);
         }
@@ -165,6 +164,7 @@ static void _sort_agent(Tree *tree, Node *node, TayAgentTag *agent, int group) {
                 node->hi->box.min[node->dim] = mid;
                 node->hi->depths = node->depths;
                 node->hi->depths.dims[node->dim]++;
+                _decide_node_split(node->hi, tree->dims, tree->max_depths, tree->radii);
             }
             _sort_agent(tree, node->hi, agent, group);
         }
@@ -190,6 +190,8 @@ static void _on_step_start(TayState *state) {
 
     for (int i = 0; i < t->dims; ++i)
         t->max_depths[i] = _max_depth(t->box.max[i] - t->box.min[i], t->radii[i] * 2.0f, t->max_depth_correction);
+
+    _decide_node_split(t->nodes, t->dims, t->max_depths, t->radii);
 
     /* sort all agents from tree into nodes */
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
