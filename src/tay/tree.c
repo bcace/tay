@@ -34,13 +34,6 @@ typedef struct {
     unsigned char dims[TAY_MAX_DIMENSIONS];
 } Depths;
 
-/* NOTE: this depends on Depth struct being exactly 8 bytes. */
-static inline Depths _make_null_depths() {
-    Depths d;
-    *((unsigned long long *)&d) = 0ull;
-    return d;
-}
-
 typedef struct Node {
     struct Node *lo, *hi;               /* child partitions */
     TayAgentTag *first[TAY_MAX_GROUPS]; /* agents contained in this node (fork or leaf) */
@@ -185,14 +178,17 @@ static void _on_step_start(TayState *state) {
     _move_agents_from_node_to_tree(t, t->nodes);
 
     /* calculate max partition depths for each dimension */
-    for (int i = 0; i < t->dims; ++i)
+    Depths root_node_depths;
+    for (int i = 0; i < t->dims; ++i) {
         t->max_depths[i] = _max_depth(t->box.max[i] - t->box.min[i], t->radii[i] * 2.0f, t->max_depth_correction);
+        root_node_depths.dims[i] = 0;
+    }
 
     /* set up root node */
     t->available_node = 1;
     _clear_node(t->nodes);
     t->nodes->box = t->box; /* root node inherits space's box */
-    _decide_node_split(t->nodes, t->dims, t->max_depths, t->radii, _make_null_depths());
+    _decide_node_split(t->nodes, t->dims, t->max_depths, t->radii, root_node_depths);
 
     /* sort all agents from tree into nodes */
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
@@ -200,7 +196,7 @@ static void _on_step_start(TayState *state) {
         while (next) {
             TayAgentTag *a = next;
             next = next->next;
-            _sort_agent(t, t->nodes, a, i, _make_null_depths());
+            _sort_agent(t, t->nodes, a, i, root_node_depths);
         }
         t->first[i] = 0;
     }
