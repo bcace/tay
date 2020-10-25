@@ -5,8 +5,13 @@
 #include <float.h>
 #include <assert.h>
 
-#define TREE_SPACE_CELL_LEAF_DIM       101
+// TODO: could turn to bool so it's a bit clearer
+#define TREE_SPACE_CELL_LEAF_DIM 100
 
+
+typedef struct {
+    unsigned char dims[TAY_MAX_DIMENSIONS];
+} Depths;
 
 void tree_reset_box(Box *box, int dims) {
     for (int i = 0; i < dims; ++i) {
