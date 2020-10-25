@@ -16,7 +16,7 @@ TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_r
     if (space_type == TAY_SPACE_SIMPLE)
         space_simple_init(&s->space, space_dims);
     else if (space_type == TAY_SPACE_TREE)
-        space_tree_init(&s->space, space_dims, see_radii, max_depth_correction);
+        space_cpu_tree_init(&s->space, space_dims, see_radii, max_depth_correction);
     else if (space_type == TAY_SPACE_GPU_SIMPLE)
         space_gpu_simple_init(&s->space, space_dims);
     else if (space_type == TAY_SPACE_GPU_TREE)

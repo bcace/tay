@@ -86,7 +86,7 @@ void space_container_init(TaySpaceContainer *space,
                           int dims,
                           TAY_SPACE_DESTROY_FUNC destroy);
 void space_simple_init(TaySpaceContainer *space, int dims);
-void space_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction);
+void space_cpu_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction);
 void space_gpu_simple_init(TaySpaceContainer *space, int dims);
 void space_gpu_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction);
 
