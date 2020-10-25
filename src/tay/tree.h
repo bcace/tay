@@ -29,16 +29,16 @@ typedef struct {
     float radii[TAY_MAX_DIMENSIONS];
     int max_depths[TAY_MAX_DIMENSIONS];
     Box box;
-} Space;
+} TreeBase;
 
 void tree_reset_box(Box *box, int dims);
 void tree_update_box(Box *box, float *p, int dims);
 
 void tree_clear_cell(Cell *cell);
 
-Space *tree_init(int dims, float *radii, int max_depth_correction);
-void tree_destroy(Space *space);
-void tree_add(Space *space, TayAgentTag *agent, int group);
-void tree_update(Space *space);
+void tree_init(TreeBase *base, int dims, float *radii, int max_depth_correction);
+void tree_destroy(TreeBase *base);
+void tree_add(TreeBase *base, TayAgentTag *agent, int group);
+void tree_update(TreeBase *base);
 
 #endif

@@ -36,36 +36,36 @@ void tree_clear_cell(Cell *cell) {
         cell->first[i] = 0;
 }
 
-Space *tree_init(int dims, float *radii, int max_depth_correction) {
-    Space *s = calloc(1, sizeof(Space));
-    s->dims = dims;
-    s->max_depth_correction = max_depth_correction;
-    s->max_cells = 100000;
-    s->cells = malloc(s->max_cells * sizeof(Cell));
-    s->available_cell = 1; /* root cell is always allocated */
-    tree_clear_cell(s->cells);
-    tree_reset_box(&s->box, s->dims);
+void tree_init(TreeBase *tree, int dims, float *radii, int max_depth_correction) {
+    tree->dims = dims;
+    tree->max_depth_correction = max_depth_correction;
+    tree->max_cells = 100000;
+    tree->cells = malloc(tree->max_cells * sizeof(Cell));
+    tree->available_cell = 1; /* root cell is always allocated */
+    tree_clear_cell(tree->cells);
+    tree_reset_box(&tree->box, tree->dims);
     for (int i = 0; i < dims; ++i)
-        s->radii[i] = radii[i];
-    return s;
+        tree->radii[i] = radii[i];
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i)
+        tree->first[i] = 0;
 }
 
-void tree_destroy(Space *space) {
-    free(space->cells);
-    free(space);
+void tree_destroy(TreeBase *tree) {
+    free(tree->cells);
+    free(tree);
 }
 
-static void _add_to_non_sorted(Space *space, TayAgentTag *agent, int group) {
-    agent->next = space->first[group];
-    space->first[group] = agent;
-    tree_update_box(&space->box, TAY_AGENT_POSITION(agent), space->dims);
+static void _add_to_non_sorted(TreeBase *tree, TayAgentTag *agent, int group) {
+    agent->next = tree->first[group];
+    tree->first[group] = agent;
+    tree_update_box(&tree->box, TAY_AGENT_POSITION(agent), tree->dims);
 }
 
-void tree_add(Space *space, TayAgentTag *agent, int group) {
-    _add_to_non_sorted(space, agent, group);
+void tree_add(TreeBase *tree, TayAgentTag *agent, int group) {
+    _add_to_non_sorted(tree, agent, group);
 }
 
-static void _move_agents_from_cell_to_space(Space *space, Cell *cell) {
+static void _move_agents_from_cell_to_tree(TreeBase *tree, Cell *cell) {
     if (cell == 0)
         return;
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
@@ -74,18 +74,18 @@ static void _move_agents_from_cell_to_space(Space *space, Cell *cell) {
         TayAgentTag *last = cell->first[i];
         /* update global extents and find the last agent */
         while (1) {
-            tree_update_box(&space->box, TAY_AGENT_POSITION(last), space->dims);
+            tree_update_box(&tree->box, TAY_AGENT_POSITION(last), tree->dims);
             if (last->next)
                 last = last->next;
             else
                 break;
         }
         /* add all agents to global list */
-        last->next = space->first[i];
-        space->first[i] = cell->first[i];
+        last->next = tree->first[i];
+        tree->first[i] = cell->first[i];
     }
-    _move_agents_from_cell_to_space(space, cell->lo);
-    _move_agents_from_cell_to_space(space, cell->hi);
+    _move_agents_from_cell_to_tree(tree, cell->lo);
+    _move_agents_from_cell_to_tree(tree, cell->hi);
 }
 
 static inline void _decide_cell_split(Cell *cell, int dims, int *max_depths, float *radii, Depths cell_depths) {
@@ -102,7 +102,7 @@ static inline void _decide_cell_split(Cell *cell, int dims, int *max_depths, flo
     }
 }
 
-static void _sort_agent(Space *space, Cell *cell, TayAgentTag *agent, int group, Depths cell_depths) {
+static void _sort_agent(TreeBase *tree, Cell *cell, TayAgentTag *agent, int group, Depths cell_depths) {
     if (cell->dim == TREE_SPACE_CELL_LEAF_DIM) {
         agent->next = cell->first[group];
         cell->first[group] = agent;
@@ -115,25 +115,25 @@ static void _sort_agent(Space *space, Cell *cell, TayAgentTag *agent, int group,
         float pos = TAY_AGENT_POSITION(agent)[cell->dim];
         if (pos < mid) {
             if (cell->lo == 0) {
-                assert(space->available_cell < space->max_cells);
-                cell->lo = space->cells + space->available_cell++;
+                assert(tree->available_cell < tree->max_cells);
+                cell->lo = tree->cells + tree->available_cell++;
                 tree_clear_cell(cell->lo);
                 cell->lo->box = cell->box;
                 cell->lo->box.max[cell->dim] = mid;
-                _decide_cell_split(cell->lo, space->dims, space->max_depths, space->radii, sub_node_depths);
+                _decide_cell_split(cell->lo, tree->dims, tree->max_depths, tree->radii, sub_node_depths);
             }
-            _sort_agent(space, cell->lo, agent, group, sub_node_depths);
+            _sort_agent(tree, cell->lo, agent, group, sub_node_depths);
         }
         else {
             if (cell->hi == 0) {
-                assert(space->available_cell < space->max_cells);
-                cell->hi = space->cells + space->available_cell++;
+                assert(tree->available_cell < tree->max_cells);
+                cell->hi = tree->cells + tree->available_cell++;
                 tree_clear_cell(cell->hi);
                 cell->hi->box = cell->box;
                 cell->hi->box.min[cell->dim] = mid;
-                _decide_cell_split(cell->hi, space->dims, space->max_depths, space->radii, sub_node_depths);
+                _decide_cell_split(cell->hi, tree->dims, tree->max_depths, tree->radii, sub_node_depths);
             }
-            _sort_agent(space, cell->hi, agent, group, sub_node_depths);
+            _sort_agent(tree, cell->hi, agent, group, sub_node_depths);
         }
     }
 }
@@ -147,8 +147,8 @@ static int _max_depth(float space_side, float see_side, int max_depth_correction
     return depth;
 }
 
-void tree_update(Space *s) {
-    _move_agents_from_cell_to_space(s, s->cells);
+void tree_update(TreeBase *s) {
+    _move_agents_from_cell_to_tree(s, s->cells);
 
     /* calculate max partition depths for each dimension */
     Depths root_cell_depths;
@@ -160,7 +160,7 @@ void tree_update(Space *s) {
     /* set up root cell */
     s->available_cell = 1;
     tree_clear_cell(s->cells);
-    s->cells->box = s->box; /* root cell inherits space's box */
+    s->cells->box = s->box; /* root cell inherits tree's box */
     _decide_cell_split(s->cells, s->dims, s->max_depths, s->radii, root_cell_depths);
 
     /* sort all agents from tree into nodes */
