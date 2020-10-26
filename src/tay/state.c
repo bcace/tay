@@ -45,7 +45,7 @@ void tay_set_source(TayState *state, const char *source) {
 }
 
 int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
-    assert(agent_capacity != 0);
+    assert(agent_capacity > 0 && agent_capacity < TAY_MAX_AGENTS);
     int index = 0;
     for (; index < TAY_MAX_GROUPS; ++index)
         if (state->groups[index].storage == 0)
@@ -105,6 +105,7 @@ void tay_commit_available_agent(TayState *state, int group) {
     TayAgentTag *a = g->first;
     g->first = a->next;
     int index = (int)((char *)a - (char *)g->storage) / g->agent_size;
+    assert(state->space.add != 0);
     state->space.add(&state->space, a, group, index);
 }
 
@@ -118,7 +119,7 @@ void tay_simulation_start(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_IDLE);
     state->running = TAY_STATE_STATUS_RUNNING;
     if (state->space.on_simulation_start)
-        state->space.on_simulation_start(&state->space, state);
+        state->space.on_simulation_start(state);
 }
 
 void tay_run(TayState *state, int steps) {
@@ -163,7 +164,7 @@ void tay_simulation_end(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
     state->running = TAY_STATE_STATUS_IDLE;
     if (state->space.on_simulation_end)
-        state->space.on_simulation_end(&state->space);
+        state->space.on_simulation_end(state);
 }
 
 void space_container_init(TaySpaceContainer *space,
@@ -176,7 +177,7 @@ void space_container_init(TaySpaceContainer *space,
     space->destroy = destroy;
 }
 
-int group_index_to_tag(TayGroup *group, TayAgentTag *tag) {
+int group_tag_to_index(TayGroup *group, TayAgentTag *tag) {
     return (tag != 0) ? (int)((char *)tag - (char *)group->storage) / group->agent_size : -1;
 }
 

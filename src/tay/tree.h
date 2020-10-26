@@ -23,7 +23,7 @@ typedef struct {
     struct TayAgentTag *first[TAY_MAX_GROUPS];  /* agents are kept here while not in cells, will be sorted into the tree at next step */
     Cell *cells;                                /* cells storage, first cell is always the root cell */
     int max_cells;
-    int available_cell;
+    int cells_count;
     int dims;
     int max_depth_correction;
     float radii[TAY_MAX_DIMENSIONS];

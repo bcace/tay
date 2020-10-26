@@ -8,11 +8,10 @@
 
 
 const char *RESOLVE_INDICES_KERNEL = "kernel void resolve_pointers(global char *agents, global int *next_indices, int agent_size) {\n\
-    int id = get_global_id(0);\n\
-    int next_index = next_indices[id];\n\
-    global TayAgentTag *tag = (global TayAgentTag *)(agents + id * agent_size);\n\
-    if (next_index != -1)\n\
-        tag->next = (global TayAgentTag *)(agents + next_index * agent_size);\n\
+    int i = get_global_id(0);\n\
+    global TayAgentTag *tag = (global TayAgentTag *)(agents + i * agent_size);\n\
+    if (next_indices[i] != -1)\n\
+        tag->next = (global TayAgentTag *)(agents + next_indices[i] * agent_size);\n\
     else\n\
         tag->next = 0;\n\
 }\n";
@@ -96,8 +95,8 @@ static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, in
     s->first[group] = agent;
 }
 
-static void _on_simulation_start(TaySpaceContainer *container, TayState *state) {
-    Space *s = (Space *)container->storage;
+static void _on_simulation_start(TayState *state) {
+    Space *s = (Space *)state->space.storage;
 
     /* create next indices buffer */
     s->next_indices_buffer = gpu_create_buffer(s->gpu, GPU_MEM_READ_ONLY, GPU_MEM_NONE, s->agent_capacity * sizeof(int));
@@ -152,14 +151,14 @@ static void _on_simulation_start(TaySpaceContainer *container, TayState *state) 
             TayGroup *seer_group = state->groups + pass->seer_group;
             TayGroup *seen_group = state->groups + pass->seen_group;
 
-            int first_i = group_index_to_tag(seen_group, s->first[pass->seen_group]);
+            int first_i = group_tag_to_index(seen_group, s->first[pass->seen_group]);
 
             kernel = gpu_create_kernel(s->gpu, pass_kernel_name);
             gpu_set_kernel_buffer_argument(kernel, 0, &s->agent_buffers[pass->seer_group]);
             gpu_set_kernel_buffer_argument(kernel, 1, &s->agent_buffers[pass->seen_group]);
             gpu_set_kernel_buffer_argument(kernel, 2, &s->pass_contexts[i]);
             gpu_set_kernel_value_argument(kernel, 3, &first_i, sizeof(int));
-            gpu_set_kernel_value_argument(kernel, 4, &container->dims, sizeof(int));
+            gpu_set_kernel_value_argument(kernel, 4, &state->space.dims, sizeof(int));
         }
         else if (pass->type == TAY_PASS_ACT) {
             TayGroup *act_group = state->groups + pass->act_group;
@@ -183,8 +182,8 @@ static void _on_simulation_start(TaySpaceContainer *container, TayState *state) 
             gpu_enqueue_write_buffer(s->gpu, s->agent_buffers[i], GPU_BLOCKING, group->capacity * group->agent_size, group->storage);
 
             for (TayAgentTag *tag = s->first[i]; tag; tag = tag->next) {
-                int this_i = group_index_to_tag(group, tag);
-                int next_i = group_index_to_tag(group, tag->next);
+                int this_i = group_tag_to_index(group, tag);
+                int next_i = group_tag_to_index(group, tag->next);
                 s->next_indices[this_i] = next_i;
             }
 

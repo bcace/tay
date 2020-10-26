@@ -5,6 +5,7 @@
 #define TAY_MAX_PASSES      32
 #define TAY_MAX_DIMENSIONS  8
 #define TAY_INSTRUMENT      0
+#define TAY_MAX_AGENTS      1000000
 
 #define TAY_AGENT_POSITION(__agent_tag__) ((float *)(__agent_tag__ + 1))
 
@@ -17,8 +18,8 @@ typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpaceContainer *container, struct T
 typedef void (*TAY_SPACE_SEE_FUNC)(struct TayState *state, int pass_index);
 typedef void (*TAY_SPACE_ACT_FUNC)(struct TayState *state, int pass_index);
 typedef void (*TAY_SPACE_STEP_START_FUNC)(struct TayState *state);
-typedef void (*TAY_SPACE_SIM_START_FUNC)(struct TaySpaceContainer *container, struct TayState *state);
-typedef void (*TAY_SPACE_SIM_END_FUNC)(struct TaySpaceContainer *container);
+typedef void (*TAY_SPACE_SIM_START_FUNC)(struct TayState *state);
+typedef void (*TAY_SPACE_SIM_END_FUNC)(struct TayState *state);
 typedef void (*TAY_SPACE_RUN_END_FUNC)(struct TaySpaceContainer *container, struct TayState *state);
 
 typedef struct TayAgentTag {
@@ -90,7 +91,7 @@ void space_cpu_tree_init(TaySpaceContainer *space, int dims, float *radii, int m
 void space_gpu_simple_init(TaySpaceContainer *space, int dims);
 void space_gpu_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction);
 
-int group_index_to_tag(TayGroup *group, TayAgentTag *tag);
+int group_tag_to_index(TayGroup *group, TayAgentTag *tag);
 
 /* Shared CPU version of see between linked lists of agents. */
 void tay_see(struct TayAgentTag *seer_agents, struct TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, struct TayThreadContext *thread_context);

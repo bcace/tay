@@ -1,8 +1,6 @@
 #ifndef gpu_h
 #define gpu_h
 
-// #define GPU_SIZEOF_CL_MEM -10
-
 
 typedef struct GpuContext GpuContext;
 
