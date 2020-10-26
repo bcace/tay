@@ -227,10 +227,18 @@ static void _on_step_start(TayState *state) {
     }
 }
 
+static void _see(TayState *state, int pass_index) {
+}
+
+static void _act(TayState *state, int pass_index) {
+}
+
 void space_gpu_tree_init(TaySpaceContainer *container, int dims, float *radii, int max_depth_correction) {
     space_container_init(container, _init(dims, radii, max_depth_correction), dims, _destroy);
     container->on_simulation_start = _on_simulation_start;
     container->on_simulation_end = _on_simulation_end;
     container->on_step_start = _on_step_start;
     container->add = _add;
+    container->see = _see;
+    container->act = _act;
 }
