@@ -17,6 +17,7 @@ typedef struct Cell {
     struct TayAgentTag *first[TAY_MAX_GROUPS];  /* agents contained in this cell (fork or leaf) */
     int dim;                                    /* dimension along which the cell's partition is divided into child partitions */
     Box box;
+    float mid;
 } Cell;
 
 typedef struct {

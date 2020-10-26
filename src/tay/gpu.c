@@ -141,6 +141,7 @@ GpuBuffer gpu_create_buffer(GpuContext *c, GpuMemFlags device, GpuMemFlags host,
     return buffer;
 }
 
+/* NOTE: blocking refers to the operation itself, not the previous enqueued operations */
 int gpu_enqueue_write_buffer(GpuContext *c, GpuBuffer buffer, GpuBlocking blocking, int size, void *arg) {
     cl_int err = clEnqueueWriteBuffer(c->commands, buffer, blocking, 0, size, arg, 0, 0, 0);
     if (_check_errors(err, "clEnqueueWriteBuffer"))
@@ -161,6 +162,13 @@ int gpu_enqueue_kernel(GpuContext *c, GpuKernel kernel, int count) {
     if (_check_errors(err, "clEnqueueNDRangeKernel"))
         return 1;
     clFinish(c->commands); /* must be here because each kernel represents a iteration phase, and also having a pointer to wide_count local variable wouldn't work */
+    return 0;
+}
+
+int gpu_enqueue_kernel_nb(GpuContext *c, GpuKernel kernel, long long int *count) {
+    cl_int err = clEnqueueNDRangeKernel(c->commands, kernel, 1, 0, count, 0, 0, 0, 0);
+    if (_check_errors(err, "clEnqueueNDRangeKernel"))
+        return 1;
     return 0;
 }
 

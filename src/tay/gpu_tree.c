@@ -173,6 +173,7 @@ static void _on_step_start(TayState *state) {
     assert(tree->base.cells_count * sizeof(CellBridge) < GPU_TREE_ARENA_SIZE);
 
     /* translate cells into cell bridges */
+
     for (int i = 0; i < base->cells_count; ++i) {
         Cell *cell = base->cells + i;
         CellBridge *bridge = bridges + i;
@@ -192,7 +193,8 @@ static void _on_step_start(TayState *state) {
 
     /* resolve pointers on GPU side */
 
-    gpu_enqueue_kernel(tree->gpu, tree->resolve_cell_pointers_kernel, base->cells_count);
+    long long int cells_count = base->cells_count;
+    gpu_enqueue_kernel_nb(tree->gpu, tree->resolve_cell_pointers_kernel, &cells_count);
 
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
@@ -204,7 +206,8 @@ static void _on_step_start(TayState *state) {
             gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 4, &group->agent_size, sizeof(group->agent_size));
             gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 5, &i, sizeof(i));
 
-            gpu_enqueue_kernel(tree->gpu, tree->resolve_cell_agent_pointers_kernel, base->cells_count);
+            long long int cells_count = base->cells_count;
+            gpu_enqueue_kernel_nb(tree->gpu, tree->resolve_cell_agent_pointers_kernel, &cells_count);
 
             /* resolve agent next pointers */
 
@@ -222,16 +225,17 @@ static void _on_step_start(TayState *state) {
             gpu_set_kernel_buffer_argument(tree->resolve_agent_pointers_kernel, 0, &tree->agent_buffers[i]);
             gpu_set_kernel_value_argument(tree->resolve_agent_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
 
-            gpu_enqueue_kernel(tree->gpu, tree->resolve_agent_pointers_kernel, group->capacity);
+            long long int group_capacity = group->capacity;
+            gpu_enqueue_kernel_nb(tree->gpu, tree->resolve_agent_pointers_kernel, &group_capacity);
+
+            gpu_finish(tree->gpu);
         }
     }
 }
 
-static void _see(TayState *state, int pass_index) {
-}
+static void _see(TayState *state, int pass_index) {}
 
-static void _act(TayState *state, int pass_index) {
-}
+static void _act(TayState *state, int pass_index) {}
 
 void space_gpu_tree_init(TaySpaceContainer *container, int dims, float *radii, int max_depth_correction) {
     space_container_init(container, _init(dims, radii, max_depth_correction), dims, _destroy);

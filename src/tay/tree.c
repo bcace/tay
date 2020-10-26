@@ -100,6 +100,8 @@ static inline void _decide_cell_split(Cell *cell, int dims, int *max_depths, flo
             cell->dim = i;
         }
     }
+    if (cell->dim != TREE_SPACE_CELL_LEAF_DIM)
+        cell->mid = (cell->box.max[cell->dim] + cell->box.min[cell->dim]) * 0.5f;
 }
 
 static void _sort_agent(TreeBase *tree, Cell *cell, TayAgentTag *agent, int group, Depths cell_depths) {
@@ -111,15 +113,14 @@ static void _sort_agent(TreeBase *tree, Cell *cell, TayAgentTag *agent, int grou
         Depths sub_node_depths = cell_depths;
         ++sub_node_depths.dims[cell->dim];
 
-        float mid = (cell->box.max[cell->dim] + cell->box.min[cell->dim]) * 0.5f;
         float pos = TAY_AGENT_POSITION(agent)[cell->dim];
-        if (pos < mid) {
+        if (pos < cell->mid) {
             if (cell->lo == 0) {
                 assert(tree->cells_count < tree->max_cells);
                 cell->lo = tree->cells + tree->cells_count++;
                 tree_clear_cell(cell->lo);
                 cell->lo->box = cell->box;
-                cell->lo->box.max[cell->dim] = mid;
+                cell->lo->box.max[cell->dim] = cell->mid;
                 _decide_cell_split(cell->lo, tree->dims, tree->max_depths, tree->radii, sub_node_depths);
             }
             _sort_agent(tree, cell->lo, agent, group, sub_node_depths);
@@ -130,7 +131,7 @@ static void _sort_agent(TreeBase *tree, Cell *cell, TayAgentTag *agent, int grou
                 cell->hi = tree->cells + tree->cells_count++;
                 tree_clear_cell(cell->hi);
                 cell->hi->box = cell->box;
-                cell->hi->box.min[cell->dim] = mid;
+                cell->hi->box.min[cell->dim] = cell->mid;
                 _decide_cell_split(cell->hi, tree->dims, tree->max_depths, tree->radii, sub_node_depths);
             }
             _sort_agent(tree, cell->hi, agent, group, sub_node_depths);

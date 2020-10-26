@@ -30,6 +30,7 @@ GpuBuffer gpu_create_buffer(GpuContext *context, GpuMemFlags device, GpuMemFlags
 int gpu_enqueue_write_buffer(GpuContext *context, GpuBuffer buffer, GpuBlocking blocking, int size, void *arg);
 int gpu_enqueue_read_buffer(GpuContext *context, GpuBuffer buffer, GpuBlocking blocking, int size, void *arg);
 int gpu_enqueue_kernel(GpuContext *context, GpuKernel kernel, int count);
+int gpu_enqueue_kernel_nb(GpuContext *c, GpuKernel kernel, long long int *count);
 int gpu_finish(GpuContext *context);
 
 #endif
