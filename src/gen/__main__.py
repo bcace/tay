@@ -11,19 +11,11 @@ _BUILTINS_C = read('gen/builtins.c')
 
 # generate opencl kernel source
 
-_AGENT_TAG = """
-typedef struct __attribute__((packed)) TayAgentTag {
-    global struct TayAgentTag *next;
-} TayAgentTag;
-"""
-
 _OPENCL_SOURCE = """
 {0}
 {1}
 {2}
-{3}
 """.format(
-    _AGENT_TAG,
     _AGENT_H,
     _BUILTINS_C,
     _AGENT_C

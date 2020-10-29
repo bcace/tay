@@ -94,11 +94,6 @@ float4 float4_div_scalar(float4 a, float s) {
 
 const char *agent_kernels_source = "\n\
 \n\
-typedef struct __attribute__((packed)) TayAgentTag {\n\
-    global struct TayAgentTag *next;\n\
-} TayAgentTag;\n\
-\n\
-\n\
 typedef struct __attribute__((packed)) Agent {\n\
     TayAgentTag tag;\n\
     float4 p;\n\

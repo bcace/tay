@@ -7,6 +7,11 @@
 #define MAX_KERNEL_SOURCE_LENGTH 10000
 
 
+const char *GPU_SIMPLE_HEADER = "\n\
+typedef struct __attribute__((packed)) TayAgentTag {\n\
+    global struct TayAgentTag *next;\n\
+} TayAgentTag;\n";
+
 const char *RESOLVE_INDICES_KERNEL = "kernel void resolve_pointers(global char *agents, global int *next_indices, int agent_size) {\n\
     int i = get_global_id(0);\n\
     global TayAgentTag *tag = (global TayAgentTag *)(agents + i * agent_size);\n\
@@ -108,8 +113,10 @@ static void _on_simulation_start(TayState *state) {
             s->agent_buffers[i] = gpu_create_buffer(s->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, group->capacity * group->agent_size);
     }
 
+    s->bytes_written += sprintf_s(s->kernels_source, MAX_KERNEL_SOURCE_LENGTH, GPU_SIMPLE_HEADER);
+
     /* copy agent structs and behaviors code into the buffer */
-    s->bytes_written += sprintf_s(s->kernels_source, MAX_KERNEL_SOURCE_LENGTH, state->source);
+    s->bytes_written += sprintf_s(s->kernels_source + s->bytes_written, MAX_KERNEL_SOURCE_LENGTH - s->bytes_written, state->source);
 
     /* append pointer resolve kernel into the buffer */
     s->bytes_written += sprintf_s(s->kernels_source + s->bytes_written, MAX_KERNEL_SOURCE_LENGTH - s->bytes_written, RESOLVE_INDICES_KERNEL);
