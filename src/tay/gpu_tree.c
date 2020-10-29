@@ -9,7 +9,7 @@
 #define GPU_TREE_ARENA_SIZE (TAY_MAX_AGENTS * sizeof(int))
 
 
-const char *HEADER = "\n\
+const char *GPU_TREE_HEADER = "\n\
 #define TAY_MAX_GROUPS %d\n\
 #define TAY_MAX_DIMENSIONS %d\n\
 #define GPU_TREE_NULL_INDEX %d\n\
@@ -17,7 +17,6 @@ const char *HEADER = "\n\
 typedef struct __attribute__((packed)) TayAgentTag {\n\
     global struct TayAgentTag *next;\n\
 } TayAgentTag;\n\
-\n\
 \n\
 typedef struct __attribute__((packed)) {\n\
     float min[TAY_MAX_DIMENSIONS];\n\
@@ -55,6 +54,93 @@ kernel void resolve_agent_pointers(global char *agents, global int *next_indices
         tag->next = (global TayAgentTag *)(agents + next_indices[i] * agent_size);\n\
     else\n\
         tag->next = 0;\n\
+}\n";
+
+/* NOTE: I can have two versions of this kernel, one that iterates through all agents of a seer cell from a single thread,
+and another one that puts each seer agent in its own thread. Iterating through seen agents is always the same. Maybe
+with minor differences, in first case I can just test box overlaps between seer and seen cells, and in both cases I can
+test box overlaps between seer agent's box and seen cell's box. */
+
+const char *GPU_TREE_SEE_KERNEL = "\n\
+kernel void %s_kernel(global Cell *cells, int cells_count, int seer_group, int seen_group, int dims, float4 radii) {\n\
+    if (cells_count == 0)\n\
+        return;\n\
+\n\
+    int i = get_global_id(0);\n\
+    global Cell *seer_cell = cells + i;\n\
+    global TayAgentTag *seer_agent = seer_cell->first[seer_group];\n\
+\n\
+    Box seer_box = seer_cell->box;\n\
+    seer_box->min[0] -= radii.x;\n\
+    serr_box->max[0] += radii.x;\n\
+    if (dims > 1) {\n\
+        seer_box->min[1] -= radii.y;\n\
+        serr_box->max[1] += radii.y;\n\
+    }\n\
+    else if (dims > 2) {\n\
+        seer_box->min[2] -= radii.z;\n\
+        serr_box->max[2] += radii.z;\n\
+    }\n\
+    else if (dims > 3) {\n\
+        seer_box->min[3] -= radii.w;\n\
+        serr_box->max[3] += radii.w;\n\
+    }\n\
+\n\
+    global Cell *stack[16];\n\
+    int stack_size = 0;\n\
+    stack[stack_size++] = cells;\n\
+\n\
+    while (stack_size) {\n\
+        global Cell *seen_cell = stack[--stack_size];\n\
+\n\
+        while (seen_cell) {\n\
+\n\
+            for (int i = 0; i < dims; ++i)\n\
+                if (seer_box.min[i] > seen_node->box.max[i] || seer_box.max[i] < seen_node->box.min[i])\n\
+                    goto SKIP_CELL;\n\
+\n\
+            if (seen_cell->hi)\n\
+                stack[stack_size++] = seen_cell->hi;\n\
+\n\
+            global TayAgentTag *seer_agent = seer_cell->first[seer_group];\n\
+            while (seer_agent) {\n\
+\n\
+                global TayAgentTag *seen_agent = seen_cell->first[seen_group];\n\
+                while (seen_agent) {\n\
+\n\
+                    if (seer_agent == seen_agent)\n\
+                        goto SKIP_SEE;\n\
+\n\
+                    float4 d = seer_agent->p - seen_agent->p;\n\
+                    if (d.x > radii.x || d.x < -radii.x)\n\
+                        goto SKIP_SEE;\n\
+                    if (dims > 1) {\n\
+                        if (d.y > radii.y || d.y < -radii.y)\n\
+                            goto SKIP_SEE;\n\
+                    }\n\
+                    if (dims > 2) {\n\
+                        if (d.z > radii.z || d.z < -radii.z)\n\
+                            goto SKIP_SEE;\n\
+                    }\n\
+                    if (dims > 3) {\n\
+                        if (d.w > radii.w || d.w < -radii.w)\n\
+                            goto SKIP_SEE;\n\
+                    }\n\
+\n\
+                    %s(seer_agent, seen_agent, see_context);\n\
+\n\
+                    SKIP_SEE:;\n\
+                    seen_agent = seen_agent->next;\n\
+                }\n\
+\n\
+                seer_agent = seer_agent->next;\n\
+            }\n\
+\n\
+            SKIP_CELL:;\n\
+\n\
+            seen_cell = seen_cell->lo;\n\
+        }\n\
+    }\n\
 }\n";
 
 #pragma pack(push, 1)
@@ -127,7 +213,15 @@ static void _on_simulation_start(TayState *state) {
     /* compose kernels source text */
 
     tree->text_size = 0;
-    tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, HEADER, TAY_MAX_GROUPS, TAY_MAX_DIMENSIONS, GPU_TREE_NULL_INDEX);
+    tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, GPU_TREE_HEADER,
+                                 TAY_MAX_GROUPS, TAY_MAX_DIMENSIONS, GPU_TREE_NULL_INDEX);
+
+    for (int i = 0; i < state->passes_count; ++i) {
+        TayPass *pass = state->passes + i;
+        if (pass->type == TAY_PASS_SEE)
+            tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, GPU_TREE_SEE_KERNEL,
+                                         pass->func_name, pass->func_name);
+    }
 
     /* build program */
 
