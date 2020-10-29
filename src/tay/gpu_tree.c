@@ -14,6 +14,9 @@ const char *GPU_TREE_HEADER = "\n\
 #define TAY_MAX_DIMENSIONS %d\n\
 #define GPU_TREE_NULL_INDEX %d\n\
 \n\
+#define AGENT_POSITION_PTR(__agent_tag__) ((global float4 *)(__agent_tag__ + 1))\n\
+\n\
+\n\
 typedef struct __attribute__((packed)) TayAgentTag {\n\
     global struct TayAgentTag *next;\n\
 } TayAgentTag;\n\
@@ -62,7 +65,7 @@ with minor differences, in first case I can just test box overlaps between seer 
 test box overlaps between seer agent's box and seen cell's box. */
 
 const char *GPU_TREE_SEE_KERNEL = "\n\
-kernel void %s_kernel(global Cell *cells, int cells_count, int seer_group, int seen_group, int dims, float4 radii) {\n\
+kernel void %s_kernel(global Cell *cells, int cells_count, int seer_group, int seen_group, int dims, float4 radii, global void *see_context) {\n\
     if (cells_count == 0)\n\
         return;\n\
 \n\
@@ -71,19 +74,19 @@ kernel void %s_kernel(global Cell *cells, int cells_count, int seer_group, int s
     global TayAgentTag *seer_agent = seer_cell->first[seer_group];\n\
 \n\
     Box seer_box = seer_cell->box;\n\
-    seer_box->min[0] -= radii.x;\n\
-    serr_box->max[0] += radii.x;\n\
+    seer_box.min[0] -= radii.x;\n\
+    seer_box.max[0] += radii.x;\n\
     if (dims > 1) {\n\
-        seer_box->min[1] -= radii.y;\n\
-        serr_box->max[1] += radii.y;\n\
+        seer_box.min[1] -= radii.y;\n\
+        seer_box.max[1] += radii.y;\n\
     }\n\
     else if (dims > 2) {\n\
-        seer_box->min[2] -= radii.z;\n\
-        serr_box->max[2] += radii.z;\n\
+        seer_box.min[2] -= radii.z;\n\
+        seer_box.max[2] += radii.z;\n\
     }\n\
     else if (dims > 3) {\n\
-        seer_box->min[3] -= radii.w;\n\
-        serr_box->max[3] += radii.w;\n\
+        seer_box.min[3] -= radii.w;\n\
+        seer_box.max[3] += radii.w;\n\
     }\n\
 \n\
     global Cell *stack[16];\n\
@@ -96,7 +99,7 @@ kernel void %s_kernel(global Cell *cells, int cells_count, int seer_group, int s
         while (seen_cell) {\n\
 \n\
             for (int i = 0; i < dims; ++i)\n\
-                if (seer_box.min[i] > seen_node->box.max[i] || seer_box.max[i] < seen_node->box.min[i])\n\
+                if (seer_box.min[i] > seen_cell->box.max[i] || seer_box.max[i] < seen_cell->box.min[i])\n\
                     goto SKIP_CELL;\n\
 \n\
             if (seen_cell->hi)\n\
@@ -111,7 +114,7 @@ kernel void %s_kernel(global Cell *cells, int cells_count, int seer_group, int s
                     if (seer_agent == seen_agent)\n\
                         goto SKIP_SEE;\n\
 \n\
-                    float4 d = seer_agent->p - seen_agent->p;\n\
+                    float4 d = *AGENT_POSITION_PTR(seer_agent) - *AGENT_POSITION_PTR(seen_agent);\n\
                     if (d.x > radii.x || d.x < -radii.x)\n\
                         goto SKIP_SEE;\n\
                     if (dims > 1) {\n\
