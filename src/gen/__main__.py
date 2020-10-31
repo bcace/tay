@@ -6,7 +6,6 @@ def read(path):
 
 _AGENT_H = read('gen/agent.h')
 _AGENT_C = read('gen/agent.c')
-_BUILTINS_H = read('gen/builtins.h')
 _BUILTINS_C = read('gen/builtins.c')
 
 # generate opencl kernel source
@@ -29,10 +28,10 @@ with open('agent.h', 'w+') as f:
 
 #include "state.h"
 
+
 #pragma pack(push, 1)
 
 {0}
-{1}
 void agent_see(Agent *a, Agent *b, SeeContext *context);
 void agent_act(Agent *agent, ActContext *context);
 
@@ -48,7 +47,6 @@ extern const char *agent_kernels_source;
 
 #endif
 """.format(
-    _BUILTINS_H,
     _AGENT_H
     ).replace('__PACK__ ', '')
 )

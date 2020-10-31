@@ -3,12 +3,8 @@
 
 #include "state.h"
 
+
 #pragma pack(push, 1)
-
-typedef struct float4 {
-    float x, y, z, w;
-} float4;
-
 
 typedef struct Agent {
     TayAgentTag tag;

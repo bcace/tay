@@ -1,4 +1,3 @@
-
 typedef struct __PACK__ Agent {
     TayAgentTag tag;
     float4 p;

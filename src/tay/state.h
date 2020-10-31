@@ -1,11 +1,11 @@
 #ifndef tay_state_h
 #define tay_state_h
 
-#define TAY_MAX_GROUPS      8
-#define TAY_MAX_PASSES      32
-#define TAY_MAX_DIMENSIONS  8
-#define TAY_INSTRUMENT      0
-#define TAY_MAX_AGENTS      1000000
+#define TAY_MAX_GROUPS          8
+#define TAY_MAX_PASSES          32
+#define TAY_MAX_DIMENSIONS      8
+#define TAY_INSTRUMENT          0
+#define TAY_MAX_AGENTS          1000000
 
 #define TAY_AGENT_POSITION(__agent_tag__) ((float *)(__agent_tag__ + 1))
 
@@ -22,9 +22,17 @@ typedef void (*TAY_SPACE_SIM_START_FUNC)(struct TayState *state);
 typedef void (*TAY_SPACE_SIM_END_FUNC)(struct TayState *state);
 typedef void (*TAY_SPACE_RUN_END_FUNC)(struct TaySpaceContainer *container, struct TayState *state);
 
+#pragma pack(push, 1)
+typedef struct float4 {
+    float x, y, z, w;
+} float4;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 typedef struct TayAgentTag {
     struct TayAgentTag *next;
 } TayAgentTag;
+#pragma pack(pop)
 
 typedef struct TayGroup {
     void *storage;              /* agents storage */
