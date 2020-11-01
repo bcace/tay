@@ -144,7 +144,7 @@ void test() {
 
     /* testing model case 1 */
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 1; ++i) {
         float perception_r = 10.0f * (1 << i);
 
 #if 0
@@ -152,7 +152,7 @@ void test() {
             _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 #endif
 
-#if 0
+#if 1
         printf("reference:\n");
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
 #endif

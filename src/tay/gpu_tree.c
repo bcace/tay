@@ -83,8 +83,8 @@ kernel void %s_kernel(global Cell *cells, int seer_group, int seen_group, float4
     seer_box.max[2] += radii.z;\n\
 #endif\n\
 #if DIMS > 3\n\
-        seer_box.min[3] -= radii.w;\n\
-        seer_box.max[3] += radii.w;\n\
+    seer_box.min[3] -= radii.w;\n\
+    seer_box.max[3] += radii.w;\n\
 #endif\n\
 \n\
     global Cell *stack[16];\n\
@@ -97,8 +97,10 @@ kernel void %s_kernel(global Cell *cells, int seer_group, int seen_group, float4
         while (seen_cell) {\n\
 \n\
             for (int i = 0; i < DIMS; ++i)\n\
-                if (seer_box.min[i] > seen_cell->box.max[i] || seer_box.max[i] < seen_cell->box.min[i])\n\
+                if (seer_box.min[i] > seen_cell->box.max[i] || seer_box.max[i] < seen_cell->box.min[i]) {\n\
+                    seen_cell = 0;\n\
                     goto SKIP_CELL;\n\
+                }\n\
 \n\
             if (seen_cell->hi)\n\
                 stack[stack_size++] = seen_cell->hi;\n\
@@ -137,9 +139,9 @@ kernel void %s_kernel(global Cell *cells, int seer_group, int seen_group, float4
                 seer_agent = seer_agent->next;\n\
             }\n\
 \n\
-            SKIP_CELL:;\n\
-\n\
             seen_cell = seen_cell->lo;\n\
+\n\
+            SKIP_CELL:;\n\
         }\n\
     }\n\
 }\n";
@@ -335,10 +337,9 @@ static void _on_step_start(TayState *state) {
         Cell *cell = base->cells + i;
         CellBridge *bridge = bridges + i;
 
-        bridge->box = cell->box;
-
         bridge->lo = (cell->lo != 0) ? (int)(cell->lo - base->cells) : GPU_TREE_NULL_INDEX;
         bridge->hi = (cell->hi != 0) ? (int)(cell->hi - base->cells) : GPU_TREE_NULL_INDEX;
+        bridge->box = cell->box;
 
         for (int j = 0; j < TAY_MAX_GROUPS; ++j)
             bridge->first[j] = group_tag_to_index(state->groups + j, cell->first[j]);
@@ -371,10 +372,13 @@ static void _on_step_start(TayState *state) {
             int *next_indices = (int *)tree->arena;
             assert(group->capacity * sizeof(int) < GPU_TREE_ARENA_SIZE);
 
-            for (TayAgentTag *tag = group->first; tag; tag = tag->next) {
-                int this_i = group_tag_to_index(group, tag);
-                int next_i = group_tag_to_index(group, tag->next);
-                next_indices[this_i] = next_i;
+            for (int j = 0; j < base->cells_count; ++j) {
+                Cell *cell = base->cells + j;
+                for (TayAgentTag *tag = cell->first[i]; tag; tag = tag->next) {
+                    int this_i = group_tag_to_index(group, tag);
+                    int next_i = group_tag_to_index(group, tag->next);
+                    next_indices[this_i] = next_i;
+                }
             }
 
             gpu_enqueue_write_buffer(tree->gpu, tree->next_indices_buffer, GPU_BLOCKING, group->capacity * sizeof(int), next_indices);
@@ -395,6 +399,18 @@ static void _pass(TayState *state, int pass_index) {
     gpu_enqueue_kernel(tree->gpu, tree->pass_kernels[pass_index], tree->base.cells_count);
 }
 
+static void _null(TayState *state, int pass_index) {
+}
+
+static void _on_run_end(TaySpaceContainer *container, TayState *state) {
+    Tree *tree = (Tree *)container->storage;
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage)
+            gpu_enqueue_read_buffer(tree->gpu, tree->agent_buffers[i], GPU_BLOCKING, group->capacity * group->agent_size, group->storage);
+    }
+}
+
 void space_gpu_tree_init(TaySpaceContainer *container, int dims, float *radii, int max_depth_correction) {
     space_container_init(container, _init(dims, radii, max_depth_correction), dims, _destroy);
     container->on_simulation_start = _on_simulation_start;
@@ -403,4 +419,5 @@ void space_gpu_tree_init(TaySpaceContainer *container, int dims, float *radii, i
     container->add = _add;
     container->see = _pass;
     container->act = _pass;
+    container->on_run_end = _on_run_end;
 }
