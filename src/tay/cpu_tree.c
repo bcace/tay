@@ -1,6 +1,7 @@
 #include "tree.h"
 #include "thread.h"
 #include <stdlib.h>
+#include <assert.h>
 
 
 static TreeBase *_init(int dims, float *radii, int max_depth_correction) {
@@ -33,16 +34,70 @@ static void _init_tree_see_task(SeeTask *t, TreeBase *space, TayPass *pass, int 
     t->counter = thread_index;
 }
 
-static void _thread_traverse_seen(TreeBase *space, Cell *seer_node, Cell *seen_node, TayPass *pass, Box seer_box, TayThreadContext *thread_context) {
-    for (int i = 0; i < space->dims; ++i)
-        if (seer_box.min[i] > seen_node->box.max[i] || seer_box.max[i] < seen_node->box.min[i])
+static void _thread_traverse_seen(TreeBase *tree, Cell *seer_cell, Cell *seen_cell, TayPass *pass, Box seer_box, TayThreadContext *thread_context) {
+    for (int i = 0; i < tree->dims; ++i)
+        if (seer_box.min[i] > seen_cell->box.max[i] || seer_box.max[i] < seen_cell->box.min[i])
             return;
-    if (seen_node->first[pass->seen_group]) /* if there are any "seen" agents */
-        tay_see(seer_node->first[pass->seer_group], seen_node->first[pass->seen_group], pass->see, pass->radii, space->dims, thread_context);
-    if (seen_node->lo)
-        _thread_traverse_seen(space, seer_node, seen_node->lo, pass, seer_box, thread_context);
-    if (seen_node->hi)
-        _thread_traverse_seen(space, seer_node, seen_node->hi, pass, seer_box, thread_context);
+    if (seen_cell->first[pass->seen_group]) /* if there are any "seen" agents */
+        tay_see(seer_cell->first[pass->seer_group], seen_cell->first[pass->seen_group], pass->see, pass->radii, tree->dims, thread_context);
+    if (seen_cell->lo)
+        _thread_traverse_seen(tree, seer_cell, seen_cell->lo, pass, seer_box, thread_context);
+    if (seen_cell->hi)
+        _thread_traverse_seen(tree, seer_cell, seen_cell->hi, pass, seer_box, thread_context);
+}
+
+static void _thread_traverse_seen_non_recursive(TreeBase *tree, Cell *seer_cell, Cell *seen_cell, TayPass *pass, Box seer_box, TayThreadContext *thread_context) {
+    Cell *stack[16];
+    int stack_size = 0;
+    stack[stack_size++] = tree->cells;
+
+    while (stack_size) {
+        Cell *seen_cell = stack[--stack_size];
+
+        while (seen_cell) {
+
+            for (int i = 0; i < tree->dims; ++i)
+                if (seer_box.min[i] > seen_cell->box.max[i] || seer_box.max[i] < seen_cell->box.min[i]) {
+                    seen_cell = 0;
+                    goto SKIP_CELL;
+                }
+
+            if (seen_cell->hi) {
+                stack[stack_size++] = seen_cell->hi;
+                assert(stack_size < 16);
+            }
+
+            TayAgentTag *seer_agent = seer_cell->first[pass->seer_group];
+            while (seer_agent) {
+                float *seer_p = TAY_AGENT_POSITION(seer_agent);
+
+                TayAgentTag *seen_agent = seen_cell->first[pass->seen_group];
+                while (seen_agent) {
+                    float *seen_p = TAY_AGENT_POSITION(seen_agent);
+
+                    if (seer_agent == seen_agent)
+                        goto SKIP_SEE;
+
+                    for (int k = 0; k < tree->dims; ++k) {
+                        float d = seer_p[k] - seen_p[k];
+                        if (d < -pass->radii[k] || d > pass->radii[k])
+                            goto SKIP_SEE;
+                    }
+
+                    pass->see((void *)seer_agent, (void *)seen_agent, thread_context->context);
+
+                    SKIP_SEE:;
+                    seen_agent = seen_agent->next;
+                }
+
+                seer_agent = seer_agent->next;
+            }
+
+            seen_cell = seen_cell->lo;
+
+            SKIP_CELL:;
+        }
+    }
 }
 
 static void _thread_traverse_seers(SeeTask *task, Cell *cell, TayThreadContext *thread_context) {
@@ -54,6 +109,7 @@ static void _thread_traverse_seers(SeeTask *task, Cell *cell, TayThreadContext *
                 seer_box.max[i] += task->pass->radii[i];
             }
             _thread_traverse_seen(task->space, cell, task->space->cells, task->pass, seer_box, thread_context);
+            // _thread_traverse_seen_non_recursive(task->space, cell, task->space->cells, task->pass, seer_box, thread_context);
         }
     }
     ++task->counter;
