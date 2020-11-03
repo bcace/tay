@@ -147,7 +147,7 @@ void test() {
     for (int i = 0; i < 1; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-#if 0
+#if 1
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 #endif
@@ -157,7 +157,7 @@ void test() {
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
 #endif
 
-#if 0
+#if 1
         printf("gpu:\n");
         _test_model_case1(TAY_SPACE_GPU_SIMPLE, perception_r, 0, r);
 #endif

@@ -71,19 +71,20 @@ with minor differences, in first case I can just test box overlaps between seer 
 test box overlaps between seer agent's box and seen cell's box. */
 
 const char *GPU_TREE_SEE_KERNEL = "\n\
-kernel void %s_kernel(global Cell *cells, int seer_group, int seen_group, float4 radii, global void *see_context) {\n\
+kernel void %s_kernel(global char *agents, int agent_size, global Cell *cells, int seen_group, float4 radii, global void *see_context) {\n\
     int i = get_global_id(0);\n\
-    global Cell *seer_cell = cells + i;\n\
+    global TayAgentTag *seer_agent = (global TayAgentTag *)(agents + i * agent_size);\n\
+    float4 seer_p = *(global float4 *)(agents + i * agent_size + sizeof(TayAgentTag));\n\
 \n\
-    Box seer_box = seer_cell->box;\n\
-    seer_box.min[0] -= radii.x;\n\
-    seer_box.max[0] += radii.x;\n\
-    seer_box.min[1] -= radii.y;\n\
-    seer_box.max[1] += radii.y;\n\
-    seer_box.min[2] -= radii.z;\n\
-    seer_box.max[2] += radii.z;\n\
-    seer_box.min[3] -= radii.w;\n\
-    seer_box.max[3] += radii.w;\n\
+    Box seer_box;\n\
+    seer_box.min[0] = seer_p.x - radii.x;\n\
+    seer_box.max[0] = seer_p.x + radii.x;\n\
+    seer_box.min[1] = seer_p.y - radii.y;\n\
+    seer_box.max[1] = seer_p.y + radii.y;\n\
+    seer_box.min[2] = seer_p.z - radii.z;\n\
+    seer_box.max[2] = seer_p.z + radii.z;\n\
+    seer_box.min[3] = seer_p.w - radii.w;\n\
+    seer_box.max[3] = seer_p.w + radii.w;\n\
 \n\
     global Cell *stack[16];\n\
     int stack_size = 0;\n\
@@ -104,40 +105,33 @@ kernel void %s_kernel(global Cell *cells, int seer_group, int seen_group, float4
             if (seen_cell->hi)\n\
                 stack[stack_size++] = seen_cell->hi;\n\
 \n\
-            global TayAgentTag *seer_agent = seer_cell->first[seer_group];\n\
-            while (seer_agent) {\n\
-                float4 seer_p = *AGENT_POSITION_PTR(seer_agent);\n\
+            global TayAgentTag *seen_agent = seen_cell->first[seen_group];\n\
+            while (seen_agent) {\n\
+                float4 seen_p = *AGENT_POSITION_PTR(seen_agent);\n\
 \n\
-                global TayAgentTag *seen_agent = seen_cell->first[seen_group];\n\
-                while (seen_agent) {\n\
-                    float4 seen_p = *AGENT_POSITION_PTR(seen_agent);\n\
+                if (seer_agent == seen_agent)\n\
+                    goto SKIP_SEE;\n\
 \n\
-                    if (seer_agent == seen_agent)\n\
-                        goto SKIP_SEE;\n\
-\n\
-                    float4 d = seer_p - seen_p;\n\
-                    if (d.x > radii.x || d.x < -radii.x)\n\
-                        goto SKIP_SEE;\n\
+                float4 d = seer_p - seen_p;\n\
+                if (d.x > radii.x || d.x < -radii.x)\n\
+                    goto SKIP_SEE;\n\
 #if DIMS > 1\n\
-                    if (d.y > radii.y || d.y < -radii.y)\n\
-                        goto SKIP_SEE;\n\
+                if (d.y > radii.y || d.y < -radii.y)\n\
+                    goto SKIP_SEE;\n\
 #endif\n\
 #if DIMS > 2\n\
-                    if (d.z > radii.z || d.z < -radii.z)\n\
-                        goto SKIP_SEE;\n\
+                if (d.z > radii.z || d.z < -radii.z)\n\
+                    goto SKIP_SEE;\n\
 #endif\n\
 #if DIMS > 3\n\
-                    if (d.w > radii.w || d.w < -radii.w)\n\
-                        goto SKIP_SEE;\n\
+                if (d.w > radii.w || d.w < -radii.w)\n\
+                    goto SKIP_SEE;\n\
 #endif\n\
 \n\
-                    %s((global void *)seer_agent, (global void *)seen_agent, see_context);\n\
+                %s((global void *)seer_agent, (global void *)seen_agent, see_context);\n\
 \n\
-                    SKIP_SEE:;\n\
-                    seen_agent = seen_agent->next;\n\
-                }\n\
-\n\
-                seer_agent = seer_agent->next;\n\
+                SKIP_SEE:;\n\
+                seen_agent = seen_agent->next;\n\
             }\n\
 \n\
             seen_cell = seen_cell->lo;\n\
@@ -292,11 +286,13 @@ static void _on_simulation_start(TayState *state) {
 
         if (pass->type == TAY_PASS_SEE) {
             kernel = gpu_create_kernel(tree->gpu, kernel_name);
-            gpu_set_kernel_buffer_argument(kernel, 0, &tree->cells_buffer);
-            gpu_set_kernel_value_argument(kernel, 1, &pass->seer_group, sizeof(pass->seer_group));
-            gpu_set_kernel_value_argument(kernel, 2, &pass->seen_group, sizeof(pass->seen_group));
-            gpu_set_kernel_value_argument(kernel, 3, &radii, sizeof(radii));
-            gpu_set_kernel_buffer_argument(kernel, 4, &tree->pass_context_buffers[i]);
+            TayGroup *seer_group = state->groups + pass->seer_group;
+            gpu_set_kernel_buffer_argument(kernel, 0, &tree->agent_buffers[pass->seer_group]);
+            gpu_set_kernel_value_argument(kernel, 1, &seer_group->agent_size, sizeof(seer_group->agent_size));
+            gpu_set_kernel_buffer_argument(kernel, 2, &tree->cells_buffer);
+            gpu_set_kernel_value_argument(kernel, 3, &pass->seen_group, sizeof(pass->seen_group));
+            gpu_set_kernel_value_argument(kernel, 4, &radii, sizeof(radii));
+            gpu_set_kernel_buffer_argument(kernel, 5, &tree->pass_context_buffers[i]);
         }
         else if (pass->type == TAY_PASS_ACT) {
             kernel = gpu_create_kernel(tree->gpu, kernel_name);
@@ -439,13 +435,17 @@ static void _on_step_end(TayState *state) {
     }
 }
 
-static void _pass(TayState *state, int pass_index) {
+static void _see(TayState *state, int pass_index) {
+    Tree *tree = state->space.storage;
+    TayPass *pass = state->passes + pass_index;
+    TayGroup *group = state->groups + pass->seer_group;
+    gpu_enqueue_kernel(tree->gpu, tree->pass_kernels[pass_index], group->capacity);
+}
+
+static void _act(TayState *state, int pass_index) {
     Tree *tree = state->space.storage;
     gpu_enqueue_kernel(tree->gpu, tree->pass_kernels[pass_index], tree->base.cells_count);
 }
-
-// static void _null(TayState *state, int pass_index) {
-// }
 
 static void _on_run_end(TaySpaceContainer *container, TayState *state) {
     Tree *tree = (Tree *)container->storage;
@@ -453,7 +453,7 @@ static void _on_run_end(TaySpaceContainer *container, TayState *state) {
         TayGroup *group = state->groups + i;
         if (group->storage) {
             gpu_enqueue_read_buffer(tree->gpu, tree->agent_buffers[i], GPU_BLOCKING, group->capacity * group->agent_size, group->storage);
-            // TODO: cannot copy next pointer!!!
+            // TODO: cannot copy "next" pointer!!!
         }
     }
 }
@@ -465,7 +465,7 @@ void space_gpu_tree_init(TaySpaceContainer *container, int dims, float *radii, i
     container->on_step_start = _on_step_start;
     container->on_step_end = _on_step_end;
     container->add = _add;
-    container->see = _pass;
-    container->act = _pass;
+    container->see = _see;
+    container->act = _act;
     container->on_run_end = _on_run_end;
 }
