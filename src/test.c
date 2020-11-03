@@ -105,7 +105,7 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
     printf("R: %g, depth_correction: %d\n", see_radius, max_depth_correction);
 
     tay_simulation_start(s);
-    tay_run(s, 100);
+    tay_run(s, 1000);
     tay_simulation_end(s);
 
     if (results) {
@@ -140,14 +140,14 @@ void test() {
 #endif
 
     int beg_depth_correction = 0;
-    int end_depth_correction = 2;
+    int end_depth_correction = 1;
 
     /* testing model case 1 */
 
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 1; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-#if 1
+#if 0
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 #endif
@@ -162,7 +162,7 @@ void test() {
         _test_model_case1(TAY_SPACE_GPU_SIMPLE, perception_r, 0, r);
 #endif
 
-#if 0
+#if 1
         printf("gpu tree:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_GPU_TREE, perception_r, j, r);

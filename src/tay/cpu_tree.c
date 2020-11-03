@@ -56,11 +56,12 @@ static void _thread_traverse_seen_non_recursive(TreeBase *tree, Cell *seer_cell,
 
         while (seen_cell) {
 
-            for (int i = 0; i < tree->dims; ++i)
+            for (int i = 0; i < tree->dims; ++i) {
                 if (seer_box.min[i] > seen_cell->box.max[i] || seer_box.max[i] < seen_cell->box.min[i]) {
                     seen_cell = 0;
                     goto SKIP_CELL;
                 }
+            }
 
             if (seen_cell->hi) {
                 stack[stack_size++] = seen_cell->hi;
@@ -108,8 +109,8 @@ static void _thread_traverse_seers(SeeTask *task, Cell *cell, TayThreadContext *
                 seer_box.min[i] -= task->pass->radii[i];
                 seer_box.max[i] += task->pass->radii[i];
             }
-            _thread_traverse_seen(task->space, cell, task->space->cells, task->pass, seer_box, thread_context);
-            // _thread_traverse_seen_non_recursive(task->space, cell, task->space->cells, task->pass, seer_box, thread_context);
+            // _thread_traverse_seen(task->space, cell, task->space->cells, task->pass, seer_box, thread_context);
+            _thread_traverse_seen_non_recursive(task->space, cell, task->space->cells, task->pass, seer_box, thread_context);
         }
     }
     ++task->counter;

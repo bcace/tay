@@ -55,6 +55,7 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
     g->agent_size = agent_size;
     g->storage = calloc(agent_capacity, agent_size);
     g->capacity = agent_capacity;
+    g->is_point = 1;
     g->first = g->storage;
     TayAgentTag *prev = g->first;
     for (int i = 0; i < agent_capacity - 1; ++i) {
@@ -144,6 +145,9 @@ void tay_run(TayState *state, int steps) {
             else
                 assert(0); /* not implemented */
         }
+
+        if (state->space.on_step_end)
+            state->space.on_step_end(state);
     }
 
     if (state->space.on_run_end)

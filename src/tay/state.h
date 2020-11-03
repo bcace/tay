@@ -18,6 +18,7 @@ typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpaceContainer *container, struct T
 typedef void (*TAY_SPACE_SEE_FUNC)(struct TayState *state, int pass_index);
 typedef void (*TAY_SPACE_ACT_FUNC)(struct TayState *state, int pass_index);
 typedef void (*TAY_SPACE_STEP_START_FUNC)(struct TayState *state);
+typedef void (*TAY_SPACE_STEP_END_FUNC)(struct TayState *state);
 typedef void (*TAY_SPACE_SIM_START_FUNC)(struct TayState *state);
 typedef void (*TAY_SPACE_SIM_END_FUNC)(struct TayState *state);
 typedef void (*TAY_SPACE_RUN_END_FUNC)(struct TaySpaceContainer *container, struct TayState *state);
@@ -39,6 +40,7 @@ typedef struct TayGroup {
     struct TayAgentTag *first;  /* single linked list of available agents from storage */
     int agent_size;             /* agent size in bytes */
     int capacity;               /* max. number of agents */
+    int is_point;
 } TayGroup;
 
 typedef enum TayPassType {
@@ -71,6 +73,7 @@ typedef struct TaySpaceContainer {
     TAY_SPACE_SEE_FUNC see;
     TAY_SPACE_ACT_FUNC act;
     TAY_SPACE_STEP_START_FUNC on_step_start;
+    TAY_SPACE_STEP_END_FUNC on_step_end;
     TAY_SPACE_SIM_START_FUNC on_simulation_start;
     TAY_SPACE_SIM_END_FUNC on_simulation_end;
     TAY_SPACE_RUN_END_FUNC on_run_end;
