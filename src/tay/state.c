@@ -8,7 +8,7 @@
 #include <time.h>
 
 
-TayState *tay_create_state(TaySpaceType space_type, int space_dims, float *see_radii, int max_depth_correction) {
+TayState *tay_create_state(TaySpaceType space_type, int space_dims, float4 see_radii, int max_depth_correction) {
     TayState *s = calloc(1, sizeof(TayState));
     s->running = TAY_STATE_STATUS_IDLE;
     s->source = 0;
@@ -67,7 +67,7 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
     return index;
 }
 
-void tay_add_see(TayState *state, int seer_group, int seen_group, TAY_SEE_FUNC func, const char *func_name, float *radii, void *context, int context_size) {
+void tay_add_see(TayState *state, int seer_group, int seen_group, TAY_SEE_FUNC func, const char *func_name, float4 radii, void *context, int context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
@@ -77,8 +77,7 @@ void tay_add_see(TayState *state, int seer_group, int seen_group, TAY_SEE_FUNC f
     p->func_name = func_name;
     p->seer_group = seer_group;
     p->seen_group = seen_group;
-    for (int i = 0; i < TAY_MAX_DIMENSIONS; ++i)
-        p->radii[i] = radii[i];
+    p->radii = radii;
 }
 
 void tay_add_act(TayState *state, int act_group, TAY_ACT_FUNC func, const char *func_name, void *context, int context_size) {
@@ -185,12 +184,12 @@ int group_tag_to_index(TayGroup *group, TayAgentTag *tag) {
     return (tag != 0) ? (int)((char *)tag - (char *)group->storage) / group->agent_size : -1;
 }
 
-void tay_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, TayThreadContext *thread_context) {
+void tay_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (TayAgentTag *a = seer_agents; a; a = a->next) {
-        float *pa = TAY_AGENT_POSITION(a);
+        float4 pa = *TAY_AGENT_POSITION(a);
 
         for (TayAgentTag *b = seen_agents; b; b = b->next) {
-            float *pb = TAY_AGENT_POSITION(b);
+            float4 pb = *TAY_AGENT_POSITION(b);
 
             if (a == b) /* this can be removed for cases where beg_a != beg_b */
                 continue;
@@ -198,11 +197,30 @@ void tay_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC fu
 #if TAY_INSTRUMENT
             ++thread_context->broad_see_phase;
 #endif
-
+            // {
+            //     float d = pa.x - pb.x;
+            //     if (d < -radii.x || d > radii.x)
+            //         goto SKIP_SEE;
+            // }
+            // if (dims > 1) {
+            //     float d = pa.y - pb.y;
+            //     if (d < -radii.y || d > radii.y)
+            //         goto SKIP_SEE;
+            // }
+            // if (dims > 2) {
+            //     float d = pa.z - pb.z;
+            //     if (d < -radii.z || d > radii.z)
+            //         goto SKIP_SEE;
+            // }
+            // if (dims > 3) {
+            //     float d = pa.w - pb.w;
+            //     if (d < -radii.w || d > radii.w)
+            //         goto SKIP_SEE;
+            // }
             for (int k = 0; k < dims; ++k) {
-                float d = pa[k] - pb[k];
-                if (d < -radii[k] || d > radii[k])
-                    goto OUTSIDE_RADII;
+                float d = pa.arr[k] - pb.arr[k];
+                if (d < -radii.arr[k] || d > radii.arr[k])
+                    goto SKIP_SEE;
             }
 
 #if TAY_INSTRUMENT
@@ -211,7 +229,7 @@ void tay_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC fu
 
             func(a, b, thread_context->context);
 
-            OUTSIDE_RADII:;
+            SKIP_SEE:;
         }
     }
 }

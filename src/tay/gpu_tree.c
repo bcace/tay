@@ -23,8 +23,8 @@ typedef struct __attribute__((packed)) TayAgentTag {\n\
 } TayAgentTag;\n\
 \n\
 typedef struct __attribute__((packed)) {\n\
-    float min[TAY_MAX_DIMENSIONS];\n\
-    float max[TAY_MAX_DIMENSIONS];\n\
+    float4 min;\n\
+    float4 max;\n\
 } Box;\n\
 \n\
 typedef struct __attribute__((packed)) Cell {\n\
@@ -81,14 +81,8 @@ kernel void %s_kernel(global char *agents, int agent_size, global Cell *cells, i
     float4 seer_p = *(global float4 *)(agents + i * agent_size + sizeof(TayAgentTag));\n\
 \n\
     Box seer_box;\n\
-    seer_box.min[0] = seer_p.x - radii.x;\n\
-    seer_box.max[0] = seer_p.x + radii.x;\n\
-    seer_box.min[1] = seer_p.y - radii.y;\n\
-    seer_box.max[1] = seer_p.y + radii.y;\n\
-    seer_box.min[2] = seer_p.z - radii.z;\n\
-    seer_box.max[2] = seer_p.z + radii.z;\n\
-    seer_box.min[3] = seer_p.w - radii.w;\n\
-    seer_box.max[3] = seer_p.w + radii.w;\n\
+    seer_box.min = seer_p - radii;\n\
+    seer_box.max = seer_p + radii;\n\
 \n\
     global Cell *stack[16];\n\
     int stack_size = 0;\n\
@@ -100,34 +94,11 @@ kernel void %s_kernel(global char *agents, int agent_size, global Cell *cells, i
         while (seen_cell) {\n\
 \n\
             for (int j = 0; j < DIMS; ++j) {\n\
-               if (seer_box.min[j] > seen_cell->box.max[j] || seer_box.max[j] < seen_cell->box.min[j]) {\n\
-                   seen_cell = 0;\n\
-                   goto SKIP_CELL;\n\
-               }\n\
+                if (seer_box.min[j] > seen_cell->box.max[j] || seer_box.max[j] < seen_cell->box.min[j]) {\n\
+                    seen_cell = 0;\n\
+                    goto SKIP_CELL;\n\
+                }\n\
             }\n\
-\n\
-//             if (seer_box.min[0] > seen_cell->box.max[0] || seer_box.max[0] < seen_cell->box.min[0]) {\n\
-//                 seen_cell = 0;\n\
-//                 goto SKIP_CELL;\n\
-//             }\n\
-// #if DIMS > 1\n\
-//             if (seer_box.min[1] > seen_cell->box.max[1] || seer_box.max[1] < seen_cell->box.min[1]) {\n\
-//                 seen_cell = 0;\n\
-//                 goto SKIP_CELL;\n\
-//             }\n\
-// #endif\n\
-// #if DIMS > 3\n\
-//             if (seer_box.min[2] > seen_cell->box.max[2] || seer_box.max[2] < seen_cell->box.min[2]) {\n\
-//                 seen_cell = 0;\n\
-//                 goto SKIP_CELL;\n\
-//             }\n\
-// #endif\n\
-// #if DIMS > 3\n\
-//             if (seer_box.min[3] > seen_cell->box.max[3] || seer_box.max[3] < seen_cell->box.min[3]) {\n\
-//                 seen_cell = 0;\n\
-//                 goto SKIP_CELL;\n\
-//             }\n\
-// #endif\n\
 \n\
             if (seen_cell->hi)\n\
                 stack[stack_size++] = seen_cell->hi;\n\
@@ -199,7 +170,7 @@ typedef struct {
     char arena[GPU_TREE_ARENA_SIZE];
 } Tree;
 
-static Tree *_init(int dims, float *radii, int max_depth_correction) {
+static Tree *_init(int dims, float4 radii, int max_depth_correction) {
     Tree *tree = malloc(sizeof(Tree));
     tree_init(&tree->base, dims, radii, max_depth_correction);
     tree->gpu = gpu_create();
@@ -284,12 +255,6 @@ static void _on_simulation_start(TayState *state) {
 
         GpuKernel kernel = 0;
 
-        float4 radii; /* fix this sizeof once we switch to float4 in TayPass */
-        radii.x = pass->radii[0];
-        radii.y = pass->radii[1];
-        radii.z = pass->radii[2];
-        radii.w = pass->radii[3];
-
         if (pass->type == TAY_PASS_SEE) {
             kernel = gpu_create_kernel(tree->gpu, kernel_name);
             TayGroup *seer_group = state->groups + pass->seer_group;
@@ -297,7 +262,7 @@ static void _on_simulation_start(TayState *state) {
             gpu_set_kernel_value_argument(kernel, 1, &seer_group->agent_size, sizeof(seer_group->agent_size));
             gpu_set_kernel_buffer_argument(kernel, 2, &tree->cells_buffer);
             gpu_set_kernel_value_argument(kernel, 3, &pass->seen_group, sizeof(pass->seen_group));
-            gpu_set_kernel_value_argument(kernel, 4, &radii, sizeof(radii));
+            gpu_set_kernel_value_argument(kernel, 4, &pass->radii, sizeof(pass->radii));
             gpu_set_kernel_buffer_argument(kernel, 5, &tree->pass_context_buffers[i]);
         }
         else if (pass->type == TAY_PASS_ACT) {
@@ -465,7 +430,7 @@ static void _on_run_end(TaySpaceContainer *container, TayState *state) {
 
 static void _null(TayState *state, int pass_index) {}
 
-void space_gpu_tree_init(TaySpaceContainer *container, int dims, float *radii, int max_depth_correction) {
+void space_gpu_tree_init(TaySpaceContainer *container, int dims, float4 radii, int max_depth_correction) {
     assert(sizeof(unsigned long long) == sizeof(void *));
     space_container_init(container, _init(dims, radii, max_depth_correction), dims, _destroy);
     container->on_simulation_start = _on_simulation_start;

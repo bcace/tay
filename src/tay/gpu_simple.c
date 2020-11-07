@@ -162,12 +162,6 @@ static void _on_simulation_start(TayState *state) {
 
         GpuKernel kernel = 0;
 
-        float4 radii; /* fix this sizeof once we switch to float4 in TayPass */
-        radii.x = pass->radii[0];
-        radii.y = pass->radii[1];
-        radii.z = pass->radii[2];
-        radii.w = pass->radii[3];
-
         if (pass->type == TAY_PASS_SEE) {
             kernel = gpu_create_kernel(s->gpu, pass_kernel_name);
             TayGroup *seer_group = state->groups + pass->seer_group;
@@ -178,7 +172,7 @@ static void _on_simulation_start(TayState *state) {
             gpu_set_kernel_buffer_argument(kernel, 2, &s->agent_buffers[pass->seen_group]);
             gpu_set_kernel_value_argument(kernel, 3, &seen_group->agent_size, sizeof(seen_group->agent_size));
             gpu_set_kernel_value_argument(kernel, 4, &first_seen, sizeof(first_seen));
-            gpu_set_kernel_value_argument(kernel, 5, &radii, sizeof(radii));
+            gpu_set_kernel_value_argument(kernel, 5, &pass->radii, sizeof(pass->radii));
             gpu_set_kernel_buffer_argument(kernel, 6, &s->pass_context_buffers[i]);
         }
         else if (pass->type == TAY_PASS_ACT) {

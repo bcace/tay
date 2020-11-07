@@ -79,7 +79,7 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
 
     srand(1);
 
-    float see_radii[] = { see_radius, see_radius, see_radius };
+    float4 see_radii = { see_radius, see_radius, see_radius, 0.0 };
 
     TayState *s = tay_create_state(space_type, dims, see_radii, max_depth_correction);
     tay_set_source(s, agent_kernels_source);
@@ -153,7 +153,7 @@ void test() {
             _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 #endif
 
-#if 0
+#if 1
         printf("reference:\n");
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
 #endif

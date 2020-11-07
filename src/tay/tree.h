@@ -5,10 +5,28 @@
 #include "state.h"
 
 
+typedef struct {
+    union {
+        struct {
+            unsigned char x, y, z, w;
+        };
+        unsigned char arr[4];
+    };
+} uchar4;
+
+typedef struct {
+    union {
+        struct {
+            int x, y, z, w;
+        };
+        int arr[4];
+    };
+} int4;
+
 #pragma pack(push, 1)
 typedef struct {
-    float min[TAY_MAX_DIMENSIONS];
-    float max[TAY_MAX_DIMENSIONS];
+    float4 min;
+    float4 max;
 } Box;
 #pragma pack(pop)
 
@@ -27,17 +45,17 @@ typedef struct {
     int cells_count;
     int dims;
     int max_depth_correction;
-    float radii[TAY_MAX_DIMENSIONS];
-    int max_depths[TAY_MAX_DIMENSIONS];
+    float4 radii;
+    int4 max_depths;
     Box box;
 } TreeBase;
 
 void tree_reset_box(Box *box, int dims);
-void tree_update_box(Box *box, float *p, int dims);
+void tree_update_box(Box *box, float4 p, int dims);
 
 void tree_clear_cell(Cell *cell);
 
-void tree_init(TreeBase *base, int dims, float *radii, int max_depth_correction);
+void tree_init(TreeBase *base, int dims, float4 radii, int max_depth_correction);
 void tree_destroy(TreeBase *base);
 void tree_add(TreeBase *base, TayAgentTag *agent, int group);
 void tree_update(TreeBase *base);

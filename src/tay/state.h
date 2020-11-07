@@ -7,7 +7,7 @@
 #define TAY_INSTRUMENT          0
 #define TAY_MAX_AGENTS          1000000
 
-#define TAY_AGENT_POSITION(__agent_tag__) ((float *)(__agent_tag__ + 1))
+#define TAY_AGENT_POSITION(__agent_tag__) ((float4 *)(__agent_tag__ + 1))
 
 
 typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
@@ -25,7 +25,12 @@ typedef void (*TAY_SPACE_RUN_END_FUNC)(struct TaySpaceContainer *container, stru
 
 #pragma pack(push, 1)
 typedef struct float4 {
-    float x, y, z, w;
+    union {
+        struct {
+            float x, y, z, w;
+        };
+        float arr[4];
+    };
 } float4;
 #pragma pack(pop)
 
@@ -60,7 +65,7 @@ typedef struct TayPass {
         TAY_ACT_FUNC act;
     };
     const char *func_name;
-    float radii[TAY_MAX_DIMENSIONS];
+    float4 radii;
     void *context;
     int context_size;
 } TayPass;
@@ -98,13 +103,13 @@ void space_container_init(TaySpaceContainer *space,
                           int dims,
                           TAY_SPACE_DESTROY_FUNC destroy);
 void space_simple_init(TaySpaceContainer *space, int dims);
-void space_cpu_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction);
+void space_cpu_tree_init(TaySpaceContainer *space, int dims, float4 radii, int max_depth_correction);
 void space_gpu_simple_init(TaySpaceContainer *space, int dims);
-void space_gpu_tree_init(TaySpaceContainer *space, int dims, float *radii, int max_depth_correction);
+void space_gpu_tree_init(TaySpaceContainer *space, int dims, float4 radii, int max_depth_correction);
 
 int group_tag_to_index(TayGroup *group, TayAgentTag *tag);
 
 /* Shared CPU version of see between linked lists of agents. */
-void tay_see(struct TayAgentTag *seer_agents, struct TayAgentTag *seen_agents, TAY_SEE_FUNC func, float *radii, int dims, struct TayThreadContext *thread_context);
+void tay_see(struct TayAgentTag *seer_agents, struct TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 
 #endif
