@@ -40,9 +40,7 @@ void tree_init(TreeBase *tree, int dims, float4 radii, int max_depth_correction)
     tree->max_depth_correction = max_depth_correction;
     tree->max_cells = 100000;
     tree->cells = malloc(tree->max_cells * sizeof(Cell));
-    tree->cells_count = 1; /* root cell is always allocated */
-    tree_clear_cell(tree->cells);
-    tree_reset_box(&tree->box, tree->dims);
+    tree_clear(tree);
     tree->radii = radii;
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         tree->first[i] = 0;
@@ -51,6 +49,12 @@ void tree_init(TreeBase *tree, int dims, float4 radii, int max_depth_correction)
 void tree_destroy(TreeBase *tree) {
     free(tree->cells);
     free(tree);
+}
+
+void tree_clear(TreeBase *tree) {
+    tree->cells_count = 1; /* root cell is always allocated */
+    tree_clear_cell(tree->cells);
+    tree_reset_box(&tree->box, tree->dims);
 }
 
 static void _add_to_non_sorted(TreeBase *tree, TayAgentTag *agent, int group) {

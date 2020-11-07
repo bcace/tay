@@ -5,15 +5,16 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define GPU_TREE_NULL_INDEX -1
-#define GPU_TREE_MAX_TEXT_SIZE 10000
-#define GPU_TREE_ARENA_SIZE (TAY_MAX_AGENTS * sizeof(float4))
+#define GPU_TREE_NULL_INDEX     -1
+#define GPU_TREE_MAX_TEXT_SIZE  10000
+#define GPU_TREE_ARENA_SIZE     (TAY_MAX_AGENTS * sizeof(float4))
 
 
 static const char *HEADER = "\n\
 #define DIMS %d\n\
 #define TAY_MAX_GROUPS %d\n\
 #define GPU_TREE_NULL_INDEX %d\n\
+#define TAY_GPU_DEAD 0x%llx\n\
 \n\
 #define TAY_AGENT_POSITION(__agent_tag__) (*(global float4 *)(__agent_tag__ + 1))\n\
 \n\
@@ -63,16 +64,16 @@ kernel void resolve_agent_pointers(global TayAgentTag *tags, global char *agents
     else\n\
         agent_tag->next = 0;\n\
 }\n\
+kernel void mark_dead_agents(global char *agents, int agent_size, global int *dead_agent_indices) {\n\
+    int i = get_global_id(0);\n\
+    global TayAgentTag *tag = (global TayAgentTag *)(agents + i * agent_size);\n\
+    tag->next = TAY_GPU_DEAD;\n\
+}\n\
 \n\
 kernel void fetch_agent_positions(global char *agents, global float4 *positions, int agent_size) {\n\
     int i = get_global_id(0);\n\
     positions[i] = *(global float4 *)(agents + i * agent_size + sizeof(TayAgentTag));\n\
 }\n";
-
-/* NOTE: I can have several versions of this kernel, one that iterates through all agents of a seer cell from a single thread,
-and another one that puts each seer agent in its own thread. Iterating through seen agents is always the same. Maybe
-with minor differences, in first case I can just test box overlaps between seer and seen cells, and in both cases I can
-test box overlaps between seer agent's box and seen cell's box. */
 
 static const char *SEE_KERNEL = "\n\
 kernel void %s_kernel(global char *agents, int agent_size, global Cell *cells, int seen_group, float4 radii, global void *see_context) {\n\
@@ -201,7 +202,7 @@ static void _on_simulation_start(TayState *state) {
 
     tree->text_size = 0;
     tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, HEADER,
-                                 state->space.dims, TAY_MAX_GROUPS, GPU_TREE_NULL_INDEX);
+                                 state->space.dims, TAY_MAX_GROUPS, GPU_TREE_NULL_INDEX, TAY_GPU_DEAD);
 
     tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, state->source);
 
@@ -409,13 +410,45 @@ static void _act(TayState *state, int pass_index) {
 
 static void _on_run_end(TaySpaceContainer *container, TayState *state) {
     Tree *tree = (Tree *)container->storage;
+    TreeBase *base = &tree->base;
+
+    /* get agents from GPU */
+
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage)
+            gpu_enqueue_read_buffer(tree->gpu, tree->agent_buffers[i], GPU_NON_BLOCKING, group->capacity * group->agent_size, group->storage);
+    }
+
+    gpu_finish(tree->gpu);
+
+    /* reset all agents "next" indices since they currently contain GPU addresses */
+
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
         if (group->storage) {
-            gpu_enqueue_read_buffer(tree->gpu, tree->agent_buffers[i], GPU_BLOCKING, group->capacity * group->agent_size, group->storage);
-            // TODO: cannot copy "next" pointer!!!
+
+            group->first = 0;
+            base->first[i] = 0;
+
+            for (int j = 0; j < group->capacity; ++j) {
+                TayAgentTag *tag = (TayAgentTag *)((char *)group->storage + j * group->agent_size);
+
+                if ((unsigned long long)tag == TAY_GPU_DEAD) { /* dead agents, return to storage */
+                    tag->next = group->first;
+                    group->first = tag;
+                }
+                else { /* live agents, return to tree list */
+                    tag->next = base->first[i];
+                    base->first[i] = tag;
+                }
+            }
         }
     }
+
+    /* clear tree */
+
+    tree_clear(base);
 }
 
 static void _null(TayState *state, int pass_index) {}

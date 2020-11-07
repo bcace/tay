@@ -40,6 +40,7 @@ void tree_clear_cell(Cell *cell);
 
 void tree_init(TreeBase *base, int dims, float4 radii, int max_depth_correction);
 void tree_destroy(TreeBase *base);
+void tree_clear(TreeBase *tree); /* NOTE: this does not return contained agents into storage */
 void tree_add(TreeBase *base, TayAgentTag *agent, int group);
 void tree_update(TreeBase *base);
 

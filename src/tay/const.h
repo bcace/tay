@@ -5,6 +5,7 @@
 #define TAY_MAX_PASSES          32
 #define TAY_INSTRUMENT          0
 #define TAY_MAX_AGENTS          1000000
+#define TAY_GPU_DEAD            0xffffffffffffffff
 
 #define TAY_AGENT_POSITION(__agent_tag__) (*(float4 *)(__agent_tag__ + 1))
 

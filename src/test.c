@@ -158,7 +158,7 @@ void test() {
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
 #endif
 
-#if 1
+#if 0
         printf("gpu:\n");
         _test_model_case1(TAY_SPACE_GPU_SIMPLE, perception_r, 0, r);
 #endif
