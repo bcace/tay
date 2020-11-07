@@ -34,11 +34,12 @@ static void _make_cluster(TayState *state, int group, int count, float4 min, flo
     }
 }
 
+// TODO: implement proper error
 static inline void _eq(float a, float b) {
     float c = a - b;
     static float epsilon = 0.001f;
     if (c < -epsilon || c > epsilon) {
-        fprintf(stderr, "result error\n");
+        fprintf(stderr, "result error %g\n", c);
         assert(0);
     }
 }
@@ -105,7 +106,7 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
     printf("R: %g, depth_correction: %d\n", see_radius, max_depth_correction);
 
     tay_simulation_start(s);
-    tay_run(s, 100);
+    tay_run(s, 1000);
     tay_simulation_end(s);
 
     if (results) {
@@ -140,7 +141,7 @@ void test() {
 #endif
 
     int beg_depth_correction = 0;
-    int end_depth_correction = 3;
+    int end_depth_correction = 1;
 
     /* testing model case 1 */
 
@@ -152,7 +153,7 @@ void test() {
             _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
 #endif
 
-#if 1
+#if 0
         printf("reference:\n");
         _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
 #endif

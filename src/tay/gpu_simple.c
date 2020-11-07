@@ -7,12 +7,17 @@
 #define MAX_KERNEL_SOURCE_LENGTH 10000
 
 
-const char *GPU_SIMPLE_HEADER = "\n\
+static const char *HEADER = "\n\
+#define DIMS %d\n\
+\n\
+#define AGENT_POSITION_PTR(__agent_tag__) ((global float4 *)(__agent_tag__ + 1))\n\
+\n\
+\n\
 typedef struct __attribute__((packed)) TayAgentTag {\n\
     global struct TayAgentTag *next;\n\
-} TayAgentTag;\n";
-
-const char *RESOLVE_INDICES_KERNEL = "kernel void resolve_pointers(global char *agents, global int *next_indices, int agent_size) {\n\
+} TayAgentTag;\n\
+\n\
+kernel void resolve_pointers(global char *agents, global int *next_indices, int agent_size) {\n\
     int i = get_global_id(0);\n\
     global TayAgentTag *tag = (global TayAgentTag *)(agents + i * agent_size);\n\
     if (next_indices[i] != -1)\n\
@@ -21,52 +26,53 @@ const char *RESOLVE_INDICES_KERNEL = "kernel void resolve_pointers(global char *
         tag->next = 0;\n\
 }\n";
 
-/* TODO: both these kernels should test whether the agent is alive at all.
-This could be done by looking the agent up in the info array. */
-
-// TODO: revise pointer arithmetic once the kernel is made to be more generic
-const char *SEE_KERNEL_SOURCE = "kernel void pass_%d(global Agent *seer_agents, global Agent *seen_agents, global SeeContext *see_context, int first_seen, int dims) {\n\
-    global Agent *seer_agent = seer_agents + get_global_id(0);\n\
-    global TayAgentTag *tag = (global TayAgentTag *)(seen_agents + first_seen);\n\
-    while (tag) {\n\
-        global Agent *seen_agent = (global Agent *)tag;\n\
-        \n\
+static const char *SEE_KERNEL = "\n\
+kernel void %s_kernel(global char *seer_agents, int seer_agent_size, global char *seen_agents, int seen_agent_size, int first_seen, float4 radii, global void *see_context) {\n\
+    int i = get_global_id(0);\n\
+    global TayAgentTag *seer_agent = (global TayAgentTag *)(seer_agents + i * seer_agent_size);\n\
+    float4 seer_p = *AGENT_POSITION_PTR(seer_agent);\n\
+    global TayAgentTag *seen_agent = (global TayAgentTag *)(seen_agents + first_seen * seen_agent_size);\n\
+\n\
+    while (seen_agent) {\n\
+        float4 seen_p = *AGENT_POSITION_PTR(seen_agent);\n\
+\n\
         if (seer_agent == seen_agent)\n\
             goto SKIP_SEE;\n\
-        \n\
-        float4 d = seer_agent->p - seen_agent->p;\n\
-        if (d.x > see_context->radii.x || d.x < -see_context->radii.x)\n\
+\n\
+        float4 d = seer_p - seen_p;\n\
+        if (d.x > radii.x || d.x < -radii.x)\n\
             goto SKIP_SEE;\n\
-        if (dims > 1) {\n\
-            if (d.y > see_context->radii.y || d.y < -see_context->radii.y)\n\
-                goto SKIP_SEE;\n\
-        }\n\
-        if (dims > 2) {\n\
-            if (d.z > see_context->radii.z || d.z < -see_context->radii.z)\n\
-                goto SKIP_SEE;\n\
-        }\n\
-        if (dims > 3) {\n\
-            if (d.w > see_context->radii.w || d.w < -see_context->radii.w)\n\
-                goto SKIP_SEE;\n\
-        }\n\
-        \n\
+#if DIMS > 1\n\
+        if (d.y > radii.y || d.y < -radii.y)\n\
+            goto SKIP_SEE;\n\
+#endif\n\
+#if DIMS > 2\n\
+        if (d.z > radii.z || d.z < -radii.z)\n\
+            goto SKIP_SEE;\n\
+#endif\n\
+#if DIMS > 3\n\
+        if (d.w > radii.w || d.w < -radii.w)\n\
+            goto SKIP_SEE;\n\
+#endif\n\
+\n\
         %s(seer_agent, seen_agent, see_context);\n\
-        \n\
+\n\
         SKIP_SEE:;\n\
-        \n\
-        tag = tag->next;\n\
+\n\
+        seen_agent = seen_agent->next;\n\
     }\n\
 }\n";
 
-const char *ACT_KERNEL_SOURCE = "kernel void pass_%d(global Agent *agents, global ActContext *act_context) {\n\
-    %s(agents + get_global_id(0), act_context);\n\
+static const char *ACT_KERNEL = "\n\
+kernel void %s_kernel(global char *agents, int agent_size, global void *act_context) {\n\
+    %s((global void *)(agents + get_global_id(0) * agent_size), act_context);\n\
 }\n";
 
 typedef struct {
     TayAgentTag *first[TAY_MAX_GROUPS];
     GpuContext *gpu;
     GpuBuffer agent_buffers[TAY_MAX_GROUPS];
-    GpuBuffer pass_contexts[TAY_MAX_PASSES];
+    GpuBuffer pass_context_buffers[TAY_MAX_PASSES];
     GpuKernel pass_kernels[TAY_MAX_PASSES];
     GpuBuffer next_indices_buffer;
     char kernels_source[MAX_KERNEL_SOURCE_LENGTH];
@@ -113,28 +119,28 @@ static void _on_simulation_start(TayState *state) {
             s->agent_buffers[i] = gpu_create_buffer(s->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, group->capacity * group->agent_size);
     }
 
-    s->bytes_written += sprintf_s(s->kernels_source, MAX_KERNEL_SOURCE_LENGTH, GPU_SIMPLE_HEADER);
+    s->bytes_written += sprintf_s(s->kernels_source, MAX_KERNEL_SOURCE_LENGTH, HEADER,
+                                  state->space.dims);
 
     /* copy agent structs and behaviors code into the buffer */
     s->bytes_written += sprintf_s(s->kernels_source + s->bytes_written, MAX_KERNEL_SOURCE_LENGTH - s->bytes_written, state->source);
-
-    /* append pointer resolve kernel into the buffer */
-    s->bytes_written += sprintf_s(s->kernels_source + s->bytes_written, MAX_KERNEL_SOURCE_LENGTH - s->bytes_written, RESOLVE_INDICES_KERNEL);
 
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
 
         /* create buffer for pass context */
         if (pass->context)
-            s->pass_contexts[i] = gpu_create_buffer(s->gpu, GPU_MEM_READ_ONLY, GPU_MEM_NONE, pass->context_size);
+            s->pass_context_buffers[i] = gpu_create_buffer(s->gpu, GPU_MEM_READ_ONLY, GPU_MEM_NONE, pass->context_size);
         else
-            s->pass_contexts[i] = 0;
+            s->pass_context_buffers[i] = 0;
 
         /* append kernel function wrapper around the pass agent function */
         if (pass->type == TAY_PASS_SEE)
-            s->bytes_written += sprintf_s(s->kernels_source + s->bytes_written, MAX_KERNEL_SOURCE_LENGTH - s->bytes_written, SEE_KERNEL_SOURCE, i, pass->func_name);
+            s->bytes_written += sprintf_s(s->kernels_source + s->bytes_written, MAX_KERNEL_SOURCE_LENGTH - s->bytes_written, SEE_KERNEL,
+                                          pass->func_name, pass->func_name);
         else if (pass->type == TAY_PASS_ACT)
-            s->bytes_written += sprintf_s(s->kernels_source + s->bytes_written, MAX_KERNEL_SOURCE_LENGTH - s->bytes_written, ACT_KERNEL_SOURCE, i, pass->func_name);
+            s->bytes_written += sprintf_s(s->kernels_source + s->bytes_written, MAX_KERNEL_SOURCE_LENGTH - s->bytes_written, ACT_KERNEL,
+                                          pass->func_name, pass->func_name);
         else
             assert(0); /* unhandled pass type */
 
@@ -142,37 +148,45 @@ static void _on_simulation_start(TayState *state) {
     }
 
     /* build program */
+
     assert(state->source != 0);
     gpu_build_program(s->gpu, s->kernels_source);
 
     /* create kernels and bind buffers to them */
+
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
 
-        static char pass_kernel_name[256];
-        sprintf_s(pass_kernel_name, 256, "pass_%d", i);
+        static char pass_kernel_name[512];
+        sprintf_s(pass_kernel_name, 512, "%s_kernel", pass->func_name);
 
         GpuKernel kernel = 0;
 
+        float4 radii; /* fix this sizeof once we switch to float4 in TayPass */
+        radii.x = pass->radii[0];
+        radii.y = pass->radii[1];
+        radii.z = pass->radii[2];
+        radii.w = pass->radii[3];
+
         if (pass->type == TAY_PASS_SEE) {
+            kernel = gpu_create_kernel(s->gpu, pass_kernel_name);
             TayGroup *seer_group = state->groups + pass->seer_group;
             TayGroup *seen_group = state->groups + pass->seen_group;
-
-            int first_i = group_tag_to_index(seen_group, s->first[pass->seen_group]);
-
-            kernel = gpu_create_kernel(s->gpu, pass_kernel_name);
+            int first_seen = group_tag_to_index(seen_group, s->first[pass->seen_group]);
             gpu_set_kernel_buffer_argument(kernel, 0, &s->agent_buffers[pass->seer_group]);
-            gpu_set_kernel_buffer_argument(kernel, 1, &s->agent_buffers[pass->seen_group]);
-            gpu_set_kernel_buffer_argument(kernel, 2, &s->pass_contexts[i]);
-            gpu_set_kernel_value_argument(kernel, 3, &first_i, sizeof(int));
-            gpu_set_kernel_value_argument(kernel, 4, &state->space.dims, sizeof(int));
+            gpu_set_kernel_value_argument(kernel, 1, &seer_group->agent_size, sizeof(seer_group->agent_size));
+            gpu_set_kernel_buffer_argument(kernel, 2, &s->agent_buffers[pass->seen_group]);
+            gpu_set_kernel_value_argument(kernel, 3, &seen_group->agent_size, sizeof(seen_group->agent_size));
+            gpu_set_kernel_value_argument(kernel, 4, &first_seen, sizeof(first_seen));
+            gpu_set_kernel_value_argument(kernel, 5, &radii, sizeof(radii));
+            gpu_set_kernel_buffer_argument(kernel, 6, &s->pass_context_buffers[i]);
         }
         else if (pass->type == TAY_PASS_ACT) {
-            TayGroup *act_group = state->groups + pass->act_group;
-
             kernel = gpu_create_kernel(s->gpu, pass_kernel_name);
+            TayGroup *act_group = state->groups + pass->act_group;
             gpu_set_kernel_buffer_argument(kernel, 0, &s->agent_buffers[pass->act_group]);
-            gpu_set_kernel_buffer_argument(kernel, 1, &s->pass_contexts[i]);
+            gpu_set_kernel_value_argument(kernel, 1, &act_group->agent_size, sizeof(act_group->agent_size));
+            gpu_set_kernel_buffer_argument(kernel, 2, &s->pass_context_buffers[i]);
         }
         else
             assert(0); /* unhandled pass type */
@@ -209,16 +223,22 @@ static void _on_simulation_start(TayState *state) {
     /* enqueue writing pass contexts to GPU */
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
-        gpu_enqueue_write_buffer(s->gpu, s->pass_contexts[i], GPU_BLOCKING, pass->context_size, pass->context);
+        gpu_enqueue_write_buffer(s->gpu, s->pass_context_buffers[i], GPU_BLOCKING, pass->context_size, pass->context);
     }
 }
 
-static void _pass(TayState *state, int pass_index) {
+static void _see(TayState *state, int pass_index) {
     Space *s = state->space.storage;
-    TayPass *p = state->passes + pass_index;
-
-    TayGroup *seer_group = state->groups + p->seer_group;
+    TayPass *pass = state->passes + pass_index;
+    TayGroup *seer_group = state->groups + pass->seer_group;
     gpu_enqueue_kernel(s->gpu, s->pass_kernels[pass_index], seer_group->capacity);
+}
+
+static void _act(TayState *state, int pass_index) {
+    Space *s = state->space.storage;
+    TayPass *pass = state->passes + pass_index;
+    TayGroup *act_group = state->groups + pass->act_group;
+    gpu_enqueue_kernel(s->gpu, s->pass_kernels[pass_index], act_group->capacity);
 }
 
 static void _on_run_end(TaySpaceContainer *container, TayState *state) {
@@ -235,8 +255,8 @@ static void _on_run_end(TaySpaceContainer *container, TayState *state) {
 void space_gpu_simple_init(TaySpaceContainer *container, int dims) {
     space_container_init(container, _init(), dims, _destroy);
     container->add = _add;
-    container->see = _pass;
-    container->act = _pass;
+    container->see = _see;
+    container->act = _act;
     container->on_simulation_start = _on_simulation_start;
     container->on_run_end = _on_run_end;
 }
