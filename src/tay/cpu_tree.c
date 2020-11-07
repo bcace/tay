@@ -74,11 +74,11 @@ static void _thread_traverse_seen_non_recursive(TreeBase *tree, Cell *seer_cell,
 
             TayAgentTag *seer_agent = seer_cell->first[pass->seer_group];
             while (seer_agent) {
-                float4 seer_p = *TAY_AGENT_POSITION(seer_agent);
+                float4 seer_p = TAY_AGENT_POSITION(seer_agent);
 
                 TayAgentTag *seen_agent = seen_cell->first[pass->seen_group];
                 while (seen_agent) {
-                    float4 seen_p = *TAY_AGENT_POSITION(seen_agent);
+                    float4 seen_p = TAY_AGENT_POSITION(seen_agent);
 
                     if (seer_agent == seen_agent)
                         goto SKIP_SEE;

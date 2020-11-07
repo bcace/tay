@@ -6,7 +6,7 @@
 #define TAY_INSTRUMENT          0
 #define TAY_MAX_AGENTS          1000000
 
-#define TAY_AGENT_POSITION(__agent_tag__) ((float4 *)(__agent_tag__ + 1))
+#define TAY_AGENT_POSITION(__agent_tag__) (*(float4 *)(__agent_tag__ + 1))
 
 
 #pragma pack(push, 1)

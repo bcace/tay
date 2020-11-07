@@ -56,7 +56,7 @@ void tree_destroy(TreeBase *tree) {
 static void _add_to_non_sorted(TreeBase *tree, TayAgentTag *agent, int group) {
     agent->next = tree->first[group];
     tree->first[group] = agent;
-    tree_update_box(&tree->box, *TAY_AGENT_POSITION(agent), tree->dims);
+    tree_update_box(&tree->box, TAY_AGENT_POSITION(agent), tree->dims);
 }
 
 void tree_add(TreeBase *tree, TayAgentTag *agent, int group) {
@@ -72,7 +72,7 @@ static void _move_agents_from_cell_to_tree(TreeBase *tree, Cell *cell) {
         TayAgentTag *last = cell->first[i];
         /* update global extents and find the last agent */
         while (1) {
-            tree_update_box(&tree->box, *TAY_AGENT_POSITION(last), tree->dims);
+            tree_update_box(&tree->box, TAY_AGENT_POSITION(last), tree->dims);
             if (last->next)
                 last = last->next;
             else
@@ -111,7 +111,7 @@ static void _sort_agent(TreeBase *tree, Cell *cell, TayAgentTag *agent, int grou
         Depths sub_node_depths = cell_depths;
         ++sub_node_depths.arr[cell->dim];
 
-        float pos = TAY_AGENT_POSITION(agent)->arr[cell->dim];
+        float pos = TAY_AGENT_POSITION(agent).arr[cell->dim];
         if (pos < cell->mid) {
             if (cell->lo == 0) {
                 assert(tree->cells_count < tree->max_cells);

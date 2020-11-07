@@ -15,7 +15,7 @@ static const char *HEADER = "\n\
 #define TAY_MAX_GROUPS %d\n\
 #define GPU_TREE_NULL_INDEX %d\n\
 \n\
-#define AGENT_POSITION_PTR(__agent_tag__) ((global float4 *)(__agent_tag__ + 1))\n\
+#define TAY_AGENT_POSITION(__agent_tag__) (*(global float4 *)(__agent_tag__ + 1))\n\
 \n\
 \n\
 typedef struct __attribute__((packed)) TayAgentTag {\n\
@@ -105,26 +105,16 @@ kernel void %s_kernel(global char *agents, int agent_size, global Cell *cells, i
 \n\
             global TayAgentTag *seen_agent = seen_cell->first[seen_group];\n\
             while (seen_agent) {\n\
-                float4 seen_p = *AGENT_POSITION_PTR(seen_agent);\n\
+                float4 seen_p = TAY_AGENT_POSITION(seen_agent);\n\
 \n\
                 if (seer_agent == seen_agent)\n\
                     goto SKIP_SEE;\n\
 \n\
                 float4 d = seer_p - seen_p;\n\
-                if (d.x > radii.x || d.x < -radii.x)\n\
-                    goto SKIP_SEE;\n\
-#if DIMS > 1\n\
-                if (d.y > radii.y || d.y < -radii.y)\n\
-                    goto SKIP_SEE;\n\
-#endif\n\
-#if DIMS > 2\n\
-                if (d.z > radii.z || d.z < -radii.z)\n\
-                    goto SKIP_SEE;\n\
-#endif\n\
-#if DIMS > 3\n\
-                if (d.w > radii.w || d.w < -radii.w)\n\
-                    goto SKIP_SEE;\n\
-#endif\n\
+                for (int j = 0; j < DIMS; ++j) {\n\
+                    if (d[j] > radii[j] || d[j] < -radii[j])\n\
+                        goto SKIP_SEE;\n\
+                }\n\
 \n\
                 %s((global void *)seer_agent, (global void *)seen_agent, see_context);\n\
 \n\
