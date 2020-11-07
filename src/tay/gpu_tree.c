@@ -27,37 +27,41 @@ typedef struct __attribute__((packed)) {\n\
     float max[TAY_MAX_DIMENSIONS];\n\
 } Box;\n\
 \n\
-typedef struct __attribute__((packed)) {\n\
-    int lo, hi;\n\
-    int first[TAY_MAX_GROUPS];\n\
-    Box box;\n\
-} CellBridge;\n\
-\n\
 typedef struct __attribute__((packed)) Cell {\n\
-    global struct Cell *lo, *hi;\n\
+    union {\n\
+        global struct Cell *lo;\n\
+        unsigned long lo_index;\n\
+    };\n\
+    union {\n\
+        global struct Cell *hi;\n\
+        unsigned long hi_index;\n\
+    };\n\
     global TayAgentTag *first[TAY_MAX_GROUPS];\n\
     Box box;\n\
 } Cell;\n\
 \n\
-kernel void resolve_cell_pointers(global CellBridge *bridges, global Cell *cells) {\n\
+kernel void resolve_cell_pointers(global Cell *cells) {\n\
     int i = get_global_id(0);\n\
-    cells[i].lo = (bridges[i].lo != GPU_TREE_NULL_INDEX) ? (cells + bridges[i].lo) : 0;\n\
-    cells[i].hi = (bridges[i].hi != GPU_TREE_NULL_INDEX) ? (cells + bridges[i].hi) : 0;\n\
-    cells[i].box = bridges[i].box;\n\
+    global Cell *cell = cells + i;\n\
+    cell->lo = (cell->lo_index != GPU_TREE_NULL_INDEX) ? cells + cell->lo_index : 0;\n\
+    cell->hi = (cell->hi_index != GPU_TREE_NULL_INDEX) ? cells + cell->hi_index : 0;\n\
 }\n\
 \n\
-kernel void resolve_cell_agent_pointers(global CellBridge *bridges, global Cell *cells, int cells_count, global char *agents, int agent_size, int group_index) {\n\
+kernel void resolve_cell_agent_pointers(global Cell *cells, global char *agents, int agent_size, int group_index, unsigned long host_agents_base) {\n\
     int i = get_global_id(0);\n\
-    cells[i].first[group_index] = (bridges[i].first[group_index] != GPU_TREE_NULL_INDEX) ? (global TayAgentTag *)(agents + bridges[i].first[group_index] * agent_size) : 0;\n\
+    global Cell *cell = cells + i;\n\
+    if (cell->first[group_index])\n\
+        cell->first[group_index] = (global TayAgentTag *)(agents + ((unsigned long)cell->first[group_index] - host_agents_base));\n\
 }\n\
 \n\
-kernel void resolve_agent_pointers(global char *agents, global int *next_indices, int agent_size) {\n\
+kernel void resolve_agent_pointers(global TayAgentTag *tags, global char *agents, int agent_size, unsigned long host_agents_base) {\n\
     int i = get_global_id(0);\n\
-    global TayAgentTag *tag = (global TayAgentTag *)(agents + i * agent_size);\n\
-    if (next_indices[i] != GPU_TREE_NULL_INDEX)\n\
-        tag->next = (global TayAgentTag *)(agents + next_indices[i] * agent_size);\n\
+    global TayAgentTag *tag = tags + i;\n\
+    global TayAgentTag *agent_tag = (global TayAgentTag *)(agents + i * agent_size);\n\
+    if (tag->next)\n\
+        agent_tag->next = (global TayAgentTag *)(agents + ((unsigned long)tag->next - host_agents_base));\n\
     else\n\
-        tag->next = 0;\n\
+        agent_tag->next = 0;\n\
 }\n\
 \n\
 kernel void fetch_agent_positions(global char *agents, global float4 *positions, int agent_size) {\n\
@@ -152,20 +156,18 @@ kernel void %s_kernel(global Cell *cells, int act_group, global void *act_contex
     }\n\
 }\n";
 
-#pragma pack(push, 1)
-typedef struct {
-    int lo, hi;
-    int first[TAY_MAX_GROUPS];
-    Box box;
-} CellBridge;
-#pragma pack(pop)
+// #pragma pack(push, 1)
+// typedef struct {
+//     int lo, hi;
+//     int first[TAY_MAX_GROUPS];
+//     Box box;
+// } CellBridge;
+// #pragma pack(pop)
 
-/* NOTE: this is here just to be able to create a buffer of correct size on the GPU,
-but this strut is not actually used in host. Should be the same size as the Cell
-struct defined in the kernels source. */
 #pragma pack(push, 1)
 typedef struct {
-    void *lo, *hi;
+    unsigned long long lo_index;
+    unsigned long long hi_index;
     void *first[TAY_MAX_GROUPS];
     Box box;
 } GPUCell;
@@ -176,7 +178,7 @@ typedef struct {
     GpuContext *gpu;
     GpuBuffer agent_buffers[TAY_MAX_GROUPS];
     GpuBuffer pass_context_buffers[TAY_MAX_PASSES];
-    GpuBuffer bridges_buffer;
+    // GpuBuffer bridges_buffer;
     GpuBuffer cells_buffer;
     GpuBuffer agent_io_buffer; /* general buffer for whatever per-agent data */
     GpuKernel resolve_cell_pointers_kernel;
@@ -212,7 +214,7 @@ static void _on_simulation_start(TayState *state) {
 
     /* create buffers */
 
-    tree->bridges_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_ONLY, GPU_MEM_NONE, tree->base.max_cells * sizeof(CellBridge));
+    // tree->bridges_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_ONLY, GPU_MEM_NONE, tree->base.max_cells * sizeof(CellBridge));
     tree->cells_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, tree->base.max_cells * sizeof(GPUCell));
     tree->agent_io_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, GPU_TREE_ARENA_SIZE);
 
@@ -253,17 +255,19 @@ static void _on_simulation_start(TayState *state) {
 
     /* create kernels */
 
+    // global Cell *cells, unsigned long long host_cells_base
     tree->resolve_cell_pointers_kernel = gpu_create_kernel(tree->gpu, "resolve_cell_pointers");
-    gpu_set_kernel_buffer_argument(tree->resolve_cell_pointers_kernel, 0, &tree->bridges_buffer);
-    gpu_set_kernel_buffer_argument(tree->resolve_cell_pointers_kernel, 1, &tree->cells_buffer);
+    gpu_set_kernel_buffer_argument(tree->resolve_cell_pointers_kernel, 0, &tree->cells_buffer);
+    // unsigned long long host_cells_base = (unsigned long long)tree->base.cells;
+    // gpu_set_kernel_value_argument(tree->resolve_cell_pointers_kernel, 1, &host_cells_base, sizeof(host_cells_base));
 
+    // global Cell *cells, global char *agents, int agent_size, int group_index, unsigned long long host_agents_base
     tree->resolve_cell_agent_pointers_kernel = gpu_create_kernel(tree->gpu, "resolve_cell_agent_pointers");
-    gpu_set_kernel_buffer_argument(tree->resolve_cell_agent_pointers_kernel, 0, &tree->bridges_buffer);
-    gpu_set_kernel_buffer_argument(tree->resolve_cell_agent_pointers_kernel, 1, &tree->cells_buffer);
-    gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 2, &tree->base.cells_count, sizeof(tree->base.cells_count));
+    gpu_set_kernel_buffer_argument(tree->resolve_cell_agent_pointers_kernel, 0, &tree->cells_buffer);
 
+    // global TayAgentTag *tags, global char *agents, int agent_size, unsigned long long host_agents_base
     tree->resolve_agent_pointers_kernel = gpu_create_kernel(tree->gpu, "resolve_agent_pointers");
-    gpu_set_kernel_buffer_argument(tree->resolve_agent_pointers_kernel, 1, &tree->agent_io_buffer);
+    gpu_set_kernel_buffer_argument(tree->resolve_agent_pointers_kernel, 0, &tree->agent_io_buffer);
 
     tree->fetch_agent_positions_kernel = gpu_create_kernel(tree->gpu, "fetch_agent_positions");
     gpu_set_kernel_buffer_argument(tree->fetch_agent_positions_kernel, 1, &tree->agent_io_buffer);
@@ -335,26 +339,41 @@ static void _on_step_start(TayState *state) {
 
     tree_update(base);
 
-    CellBridge *bridges = (CellBridge *)tree->arena;
-    assert(tree->base.cells_count * sizeof(CellBridge) < GPU_TREE_ARENA_SIZE);
-
-    /* translate cells into cell bridges */
+    GPUCell *gpu_cells = (GPUCell *)tree->arena;
+    assert(tree->base.cells_count * sizeof(GPUCell) < GPU_TREE_ARENA_SIZE);
 
     for (int i = 0; i < base->cells_count; ++i) {
         Cell *cell = base->cells + i;
-        CellBridge *bridge = bridges + i;
+        GPUCell *gpu_cell = gpu_cells + i;
 
-        bridge->lo = (cell->lo != 0) ? (int)(cell->lo - base->cells) : GPU_TREE_NULL_INDEX;
-        bridge->hi = (cell->hi != 0) ? (int)(cell->hi - base->cells) : GPU_TREE_NULL_INDEX;
-        bridge->box = cell->box;
+        gpu_cell->lo_index = cell->lo ? cell->lo - base->cells : GPU_TREE_NULL_INDEX;
+        gpu_cell->hi_index = cell->hi ? cell->hi - base->cells : GPU_TREE_NULL_INDEX;
+        gpu_cell->box = cell->box;
 
         for (int j = 0; j < TAY_MAX_GROUPS; ++j)
-            bridge->first[j] = group_tag_to_index(state->groups + j, cell->first[j]);
+            gpu_cell->first[j] = cell->first[j];
     }
+
+    // CellBridge *bridges = (CellBridge *)tree->arena;
+    // assert(tree->base.cells_count * sizeof(CellBridge) < GPU_TREE_ARENA_SIZE);
+
+    // /* translate cells into cell bridges */
+
+    // for (int i = 0; i < base->cells_count; ++i) {
+    //     Cell *cell = base->cells + i;
+    //     CellBridge *bridge = bridges + i;
+
+    //     bridge->lo = (cell->lo != 0) ? (int)(cell->lo - base->cells) : GPU_TREE_NULL_INDEX;
+    //     bridge->hi = (cell->hi != 0) ? (int)(cell->hi - base->cells) : GPU_TREE_NULL_INDEX;
+    //     bridge->box = cell->box;
+
+    //     for (int j = 0; j < TAY_MAX_GROUPS; ++j)
+    //         bridge->first[j] = group_tag_to_index(state->groups + j, cell->first[j]);
+    // }
 
     /* send bridges to GPU */
 
-    gpu_enqueue_write_buffer(tree->gpu, tree->bridges_buffer, GPU_BLOCKING, tree->base.cells_count * sizeof(CellBridge), bridges);
+    gpu_enqueue_write_buffer(tree->gpu, tree->cells_buffer, GPU_BLOCKING, base->cells_count * sizeof(GPUCell), gpu_cells);
 
     /* resolve pointers on GPU side and copy bounding boxes */
 
@@ -365,33 +384,35 @@ static void _on_step_start(TayState *state) {
         TayGroup *group = state->groups + i;
         if (group->storage) {
 
+            unsigned long long host_agents_base = (unsigned long long)group->storage;
+
             /* resolve cell agent pointers */
 
-            gpu_set_kernel_buffer_argument(tree->resolve_cell_agent_pointers_kernel, 3, &tree->agent_buffers[i]);
-            gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 4, &group->agent_size, sizeof(group->agent_size));
-            gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 5, &i, sizeof(i));
+            // global Cell *cells, global char *agents, int agent_size, int group_index, unsigned long long host_agents_base
+
+            gpu_set_kernel_buffer_argument(tree->resolve_cell_agent_pointers_kernel, 1, &tree->agent_buffers[i]);
+            gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
+            gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 3, &i, sizeof(i));
+            gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 4, &host_agents_base, sizeof(host_agents_base));
 
             long long int cells_count = base->cells_count;
             gpu_enqueue_kernel_nb(tree->gpu, tree->resolve_cell_agent_pointers_kernel, &cells_count);
 
             /* resolve agent next pointers */
 
-            int *next_indices = (int *)tree->arena;
-            assert(group->capacity * sizeof(int) < GPU_TREE_ARENA_SIZE);
+            // global TayAgentTag *tags, global char *agents, int agent_size, unsigned long long host_agents_base
 
-            for (int j = 0; j < base->cells_count; ++j) {
-                Cell *cell = base->cells + j;
-                for (TayAgentTag *tag = cell->first[i]; tag; tag = tag->next) {
-                    int this_i = group_tag_to_index(group, tag);
-                    int next_i = group_tag_to_index(group, tag->next);
-                    next_indices[this_i] = next_i;
-                }
-            }
+            TayAgentTag *tags = (TayAgentTag *)tree->arena;
+            assert(group->capacity * sizeof(TayAgentTag) < GPU_TREE_ARENA_SIZE);
 
-            gpu_enqueue_write_buffer(tree->gpu, tree->agent_io_buffer, GPU_BLOCKING, group->capacity * sizeof(int), next_indices);
+            for (int j = 0; j < group->capacity; ++j)
+                tags[j] = *(TayAgentTag *)((char *)group->storage + j * group->agent_size);
 
-            gpu_set_kernel_buffer_argument(tree->resolve_agent_pointers_kernel, 0, &tree->agent_buffers[i]);
+            gpu_enqueue_write_buffer(tree->gpu, tree->agent_io_buffer, GPU_BLOCKING, group->capacity * sizeof(TayAgentTag), tags);
+
+            gpu_set_kernel_buffer_argument(tree->resolve_agent_pointers_kernel, 1, &tree->agent_buffers[i]);
             gpu_set_kernel_value_argument(tree->resolve_agent_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
+            gpu_set_kernel_value_argument(tree->resolve_agent_pointers_kernel, 3, &host_agents_base, sizeof(host_agents_base));
 
             long long int group_capacity = group->capacity;
             gpu_enqueue_kernel_nb(tree->gpu, tree->resolve_agent_pointers_kernel, &group_capacity);
@@ -458,7 +479,10 @@ static void _on_run_end(TaySpaceContainer *container, TayState *state) {
     }
 }
 
+static void _null(TayState *state, int pass_index) {}
+
 void space_gpu_tree_init(TaySpaceContainer *container, int dims, float *radii, int max_depth_correction) {
+    assert(sizeof(unsigned long long) == sizeof(void *));
     space_container_init(container, _init(dims, radii, max_depth_correction), dims, _destroy);
     container->on_simulation_start = _on_simulation_start;
     container->on_simulation_end = _on_simulation_end;
