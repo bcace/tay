@@ -8,15 +8,6 @@
 typedef struct {
     union {
         struct {
-            unsigned char x, y, z, w;
-        };
-        unsigned char arr[4];
-    };
-} uchar4;
-
-typedef struct {
-    union {
-        struct {
             int x, y, z, w;
         };
         int arr[4];

@@ -5,13 +5,11 @@
 #include <float.h>
 #include <assert.h>
 
-// TODO: could turn to bool so it's a bit clearer
-#define TREE_SPACE_CELL_LEAF_DIM 100
+#define TREE_CELL_LEAF_DIM 100
 
 
-// TODO: this doesn't have to be a special struct then?
 typedef struct {
-    uchar4 _dims;
+    unsigned char arr[4];
 } Depths;
 
 void tree_reset_box(Box *box, int dims) {
@@ -89,10 +87,10 @@ static void _move_agents_from_cell_to_tree(TreeBase *tree, Cell *cell) {
 }
 
 static inline void _decide_cell_split(Cell *cell, int dims, int *max_depths, float *radii, Depths cell_depths) {
-    cell->dim = TREE_SPACE_CELL_LEAF_DIM;
+    cell->dim = TREE_CELL_LEAF_DIM;
     float max_r = 0.0f;
     for (int i = 0; i < dims; ++i) {
-        if (cell_depths._dims.arr[i] >= max_depths[i])
+        if (cell_depths.arr[i] >= max_depths[i])
             continue;
         float r = (cell->box.max.arr[i] - cell->box.min.arr[i]) / radii[i];
         if (r > max_r) {
@@ -100,18 +98,18 @@ static inline void _decide_cell_split(Cell *cell, int dims, int *max_depths, flo
             cell->dim = i;
         }
     }
-    if (cell->dim != TREE_SPACE_CELL_LEAF_DIM)
+    if (cell->dim != TREE_CELL_LEAF_DIM)
         cell->mid = (cell->box.max.arr[cell->dim] + cell->box.min.arr[cell->dim]) * 0.5f;
 }
 
 static void _sort_agent(TreeBase *tree, Cell *cell, TayAgentTag *agent, int group, Depths cell_depths) {
-    if (cell->dim == TREE_SPACE_CELL_LEAF_DIM) {
+    if (cell->dim == TREE_CELL_LEAF_DIM) {
         agent->next = cell->first[group];
         cell->first[group] = agent;
     }
     else {
         Depths sub_node_depths = cell_depths;
-        ++sub_node_depths._dims.arr[cell->dim];
+        ++sub_node_depths.arr[cell->dim];
 
         float pos = TAY_AGENT_POSITION(agent)->arr[cell->dim];
         if (pos < cell->mid) {
@@ -155,7 +153,7 @@ void tree_update(TreeBase *s) {
     Depths root_cell_depths;
     for (int i = 0; i < s->dims; ++i) {
         s->max_depths.arr[i] = _max_depth(s->box.max.arr[i] - s->box.min.arr[i], s->radii.arr[i] * 2.0f, s->max_depth_correction);
-        root_cell_depths._dims.arr[i] = 0;
+        root_cell_depths.arr[i] = 0;
     }
 
     /* set up root cell */

@@ -12,7 +12,6 @@
 static const char *HEADER = "\n\
 #define DIMS %d\n\
 #define TAY_MAX_GROUPS %d\n\
-#define TAY_MAX_DIMENSIONS %d\n\
 #define GPU_TREE_NULL_INDEX %d\n\
 \n\
 #define AGENT_POSITION_PTR(__agent_tag__) ((global float4 *)(__agent_tag__ + 1))\n\
@@ -211,7 +210,7 @@ static void _on_simulation_start(TayState *state) {
 
     tree->text_size = 0;
     tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, HEADER,
-                                 state->space.dims, TAY_MAX_GROUPS, TAY_MAX_DIMENSIONS, GPU_TREE_NULL_INDEX);
+                                 state->space.dims, TAY_MAX_GROUPS, GPU_TREE_NULL_INDEX);
 
     tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, state->source);
 
