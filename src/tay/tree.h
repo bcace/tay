@@ -1,8 +1,7 @@
 #ifndef tay_tree_h
 #define tay_tree_h
 
-// TODO: maybe move defines into const and include that
-#include "state.h"
+#include "const.h"
 
 
 typedef struct {
@@ -13,13 +12,6 @@ typedef struct {
         int arr[4];
     };
 } int4;
-
-#pragma pack(push, 1)
-typedef struct {
-    float4 min;
-    float4 max;
-} Box;
-#pragma pack(pop)
 
 typedef struct Cell {
     struct Cell *lo, *hi;                       /* child partitions */

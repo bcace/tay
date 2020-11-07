@@ -1,4 +1,5 @@
 #include "tree.h"
+#include "state.h"
 #include "gpu.h"
 #include <stdlib.h>
 #include <stdio.h>

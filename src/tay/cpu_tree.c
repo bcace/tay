@@ -1,4 +1,5 @@
 #include "tree.h"
+#include "state.h"
 #include "thread.h"
 #include <stdlib.h>
 #include <assert.h>
