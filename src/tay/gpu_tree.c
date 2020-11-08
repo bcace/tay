@@ -6,8 +6,6 @@
 #include <assert.h>
 
 #define GPU_TREE_NULL_INDEX     -1
-#define GPU_TREE_MAX_TEXT_SIZE  10000
-#define GPU_TREE_ARENA_SIZE     (TAY_MAX_AGENTS * sizeof(float4))
 
 
 static const char *HEADER = "\n\
@@ -156,9 +154,9 @@ typedef struct {
     GpuKernel resolve_agent_pointers_kernel;
     GpuKernel fetch_agent_positions_kernel;
     GpuKernel pass_kernels[TAY_MAX_PASSES];
-    char text[GPU_TREE_MAX_TEXT_SIZE];
+    char text[TAY_GPU_MAX_TEXT_SIZE];
     int text_size;
-    char arena[GPU_TREE_ARENA_SIZE];
+    char arena[TAY_GPU_ARENA_SIZE];
 } Tree;
 
 static Tree *_init(int dims, float4 radii, int max_depth_correction) {
@@ -185,7 +183,7 @@ static void _on_simulation_start(TayState *state) {
     /* create buffers */
 
     tree->cells_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, tree->base.max_cells * sizeof(GPUCell));
-    tree->agent_io_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, GPU_TREE_ARENA_SIZE);
+    tree->agent_io_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_GPU_ARENA_SIZE);
 
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
@@ -201,22 +199,24 @@ static void _on_simulation_start(TayState *state) {
     /* compose kernels source text */
 
     tree->text_size = 0;
-    tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, HEADER,
+    tree->text_size += sprintf_s(tree->text + tree->text_size, TAY_GPU_MAX_TEXT_SIZE - tree->text_size, HEADER,
                                  state->space.dims, TAY_MAX_GROUPS, GPU_TREE_NULL_INDEX, TAY_GPU_DEAD);
 
-    tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, state->source);
+    tree->text_size += sprintf_s(tree->text + tree->text_size, TAY_GPU_MAX_TEXT_SIZE - tree->text_size, state->source);
 
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
         if (pass->type == TAY_PASS_SEE)
-            tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, SEE_KERNEL,
+            tree->text_size += sprintf_s(tree->text + tree->text_size, TAY_GPU_MAX_TEXT_SIZE - tree->text_size, SEE_KERNEL,
                                          pass->func_name, pass->func_name);
         else if (pass->type == TAY_PASS_ACT)
-            tree->text_size += sprintf_s(tree->text + tree->text_size, GPU_TREE_MAX_TEXT_SIZE - tree->text_size, ACT_KERNEL,
+            tree->text_size += sprintf_s(tree->text + tree->text_size, TAY_GPU_MAX_TEXT_SIZE - tree->text_size, ACT_KERNEL,
                                          pass->func_name, pass->func_name);
         else
             assert(0); /* unhandled pass type */
     }
+
+    assert(tree->text_size < TAY_GPU_MAX_TEXT_SIZE);
 
     /* build program */
 
@@ -285,13 +285,6 @@ static void _on_simulation_start(TayState *state) {
     }
 }
 
-static void _on_simulation_end(TayState *state) {
-    Tree *tree = state->space.storage;
-    gpu_release_kernel(tree->resolve_cell_pointers_kernel);
-    gpu_release_kernel(tree->resolve_cell_agent_pointers_kernel);
-    gpu_release_kernel(tree->resolve_agent_pointers_kernel);
-}
-
 static void _on_step_start(TayState *state) {
     Tree *tree = state->space.storage;
     TreeBase *base = &tree->base;
@@ -299,7 +292,7 @@ static void _on_step_start(TayState *state) {
     tree_update(base);
 
     GPUCell *gpu_cells = (GPUCell *)tree->arena;
-    assert(tree->base.cells_count * sizeof(GPUCell) < GPU_TREE_ARENA_SIZE);
+    assert(tree->base.cells_count * sizeof(GPUCell) < TAY_GPU_ARENA_SIZE);
 
     for (int i = 0; i < base->cells_count; ++i) {
         Cell *cell = base->cells + i;
@@ -341,7 +334,7 @@ static void _on_step_start(TayState *state) {
             /* resolve agent next pointers */
 
             TayAgentTag *tags = (TayAgentTag *)tree->arena;
-            assert(group->capacity * sizeof(TayAgentTag) < GPU_TREE_ARENA_SIZE);
+            assert(group->capacity * sizeof(TayAgentTag) < TAY_GPU_ARENA_SIZE);
 
             for (int j = 0; j < group->capacity; ++j)
                 tags[j] = *(TayAgentTag *)((char *)group->storage + j * group->agent_size);
@@ -360,6 +353,21 @@ static void _on_step_start(TayState *state) {
     }
 }
 
+
+static void _see(TayState *state, int pass_index) {
+    Tree *tree = state->space.storage;
+    TayPass *pass = state->passes + pass_index;
+    TayGroup *group = state->groups + pass->seer_group;
+    gpu_enqueue_kernel(tree->gpu, tree->pass_kernels[pass_index], group->capacity);
+}
+
+static void _act(TayState *state, int pass_index) {
+    Tree *tree = state->space.storage;
+    TayPass *pass = state->passes + pass_index;
+    TayGroup *group = state->groups + pass->act_group;
+    gpu_enqueue_kernel(tree->gpu, tree->pass_kernels[pass_index], group->capacity);
+}
+
 static void _on_step_end(TayState *state) {
     Tree *tree = state->space.storage;
 
@@ -368,7 +376,7 @@ static void _on_step_end(TayState *state) {
 
         if (group->storage) {
             int req_size = group->capacity * sizeof(float4) * (group->is_point ? 1 : 2);
-            assert(req_size < GPU_TREE_ARENA_SIZE);
+            assert(req_size < TAY_GPU_ARENA_SIZE);
 
             /* copy all agent positions into a buffer */
 
@@ -392,20 +400,6 @@ static void _on_step_end(TayState *state) {
             }
         }
     }
-}
-
-static void _see(TayState *state, int pass_index) {
-    Tree *tree = state->space.storage;
-    TayPass *pass = state->passes + pass_index;
-    TayGroup *group = state->groups + pass->seer_group;
-    gpu_enqueue_kernel(tree->gpu, tree->pass_kernels[pass_index], group->capacity);
-}
-
-static void _act(TayState *state, int pass_index) {
-    Tree *tree = state->space.storage;
-    TayPass *pass = state->passes + pass_index;
-    TayGroup *group = state->groups + pass->act_group;
-    gpu_enqueue_kernel(tree->gpu, tree->pass_kernels[pass_index], group->capacity);
 }
 
 static void _on_run_end(TaySpaceContainer *container, TayState *state) {
@@ -451,7 +445,14 @@ static void _on_run_end(TaySpaceContainer *container, TayState *state) {
     tree_clear(base);
 }
 
-static void _null(TayState *state, int pass_index) {}
+static void _on_simulation_end(TayState *state) {
+    Tree *tree = state->space.storage;
+    gpu_release_kernel(tree->resolve_cell_pointers_kernel);
+    gpu_release_kernel(tree->resolve_cell_agent_pointers_kernel);
+    gpu_release_kernel(tree->resolve_agent_pointers_kernel);
+    for (int i = 0; i < state->passes_count; ++i)
+        gpu_release_kernel(tree->pass_kernels[i]);
+}
 
 void space_gpu_tree_init(TaySpaceContainer *container, int dims, float4 radii, int max_depth_correction) {
     assert(sizeof(unsigned long long) == sizeof(void *));

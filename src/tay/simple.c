@@ -11,10 +11,10 @@ typedef struct {
 
 typedef struct {
     Group groups[TAY_MAX_GROUPS];
-} Space;
+} Simple;
 
-static Space *_init() {
-    return calloc(1, sizeof(Space));
+static Simple *_init() {
+    return calloc(1, sizeof(Simple));
 }
 
 static void _destroy(TaySpaceContainer *space) {
@@ -22,7 +22,7 @@ static void _destroy(TaySpaceContainer *space) {
 }
 
 static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, int index) {
-    Space *s = container->storage;
+    Simple *s = container->storage;
     Group *g = s->groups + group;
     int thread = (g->receiving_thread++) % runner.count;
     agent->next = g->first[thread];
@@ -50,7 +50,7 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
 static void _see(TayState *state, int pass_index) {
     static SimpleSeeTask tasks[TAY_MAX_THREADS];
 
-    Space *s = state->space.storage;
+    Simple *s = state->space.storage;
     TayPass *p = state->passes + pass_index;
     int dims = state->space.dims;
 
@@ -86,7 +86,7 @@ static void _act_func(SimpleActTask *task, TayThreadContext *thread_context) {
 static void _act(TayState *state, int pass_index) {
     static SimpleActTask act_contexts[TAY_MAX_THREADS];
 
-    Space *s = state->space.storage;
+    Simple *s = state->space.storage;
     TayPass *p = state->passes + pass_index;
 
     for (int i = 0; i < runner.count; ++i) {
