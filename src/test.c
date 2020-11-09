@@ -34,14 +34,13 @@ static void _make_cluster(TayState *state, int group, int count, float4 min, flo
     }
 }
 
-// TODO: implement proper error
-static inline void _eq(float a, float b) {
-    float c = a - b;
-    static float epsilon = 0.001f;
-    if (c < -epsilon || c > epsilon) {
-        fprintf(stderr, "result error %g\n", c);
-        assert(0);
-    }
+static inline void _check_error(float a, float b, float *max_error) {
+    float absolute_error = a - b;
+    float relative_error = absolute_error / a;
+    if (relative_error > *max_error)
+        *max_error = relative_error;
+    else if (-relative_error > *max_error)
+        *max_error = -relative_error;
 }
 
 typedef enum {
@@ -106,7 +105,7 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
     printf("R: %g, depth_correction: %d\n", see_radius, max_depth_correction);
 
     tay_simulation_start(s);
-    tay_run(s, 100);
+    tay_run(s, 1000);
     tay_simulation_end(s);
 
     if (results) {
@@ -118,13 +117,21 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
             results->first_time = 0;
         }
         else {
+            float max_error = 0.0f;
+
             for (int i = 0; i < agents_count; ++i) {
                 Agent *agent = tay_get_agent(s, g, i);
-                float4 a = agent->f_buffer;
-                float4 b = results->data[i];
-                _eq(a.x, b.x);
-                _eq(a.y, b.y);
-                _eq(a.z, b.z);
+                float4 a = results->data[i];
+                float4 b = agent->f_buffer;
+                _check_error(a.x, b.x, &max_error);
+                _check_error(a.y, b.y, &max_error);
+                _check_error(a.z, b.z, &max_error);
+            }
+
+            if (max_error > 0.0f); {
+                printf("max error: %g\n\n", max_error);
+                if (max_error > 0.01f)
+                    assert(0);
             }
         }
     }
