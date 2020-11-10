@@ -153,39 +153,48 @@ static void _see(TayState *state, int pass_index) {
 }
 
 typedef struct {
+    Tree *tree;
     TayPass *pass;
-    TayAgentTag *agents;
+    int counter; /* tree cell skipping counter so each thread processes different seer nodes */
 } ActTask;
 
-static void _init_tree_act_task(ActTask *task, TayPass *pass, TayAgentTag *agents) {
+static void _init_tree_act_task(ActTask *task, Tree *tree, TayPass *pass, int thread_index) {
+    task->tree = tree;
     task->pass = pass;
-    task->agents = agents;
+    task->counter = thread_index;
 }
 
-static void _act_func(ActTask *task, TayThreadContext *thread_context) {
-    for (TayAgentTag *a = task->agents; a; a = a->next)
-        task->pass->act(a, thread_context->context);
-}
-
-static void _dummy_act_func(ActTask *task, TayThreadContext *thread_context) {}
-
-static void _traverse_actors(Cell *cell, TayPass *pass) {
-    ActTask task;
-    _init_tree_act_task(&task, pass, cell->first[pass->act_group]);
-    tay_thread_set_task(0, _act_func, &task, pass->context);
-    for (int i = 1; i < runner.count; ++i)
-        tay_thread_set_task(i, _dummy_act_func, 0, 0); // TODO: this is horrible, act here is still not parallelized!!!
-    tay_runner_run_no_threads();
+static void _thread_traverse_actors(ActTask *task, Cell *cell, TayThreadContext *thread_context) {
+    if (task->counter % runner.count == 0) {
+        if (cell->first[task->pass->seer_group]) { /* if there are any "seeing" agents */
+            for (TayAgentTag *tag = cell->first[task->pass->seer_group]; tag; tag = tag->next)
+                task->pass->act(tag, thread_context->context);
+        }
+    }
+    ++task->counter;
     if (cell->lo)
-        _traverse_actors(cell->lo, pass);
+        _thread_traverse_actors(task, cell->lo, thread_context);
     if (cell->hi)
-        _traverse_actors(cell->hi, pass);
+        _thread_traverse_actors(task, cell->hi, thread_context);
+}
+
+static void _thread_act_traverse(ActTask *task, TayThreadContext *thread_context) {
+    _thread_traverse_actors(task, task->tree->base.cells, thread_context);
 }
 
 static void _act(TayState *state, int pass_index) {
     Tree *tree = state->space.storage;
-    TayPass *p = state->passes + pass_index;
-    _traverse_actors(tree->base.cells, p);
+    TayPass *pass = state->passes + pass_index;
+
+    static ActTask tasks[TAY_MAX_THREADS];
+
+    for (int i = 0; i < runner.count; ++i) {
+        ActTask *task = tasks + i;
+        _init_tree_act_task(task, tree, pass, i);
+        tay_thread_set_task(i, _thread_act_traverse, task, pass->context);
+    }
+
+    tay_runner_run();
 }
 
 void space_cpu_tree_init(TaySpaceContainer *container, int dims, float4 radii, int max_depth_correction) {
