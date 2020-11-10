@@ -4,9 +4,9 @@ def read(path):
     with open(path, "r") as f:
         return f.read()
 
-_AGENT_H = read('gen/agent.h')
-_AGENT_C = read('gen/agent.c')
-_BUILTINS_C = read('gen/builtins.c')
+_AGENT_H = read('preproc/agent.h')
+_AGENT_C = read('preproc/agent.c')
+_BUILTINS_C = read('preproc/builtins.c')
 
 # generate opencl kernel source
 
