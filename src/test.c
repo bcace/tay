@@ -157,21 +157,21 @@ void test() {
 
 #if 1
         printf("cpu simple:\n");
-        _test_model_case1(TAY_SPACE_SIMPLE, perception_r, 0, r);
+        _test_model_case1(TAY_SPACE_CPU_SIMPLE, perception_r, 0, r);
 #endif
 
 #if 1
         printf("cpu tree:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-            _test_model_case1(TAY_SPACE_TREE, perception_r, j, r);
+            _test_model_case1(TAY_SPACE_CPU_TREE, perception_r, j, r);
 #endif
 
-#if 1
+#if 0
         printf("gpu simple:\n");
         _test_model_case1(TAY_SPACE_GPU_SIMPLE, perception_r, 0, r);
 #endif
 
-#if 1
+#if 0
         printf("gpu tree:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_GPU_TREE, perception_r, j, r);

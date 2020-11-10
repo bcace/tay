@@ -148,9 +148,9 @@ typedef struct {
     TayAgentTag *agents;
 } ActTask;
 
-static void _init_tree_act_task(ActTask *t, TayPass *pass, TayAgentTag *agents) {
-    t->pass = pass;
-    t->agents = agents;
+static void _init_tree_act_task(ActTask *task, TayPass *pass, TayAgentTag *agents) {
+    task->pass = pass;
+    task->agents = agents;
 }
 
 static void _act_func(ActTask *t, TayThreadContext *thread_context) {
