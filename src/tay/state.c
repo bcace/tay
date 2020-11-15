@@ -1,6 +1,7 @@
 #include "state.h"
 #include "tay.h"
 #include "thread.h"
+#include "space.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -8,21 +9,27 @@
 #include <time.h>
 
 
-TayState *tay_create_state(TaySpaceType space_type, int space_dims, float4 see_radii, int max_depth_correction) {
+TayState *tay_create_state(int space_dims, float4 see_radii) {
+    return tay_create_state_specific(space_dims, see_radii, ST_ADAPTIVE, 0);
+}
+
+TayState *tay_create_state_specific(int space_dims, float4 see_radii, int initial_space_type, int max_depth_correction) {
     TayState *s = calloc(1, sizeof(TayState));
     s->running = TAY_STATE_STATUS_IDLE;
     s->source = 0;
 
-    if (space_type == TAY_SPACE_CPU_SIMPLE)
-        space_simple_init(&s->space, space_dims);
-    else if (space_type == TAY_SPACE_CPU_TREE)
-        space_cpu_tree_init(&s->space, space_dims, see_radii, max_depth_correction);
-    else if (space_type == TAY_SPACE_GPU_SIMPLE)
-        space_gpu_simple_init(&s->space, space_dims);
-    else if (space_type == TAY_SPACE_GPU_TREE)
-        space_gpu_tree_init(&s->space, space_dims, see_radii, max_depth_correction);
-    else
-        assert(0); /* not implemented */
+    SpaceType space_type = ST_ADAPTIVE;
+
+    if (initial_space_type == TAY_SPACE_CPU_SIMPLE)
+        space_type = ST_CPU_SIMPLE;
+    else if (initial_space_type == TAY_SPACE_CPU_TREE)
+        space_type = ST_CPU_TREE;
+    else if (initial_space_type == TAY_SPACE_GPU_SIMPLE)
+        space_type = ST_GPU_SIMPLE;
+    else if (initial_space_type == TAY_SPACE_GPU_TREE)
+        space_type = ST_GPU_TREE;
+
+    space_init(&s->_space, space_dims, space_type);
 
     return s;
 }
@@ -34,7 +41,6 @@ static void _clear_group(TayGroup *group) {
 }
 
 void tay_destroy_state(TayState *state) {
-    state->space.destroy(&state->space);
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         _clear_group(state->groups + i);
     free(state);
@@ -104,9 +110,7 @@ void tay_commit_available_agent(TayState *state, int group) {
     assert(g->first != 0);
     TayAgentTag *a = g->first;
     g->first = a->next;
-    int index = (int)((char *)a - (char *)g->storage) / g->agent_size;
-    assert(state->space.add != 0);
-    state->space.add(&state->space, a, group, index);
+    space_add_agent(&state->_space, a, group);
 }
 
 void *tay_get_agent(TayState *state, int group, int index) {
@@ -118,8 +122,8 @@ void *tay_get_agent(TayState *state, int group, int index) {
 void tay_simulation_start(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_IDLE);
     state->running = TAY_STATE_STATUS_RUNNING;
-    if (state->space.on_simulation_start)
-        state->space.on_simulation_start(state);
+//    if (state->space.on_simulation_start)
+//        state->space.on_simulation_start(state);
 }
 
 void tay_run(TayState *state, int steps) {
@@ -130,27 +134,10 @@ void tay_run(TayState *state, int steps) {
 
     tay_runner_reset_stats();
 
-    for (int i = 0; i < steps; ++i) {
+    space_run(state, steps);
 
-        if (state->space.on_step_start)
-            state->space.on_step_start(state);
-
-        for (int j = 0; j < state->passes_count; ++j) {
-            TayPass *p = state->passes + j; // TODO: just get type directly
-            if (p->type == TAY_PASS_SEE)
-                state->space.see(state, j);
-            else if (p->type == TAY_PASS_ACT)
-                state->space.act(state, j);
-            else
-                assert(0); /* not implemented */
-        }
-
-        if (state->space.on_step_end)
-            state->space.on_step_end(state);
-    }
-
-    if (state->space.on_run_end)
-        state->space.on_run_end(&state->space, state);
+//    if (state->space.on_run_end)
+//        state->space.on_run_end(&state->space, state);
 
     timespec_get(&end, TIME_UTC);
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
@@ -166,18 +153,8 @@ void tay_run(TayState *state, int steps) {
 void tay_simulation_end(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
     state->running = TAY_STATE_STATUS_IDLE;
-    if (state->space.on_simulation_end)
-        state->space.on_simulation_end(state);
-}
-
-void space_container_init(TaySpaceContainer *space,
-                          void *storage,
-                          int dims,
-                          TAY_SPACE_DESTROY_FUNC destroy) {
-    memset(space, 0, sizeof(TaySpaceContainer)); /* so all function pointers are zeroed initially */
-    space->storage = storage;
-    space->dims = dims;
-    space->destroy = destroy;
+//    if (state->space.on_simulation_end)
+//        state->space.on_simulation_end(state);
 }
 
 int group_tag_to_index(TayGroup *group, TayAgentTag *tag) {

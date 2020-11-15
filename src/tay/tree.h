@@ -4,15 +4,6 @@
 #include "const.h"
 
 
-typedef struct {
-    union {
-        struct {
-            int x, y, z, w;
-        };
-        int arr[4];
-    };
-} int4;
-
 typedef struct Cell {
     struct Cell *lo, *hi;                       /* child partitions */
     struct TayAgentTag *first[TAY_MAX_GROUPS];  /* agents contained in this cell (fork or leaf) */

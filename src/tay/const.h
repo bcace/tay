@@ -3,14 +3,25 @@
 
 #define TAY_MAX_GROUPS          8
 #define TAY_MAX_PASSES          32
+#define TAY_MAX_THREADS         64
 #define TAY_INSTRUMENT          0
 #define TAY_MAX_AGENTS          1000000
 #define TAY_GPU_DEAD            0xffffffffffffffff
 #define TAY_GPU_MAX_TEXT_SIZE   10000
 #define TAY_GPU_ARENA_SIZE      (TAY_MAX_AGENTS * sizeof(float4))
+#define TAY_MAX_TREE_CELLS      100000
 
 #define TAY_AGENT_POSITION(__agent_tag__) (*(float4 *)(__agent_tag__ + 1))
 
+
+typedef struct {
+    union {
+        struct {
+            int x, y, z, w;
+        };
+        int arr[4];
+    };
+} int4;
 
 #pragma pack(push, 1)
 typedef struct float4 {

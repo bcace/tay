@@ -1,7 +1,7 @@
 #ifndef tay_thread_h
 #define tay_thread_h
 
-#define TAY_MAX_THREADS 64
+#include "const.h"
 
 
 typedef void * Handle;

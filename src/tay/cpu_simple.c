@@ -1,33 +1,8 @@
 #include "state.h"
-#include "tay.h"
 #include "thread.h"
-#include <stdlib.h>
+#include "space_impl.h"
+#include <assert.h>
 
-
-typedef struct {
-    TayAgentTag *first[TAY_MAX_THREADS];
-    int receiving_thread;
-} Group;
-
-typedef struct {
-    Group groups[TAY_MAX_GROUPS];
-} Simple;
-
-static Simple *_init() {
-    return calloc(1, sizeof(Simple));
-}
-
-static void _destroy(TaySpaceContainer *space) {
-    free(space->storage);
-}
-
-static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, int index) {
-    Simple *s = container->storage;
-    Group *g = s->groups + group;
-    int thread = (g->receiving_thread++) % runner.count;
-    agent->next = g->first[thread];
-    g->first[thread] = agent;
-}
 
 typedef struct {
     TayPass *pass;
@@ -50,15 +25,15 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
 static void _see(TayState *state, int pass_index) {
     static SimpleSeeTask tasks[TAY_MAX_THREADS];
 
-    Simple *s = state->space.storage;
+    CpuSimple *s = &state->_space.cpu_simple;
     TayPass *p = state->passes + pass_index;
-    int dims = state->space.dims;
+    int dims = state->_space.dims;
 
     for (int i = 0; i < runner.count; ++i) {
-        TayAgentTag *b = s->groups[p->seen_group].first[i];
+        TayAgentTag *b = s->threads[i].first[p->seen_group];
 
         for (int j = 0; j < runner.count; ++j) {
-            TayAgentTag *a = s->groups[p->seer_group].first[j];
+            TayAgentTag *a = s->threads[j].first[p->seer_group];
 
             SimpleSeeTask *task = tasks + j;
             _init_simple_see_task(task, p, a, b, dims);
@@ -86,20 +61,66 @@ static void _act_func(SimpleActTask *task, TayThreadContext *thread_context) {
 static void _act(TayState *state, int pass_index) {
     static SimpleActTask act_contexts[TAY_MAX_THREADS];
 
-    Simple *s = state->space.storage;
+    CpuSimple *s = &state->_space.cpu_simple;
     TayPass *p = state->passes + pass_index;
 
     for (int i = 0; i < runner.count; ++i) {
         SimpleActTask *task = act_contexts + i;
-        _init_simple_act_task(task, p, s->groups[p->act_group].first[i]);
+        _init_simple_act_task(task, p, s->threads[i].first[p->act_group]);
         tay_thread_set_task(i, _act_func, task, p->context);
     }
     tay_runner_run();
 }
 
-void space_simple_init(TaySpaceContainer *container, int dims) {
-    space_container_init(container, _init(), dims, _destroy);
-    container->add = _add;
-    container->see = _see;
-    container->act = _act;
+void cpu_simple_step(TayState *state) {
+    Space *space = &state->_space;
+    int threads_count = runner.count;
+
+    /* move all agents from space into thread storage */
+
+    for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+        int rem = space->counts[group_i] % threads_count;
+        int per_thread = (space->counts[group_i] - rem) / threads_count;
+
+        space->cpu_simple.threads[0].first[group_i] = space->first[group_i];
+
+        for (int thread_i = 1; thread_i < threads_count; ++thread_i) {
+            int count = per_thread + (((thread_i - 1) < rem) ? 1 : 0);
+
+            if (count == 0)
+                space->cpu_simple.threads[thread_i].first[group_i] = 0;
+            else {
+                TayAgentTag *last = space->cpu_simple.threads[thread_i - 1].first[group_i];
+
+                for (int i = 1; i < count; ++i) /* find the last tag of the previous thread */
+                    last = last->next;
+
+                space->cpu_simple.threads[thread_i].first[group_i] = last->next;
+                last->next = 0;
+            }
+        }
+
+        space->first[group_i] = 0;
+        space->counts[group_i] = 0;
+    }
+
+    box_reset(&space->box, space->dims);
+
+    /* do passes */
+
+    for (int i = 0; i < state->passes_count; ++i) {
+        TayPass *pass = state->passes + i;
+        if (pass->type == TAY_PASS_SEE)
+            _see(state, i);
+        else if (pass->type == TAY_PASS_ACT)
+            _act(state, i);
+        else
+            assert(0); /* unhandled pass type */
+    }
+
+    /* return agents to space and update the space box */
+
+    for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i)
+        for (int thread_i = 0; thread_i < threads_count; ++thread_i)
+            space_return_agents(space, group_i, space->cpu_simple.threads[thread_i].first[group_i]);
 }
