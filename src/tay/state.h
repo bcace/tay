@@ -7,16 +7,6 @@
 typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 
-// typedef void (*TAY_SPACE_DESTROY_FUNC)(struct TaySpaceContainer *container);
-// typedef void (*TAY_SPACE_ADD_FUNC)(struct TaySpaceContainer *container, struct TayAgentTag *agent, int group, int index);
-// typedef void (*TAY_SPACE_SEE_FUNC)(struct TayState *state, int pass_index);
-// typedef void (*TAY_SPACE_ACT_FUNC)(struct TayState *state, int pass_index);
-// typedef void (*TAY_SPACE_STEP_START_FUNC)(struct TayState *state);
-// typedef void (*TAY_SPACE_STEP_END_FUNC)(struct TayState *state);
-// typedef void (*TAY_SPACE_SIM_START_FUNC)(struct TayState *state);
-// typedef void (*TAY_SPACE_SIM_END_FUNC)(struct TayState *state);
-// typedef void (*TAY_SPACE_RUN_END_FUNC)(struct TaySpaceContainer *container, struct TayState *state);
-
 typedef struct TayGroup {
     void *storage;              /* agents storage */
     struct TayAgentTag *first;  /* single linked list of available agents from storage */
@@ -47,20 +37,6 @@ typedef struct TayPass {
     int context_size;
 } TayPass;
 
-// typedef struct TaySpaceContainer {
-//     void *storage; // TODO: can rename to space now
-//     int dims;
-//     TAY_SPACE_DESTROY_FUNC destroy;
-//     TAY_SPACE_ADD_FUNC add;
-//     TAY_SPACE_SEE_FUNC see;
-//     TAY_SPACE_ACT_FUNC act;
-//     TAY_SPACE_STEP_START_FUNC on_step_start;
-//     TAY_SPACE_STEP_END_FUNC on_step_end;
-//     TAY_SPACE_SIM_START_FUNC on_simulation_start;
-//     TAY_SPACE_SIM_END_FUNC on_simulation_end;
-//     TAY_SPACE_RUN_END_FUNC on_run_end;
-// } TaySpaceContainer;
-
 typedef enum TayStateStatus {
     TAY_STATE_STATUS_IDLE,
     TAY_STATE_STATUS_RUNNING,
@@ -70,8 +46,7 @@ typedef struct TayState {
     TayGroup groups[TAY_MAX_GROUPS];
     TayPass passes[TAY_MAX_PASSES];
     int passes_count;
-    // TaySpaceContainer space;
-    Space _space;
+    Space space;
     TayStateStatus running;
     const char *source;
 } TayState;

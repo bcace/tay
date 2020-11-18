@@ -4,9 +4,11 @@
 #include <assert.h>
 
 
-void space_init(Space *space, int dims, SpaceType init_type) {
+void space_init(Space *space, int dims, float4 radii, int depth_correction, SpaceType init_type) {
     space->type = init_type;
     space->dims = dims;
+    space->radii = radii;
+    space->depth_correction = depth_correction;
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         space->first[i] = 0;
         space->counts[i] = 0;
@@ -32,10 +34,10 @@ void space_run(TayState *state, int steps) {
 
         // TODO: determine space type
 
-        if (state->_space.type == ST_CPU_SIMPLE)
+        if (state->space.type == ST_CPU_SIMPLE)
             cpu_simple_step(state);
-        else if (state->_space.type == ST_CPU_TREE)
-            /* cpu_tree_step(state) */;
+        else if (state->space.type == ST_CPU_TREE)
+            cpu_tree_step(state);
         else
             assert(0); /* unhandled space type */
     }

@@ -13,7 +13,7 @@ TayState *tay_create_state(int space_dims, float4 see_radii) {
     return tay_create_state_specific(space_dims, see_radii, ST_ADAPTIVE, 0);
 }
 
-TayState *tay_create_state_specific(int space_dims, float4 see_radii, int initial_space_type, int max_depth_correction) {
+TayState *tay_create_state_specific(int space_dims, float4 see_radii, int initial_space_type, int depth_correction) {
     TayState *s = calloc(1, sizeof(TayState));
     s->running = TAY_STATE_STATUS_IDLE;
     s->source = 0;
@@ -29,7 +29,7 @@ TayState *tay_create_state_specific(int space_dims, float4 see_radii, int initia
     else if (initial_space_type == TAY_SPACE_GPU_TREE)
         space_type = ST_GPU_TREE;
 
-    space_init(&s->_space, space_dims, space_type);
+    space_init(&s->space, space_dims, see_radii, depth_correction, space_type);
 
     return s;
 }
@@ -110,7 +110,7 @@ void tay_commit_available_agent(TayState *state, int group) {
     assert(g->first != 0);
     TayAgentTag *a = g->first;
     g->first = a->next;
-    space_add_agent(&state->_space, a, group);
+    space_add_agent(&state->space, a, group);
 }
 
 void *tay_get_agent(TayState *state, int group, int index) {

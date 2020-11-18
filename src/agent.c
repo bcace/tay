@@ -3,6 +3,59 @@
 
 void agent_see(Agent *a, Agent *b, SeeContext *c) {
     a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));
     a->b_buffer_count++;
 }
 
@@ -152,6 +205,59 @@ float4 float4_div_scalar(float4 a, float s) {\n\
 }\n\
 \n\
 void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
+    a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
     a->b_buffer = float4_add(a->b_buffer, float4_sub(b->p, a->p));\n\
     a->b_buffer_count++;\n\
 }\n\

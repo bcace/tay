@@ -1,8 +1,8 @@
-#include "tree.h"
-#include "tay.h"
-#include "thread.h"
-#include <stdlib.h>
-#include <float.h>
+#include "space.h"
+#include "space_impl.h"
+// #include "thread.h"
+// #include <stdlib.h>
+// #include <float.h>
 #include <assert.h>
 
 #define TREE_CELL_LEAF_DIM 100
@@ -12,85 +12,21 @@ typedef struct {
     unsigned char arr[4];
 } Depths;
 
-void tree_reset_box(Box *box, int dims) {
-    for (int i = 0; i < dims; ++i) {
-        box->min.arr[i] = FLT_MAX;
-        box->max.arr[i] = -FLT_MAX;
-    }
+/*
+void tree_clear(Tree *tree, int dims) {
+    tree->cells_count = 1; // root cell is always allocated
+    tree_clear_cell(tree->cells);
+    box_reset(&tree->box, dims);
 }
-
-void tree_update_box(Box *box, float4 p, int dims) {
-    for (int i = 0; i < dims; ++i) {
-        if (p.arr[i] < box->min.arr[i])
-            box->min.arr[i] = p.arr[i];
-        if (p.arr[i] > box->max.arr[i])
-            box->max.arr[i] = p.arr[i];
-    }
-}
-
-void tree_clear_cell(Cell *cell) {
+*/
+void tree_clear_cell(TreeCell *cell) {
     cell->lo = 0;
     cell->hi = 0;
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         cell->first[i] = 0;
 }
 
-void tree_init(TreeBase *tree, int dims, float4 radii, int max_depth_correction) {
-    tree->dims = dims;
-    tree->max_depth_correction = max_depth_correction;
-    tree->max_cells = 100000;
-    tree->cells = malloc(tree->max_cells * sizeof(Cell));
-    tree_clear(tree);
-    tree->radii = radii;
-    for (int i = 0; i < TAY_MAX_GROUPS; ++i)
-        tree->first[i] = 0;
-}
-
-void tree_destroy(TreeBase *tree) {
-    free(tree->cells);
-    free(tree);
-}
-
-void tree_clear(TreeBase *tree) {
-    tree->cells_count = 1; /* root cell is always allocated */
-    tree_clear_cell(tree->cells);
-    tree_reset_box(&tree->box, tree->dims);
-}
-
-static void _add_to_non_sorted(TreeBase *tree, TayAgentTag *agent, int group) {
-    agent->next = tree->first[group];
-    tree->first[group] = agent;
-    tree_update_box(&tree->box, TAY_AGENT_POSITION(agent), tree->dims);
-}
-
-void tree_add(TreeBase *tree, TayAgentTag *agent, int group) {
-    _add_to_non_sorted(tree, agent, group);
-}
-
-static void _move_agents_from_cell_to_tree(TreeBase *tree, Cell *cell) {
-    if (cell == 0)
-        return;
-    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-        if (cell->first[i] == 0)
-            continue;
-        TayAgentTag *last = cell->first[i];
-        /* update global extents and find the last agent */
-        while (1) {
-            tree_update_box(&tree->box, TAY_AGENT_POSITION(last), tree->dims);
-            if (last->next)
-                last = last->next;
-            else
-                break;
-        }
-        /* add all agents to global list */
-        last->next = tree->first[i];
-        tree->first[i] = cell->first[i];
-    }
-    _move_agents_from_cell_to_tree(tree, cell->lo);
-    _move_agents_from_cell_to_tree(tree, cell->hi);
-}
-
-static inline void _decide_cell_split(Cell *cell, int dims, int *max_depths, float *radii, Depths cell_depths) {
+static inline void _decide_cell_split(TreeCell *cell, int dims, int *max_depths, float *radii, Depths cell_depths) {
     cell->dim = TREE_CELL_LEAF_DIM;
     float max_r = 0.0f;
     for (int i = 0; i < dims; ++i) {
@@ -106,7 +42,7 @@ static inline void _decide_cell_split(Cell *cell, int dims, int *max_depths, flo
         cell->mid = (cell->box.max.arr[cell->dim] + cell->box.min.arr[cell->dim]) * 0.5f;
 }
 
-static void _sort_agent(TreeBase *tree, Cell *cell, TayAgentTag *agent, int group, Depths cell_depths) {
+static void _sort_agent(Tree *tree, TreeCell *cell, TayAgentTag *agent, int group, Depths cell_depths) {
     if (cell->dim == TREE_CELL_LEAF_DIM) {
         agent->next = cell->first[group];
         cell->first[group] = agent;
@@ -118,7 +54,7 @@ static void _sort_agent(TreeBase *tree, Cell *cell, TayAgentTag *agent, int grou
         float pos = TAY_AGENT_POSITION(agent).arr[cell->dim];
         if (pos < cell->mid) {
             if (cell->lo == 0) {
-                assert(tree->cells_count < tree->max_cells);
+                assert(tree->cells_count < TAY_MAX_TREE_CELLS);
                 cell->lo = tree->cells + tree->cells_count++;
                 tree_clear_cell(cell->lo);
                 cell->lo->box = cell->box;
@@ -129,7 +65,7 @@ static void _sort_agent(TreeBase *tree, Cell *cell, TayAgentTag *agent, int grou
         }
         else {
             if (cell->hi == 0) {
-                assert(tree->cells_count < tree->max_cells);
+                assert(tree->cells_count < TAY_MAX_TREE_CELLS);
                 cell->hi = tree->cells + tree->cells_count++;
                 tree_clear_cell(cell->hi);
                 cell->hi->box = cell->box;
@@ -141,41 +77,57 @@ static void _sort_agent(TreeBase *tree, Cell *cell, TayAgentTag *agent, int grou
     }
 }
 
-static int _max_depth(float space_side, float see_side, int max_depth_correction) {
+static int _max_depth(float space_side, float cell_side, int depth_correction) {
     int depth = 0;
-    while ((space_side *= 0.5f) > see_side)
+    while ((space_side *= 0.5f) > cell_side)
         ++depth;
-    if ((depth += max_depth_correction) < 0)
+    if ((depth += depth_correction) < 0)
         depth = 0;
     return depth;
 }
 
-void tree_update(TreeBase *s) {
-    _move_agents_from_cell_to_tree(s, s->cells);
+void tree_update(Space *space) {
+    Tree *tree = &space->cpu_tree.base;
+    tree->dims = space->dims;
+    tree->radii = space->radii;
 
     /* calculate max partition depths for each dimension */
     Depths root_cell_depths;
-    for (int i = 0; i < s->dims; ++i) {
-        s->max_depths.arr[i] = _max_depth(s->box.max.arr[i] - s->box.min.arr[i], s->radii.arr[i] * 2.0f, s->max_depth_correction);
+    for (int i = 0; i < tree->dims; ++i) {
+        tree->max_depths.arr[i] = _max_depth(space->box.max.arr[i] - space->box.min.arr[i], tree->radii.arr[i] * 2.0f, space->depth_correction);
         root_cell_depths.arr[i] = 0;
     }
 
     /* set up root cell */
-    s->cells_count = 1;
-    tree_clear_cell(s->cells);
-    s->cells->box = s->box; /* root cell inherits tree's box */
-    _decide_cell_split(s->cells, s->dims, s->max_depths.arr, s->radii.arr, root_cell_depths);
+    tree->cells_count = 1;
+    tree_clear_cell(tree->cells);
+    tree->cells->box = space->box; /* root cell inherits tree's box */
+    _decide_cell_split(tree->cells, tree->dims, tree->max_depths.arr, tree->radii.arr, root_cell_depths);
 
     /* sort all agents from tree into nodes */
-    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-        TayAgentTag *next = s->first[i];
+    for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+        TayAgentTag *next = space->first[group_i];
         while (next) {
-            TayAgentTag *a = next;
+            TayAgentTag *tag = next;
             next = next->next;
-            _sort_agent(s, s->cells, a, i, root_cell_depths);
+            _sort_agent(tree, tree->cells, tag, group_i, root_cell_depths);
         }
-        s->first[i] = 0;
+        space->first[group_i] = 0;
+        space->counts[group_i] = 0;
     }
 
-    tree_reset_box(&s->box, s->dims);
+    box_reset(&space->box, tree->dims);
+}
+
+static void _return_agents(Space *space, TreeCell *cell) {
+    if (cell == 0)
+        return;
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i)
+        space_return_agents(space, i, cell->first[i]);
+    _return_agents(space, cell->lo);
+    _return_agents(space, cell->hi);
+}
+
+void tree_return_agents(Space *space) {
+    _return_agents(space, space->cpu_tree.base.cells);
 }

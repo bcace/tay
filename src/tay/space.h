@@ -24,13 +24,12 @@ typedef struct {
     TreeCell cells[TAY_MAX_TREE_CELLS]; /* cells storage, first cell is always the root cell */
     int cells_count;
     int dims;
-    int max_depth_correction;
     float4 radii;
     int4 max_depths;
-} BaseTree;
+} Tree;
 
 typedef struct {
-    BaseTree base;
+    Tree base;
 } CpuTree;
 
 typedef enum SpaceType {
@@ -43,6 +42,8 @@ typedef enum SpaceType {
 
 typedef struct Space {
     int dims;
+    int depth_correction;
+    float4 radii; /* if space is partitioned, these are suggested subdivision radii */
     SpaceType type;
     TayAgentTag *first[TAY_MAX_GROUPS]; /* agents about to be activated (inactive live agents) */
     int counts[TAY_MAX_GROUPS];
@@ -53,7 +54,7 @@ typedef struct Space {
     };
 } Space;
 
-void space_init(Space *space, int dims, SpaceType init_type);
+void space_init(Space *space, int dims, float4 radii, int depth_correction, SpaceType init_type);
 void space_add_agent(Space *space, TayAgentTag *agent, int group);
 void space_on_simulation_start(struct TayState *state);
 void space_run(struct TayState *state, int steps);
@@ -61,5 +62,11 @@ void space_on_simulation_end(struct TayState *state);
 
 void box_reset(Box *box, int dims);
 void box_update(Box *box, float4 pos, int dims);
+
+// void tree_clear(Tree *tree); /* NOTE: this does not return contained agents into storage */
+// void tree_clear_cell(TreeCell *cell);
+// void tree_add(Tree *tree, TayAgentTag *agent, int group);
+void tree_update(Space *space);
+void tree_return_agents(Space *space);
 
 #endif
