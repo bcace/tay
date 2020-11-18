@@ -79,6 +79,9 @@ void tree_update(Space *space) {
     Tree *tree = &space->cpu_tree.base;
     tree->dims = space->dims;
     tree->radii = space->radii;
+    tree->cells = (TreeCell *)space->shared;
+
+    assert(TAY_MAX_TREE_CELLS * sizeof(TreeCell) < TAY_GPU_ARENA_SIZE);
 
     /* calculate max partition depths for each dimension */
     Depths root_cell_depths;

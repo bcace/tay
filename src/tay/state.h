@@ -12,16 +12,8 @@ typedef struct {
     SimpleThread threads[TAY_MAX_GROUPS];
 } CpuSimple;
 
-typedef struct TreeCell {
-    struct TreeCell *lo, *hi;           /* child partitions */
-    TayAgentTag *first[TAY_MAX_GROUPS]; /* agents contained in this cell (fork or leaf) */
-    int dim;                            /* dimension along which the cell's partition is divided into child partitions */
-    Box box;
-    float mid;
-} TreeCell;
-
 typedef struct {
-    TreeCell cells[TAY_MAX_TREE_CELLS]; /* cells storage, first cell is always the root cell */
+    struct TreeCell *cells; /* cells storage, first cell is always the root cell */
     int cells_count;
     int dims;
     float4 radii;
@@ -48,10 +40,9 @@ typedef struct Space {
     TayAgentTag *first[TAY_MAX_GROUPS]; /* agents about to be activated (inactive live agents) */
     int counts[TAY_MAX_GROUPS];
     Box box;
-    union {
-        CpuSimple cpu_simple;
-        CpuTree cpu_tree;
-    };
+    CpuSimple cpu_simple;
+    CpuTree cpu_tree;
+    char shared[TAY_GPU_ARENA_SIZE]; // TODO: rename define
 } Space;
 
 typedef struct TayGroup {

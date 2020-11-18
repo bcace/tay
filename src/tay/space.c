@@ -28,11 +28,9 @@ void space_on_simulation_start(TayState *state) {
 
 void space_run(TayState *state, int steps) {
 
-    // on run start
-
     for (int step_i = 0; step_i < steps; ++step_i) {
 
-        // TODO: determine space type
+        // TODO: determine space type when adaptive
 
         if (state->space.type == ST_CPU_SIMPLE)
             cpu_simple_step(state);
@@ -41,8 +39,6 @@ void space_run(TayState *state, int steps) {
         else
             assert(0); /* unhandled space type */
     }
-
-    // on run end
 }
 
 void space_on_simulation_end(TayState *state) {

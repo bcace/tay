@@ -4,6 +4,14 @@
 #include "state.h"
 
 
+typedef struct TreeCell {
+    struct TreeCell *lo, *hi;           /* child partitions */
+    TayAgentTag *first[TAY_MAX_GROUPS]; /* agents contained in this cell (fork or leaf) */
+    int dim;                            /* dimension along which the cell's partition is divided into child partitions */
+    Box box;
+    float mid;
+} TreeCell;
+
 void space_return_agents(struct Space *space, int group_i, TayAgentTag *tag);
 
 void cpu_simple_step(struct TayState *state);
