@@ -1,8 +1,4 @@
 #include "space.h"
-#include "space_impl.h"
-// #include "thread.h"
-// #include <stdlib.h>
-// #include <float.h>
 #include <assert.h>
 
 #define TREE_CELL_LEAF_DIM 100
@@ -12,13 +8,6 @@ typedef struct {
     unsigned char arr[4];
 } Depths;
 
-/*
-void tree_clear(Tree *tree, int dims) {
-    tree->cells_count = 1; // root cell is always allocated
-    tree_clear_cell(tree->cells);
-    box_reset(&tree->box, dims);
-}
-*/
 void tree_clear_cell(TreeCell *cell) {
     cell->lo = 0;
     cell->hi = 0;

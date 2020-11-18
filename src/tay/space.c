@@ -1,5 +1,5 @@
-#include "state.h"
-#include "space_impl.h"
+#include "space.h"
+#include "thread.h"
 #include <float.h>
 #include <assert.h>
 
@@ -79,4 +79,35 @@ void space_return_agents(Space *space, int group_i, TayAgentTag *tag) {
     }
     last->next = space->first[group_i];
     space->first[group_i] = tag;
+}
+
+void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+    for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
+        float4 seer_p = TAY_AGENT_POSITION(seer_agent);
+
+        for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
+            float4 seen_p = TAY_AGENT_POSITION(seen_agent);
+
+            if (seer_agent == seen_agent) /* this can be removed for cases where beg_a != beg_b */
+                continue;
+
+#if TAY_INSTRUMENT
+            ++thread_context->broad_see_phase;
+#endif
+
+            for (int i = 0; i < dims; ++i) {
+                float d = seer_p.arr[i] - seen_p.arr[i];
+                if (d < -radii.arr[i] || d > radii.arr[i])
+                    goto SKIP_SEE;
+            }
+
+#if TAY_INSTRUMENT
+            ++thread_context->narrow_see_phase;
+#endif
+
+            func(seer_agent, seen_agent, thread_context->context);
+
+            SKIP_SEE:;
+        }
+    }
 }

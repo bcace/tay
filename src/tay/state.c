@@ -1,7 +1,6 @@
-#include "state.h"
+#include "space.h"
 #include "tay.h"
 #include "thread.h"
-#include "space.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -122,8 +121,7 @@ void *tay_get_agent(TayState *state, int group, int index) {
 void tay_simulation_start(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_IDLE);
     state->running = TAY_STATE_STATUS_RUNNING;
-//    if (state->space.on_simulation_start)
-//        state->space.on_simulation_start(state);
+    space_on_simulation_start(state);
 }
 
 void tay_run(TayState *state, int steps) {
@@ -132,12 +130,11 @@ void tay_run(TayState *state, int steps) {
     struct timespec beg, end;
     timespec_get(&beg, TIME_UTC);
 
+#if TAY_INSTRUMENT
     tay_runner_reset_stats();
+#endif
 
     space_run(state, steps);
-
-//    if (state->space.on_run_end)
-//        state->space.on_run_end(&state->space, state);
 
     timespec_get(&end, TIME_UTC);
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
@@ -153,41 +150,9 @@ void tay_run(TayState *state, int steps) {
 void tay_simulation_end(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
     state->running = TAY_STATE_STATUS_IDLE;
-//    if (state->space.on_simulation_end)
-//        state->space.on_simulation_end(state);
+    space_on_simulation_end(state);
 }
 
 int group_tag_to_index(TayGroup *group, TayAgentTag *tag) {
     return (tag != 0) ? (int)((char *)tag - (char *)group->storage) / group->agent_size : -1;
-}
-
-void tay_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    for (TayAgentTag *a = seer_agents; a; a = a->next) {
-        float4 pa = TAY_AGENT_POSITION(a);
-
-        for (TayAgentTag *b = seen_agents; b; b = b->next) {
-            float4 pb = TAY_AGENT_POSITION(b);
-
-            if (a == b) /* this can be removed for cases where beg_a != beg_b */
-                continue;
-
-#if TAY_INSTRUMENT
-            ++thread_context->broad_see_phase;
-#endif
-
-            for (int k = 0; k < dims; ++k) {
-                float d = pa.arr[k] - pb.arr[k];
-                if (d < -radii.arr[k] || d > radii.arr[k])
-                    goto SKIP_SEE;
-            }
-
-#if TAY_INSTRUMENT
-            ++thread_context->narrow_see_phase;
-#endif
-
-            func(a, b, thread_context->context);
-
-            SKIP_SEE:;
-        }
-    }
 }

@@ -1,6 +1,5 @@
-#include "state.h"
+#include "space.h"
 #include "thread.h"
-#include "space_impl.h"
 #include <assert.h>
 
 
@@ -19,7 +18,7 @@ static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, TayAgentTa
 }
 
 static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
-    tay_see(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
+    space_see(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
 }
 
 static void _see(TayState *state, int pass_index) {

@@ -47,4 +47,7 @@ typedef struct TayAgentTag {
 } TayAgentTag;
 #pragma pack(pop)
 
+typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
+typedef void (*TAY_ACT_FUNC)(void *, void *);
+
 #endif

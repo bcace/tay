@@ -1,33 +1,7 @@
-#include "state.h"
+#include "space.h"
 #include "thread.h"
-#include "space_impl.h"
 #include <assert.h>
 
-
-// typedef struct {
-//     TreeBase base;
-// } Tree;
-
-// static Tree *_init(int dims, float4 radii, int max_depth_correction) {
-//     Tree *tree = malloc(sizeof(Tree));
-//     tree_init(&tree->base, dims, radii, max_depth_correction);
-//     return tree;
-// }
-
-// static void _destroy(TaySpaceContainer *container) {
-//     Tree *tree = container->storage;
-//     tree_destroy(&tree->base);
-// }
-
-// static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, int index) {
-//     Tree *tree = container->storage;
-//     tree_add(&tree->base, agent, group);
-// }
-
-// static void _on_step_start(TayState *state) {
-//     // Tree *tree = state->space.storage;
-//     // tree_update(&state->space.cpu_tree.base);
-// }
 
 typedef struct {
     CpuTree *tree;
@@ -46,7 +20,7 @@ static void _thread_traverse_seen(CpuTree *tree, TreeCell *seer_cell, TreeCell *
         if (seer_box.min.arr[i] > seen_cell->box.max.arr[i] || seer_box.max.arr[i] < seen_cell->box.min.arr[i])
             return;
     if (seen_cell->first[pass->seen_group]) /* if there are any "seen" agents */
-        tay_see(seer_cell->first[pass->seer_group], seen_cell->first[pass->seen_group], pass->see, pass->radii, tree->base.dims, thread_context);
+        space_see(seer_cell->first[pass->seer_group], seen_cell->first[pass->seen_group], pass->see, pass->radii, tree->base.dims, thread_context);
     if (seen_cell->lo)
         _thread_traverse_seen(tree, seer_cell, seen_cell->lo, pass, seer_box, thread_context);
     if (seen_cell->hi)
