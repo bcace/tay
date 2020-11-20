@@ -27,6 +27,7 @@ int gpu_set_kernel_value_argument(GpuKernel kernel, int index, void *value, int 
 int gpu_set_kernel_buffer_argument(GpuKernel kernel, int index, GpuBuffer *buffer);
 int gpu_release_kernel(GpuKernel kernel);
 GpuBuffer gpu_create_buffer(GpuContext *context, GpuMemFlags device, GpuMemFlags host, int size);
+int gpu_release_buffer(GpuBuffer buffer);
 int gpu_enqueue_write_buffer(GpuContext *context, GpuBuffer buffer, GpuBlocking blocking, int size, void *arg);
 int gpu_enqueue_read_buffer(GpuContext *context, GpuBuffer buffer, GpuBlocking blocking, int size, void *arg);
 int gpu_enqueue_kernel(GpuContext *context, GpuKernel kernel, int count);

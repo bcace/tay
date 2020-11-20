@@ -24,12 +24,26 @@ typedef struct {
     Tree base;
 } CpuTree;
 
+typedef struct {
+    struct GpuContext *gpu;
+    void *agent_io_buffer;
+    void *agent_buffers[TAY_MAX_GROUPS];
+    void *pass_context_buffers[TAY_MAX_PASSES];
+    void *pass_kernels[TAY_MAX_PASSES];
+    void *resolve_pointers_kernel;
+    void *fetch_new_positions_kernel;
+    char text[TAY_GPU_MAX_TEXT_SIZE];
+    int text_size;
+} GpuShared;
+
 typedef enum SpaceType {
-    ST_ADAPTIVE,
-    ST_CPU_SIMPLE,
-    ST_CPU_TREE,
-    ST_GPU_SIMPLE,
-    ST_GPU_TREE,
+    ST_ADAPTIVE =       0x00,
+    ST_CPU =            0x10,
+    ST_GPU =            0x20,
+    ST_CPU_SIMPLE =     (ST_CPU | 0x01),
+    ST_CPU_TREE =       (ST_CPU | 0x02),
+    ST_GPU_SIMPLE =     (ST_GPU | 0x01),
+    ST_GPU_TREE =       (ST_GPU | 0x02),
 } SpaceType;
 
 typedef struct Space {
@@ -42,7 +56,9 @@ typedef struct Space {
     Box box;
     CpuSimple cpu_simple;
     CpuTree cpu_tree;
-    char shared[TAY_GPU_ARENA_SIZE]; // TODO: rename define
+    char shared[TAY_SPACE_SHARED_SIZE];
+    int shared_in_use;
+    GpuShared gpu_shared;
 } Space;
 
 typedef struct TayGroup {
@@ -90,11 +106,12 @@ typedef struct TayState {
 } TayState;
 
 void space_init(Space *space, int dims, float4 radii, int depth_correction, SpaceType init_type);
+void space_release(Space *space);
 void space_add_agent(Space *space, TayAgentTag *agent, int group);
 void space_on_simulation_start(struct TayState *state);
 void space_run(struct TayState *state, int steps);
 void space_on_simulation_end(struct TayState *state);
-
-int group_tag_to_index(TayGroup *group, TayAgentTag *tag);
+void *space_get_shared_mem(Space *space, int size);
+void space_release_shared_mem(Space *space);
 
 #endif

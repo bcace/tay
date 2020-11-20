@@ -42,6 +42,7 @@ static void _clear_group(TayGroup *group) {
 void tay_destroy_state(TayState *state) {
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         _clear_group(state->groups + i);
+    space_release(&state->space);
     free(state);
 }
 
@@ -151,8 +152,4 @@ void tay_simulation_end(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
     state->running = TAY_STATE_STATUS_IDLE;
     space_on_simulation_end(state);
-}
-
-int group_tag_to_index(TayGroup *group, TayAgentTag *tag) {
-    return (tag != 0) ? (int)((char *)tag - (char *)group->storage) / group->agent_size : -1;
 }

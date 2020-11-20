@@ -76,7 +76,6 @@ void cpu_simple_step(TayState *state) {
     int threads_count = runner.count;
 
     /* move all agents from space into thread storage */
-
     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         int rem = space->counts[group_i] % threads_count;
         int per_thread = (space->counts[group_i] - rem) / threads_count;
@@ -106,7 +105,6 @@ void cpu_simple_step(TayState *state) {
     box_reset(&space->box, space->dims);
 
     /* do passes */
-
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
         if (pass->type == TAY_PASS_SEE)
@@ -118,7 +116,6 @@ void cpu_simple_step(TayState *state) {
     }
 
     /* return agents to space and update the space box */
-
     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i)
         for (int thread_i = 0; thread_i < threads_count; ++thread_i)
             space_return_agents(space, group_i, space->cpu_simple.threads[thread_i].first[group_i]);

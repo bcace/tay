@@ -141,6 +141,13 @@ GpuBuffer gpu_create_buffer(GpuContext *c, GpuMemFlags device, GpuMemFlags host,
     return buffer;
 }
 
+int gpu_release_buffer(GpuBuffer buffer) {
+    cl_int err = clReleaseMemObject(buffer);
+    if (_check_errors(err, "clReleaseMemObject"))
+        return 0;
+    return err;
+}
+
 /* NOTE: blocking refers to the operation itself, not the previous enqueued operations */
 int gpu_enqueue_write_buffer(GpuContext *c, GpuBuffer buffer, GpuBlocking blocking, int size, void *arg) {
     cl_int err = clEnqueueWriteBuffer(c->commands, buffer, blocking, 0, size, arg, 0, 0, 0);

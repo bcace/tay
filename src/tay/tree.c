@@ -79,9 +79,7 @@ void tree_update(Space *space) {
     Tree *tree = &space->cpu_tree.base;
     tree->dims = space->dims;
     tree->radii = space->radii;
-    tree->cells = (TreeCell *)space->shared;
-
-    assert(TAY_MAX_TREE_CELLS * sizeof(TreeCell) < TAY_GPU_ARENA_SIZE);
+    tree->cells = (TreeCell *)space_get_shared_mem(space, TAY_MAX_TREE_CELLS * sizeof(TreeCell));
 
     /* calculate max partition depths for each dimension */
     Depths root_cell_depths;
@@ -122,4 +120,5 @@ static void _return_agents(Space *space, TreeCell *cell) {
 
 void tree_return_agents(Space *space) {
     _return_agents(space, space->cpu_tree.base.cells);
+    space_release_shared_mem(space);
 }

@@ -1,0 +1,250 @@
+#include "space.h"
+#include "gpu.h"
+#include <stdio.h>
+#include <assert.h>
+
+
+static const char *HEADER = "\n\
+#define DIMS %d\n\
+#define TAY_GPU_DEAD 0x%llx\n\
+#define TAY_GPU_NULL_INDEX %d\n\
+#define TAY_GPU_DEAD_INDEX %d\n\
+\n\
+#define TAY_AGENT_POSITION(__agent_tag__) (*(global float4 *)(__agent_tag__ + 1))\n\
+\n\
+\n\
+typedef struct __attribute__((packed)) TayAgentTag {\n\
+    global struct TayAgentTag *next;\n\
+} TayAgentTag;\n\
+\n\
+kernel void fix_pointers(global char *agents, global int *next_indices, int agent_size) {\n\
+    int i = get_global_id(0);\n\
+    global TayAgentTag *tag = (global TayAgentTag *)(agents + i * agent_size);\n\
+    if (next_indices[i] == TAY_GPU_NULL_INDEX)\n\
+        tag->next = 0;\n\
+    else if (next_indices[i] == TAY_GPU_DEAD_INDEX)\n\
+        tag->next = TAY_GPU_DEAD;\n\
+    else\n\
+        tag->next = (global TayAgentTag *)(agents + next_indices[i] * agent_size);\n\
+}\n\
+\n\
+kernel void fetch_new_positions(global char *agents, global float4 *positions, int agent_size) {\n\
+    int i = get_global_id(0);\n\
+    positions[i] = *(global float4 *)(agents + i * agent_size + sizeof(TayAgentTag));\n\
+}\n";
+
+/* Called when the state is initialized. */
+void space_gpu_shared_init(GpuShared *shared) {
+    shared->gpu = gpu_create();
+}
+
+/* Called when the state is destroyed. */
+void space_gpu_shared_release(GpuShared *shared) {
+    gpu_destroy(shared->gpu);
+}
+
+void space_gpu_on_simulation_start(TayState *state) {
+    Space *space = &state->space;
+    GpuShared *shared = &space->gpu_shared;
+
+    /* compose program source text */
+    {
+        shared->text_size = 0;
+        shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, HEADER,
+                                       space->dims, TAY_GPU_DEAD, TAY_GPU_NULL_INDEX, TAY_GPU_DEAD_INDEX);
+        shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, state->source);
+        gpu_simple_add_source(state);
+    }
+
+    /* build program */
+    {
+        assert(shared->text_size < TAY_GPU_MAX_TEXT_SIZE);
+        gpu_build_program(shared->gpu, shared->text);
+    }
+
+    /* create agent buffers on GPU */
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage)
+            shared->agent_buffers[i] = gpu_create_buffer(shared->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, group->capacity * group->agent_size);
+    }
+
+    /* create pass context buffers on GPU */
+    for (int i = 0; i < state->passes_count; ++i) {
+        TayPass *pass = state->passes + i;
+        shared->pass_context_buffers[i] = gpu_create_buffer(shared->gpu, GPU_MEM_READ_ONLY, GPU_MEM_NONE, pass->context_size);
+    }
+
+    /* create other shared buffers and kernels */
+    {
+        shared->agent_io_buffer = gpu_create_buffer(shared->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_SPACE_SHARED_SIZE);
+
+        shared->resolve_pointers_kernel = gpu_create_kernel(shared->gpu, "fix_pointers");
+        gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 1, &shared->agent_io_buffer);
+
+        shared->fetch_new_positions_kernel = gpu_create_kernel(shared->gpu, "fetch_new_positions");
+        gpu_set_kernel_buffer_argument(shared->fetch_new_positions_kernel, 1, &shared->agent_io_buffer);
+    }
+
+    /* create all private buffers and kernels */
+    {
+        gpu_simple_on_simulation_start(state);
+    }
+}
+
+void space_gpu_on_simulation_end(TayState *state) {
+    GpuShared *shared = &state->space.gpu_shared;
+
+    /* release agent buffers on GPU */
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage)
+            gpu_release_buffer(shared->agent_buffers[i]);
+    }
+
+    /* release pass kernels and context buffers */
+    for (int i = 0; i < state->passes_count; ++i) {
+        gpu_release_buffer(shared->pass_context_buffers[i]);
+        gpu_release_kernel(shared->pass_kernels[i]);
+    }
+
+    /* release other shared buffers and kernels */
+    {
+        gpu_release_buffer(shared->agent_io_buffer);
+        gpu_release_kernel(shared->resolve_pointers_kernel);
+        gpu_release_kernel(shared->fetch_new_positions_kernel);
+    }
+}
+
+/* Copies all agents to GPU. Agent "next" pointers are updated at the
+beginning of each step. Called at the beginning of a run. */
+void space_gpu_shared_on_run_start(TayState *state) {
+    Space *space = &state->space;
+    GpuShared *shared = &space->gpu_shared;
+
+    /* push agents to GPU */
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage)
+            gpu_enqueue_write_buffer(shared->gpu, shared->agent_buffers[i], GPU_NON_BLOCKING, group->capacity * group->agent_size, group->storage);
+    }
+
+    /* push pass contexts to GPU */
+    for (int i = 0; i < state->passes_count; ++i) {
+        TayPass *pass = state->passes + i;
+        gpu_enqueue_write_buffer(shared->gpu, shared->pass_context_buffers[i], GPU_NON_BLOCKING, pass->context_size, pass->context);
+    }
+
+    gpu_finish(shared->gpu);
+}
+
+/* Copies all agents from GPU and fixes pointers. Called at the end of a run. */
+void space_gpu_shared_on_run_end(TayState *state) {
+    Space *space = &state->space;
+    GpuShared *shared = &space->gpu_shared;
+
+    /* fetch agents from GPU */
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage)
+            gpu_enqueue_read_buffer(shared->gpu, shared->agent_buffers[i], GPU_NON_BLOCKING, group->capacity * group->agent_size, group->storage);
+    }
+
+    gpu_finish(shared->gpu);
+
+    /* fix next pointers since we just got the ones from GPU */
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage) {
+
+            group->first = 0;
+            space->first[i] = 0;
+
+            for (int j = 0; j < group->capacity; ++j) {
+                TayAgentTag *tag = (TayAgentTag *)((char *)group->storage + j * group->agent_size);
+
+                if ((unsigned long long)tag->next == TAY_GPU_DEAD) { /* dead agents, return to storage */
+                    tag->next = group->first;
+                    group->first = tag;
+                }
+                else { /* live agents, return to tree list */
+                    tag->next = space->first[i];
+                    space->first[i] = tag;
+                }
+            }
+        }
+    }
+}
+
+/* Translates CPU to GPU "next" pointers. Called at each step just after the CPU
+"next" pointers are updated (if at all). This is required if:
+- space updates agent "next" pointers
+- agents die and get born
+- it is the first step of a run and agents have just been copied from CPU to GPU */
+void space_gpu_shared_fix_gpu_pointers(TayState *state) {
+    Space *space = &state->space;
+    GpuShared *shared = &space->gpu_shared;
+
+    int *next_indices = (int *)space_get_shared_mem(space, TAY_MAX_AGENTS * sizeof(int));
+
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage) {
+
+            assert(group->capacity * sizeof(int) < TAY_SPACE_SHARED_SIZE);
+
+            /* translate next pointers to indices for live agents */
+            for (TayAgentTag *tag = space->first[i]; tag; tag = tag->next) {
+                int this_i = group_tag_to_index(group, tag);
+                int next_i = group_tag_to_index(group, tag->next);
+                next_indices[this_i] = next_i;
+            }
+
+            /* set all dead agents' next indices to a special value */
+            for (TayAgentTag *tag = group->first; tag; tag = tag->next) {
+                int this_i = group_tag_to_index(group, tag);
+                next_indices[this_i] = TAY_GPU_DEAD_INDEX;
+            }
+
+            gpu_enqueue_write_buffer(shared->gpu, shared->agent_io_buffer, GPU_BLOCKING, group->capacity * sizeof(int), next_indices);
+            gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 0, &shared->agent_buffers[i]);
+            gpu_set_kernel_value_argument(shared->resolve_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
+            gpu_enqueue_kernel(shared->gpu, shared->resolve_pointers_kernel, group->capacity);
+        }
+    }
+
+    space_release_shared_mem(space);
+}
+
+/* Gets new agent positions from GPU. Called at the end of each step so next
+step has necessary information to build a spatial partitioning structure. */
+void space_gpu_shared_fetch_new_positions(TayState *state) {
+    Space *space = &state->space;
+    GpuShared *shared = &space->gpu_shared;
+
+    box_reset(&space->box, space->dims);
+
+    float4 *positions = space_get_shared_mem(space, TAY_MAX_AGENTS * sizeof(float4));
+
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage) {
+
+            int req_size = group->capacity * sizeof(float4) * (group->is_point ? 1 : 2);
+            assert(req_size < TAY_SPACE_SHARED_SIZE);
+
+            gpu_set_kernel_buffer_argument(shared->fetch_new_positions_kernel, 0, &shared->agent_buffers[i]);
+            gpu_set_kernel_value_argument(shared->fetch_new_positions_kernel, 2, &group->agent_size, sizeof(group->agent_size));
+            gpu_enqueue_kernel(shared->gpu, shared->fetch_new_positions_kernel, group->capacity);
+            gpu_enqueue_read_buffer(shared->gpu, shared->agent_io_buffer, GPU_BLOCKING, req_size, positions);
+
+            /* copy new positions into agents */
+            for (int i = 0; i < group->capacity; ++i) {
+                TAY_AGENT_POSITION((char *)group->storage + group->agent_size * i) = positions[i];
+                box_update(&space->box, positions[i], space->dims);
+            }
+        }
+    }
+
+    space_release_shared_mem(space);
+}

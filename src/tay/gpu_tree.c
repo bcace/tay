@@ -156,7 +156,7 @@
 //     GpuKernel pass_kernels[TAY_MAX_PASSES];
 //     char text[TAY_GPU_MAX_TEXT_SIZE];
 //     int text_size;
-//     char arena[TAY_GPU_ARENA_SIZE];
+//     char arena[TAY_SPACE_SHARED_SIZE];
 // } Tree;
 
 // static Tree *_init(int dims, float4 radii, int max_depth_correction) {
@@ -183,7 +183,7 @@
 //     /* create buffers */
 
 //     tree->cells_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, tree->base.max_cells * sizeof(GPUCell));
-//     tree->agent_io_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_GPU_ARENA_SIZE);
+//     tree->agent_io_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_SPACE_SHARED_SIZE);
 
 //     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
 //         TayGroup *group = state->groups + i;
@@ -292,7 +292,7 @@
 //     tree_update(base);
 
 //     GPUCell *gpu_cells = (GPUCell *)tree->arena;
-//     assert(tree->base.cells_count * sizeof(GPUCell) < TAY_GPU_ARENA_SIZE);
+//     assert(tree->base.cells_count * sizeof(GPUCell) < TAY_SPACE_SHARED_SIZE);
 
 //     for (int i = 0; i < base->cells_count; ++i) {
 //         Cell *cell = base->cells + i;
@@ -334,7 +334,7 @@
 //             /* resolve agent next pointers */
 
 //             TayAgentTag *tags = (TayAgentTag *)tree->arena;
-//             assert(group->capacity * sizeof(TayAgentTag) < TAY_GPU_ARENA_SIZE);
+//             assert(group->capacity * sizeof(TayAgentTag) < TAY_SPACE_SHARED_SIZE);
 
 //             for (int j = 0; j < group->capacity; ++j)
 //                 tags[j] = *(TayAgentTag *)((char *)group->storage + j * group->agent_size);
@@ -376,7 +376,7 @@
 
 //         if (group->storage) {
 //             int req_size = group->capacity * sizeof(float4) * (group->is_point ? 1 : 2);
-//             assert(req_size < TAY_GPU_ARENA_SIZE);
+//             assert(req_size < TAY_SPACE_SHARED_SIZE);
 
 //             /* copy all agent positions into a buffer */
 
@@ -465,4 +465,20 @@
 //     container->see = _see;
 //     container->act = _act;
 //     container->on_run_end = _on_run_end;
+// }
+
+
+// void gpu_simple_step(TayState *state) {
+
+//     tree_update(&state->space);
+
+//     // TODO: push cells to gpu and fix their pointers (cell->cell, cell->agent)
+
+//     space_gpu_shared_fix_gpu_pointers(state);
+
+//     /* do passes */
+
+//     tree_return_agents(&state->space); /* return all agents before fetching new positions so we can reuse shared memory */
+
+//     space_gpu_shared_fetch_new_positions(state);
 // }

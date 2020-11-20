@@ -9,10 +9,16 @@ void space_init(Space *space, int dims, float4 radii, int depth_correction, Spac
     space->dims = dims;
     space->radii = radii;
     space->depth_correction = depth_correction;
+    space->shared_in_use = 0;
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         space->first[i] = 0;
         space->counts[i] = 0;
     }
+    space_gpu_shared_init(&space->gpu_shared);
+}
+
+void space_release(Space *space) {
+    space_gpu_shared_release(&space->gpu_shared);
 }
 
 void space_add_agent(Space *space, TayAgentTag *agent, int group) {
@@ -22,11 +28,29 @@ void space_add_agent(Space *space, TayAgentTag *agent, int group) {
     ++space->counts[group];
 }
 
+void *space_get_shared_mem(Space *space, int size) {
+    assert(space->shared_in_use == 0);
+    assert(size <= TAY_SPACE_SHARED_SIZE);
+    space->shared_in_use = 1;
+    return space->shared;
+}
+
+void space_release_shared_mem(Space *space) {
+    space->shared_in_use = 0;
+}
+
 void space_on_simulation_start(TayState *state) {
-    // ...
+    space_gpu_on_simulation_start(state);
+    if (state->space.type == ST_GPU_SIMPLE)
+        gpu_simple_on_simulation_start(state);
+    else if (state->space.type == ST_GPU_TREE)
+        assert(0); /* not implemented */
 }
 
 void space_run(TayState *state, int steps) {
+
+    if (state->space.type & ST_GPU)
+        space_gpu_shared_on_run_start(state);
 
     for (int step_i = 0; step_i < steps; ++step_i) {
 
@@ -38,11 +62,19 @@ void space_run(TayState *state, int steps) {
             cpu_tree_step(state);
         else
             assert(0); /* unhandled space type */
+
+        if (state->space.type & ST_GPU)
+            space_gpu_shared_fetch_new_positions(state);
     }
+
+    if (state->space.type & ST_GPU)
+        space_gpu_shared_on_run_end(state);
 }
 
 void space_on_simulation_end(TayState *state) {
-    // ...
+    if (state->space.type == ST_GPU_TREE)
+        assert(0); /* not implemented */
+    space_gpu_on_simulation_end(state);
 }
 
 void box_update(Box *box, float4 p, int dims) {
@@ -106,4 +138,8 @@ void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC 
             SKIP_SEE:;
         }
     }
+}
+
+int group_tag_to_index(TayGroup *group, TayAgentTag *tag) {
+    return (tag != 0) ? (int)((char *)tag - (char *)group->storage) / group->agent_size : TAY_GPU_NULL_INDEX;
 }
