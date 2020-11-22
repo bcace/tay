@@ -32,8 +32,13 @@ typedef struct {
 } GpuSimple;
 
 typedef struct {
+    void *pass_kernels[TAY_MAX_PASSES];
+} GpuTree;
+
+typedef struct {
     struct GpuContext *gpu;
-    void *agent_io_buffer;
+    void *agent_io_buffer; // equivalent to temp_arena
+    void *cells_buffer; // equivalent to cell arena
     void *agent_buffers[TAY_MAX_GROUPS];
     void *pass_context_buffers[TAY_MAX_PASSES];
     void *resolve_pointers_kernel;
@@ -71,6 +76,7 @@ typedef struct Space {
     CpuTree cpu_tree;
     CpuShared cpu_shared;
     GpuSimple gpu_simple;
+    GpuTree gpu_tree;
     GpuShared gpu_shared;
 } Space;
 

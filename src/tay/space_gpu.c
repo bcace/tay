@@ -54,6 +54,7 @@ void space_gpu_on_simulation_start(TayState *state) {
                                        space->dims, TAY_GPU_DEAD_ADDR, TAY_GPU_NULL_INDEX, TAY_GPU_DEAD_INDEX);
         shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, state->source);
         gpu_simple_add_source(state);
+        gpu_tree_add_source(state);
     }
 
     /* build program */
@@ -78,6 +79,7 @@ void space_gpu_on_simulation_start(TayState *state) {
     /* create other shared buffers and kernels */
     {
         shared->agent_io_buffer = gpu_create_buffer(shared->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_CPU_SHARED_TEMP_ARENA_SIZE);
+        shared->cells_buffer = gpu_create_buffer(shared->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_CPU_SHARED_CELL_ARENA_SIZE);
 
         shared->resolve_pointers_kernel = gpu_create_kernel(shared->gpu, "fix_pointers");
         gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 1, &shared->agent_io_buffer);
@@ -86,9 +88,10 @@ void space_gpu_on_simulation_start(TayState *state) {
         gpu_set_kernel_buffer_argument(shared->fetch_new_positions_kernel, 1, &shared->agent_io_buffer);
     }
 
-    /* create all private buffers and kernels */
+    /* create private buffers and kernels */
     {
         gpu_simple_on_simulation_start(state);
+        gpu_tree_on_simulation_start(state);
     }
 }
 
@@ -109,8 +112,15 @@ void space_gpu_on_simulation_end(TayState *state) {
     /* release other shared buffers and kernels */
     {
         gpu_release_buffer(shared->agent_io_buffer);
+        gpu_release_buffer(shared->cells_buffer);
         gpu_release_kernel(shared->resolve_pointers_kernel);
         gpu_release_kernel(shared->fetch_new_positions_kernel);
+    }
+
+    /* release private buffers and kernels */
+    {
+        gpu_simple_on_simulation_end(state);
+        gpu_tree_on_simulation_end(state);
     }
 }
 

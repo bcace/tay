@@ -37,6 +37,9 @@ void gpu_simple_on_simulation_start(TayState *state);
 void gpu_simple_on_simulation_end(TayState *state);
 void gpu_simple_step(TayState *state);
 
+void gpu_tree_add_source(TayState *state);
+void gpu_tree_on_simulation_start(TayState *state);
+void gpu_tree_on_simulation_end(TayState *state);
 void gpu_tree_step(TayState *state);
 
 void tree_update(Space *space);

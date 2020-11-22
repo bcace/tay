@@ -38,13 +38,11 @@ void space_add_agent(Space *space, TayAgentTag *agent, int group) {
 }
 
 void space_on_simulation_start(TayState *state) {
-    state->space.type = ST_NONE;
     space_gpu_on_simulation_start(state);   /* compose/build program, create all shared kernels and buffers */
-    gpu_simple_on_simulation_start(state);  /* create space-specific kernels and buffers */
+    state->space.type = ST_NONE;
 }
 
 void space_on_simulation_end(TayState *state) {
-    gpu_simple_on_simulation_end(state);    /* release space-specific kernels and buffers */
     space_gpu_on_simulation_end(state);     /* release all shared kernels and buffers */
 }
 
