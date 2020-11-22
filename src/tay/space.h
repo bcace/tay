@@ -26,14 +26,15 @@ void space_gpu_shared_init(GpuShared *shared);
 void space_gpu_shared_release(GpuShared *shared);
 void space_gpu_on_simulation_start(TayState *state);
 void space_gpu_on_simulation_end(TayState *state);
-void space_gpu_shared_on_run_start(TayState *state);
-void space_gpu_shared_on_run_end(TayState *state);
+void space_gpu_push_agents(TayState *state);
+void space_gpu_fetch_agents(TayState *state);
 void space_gpu_shared_fix_gpu_pointers(TayState *state);
-void space_gpu_shared_fetch_new_positions(TayState *state);
+void space_gpu_fetch_agent_positions(TayState *state);
 
 void gpu_simple_add_source(TayState *state);
 void gpu_simple_on_simulation_start(TayState *state);
-void gpu_simple_step(TayState *state);
+void gpu_simple_on_simulation_end(TayState *state);
+void gpu_simple_step(TayState *state, int prev_not_gpu_simple);
 
 void tree_update(Space *space);
 void tree_return_agents(Space *space);

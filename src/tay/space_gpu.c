@@ -103,10 +103,8 @@ void space_gpu_on_simulation_end(TayState *state) {
     }
 
     /* release pass kernels and context buffers */
-    for (int i = 0; i < state->passes_count; ++i) {
+    for (int i = 0; i < state->passes_count; ++i)
         gpu_release_buffer(shared->pass_context_buffers[i]);
-        gpu_release_kernel(shared->pass_kernels[i]);
-    }
 
     /* release other shared buffers and kernels */
     {
@@ -117,8 +115,8 @@ void space_gpu_on_simulation_end(TayState *state) {
 }
 
 /* Copies all agents to GPU. Agent "next" pointers are updated at the
-beginning of each step. Called at the beginning of a run. */
-void space_gpu_shared_on_run_start(TayState *state) {
+beginning of each step. */
+void space_gpu_push_agents(TayState *state) {
     Space *space = &state->space;
     GpuShared *shared = &space->gpu_shared;
 
@@ -138,8 +136,8 @@ void space_gpu_shared_on_run_start(TayState *state) {
     gpu_finish(shared->gpu);
 }
 
-/* Copies all agents from GPU and fixes pointers. Called at the end of a run. */
-void space_gpu_shared_on_run_end(TayState *state) {
+/* Copies all agents from GPU and fixes pointers. */
+void space_gpu_fetch_agents(TayState *state) {
     Space *space = &state->space;
     GpuShared *shared = &space->gpu_shared;
 
@@ -176,16 +174,12 @@ void space_gpu_shared_on_run_end(TayState *state) {
     }
 }
 
-/* Translates CPU to GPU "next" pointers. Called at each step just after the CPU
-"next" pointers are updated (if at all). This is required if:
-- space updates agent "next" pointers
-- agents die and get born
-- it is the first step of a run and agents have just been copied from CPU to GPU */
+/* Translates "next" pointer addresses from CPU to GPU versions. */
 void space_gpu_shared_fix_gpu_pointers(TayState *state) {
     Space *space = &state->space;
     GpuShared *shared = &space->gpu_shared;
 
-    int *next_indices = (int *)space_get_shared_mem(space, TAY_MAX_AGENTS * sizeof(int));
+    int *next_indices = (int *)space->shared;
 
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
@@ -212,19 +206,17 @@ void space_gpu_shared_fix_gpu_pointers(TayState *state) {
             gpu_enqueue_kernel(shared->gpu, shared->resolve_pointers_kernel, group->capacity);
         }
     }
-
-    space_release_shared_mem(space);
 }
 
-/* Gets new agent positions from GPU. Called at the end of each step so next
-step has necessary information to build a spatial partitioning structure. */
-void space_gpu_shared_fetch_new_positions(TayState *state) {
+/* Gets new agent positions from GPU. Used when we only need new agent positions
+on CPU for the next step to be able to update space partitioning. */
+void space_gpu_fetch_agent_positions(TayState *state) {
     Space *space = &state->space;
     GpuShared *shared = &space->gpu_shared;
 
     box_reset(&space->box, space->dims);
 
-    float4 *positions = space_get_shared_mem(space, TAY_MAX_AGENTS * sizeof(float4));
+    float4 *positions = (float4 *)space->shared;
 
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
@@ -245,6 +237,4 @@ void space_gpu_shared_fetch_new_positions(TayState *state) {
             }
         }
     }
-
-    space_release_shared_mem(space);
 }

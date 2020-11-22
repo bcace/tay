@@ -470,7 +470,9 @@
 
 // void gpu_simple_step(TayState *state) {
 
-//     tree_update(&state->space);
+    // space_gpu_fetch_agent_positions(state);
+
+    // tree_update(&state->space);
 
 //     // TODO: push cells to gpu and fix their pointers (cell->cell, cell->agent)
 
@@ -479,6 +481,4 @@
 //     /* do passes */
 
 //     tree_return_agents(&state->space); /* return all agents before fetching new positions so we can reuse shared memory */
-
-//     space_gpu_shared_fetch_new_positions(state);
 // }

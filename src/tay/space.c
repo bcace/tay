@@ -4,12 +4,11 @@
 #include <assert.h>
 
 
-void space_init(Space *space, int dims, float4 radii, int depth_correction, SpaceType init_type) {
-    space->type = init_type;
+void space_init(Space *space, int dims, float4 radii) {
+    space->type = ST_NONE;
     space->dims = dims;
     space->radii = radii;
-    space->depth_correction = depth_correction;
-    space->shared_in_use = 0;
+    space->depth_correction = 0;
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         space->first[i] = 0;
         space->counts[i] = 0;
@@ -28,53 +27,52 @@ void space_add_agent(Space *space, TayAgentTag *agent, int group) {
     ++space->counts[group];
 }
 
-void *space_get_shared_mem(Space *space, int size) {
-    assert(space->shared_in_use == 0);
-    assert(size <= TAY_SPACE_SHARED_SIZE);
-    space->shared_in_use = 1;
-    return space->shared;
-}
-
-void space_release_shared_mem(Space *space) {
-    space->shared_in_use = 0;
-}
-
 void space_on_simulation_start(TayState *state) {
-    space_gpu_on_simulation_start(state);
-    if (state->space.type == ST_GPU_SIMPLE)
-        gpu_simple_on_simulation_start(state);
-    else if (state->space.type == ST_GPU_TREE)
-        assert(0); /* not implemented */
-}
-
-void space_run(TayState *state, int steps) {
-
-    if (state->space.type & ST_GPU)
-        space_gpu_shared_on_run_start(state);
-
-    for (int step_i = 0; step_i < steps; ++step_i) {
-
-        // TODO: determine space type when adaptive
-
-        if (state->space.type == ST_CPU_SIMPLE)
-            cpu_simple_step(state);
-        else if (state->space.type == ST_CPU_TREE)
-            cpu_tree_step(state);
-        else
-            assert(0); /* unhandled space type */
-
-        if (state->space.type & ST_GPU)
-            space_gpu_shared_fetch_new_positions(state);
-    }
-
-    if (state->space.type & ST_GPU)
-        space_gpu_shared_on_run_end(state);
+    state->space.type = ST_NONE;
+    space_gpu_on_simulation_start(state);   /* compose/build program, create all shared kernels and buffers */
+    gpu_simple_on_simulation_start(state);  /* create space-specific kernels and buffers */
 }
 
 void space_on_simulation_end(TayState *state) {
-    if (state->space.type == ST_GPU_TREE)
-        assert(0); /* not implemented */
-    space_gpu_on_simulation_end(state);
+    gpu_simple_on_simulation_end(state);    /* release space-specific kernels and buffers */
+    space_gpu_on_simulation_end(state);     /* release all shared kernels and buffers */
+}
+
+void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction) {
+    Space *space = &state->space;
+    GpuShared *shared = &space->gpu_shared;
+
+    assert(space_type != ST_NONE); /* only actual space type can be ST_NONE, and only before the first step */
+
+    for (int step_i = 0; step_i < steps; ++step_i) {
+        SpaceType old_type = space->type;
+
+        assert(space_type == ST_CPU_SIMPLE || space_type == ST_CPU_TREE ||
+               space_type == ST_GPU_SIMPLE || space_type == ST_GPU_TREE);
+        SpaceType new_type = space_type;
+        // TODO: determine space type when adaptive, for now we just fix one of the specific types
+        space->type = new_type;
+
+        // TODO: determine depth correction when adaptive, for now we just take the fixed one from the argument
+        space->depth_correction = depth_correction;
+
+        if ((old_type & ST_GPU) == 0 && (new_type & ST_GPU) != 0) /* switching from cpu to gpu or first gpu step in the simulation */
+            space_gpu_push_agents(state);
+        else if ((old_type & ST_GPU) != 0 && (new_type & ST_GPU) == 0) /* switching from gpu to cpu */
+            space_gpu_fetch_agents(state);
+
+        if (space->type == ST_CPU_SIMPLE)
+            cpu_simple_step(state);
+        else if (space->type == ST_CPU_TREE)
+            cpu_tree_step(state);
+        else if (space->type == ST_GPU_SIMPLE)
+            gpu_simple_step(state, old_type != ST_GPU_SIMPLE);
+        else
+            assert(0); /* unhandled space type */
+    }
+
+    if (space->type & ST_GPU)
+        space_gpu_fetch_agents(state);
 }
 
 void box_update(Box *box, float4 p, int dims) {

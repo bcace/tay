@@ -9,27 +9,10 @@
 
 
 TayState *tay_create_state(int space_dims, float4 see_radii) {
-    return tay_create_state_specific(space_dims, see_radii, ST_ADAPTIVE, 0);
-}
-
-TayState *tay_create_state_specific(int space_dims, float4 see_radii, int initial_space_type, int depth_correction) {
     TayState *s = calloc(1, sizeof(TayState));
     s->running = TAY_STATE_STATUS_IDLE;
     s->source = 0;
-
-    SpaceType space_type = ST_ADAPTIVE;
-
-    if (initial_space_type == TAY_SPACE_CPU_SIMPLE)
-        space_type = ST_CPU_SIMPLE;
-    else if (initial_space_type == TAY_SPACE_CPU_TREE)
-        space_type = ST_CPU_TREE;
-    else if (initial_space_type == TAY_SPACE_GPU_SIMPLE)
-        space_type = ST_GPU_SIMPLE;
-    else if (initial_space_type == TAY_SPACE_GPU_TREE)
-        space_type = ST_GPU_TREE;
-
-    space_init(&s->space, space_dims, see_radii, depth_correction, space_type);
-
+    space_init(&s->space, space_dims, see_radii);
     return s;
 }
 
@@ -125,7 +108,23 @@ void tay_simulation_start(TayState *state) {
     space_on_simulation_start(state);
 }
 
-void tay_run(TayState *state, int steps) {
+static SpaceType _translate_space_type(TaySpaceType type) {
+    if (type == TAY_SPACE_CPU_ADAPTIVE)
+        return ST_CPU_ADAPTIVE;
+    else if (type == TAY_SPACE_CPU_SIMPLE)
+        return ST_CPU_SIMPLE;
+    else if (type == TAY_SPACE_CPU_TREE)
+        return ST_CPU_TREE;
+    else if (type == TAY_SPACE_GPU_ADAPTIVE)
+        return ST_GPU_ADAPTIVE;
+    else if (type == TAY_SPACE_GPU_SIMPLE)
+        return ST_GPU_SIMPLE;
+    else if (type == TAY_SPACE_GPU_TREE)
+        return ST_GPU_TREE;
+    return ST_NONE;
+}
+
+void tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_correction) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
 
     struct timespec beg, end;
@@ -135,7 +134,7 @@ void tay_run(TayState *state, int steps) {
     tay_runner_reset_stats();
 #endif
 
-    space_run(state, steps);
+    space_run(state, steps, _translate_space_type(space_type), depth_correction);
 
     timespec_get(&end, TIME_UTC);
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;

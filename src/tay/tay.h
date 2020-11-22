@@ -3,6 +3,8 @@
 
 
 typedef enum TaySpaceType {
+    TAY_SPACE_CPU_ADAPTIVE,
+    TAY_SPACE_GPU_ADAPTIVE,
     TAY_SPACE_CPU_SIMPLE,
     TAY_SPACE_CPU_TREE,
     TAY_SPACE_GPU_SIMPLE,
@@ -12,7 +14,6 @@ typedef enum TaySpaceType {
 typedef struct TayState TayState;
 
 TayState *tay_create_state(int space_dims, struct float4 see_radii);
-TayState *tay_create_state_specific(int space_dims, struct float4 see_radii, int initial_space_type, int max_depth_correction);
 void tay_destroy_state(TayState *state);
 
 void tay_set_source(TayState *state, const char *source);
@@ -26,7 +27,7 @@ void tay_commit_available_agent(TayState *state, int group);
 void *tay_get_agent(TayState *state, int group, int index);
 
 void tay_simulation_start(TayState *state);
-void tay_run(TayState *state, int steps);
+void tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_correction);
 void tay_simulation_end(TayState *state);
 
 #endif

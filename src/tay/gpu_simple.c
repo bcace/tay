@@ -65,6 +65,7 @@ void gpu_simple_add_source(TayState *state) {
 void gpu_simple_on_simulation_start(TayState *state) {
     Space *space = &state->space;
     GpuShared *shared = &space->gpu_shared;
+    GpuSimple *simple = &space->gpu_simple;
 
     /* pass kernels */
     for (int i = 0; i < state->passes_count; ++i) {
@@ -98,27 +99,38 @@ void gpu_simple_on_simulation_start(TayState *state) {
         else
             assert(0); /* unhandled pass type */
 
-        shared->pass_kernels[i] = kernel;
+        simple->pass_kernels[i] = kernel;
     }
+}
+
+void gpu_simple_on_simulation_end(TayState *state) {
+    GpuSimple *simple = &state->space.gpu_simple;
+    for (int i = 0; i < state->passes_count; ++i)
+        gpu_release_kernel(simple->pass_kernels[i]);
 }
 
 static void _see(TayState *state, int pass_index) {
     GpuShared *shared = &state->space.gpu_shared;
+    GpuSimple *simple = &state->space.gpu_simple;
     TayPass *pass = state->passes + pass_index;
     TayGroup *seer_group = state->groups + pass->seer_group;
-    gpu_enqueue_kernel(shared->gpu, shared->pass_kernels[pass_index], seer_group->capacity);
+    gpu_enqueue_kernel(shared->gpu, simple->pass_kernels[pass_index], seer_group->capacity);
 }
 
 static void _act(TayState *state, int pass_index) {
     GpuShared *shared = &state->space.gpu_shared;
+    GpuSimple *simple = &state->space.gpu_simple;
     TayPass *pass = state->passes + pass_index;
     TayGroup *act_group = state->groups + pass->act_group;
-    gpu_enqueue_kernel(shared->gpu, shared->pass_kernels[pass_index], act_group->capacity);
+    gpu_enqueue_kernel(shared->gpu, simple->pass_kernels[pass_index], act_group->capacity);
 }
 
-void gpu_simple_step(TayState *state) {
+void gpu_simple_step(TayState *state, int prev_not_gpu_simple) {
 
-    space_gpu_shared_fix_gpu_pointers(state);
+    /* fix "next" pointers if we just switched to gpu and agents were pushed,
+    or we switched from gpu tree, in which case "next" pointers are also wrong */
+    if (prev_not_gpu_simple)
+        space_gpu_shared_fix_gpu_pointers(state);
 
     /* do passes */
     for (int i = 0; i < state->passes_count; ++i) {
@@ -130,6 +142,4 @@ void gpu_simple_step(TayState *state) {
         else
             assert(0); /* unhandled pass type */
     }
-
-    space_gpu_shared_fetch_new_positions(state);
 }

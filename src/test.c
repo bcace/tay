@@ -71,7 +71,7 @@ static void _destroy_results(Results *r) {
 }
 
 /* TODO: describe model case */
-static void _test_model_case1(TaySpaceType space_type, float see_radius, int max_depth_correction, Results *results) {
+static void _test_model_case1(TaySpaceType space_type, float see_radius, int depth_correction, Results *results) {
     int dims = 3;
     int agents_count = 4000;
     float space_size = 200.0f;
@@ -80,7 +80,7 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
 
     float4 see_radii = { see_radius, see_radius, see_radius, 0.0 };
 
-    TayState *s = tay_create_state_specific(dims, see_radii, space_type, max_depth_correction);
+    TayState *s = tay_create_state(dims, see_radii);
     tay_set_source(s, agent_kernels_source);
 
     ActContext act_context;
@@ -102,10 +102,10 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int max
 
     _make_cluster(s, g, agents_count, float4_make(0.0f, 0.0f, 0.0f), float4_make(space_size, space_size, space_size), 1.0f);
 
-    printf("R: %g, depth_correction: %d\n", see_radius, max_depth_correction);
+    printf("R: %g, depth_correction: %d\n", see_radius, depth_correction);
 
     tay_simulation_start(s);
-    tay_run(s, 100);
+    tay_run(s, 100, space_type, depth_correction);
     tay_simulation_end(s);
 
     if (results) {
@@ -155,7 +155,7 @@ void test() {
     for (int i = 0; i < 1; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-#if 0
+#if 1
         printf("cpu simple:\n");
         _test_model_case1(TAY_SPACE_CPU_SIMPLE, perception_r, 0, r);
 #endif

@@ -25,11 +25,14 @@ typedef struct {
 } CpuTree;
 
 typedef struct {
+    void *pass_kernels[TAY_MAX_PASSES];
+} GpuSimple;
+
+typedef struct {
     struct GpuContext *gpu;
     void *agent_io_buffer;
     void *agent_buffers[TAY_MAX_GROUPS];
     void *pass_context_buffers[TAY_MAX_PASSES];
-    void *pass_kernels[TAY_MAX_PASSES];
     void *resolve_pointers_kernel;
     void *fetch_new_positions_kernel;
     char text[TAY_GPU_MAX_TEXT_SIZE];
@@ -37,13 +40,15 @@ typedef struct {
 } GpuShared;
 
 typedef enum SpaceType {
-    ST_ADAPTIVE =       0x00,
+    ST_NONE =           0x00,
     ST_CPU =            0x10,
     ST_GPU =            0x20,
-    ST_CPU_SIMPLE =     (ST_CPU | 0x01),
-    ST_CPU_TREE =       (ST_CPU | 0x02),
-    ST_GPU_SIMPLE =     (ST_GPU | 0x01),
-    ST_GPU_TREE =       (ST_GPU | 0x02),
+    ST_CPU_ADAPTIVE =   (ST_CPU | 0x01),
+    ST_CPU_SIMPLE =     (ST_CPU | 0x02),
+    ST_CPU_TREE =       (ST_CPU | 0x03),
+    ST_GPU_ADAPTIVE =   (ST_GPU | 0x01),
+    ST_GPU_SIMPLE =     (ST_GPU | 0x02),
+    ST_GPU_TREE =       (ST_GPU | 0x03),
 } SpaceType;
 
 typedef struct Space {
@@ -56,8 +61,9 @@ typedef struct Space {
     Box box;
     CpuSimple cpu_simple;
     CpuTree cpu_tree;
+    GpuSimple gpu_simple;
     char shared[TAY_SPACE_SHARED_SIZE];
-    int shared_in_use;
+    char cells_arena[TAY_SPACE_CELL_ARENA_SIZE];
     GpuShared gpu_shared;
 } Space;
 
@@ -105,13 +111,11 @@ typedef struct TayState {
     const char *source;
 } TayState;
 
-void space_init(Space *space, int dims, float4 radii, int depth_correction, SpaceType init_type);
+void space_init(Space *space, int dims, float4 radii);
 void space_release(Space *space);
 void space_add_agent(Space *space, TayAgentTag *agent, int group);
-void space_on_simulation_start(struct TayState *state);
-void space_run(struct TayState *state, int steps);
-void space_on_simulation_end(struct TayState *state);
-void *space_get_shared_mem(Space *space, int size);
-void space_release_shared_mem(Space *space);
+void space_on_simulation_start(TayState *state);
+void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction);
+void space_on_simulation_end(TayState *state);
 
 #endif
