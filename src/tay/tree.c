@@ -43,7 +43,7 @@ static void _sort_agent(Tree *tree, TreeCell *cell, TayAgentTag *agent, int grou
         float pos = TAY_AGENT_POSITION(agent).arr[cell->dim];
         if (pos < cell->mid) {
             if (cell->lo == 0) {
-                assert(tree->cells_count * sizeof(TreeCell) < TAY_SPACE_CELL_ARENA_SIZE);
+                assert(tree->cells_count * sizeof(TreeCell) < TAY_CPU_SHARED_CELL_ARENA_SIZE);
                 cell->lo = tree->cells + tree->cells_count++;
                 tree_clear_cell(cell->lo);
                 cell->lo->box = cell->box;
@@ -54,7 +54,7 @@ static void _sort_agent(Tree *tree, TreeCell *cell, TayAgentTag *agent, int grou
         }
         else {
             if (cell->hi == 0) {
-                assert(tree->cells_count * sizeof(TreeCell) < TAY_SPACE_CELL_ARENA_SIZE);
+                assert(tree->cells_count * sizeof(TreeCell) < TAY_CPU_SHARED_CELL_ARENA_SIZE);
                 cell->hi = tree->cells + tree->cells_count++;
                 tree_clear_cell(cell->hi);
                 cell->hi->box = cell->box;
@@ -79,7 +79,7 @@ void tree_update(Space *space) {
     Tree *tree = &space->cpu_tree.base;
     tree->dims = space->dims;
     tree->radii = space->radii;
-    tree->cells = (TreeCell *)space->cells_arena;
+    tree->cells = space_get_cell_arena(space, TAY_MAX_CELLS * sizeof(TreeCell));
 
     /* calculate max partition depths for each dimension */
     Depths root_cell_depths;

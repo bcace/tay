@@ -6,7 +6,7 @@
 
 static const char *HEADER = "\n\
 #define DIMS %d\n\
-#define TAY_GPU_DEAD 0x%llx\n\
+#define TAY_GPU_DEAD_ADDR 0x%llx\n\
 #define TAY_GPU_NULL_INDEX %d\n\
 #define TAY_GPU_DEAD_INDEX %d\n\
 \n\
@@ -23,7 +23,7 @@ kernel void fix_pointers(global char *agents, global int *next_indices, int agen
     if (next_indices[i] == TAY_GPU_NULL_INDEX)\n\
         tag->next = 0;\n\
     else if (next_indices[i] == TAY_GPU_DEAD_INDEX)\n\
-        tag->next = TAY_GPU_DEAD;\n\
+        tag->next = TAY_GPU_DEAD_ADDR;\n\
     else\n\
         tag->next = (global TayAgentTag *)(agents + next_indices[i] * agent_size);\n\
 }\n\
@@ -51,7 +51,7 @@ void space_gpu_on_simulation_start(TayState *state) {
     {
         shared->text_size = 0;
         shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, HEADER,
-                                       space->dims, TAY_GPU_DEAD, TAY_GPU_NULL_INDEX, TAY_GPU_DEAD_INDEX);
+                                       space->dims, TAY_GPU_DEAD_ADDR, TAY_GPU_NULL_INDEX, TAY_GPU_DEAD_INDEX);
         shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, state->source);
         gpu_simple_add_source(state);
     }
@@ -77,7 +77,7 @@ void space_gpu_on_simulation_start(TayState *state) {
 
     /* create other shared buffers and kernels */
     {
-        shared->agent_io_buffer = gpu_create_buffer(shared->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_SPACE_SHARED_SIZE);
+        shared->agent_io_buffer = gpu_create_buffer(shared->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_CPU_SHARED_TEMP_ARENA_SIZE);
 
         shared->resolve_pointers_kernel = gpu_create_kernel(shared->gpu, "fix_pointers");
         gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 1, &shared->agent_io_buffer);
@@ -161,7 +161,7 @@ void space_gpu_fetch_agents(TayState *state) {
             for (int j = 0; j < group->capacity; ++j) {
                 TayAgentTag *tag = (TayAgentTag *)((char *)group->storage + j * group->agent_size);
 
-                if ((unsigned long long)tag->next == TAY_GPU_DEAD) { /* dead agents, return to storage */
+                if ((unsigned long long)tag->next == TAY_GPU_DEAD_ADDR) { /* dead agents, return to storage */
                     tag->next = group->first;
                     group->first = tag;
                 }
@@ -179,13 +179,11 @@ void space_gpu_shared_fix_gpu_pointers(TayState *state) {
     Space *space = &state->space;
     GpuShared *shared = &space->gpu_shared;
 
-    int *next_indices = (int *)space->shared;
+    int *next_indices = space_get_temp_arena(space, TAY_MAX_AGENTS * sizeof(int));
 
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
         if (group->storage) {
-
-            assert(group->capacity * sizeof(int) < TAY_SPACE_SHARED_SIZE);
 
             /* translate next pointers to indices for live agents */
             for (TayAgentTag *tag = space->first[i]; tag; tag = tag->next) {
@@ -216,14 +214,13 @@ void space_gpu_fetch_agent_positions(TayState *state) {
 
     box_reset(&space->box, space->dims);
 
-    float4 *positions = (float4 *)space->shared;
+    float4 *positions = space_get_temp_arena(space, TAY_MAX_AGENTS * sizeof(float4) * 2);
 
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
         if (group->storage) {
 
             int req_size = group->capacity * sizeof(float4) * (group->is_point ? 1 : 2);
-            assert(req_size < TAY_SPACE_SHARED_SIZE);
 
             gpu_set_kernel_buffer_argument(shared->fetch_new_positions_kernel, 0, &shared->agent_buffers[i]);
             gpu_set_kernel_value_argument(shared->fetch_new_positions_kernel, 2, &group->agent_size, sizeof(group->agent_size));

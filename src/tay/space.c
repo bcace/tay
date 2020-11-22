@@ -20,6 +20,16 @@ void space_release(Space *space) {
     space_gpu_shared_release(&space->gpu_shared);
 }
 
+void *space_get_temp_arena(Space *space, int size) {
+    assert(size < TAY_CPU_SHARED_TEMP_ARENA_SIZE);
+    return space->cpu_shared.temp_arena;
+}
+
+void *space_get_cell_arena(Space *space, int size) {
+    assert(size < TAY_CPU_SHARED_CELL_ARENA_SIZE);
+    return space->cpu_shared.cell_arena;
+}
+
 void space_add_agent(Space *space, TayAgentTag *agent, int group) {
     agent->next = space->first[group];
     space->first[group] = agent;
@@ -40,7 +50,6 @@ void space_on_simulation_end(TayState *state) {
 
 void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction) {
     Space *space = &state->space;
-    GpuShared *shared = &space->gpu_shared;
 
     assert(space_type != ST_NONE); /* only actual space type can be ST_NONE, and only before the first step */
 

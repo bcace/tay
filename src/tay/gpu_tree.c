@@ -12,7 +12,7 @@
 // #define DIMS %d\n\
 // #define TAY_MAX_GROUPS %d\n\
 // #define GPU_TREE_NULL_INDEX %d\n\
-// #define TAY_GPU_DEAD 0x%llx\n\
+// #define TAY_GPU_DEAD_ADDR 0x%llx\n\
 // \n\
 // #define TAY_AGENT_POSITION(__agent_tag__) (*(global float4 *)(__agent_tag__ + 1))\n\
 // \n\
@@ -65,7 +65,7 @@
 // kernel void mark_dead_agents(global char *agents, int agent_size, global int *dead_agent_indices) {\n\
 //     int i = get_global_id(0);\n\
 //     global TayAgentTag *tag = (global TayAgentTag *)(agents + i * agent_size);\n\
-//     tag->next = TAY_GPU_DEAD;\n\
+//     tag->next = TAY_GPU_DEAD_ADDR;\n\
 // }\n\
 // \n\
 // kernel void fetch_agent_positions(global char *agents, global float4 *positions, int agent_size) {\n\
@@ -200,7 +200,7 @@
 
 //     tree->text_size = 0;
 //     tree->text_size += sprintf_s(tree->text + tree->text_size, TAY_GPU_MAX_TEXT_SIZE - tree->text_size, HEADER,
-//                                  state->space.dims, TAY_MAX_GROUPS, GPU_TREE_NULL_INDEX, TAY_GPU_DEAD);
+//                                  state->space.dims, TAY_MAX_GROUPS, GPU_TREE_NULL_INDEX, TAY_GPU_DEAD_ADDR);
 
 //     tree->text_size += sprintf_s(tree->text + tree->text_size, TAY_GPU_MAX_TEXT_SIZE - tree->text_size, state->source);
 
@@ -428,7 +428,7 @@
 //             for (int j = 0; j < group->capacity; ++j) {
 //                 TayAgentTag *tag = (TayAgentTag *)((char *)group->storage + j * group->agent_size);
 
-//                 if ((unsigned long long)tag == TAY_GPU_DEAD) { /* dead agents, return to storage */
+//                 if ((unsigned long long)tag == TAY_GPU_DEAD_ADDR) { /* dead agents, return to storage */
 //                     tag->next = group->first;
 //                     group->first = tag;
 //                 }

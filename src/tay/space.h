@@ -3,8 +3,9 @@
 
 #include "state.h"
 
-#define TAY_GPU_NULL_INDEX -1
-#define TAY_GPU_DEAD_INDEX -2
+#define TAY_GPU_NULL_INDEX  -1
+#define TAY_GPU_DEAD_INDEX  -2
+#define TAY_GPU_DEAD_ADDR   0xffffffffffffffff
 
 
 typedef struct TreeCell {

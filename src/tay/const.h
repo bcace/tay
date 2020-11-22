@@ -6,12 +6,8 @@
 #define TAY_MAX_THREADS         64
 #define TAY_INSTRUMENT          0
 #define TAY_MAX_AGENTS          1000000
-// #define TAY_MAX_TREE_CELLS      100000
-// TODO: rename to TAY_GPU_DEAD_ADDR and move it to space.h
-#define TAY_GPU_DEAD            0xffffffffffffffff
+#define TAY_MAX_CELLS           100000
 #define TAY_GPU_MAX_TEXT_SIZE   10000
-#define TAY_SPACE_SHARED_SIZE   (TAY_MAX_AGENTS * sizeof(float4))
-#define TAY_SPACE_CELL_ARENA_SIZE 10000000
 
 #define TAY_AGENT_POSITION(__agent_tag__) (*(float4 *)((TayAgentTag *)(__agent_tag__) + 1))
 

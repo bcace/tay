@@ -3,6 +3,9 @@
 
 #include "const.h"
 
+#define TAY_CPU_SHARED_TEMP_ARENA_SIZE  (TAY_MAX_AGENTS * sizeof(float4) * 2)
+#define TAY_CPU_SHARED_CELL_ARENA_SIZE  (TAY_MAX_CELLS * 200)
+
 
 typedef struct {
     TayAgentTag *first[TAY_MAX_THREADS];
@@ -39,6 +42,11 @@ typedef struct {
     int text_size;
 } GpuShared;
 
+typedef struct {
+    char temp_arena[TAY_CPU_SHARED_TEMP_ARENA_SIZE];
+    char cell_arena[TAY_CPU_SHARED_CELL_ARENA_SIZE];
+} CpuShared;
+
 typedef enum SpaceType {
     ST_NONE =           0x00,
     ST_CPU =            0x10,
@@ -61,9 +69,8 @@ typedef struct Space {
     Box box;
     CpuSimple cpu_simple;
     CpuTree cpu_tree;
+    CpuShared cpu_shared;
     GpuSimple gpu_simple;
-    char shared[TAY_SPACE_SHARED_SIZE];
-    char cells_arena[TAY_SPACE_CELL_ARENA_SIZE];
     GpuShared gpu_shared;
 } Space;
 
@@ -117,5 +124,7 @@ void space_add_agent(Space *space, TayAgentTag *agent, int group);
 void space_on_simulation_start(TayState *state);
 void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction);
 void space_on_simulation_end(TayState *state);
+void *space_get_temp_arena(Space *space, int size);
+void *space_get_cell_arena(Space *space, int size);
 
 #endif
