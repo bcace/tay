@@ -1,9 +1,9 @@
-// #include "tree.h"
-// #include "state.h"
-// #include "gpu.h"
+#include "space.h"
+#include "state.h"
+#include "gpu.h"
 // #include <stdlib.h>
 // #include <stdio.h>
-// #include <assert.h>
+//#include <assert.h>
 
 // #define GPU_TREE_NULL_INDEX     -1
 
@@ -285,7 +285,7 @@
 //     }
 // }
 
-// static void _on_step_start(TayState *state) {
+static void _push_cells(TayState *state) {
 //     Tree *tree = state->space.storage;
 //     TreeBase *base = &tree->base;
 
@@ -351,7 +351,7 @@
 //             gpu_finish(tree->gpu); /* so all non-blocking kernel calls get done by this point */
 //         }
 //     }
-// }
+}
 
 
 // static void _see(TayState *state, int pass_index) {
@@ -468,17 +468,12 @@
 // }
 
 
-// void gpu_simple_step(TayState *state) {
+void gpu_tree_step(TayState *state) {
+    tree_update(&state->space);
+    _push_cells(state);
+    space_gpu_shared_fix_gpu_pointers(state);
 
-    // space_gpu_fetch_agent_positions(state);
+    /* do passes */
 
-    // tree_update(&state->space);
-
-//     // TODO: push cells to gpu and fix their pointers (cell->cell, cell->agent)
-
-//     space_gpu_shared_fix_gpu_pointers(state);
-
-//     /* do passes */
-
-//     tree_return_agents(&state->space); /* return all agents before fetching new positions so we can reuse shared memory */
-// }
+    tree_return_agents(&state->space);
+}

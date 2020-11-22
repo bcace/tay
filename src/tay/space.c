@@ -65,17 +65,29 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
         // TODO: determine depth correction when adaptive, for now we just take the fixed one from the argument
         space->depth_correction = depth_correction;
 
-        if ((old_type & ST_GPU) == 0 && (new_type & ST_GPU) != 0) /* switching from cpu to gpu or first gpu step in the simulation */
-            space_gpu_push_agents(state);
-        else if ((old_type & ST_GPU) != 0 && (new_type & ST_GPU) == 0) /* switching from gpu to cpu */
-            space_gpu_fetch_agents(state);
+        if (new_type & ST_GPU) {
+            if (old_type & ST_CPU || old_type == ST_NONE)   /* switching from cpu to gpu or first gpu step in the simulation */
+                space_gpu_push_agents(state);
+            else {                                          /* not switching from gpu to cpu and not first step in the simulation */
+                if (new_type == ST_GPU_TREE)
+                    space_gpu_fetch_agent_positions(state);
+            }
+            if (new_type == ST_GPU_SIMPLE && old_type != ST_GPU_SIMPLE)
+                space_gpu_shared_fix_gpu_pointers(state);
+        }
+        else if (new_type & ST_CPU) {
+            if (old_type & ST_GPU)                          /* switching from gpu to cpu */
+                space_gpu_fetch_agents(state);
+        }
 
         if (space->type == ST_CPU_SIMPLE)
             cpu_simple_step(state);
         else if (space->type == ST_CPU_TREE)
             cpu_tree_step(state);
         else if (space->type == ST_GPU_SIMPLE)
-            gpu_simple_step(state, old_type != ST_GPU_SIMPLE);
+            gpu_simple_step(state);
+        else if (space->type == ST_GPU_TREE)
+            gpu_tree_step(state);
         else
             assert(0); /* unhandled space type */
     }

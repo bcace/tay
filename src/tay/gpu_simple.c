@@ -125,14 +125,7 @@ static void _act(TayState *state, int pass_index) {
     gpu_enqueue_kernel(shared->gpu, simple->pass_kernels[pass_index], act_group->capacity);
 }
 
-void gpu_simple_step(TayState *state, int prev_not_gpu_simple) {
-
-    /* fix "next" pointers if we just switched to gpu and agents were pushed,
-    or we switched from gpu tree, in which case "next" pointers are also wrong */
-    if (prev_not_gpu_simple)
-        space_gpu_shared_fix_gpu_pointers(state);
-
-    /* do passes */
+void gpu_simple_step(TayState *state) {
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
         if (pass->type == TAY_PASS_SEE)
