@@ -32,7 +32,10 @@ typedef struct {
 } GpuSimple;
 
 typedef struct {
+    Tree base;
     void *pass_kernels[TAY_MAX_PASSES];
+    void *resolve_cell_pointers_kernel;
+    void *resolve_cell_agent_pointers_kernel;
 } GpuTree;
 
 typedef struct {

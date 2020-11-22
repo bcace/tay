@@ -21,12 +21,12 @@ void space_release(Space *space) {
 }
 
 void *space_get_temp_arena(Space *space, int size) {
-    assert(size < TAY_CPU_SHARED_TEMP_ARENA_SIZE);
+    assert(size <= TAY_CPU_SHARED_TEMP_ARENA_SIZE);
     return space->cpu_shared.temp_arena;
 }
 
 void *space_get_cell_arena(Space *space, int size) {
-    assert(size < TAY_CPU_SHARED_CELL_ARENA_SIZE);
+    assert(size <= TAY_CPU_SHARED_CELL_ARENA_SIZE);
     return space->cpu_shared.cell_arena;
 }
 

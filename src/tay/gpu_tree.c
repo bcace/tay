@@ -1,7 +1,6 @@
 #include "space.h"
 #include "state.h"
 #include "gpu.h"
-// #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 
@@ -125,49 +124,14 @@ void gpu_tree_add_source(TayState *state) {
     }
 }
 
-// #pragma pack(push, 1)
-// typedef struct {
-//     unsigned long long lo_index;
-//     unsigned long long hi_index;
-//     void *first[TAY_MAX_GROUPS];
-//     Box box;
-// } GPUCell;
-// #pragma pack(pop)
-
-// typedef struct {
-//     TreeBase base;
-//     GpuContext *gpu;
-//     GpuBuffer agent_buffers[TAY_MAX_GROUPS];
-//     GpuBuffer pass_context_buffers[TAY_MAX_PASSES];
-//     GpuBuffer cells_buffer;
-//     GpuBuffer agent_io_buffer; /* general buffer for whatever per-agent data */
-//     GpuKernel resolve_cell_pointers_kernel;
-//     GpuKernel resolve_cell_agent_pointers_kernel;
-//     GpuKernel resolve_agent_pointers_kernel;
-//     GpuKernel fetch_agent_positions_kernel;
-//     GpuKernel pass_kernels[TAY_MAX_PASSES];
-//     char text[TAY_GPU_MAX_TEXT_SIZE];
-//     int text_size;
-//     char arena[TAY_SPACE_SHARED_SIZE];
-// } Tree;
-
-// static Tree *_init(int dims, float4 radii, int max_depth_correction) {
-//     Tree *tree = malloc(sizeof(Tree));
-//     tree_init(&tree->base, dims, radii, max_depth_correction);
-//     tree->gpu = gpu_create();
-//     tree->text_size = 0;
-//     return tree;
-// }
-
-// static void _destroy(TaySpaceContainer *container) {
-//     Tree *tree = container->storage;
-//     gpu_destroy(tree->gpu);
-//     tree_destroy(&tree->base);
-// }
-
-// static void _add(TaySpaceContainer *container, TayAgentTag *agent, int group, int index) {
-//     tree_add(container->storage, agent, group);
-// }
+#pragma pack(push, 1)
+typedef struct {
+    unsigned long long lo_index;
+    unsigned long long hi_index;
+    void *first[TAY_MAX_GROUPS];
+    Box box;
+} GpuTreeCell;
+#pragma pack(pop)
 
 void gpu_tree_on_simulation_start(TayState *state) {
     Space *space = &state->space;
@@ -205,6 +169,15 @@ void gpu_tree_on_simulation_start(TayState *state) {
 
         tree->pass_kernels[i] = kernel;
     }
+
+    /* private kernels */
+    {
+        tree->resolve_cell_pointers_kernel = gpu_create_kernel(shared->gpu, "resolve_cell_pointers");
+        gpu_set_kernel_buffer_argument(tree->resolve_cell_pointers_kernel, 0, &shared->cells_buffer);
+
+        tree->resolve_cell_agent_pointers_kernel = gpu_create_kernel(shared->gpu, "resolve_cell_agent_pointers");
+        gpu_set_kernel_buffer_argument(tree->resolve_cell_agent_pointers_kernel, 0, &shared->cells_buffer);
+    }
 }
 
 
@@ -214,296 +187,68 @@ void gpu_tree_on_simulation_end(TayState *state) {
         gpu_release_kernel(tree->pass_kernels[i]);
 }
 
-// static void _on_simulation_start(TayState *state) {
-//     Tree *tree = state->space.storage;
-
-//     /* create buffers */
-
-//     tree->cells_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, tree->base.max_cells * sizeof(GPUCell));
-//     tree->agent_io_buffer = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_SPACE_SHARED_SIZE);
-
-//     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-//         TayGroup *group = state->groups + i;
-//         if (group->storage)
-//             tree->agent_buffers[i] = gpu_create_buffer(tree->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, group->capacity * group->agent_size);
-//     }
-
-//     for (int i = 0; i < state->passes_count; ++i) {
-//         TayPass *pass = state->passes + i;
-//         tree->pass_context_buffers[i] = gpu_create_buffer(tree->gpu, GPU_MEM_READ_ONLY, GPU_MEM_NONE, pass->context_size);
-//     }
-
-//     /* compose kernels source text */
-
-//     tree->text_size = 0;
-//     tree->text_size += sprintf_s(tree->text + tree->text_size, TAY_GPU_MAX_TEXT_SIZE - tree->text_size, HEADER,
-//                                  state->space.dims, TAY_MAX_GROUPS, GPU_TREE_NULL_INDEX, TAY_GPU_DEAD_ADDR);
-
-//     tree->text_size += sprintf_s(tree->text + tree->text_size, TAY_GPU_MAX_TEXT_SIZE - tree->text_size, state->source);
-
-//     for (int i = 0; i < state->passes_count; ++i) {
-//         TayPass *pass = state->passes + i;
-//         if (pass->type == TAY_PASS_SEE)
-//             tree->text_size += sprintf_s(tree->text + tree->text_size, TAY_GPU_MAX_TEXT_SIZE - tree->text_size, SEE_KERNEL,
-//                                          pass->func_name, pass->func_name);
-//         else if (pass->type == TAY_PASS_ACT)
-//             tree->text_size += sprintf_s(tree->text + tree->text_size, TAY_GPU_MAX_TEXT_SIZE - tree->text_size, ACT_KERNEL,
-//                                          pass->func_name, pass->func_name);
-//         else
-//             assert(0); /* unhandled pass type */
-//     }
-
-//     assert(tree->text_size < TAY_GPU_MAX_TEXT_SIZE);
-
-//     /* build program */
-
-//     gpu_build_program(tree->gpu, tree->text);
-
-//     /* create kernels */
-
-//     tree->resolve_cell_pointers_kernel = gpu_create_kernel(tree->gpu, "resolve_cell_pointers");
-//     gpu_set_kernel_buffer_argument(tree->resolve_cell_pointers_kernel, 0, &tree->cells_buffer);
-
-//     tree->resolve_cell_agent_pointers_kernel = gpu_create_kernel(tree->gpu, "resolve_cell_agent_pointers");
-//     gpu_set_kernel_buffer_argument(tree->resolve_cell_agent_pointers_kernel, 0, &tree->cells_buffer);
-
-//     tree->resolve_agent_pointers_kernel = gpu_create_kernel(tree->gpu, "resolve_agent_pointers");
-//     gpu_set_kernel_buffer_argument(tree->resolve_agent_pointers_kernel, 0, &tree->agent_io_buffer);
-
-//     tree->fetch_agent_positions_kernel = gpu_create_kernel(tree->gpu, "fetch_agent_positions");
-//     gpu_set_kernel_buffer_argument(tree->fetch_agent_positions_kernel, 1, &tree->agent_io_buffer);
-
-//     /* pass kernels */
-
-//     for (int i = 0; i < state->passes_count; ++i) {
-//         TayPass *pass = state->passes + i;
-
-//         static char kernel_name[512];
-//         sprintf_s(kernel_name, 512, "%s_tree_kernel", pass->func_name);
-
-//         GpuKernel kernel = 0;
-
-//         if (pass->type == TAY_PASS_SEE) {
-//             kernel = gpu_create_kernel(tree->gpu, kernel_name);
-//             TayGroup *seer_group = state->groups + pass->seer_group;
-//             gpu_set_kernel_buffer_argument(kernel, 0, &tree->agent_buffers[pass->seer_group]);
-//             gpu_set_kernel_value_argument(kernel, 1, &seer_group->agent_size, sizeof(seer_group->agent_size));
-//             gpu_set_kernel_buffer_argument(kernel, 2, &tree->cells_buffer);
-//             gpu_set_kernel_value_argument(kernel, 3, &pass->seen_group, sizeof(pass->seen_group));
-//             gpu_set_kernel_value_argument(kernel, 4, &pass->radii, sizeof(pass->radii));
-//             gpu_set_kernel_buffer_argument(kernel, 5, &tree->pass_context_buffers[i]);
-//         }
-//         else if (pass->type == TAY_PASS_ACT) {
-//             kernel = gpu_create_kernel(tree->gpu, kernel_name);
-//             TayGroup *act_group = state->groups + pass->act_group;
-//             gpu_set_kernel_buffer_argument(kernel, 0, &tree->agent_buffers[pass->act_group]);
-//             gpu_set_kernel_value_argument(kernel, 1, &act_group->agent_size, sizeof(act_group->agent_size));
-//             gpu_set_kernel_buffer_argument(kernel, 2, &tree->pass_context_buffers[i]);
-//         }
-//         else
-//             assert(0); /* unhandled pass type */
-
-//         tree->pass_kernels[i] = kernel;
-//     }
-
-//     /* push agents to GPU */
-
-//     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-//         TayGroup *group = state->groups + i;
-//         if (group->storage)
-//             gpu_enqueue_write_buffer(tree->gpu, tree->agent_buffers[i], GPU_BLOCKING, group->capacity * group->agent_size, group->storage);
-//     }
-
-//     /* push pass contexts to GPU */
-
-//     for (int i = 0; i < state->passes_count; ++i) {
-//         TayPass *pass = state->passes + i;
-//         gpu_enqueue_write_buffer(tree->gpu, tree->pass_context_buffers[i], GPU_BLOCKING, pass->context_size, pass->context);
-//     }
-// }
-
 static void _push_cells(TayState *state) {
-//     Tree *tree = state->space.storage;
-//     TreeBase *base = &tree->base;
+    Space *space = &state->space;
+    GpuShared *shared = &space->gpu_shared;
+    GpuTree *tree = &space->gpu_tree;
+    Tree *base = &tree->base;
 
-//     tree_update(base);
+    /* send cells to GPU */
+    {
+        GpuTreeCell *gpu_cells = space_get_temp_arena(space, base->cells_count * sizeof(GpuTreeCell));
 
-//     GPUCell *gpu_cells = (GPUCell *)tree->arena;
-//     assert(tree->base.cells_count * sizeof(GPUCell) < TAY_SPACE_SHARED_SIZE);
+        for (int i = 0; i < base->cells_count; ++i) {
+            TreeCell *cell = base->cells + i;
+            GpuTreeCell *gpu_cell = gpu_cells + i;
 
-//     for (int i = 0; i < base->cells_count; ++i) {
-//         Cell *cell = base->cells + i;
-//         GPUCell *gpu_cell = gpu_cells + i;
+            gpu_cell->lo_index = cell->lo ? cell->lo - base->cells : GPU_TREE_NULL_INDEX;
+            gpu_cell->hi_index = cell->hi ? cell->hi - base->cells : GPU_TREE_NULL_INDEX;
+            gpu_cell->box = cell->box;
 
-//         gpu_cell->lo_index = cell->lo ? cell->lo - base->cells : GPU_TREE_NULL_INDEX;
-//         gpu_cell->hi_index = cell->hi ? cell->hi - base->cells : GPU_TREE_NULL_INDEX;
-//         gpu_cell->box = cell->box;
+            for (int j = 0; j < TAY_MAX_GROUPS; ++j)
+                gpu_cell->first[j] = cell->first[j];
+        }
 
-//         for (int j = 0; j < TAY_MAX_GROUPS; ++j)
-//             gpu_cell->first[j] = cell->first[j];
-//     }
+        gpu_enqueue_write_buffer(shared->gpu, shared->cells_buffer, GPU_BLOCKING, base->cells_count * sizeof(GpuTreeCell), gpu_cells);
+    }
 
-//     /* send bridges to GPU */
+    /* fix cell-cell and cell-agent pointers on GPU */
+    {
+        long long int cells_count = base->cells_count;
 
-//     gpu_enqueue_write_buffer(tree->gpu, tree->cells_buffer, GPU_BLOCKING, base->cells_count * sizeof(GPUCell), gpu_cells);
+        gpu_enqueue_kernel_nb(shared->gpu, tree->resolve_cell_pointers_kernel, &cells_count);
 
-//     /* resolve pointers on GPU side and copy bounding boxes */
+        for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+            TayGroup *group = state->groups + i;
+            if (group->storage) {
+                unsigned long long host_agents_base = (unsigned long long)group->storage;
+                gpu_set_kernel_buffer_argument(tree->resolve_cell_agent_pointers_kernel, 1, &shared->agent_buffers[i]);
+                gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
+                gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 3, &i, sizeof(i));
+                gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 4, &host_agents_base, sizeof(host_agents_base));
+                gpu_enqueue_kernel_nb(shared->gpu, tree->resolve_cell_agent_pointers_kernel, &cells_count);
+                gpu_finish(shared->gpu);
+            }
+        }
 
-//     long long int cells_count = base->cells_count;
-//     gpu_enqueue_kernel_nb(tree->gpu, tree->resolve_cell_pointers_kernel, &cells_count);
-
-//     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-//         TayGroup *group = state->groups + i;
-//         if (group->storage) {
-
-//             unsigned long long host_agents_base = (unsigned long long)group->storage;
-
-//             /* resolve cell agent pointers */
-
-//             gpu_set_kernel_buffer_argument(tree->resolve_cell_agent_pointers_kernel, 1, &tree->agent_buffers[i]);
-//             gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
-//             gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 3, &i, sizeof(i));
-//             gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 4, &host_agents_base, sizeof(host_agents_base));
-
-//             long long int cells_count = base->cells_count;
-//             gpu_enqueue_kernel_nb(tree->gpu, tree->resolve_cell_agent_pointers_kernel, &cells_count);
-
-//             /* resolve agent next pointers */
-
-//             TayAgentTag *tags = (TayAgentTag *)tree->arena;
-//             assert(group->capacity * sizeof(TayAgentTag) < TAY_SPACE_SHARED_SIZE);
-
-//             for (int j = 0; j < group->capacity; ++j)
-//                 tags[j] = *(TayAgentTag *)((char *)group->storage + j * group->agent_size);
-
-//             gpu_enqueue_write_buffer(tree->gpu, tree->agent_io_buffer, GPU_BLOCKING, group->capacity * sizeof(TayAgentTag), tags);
-
-//             gpu_set_kernel_buffer_argument(tree->resolve_agent_pointers_kernel, 1, &tree->agent_buffers[i]);
-//             gpu_set_kernel_value_argument(tree->resolve_agent_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
-//             gpu_set_kernel_value_argument(tree->resolve_agent_pointers_kernel, 3, &host_agents_base, sizeof(host_agents_base));
-
-//             long long int group_capacity = group->capacity;
-//             gpu_enqueue_kernel_nb(tree->gpu, tree->resolve_agent_pointers_kernel, &group_capacity);
-
-//             gpu_finish(tree->gpu); /* so all non-blocking kernel calls get done by this point */
-//         }
-//     }
+    }
 }
 
+static void _see(TayState *state, int pass_index) {
+    GpuShared *shared = &state->space.gpu_shared;
+    GpuTree *tree = &state->space.gpu_tree;
+    TayPass *pass = state->passes + pass_index;
+    TayGroup *group = state->groups + pass->seer_group;
+    gpu_enqueue_kernel(shared->gpu, tree->pass_kernels[pass_index], group->capacity);
+}
 
-// static void _see(TayState *state, int pass_index) {
-//     Tree *tree = state->space.storage;
-//     TayPass *pass = state->passes + pass_index;
-//     TayGroup *group = state->groups + pass->seer_group;
-//     gpu_enqueue_kernel(tree->gpu, tree->pass_kernels[pass_index], group->capacity);
-// }
-
-// static void _act(TayState *state, int pass_index) {
-//     Tree *tree = state->space.storage;
-//     TayPass *pass = state->passes + pass_index;
-//     TayGroup *group = state->groups + pass->act_group;
-//     gpu_enqueue_kernel(tree->gpu, tree->pass_kernels[pass_index], group->capacity);
-// }
-
-// static void _on_step_end(TayState *state) {
-//     Tree *tree = state->space.storage;
-
-//     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-//         TayGroup *group = state->groups + i;
-
-//         if (group->storage) {
-//             int req_size = group->capacity * sizeof(float4) * (group->is_point ? 1 : 2);
-//             assert(req_size < TAY_SPACE_SHARED_SIZE);
-
-//             /* copy all agent positions into a buffer */
-
-//             gpu_set_kernel_buffer_argument(tree->fetch_agent_positions_kernel, 0, &tree->agent_buffers[i]);
-//             gpu_set_kernel_value_argument(tree->fetch_agent_positions_kernel, 2, &group->agent_size, sizeof(group->agent_size));
-
-//             long long int group_capacity = group->capacity;
-//             gpu_enqueue_kernel_nb(tree->gpu, tree->fetch_agent_positions_kernel, &group_capacity);
-
-//             gpu_finish(tree->gpu);
-
-//             /* copy the buffer into arena */
-
-//             gpu_enqueue_read_buffer(tree->gpu, tree->agent_io_buffer, GPU_BLOCKING, req_size, tree->arena);
-
-//             /* copy positions from arena into agents */
-
-//             float4 *positions = (float4 *)tree->arena;
-//             for (int i = 0; i < group->capacity; ++i) {
-//                 *(float4 *)((char *)group->storage + group->agent_size * i + sizeof(TayAgentTag)) = positions[i];
-//             }
-//         }
-//     }
-// }
-
-// static void _on_run_end(TaySpaceContainer *container, TayState *state) {
-//     Tree *tree = (Tree *)container->storage;
-//     TreeBase *base = &tree->base;
-
-//     /* get agents from GPU */
-
-//     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-//         TayGroup *group = state->groups + i;
-//         if (group->storage)
-//             gpu_enqueue_read_buffer(tree->gpu, tree->agent_buffers[i], GPU_NON_BLOCKING, group->capacity * group->agent_size, group->storage);
-//     }
-
-//     gpu_finish(tree->gpu);
-
-//     /* reset all agents "next" indices since they currently contain GPU addresses */
-
-//     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-//         TayGroup *group = state->groups + i;
-//         if (group->storage) {
-
-//             group->first = 0;
-//             base->first[i] = 0;
-
-//             for (int j = 0; j < group->capacity; ++j) {
-//                 TayAgentTag *tag = (TayAgentTag *)((char *)group->storage + j * group->agent_size);
-
-//                 if ((unsigned long long)tag == TAY_GPU_DEAD_ADDR) { /* dead agents, return to storage */
-//                     tag->next = group->first;
-//                     group->first = tag;
-//                 }
-//                 else { /* live agents, return to tree list */
-//                     tag->next = base->first[i];
-//                     base->first[i] = tag;
-//                 }
-//             }
-//         }
-//     }
-
-//     /* clear tree */
-
-//     tree_clear(base);
-// }
-
-// static void _on_simulation_end(TayState *state) {
-//     Tree *tree = state->space.storage;
-//     gpu_release_kernel(tree->resolve_cell_pointers_kernel);
-//     gpu_release_kernel(tree->resolve_cell_agent_pointers_kernel);
-//     gpu_release_kernel(tree->resolve_agent_pointers_kernel);
-//     for (int i = 0; i < state->passes_count; ++i)
-//         gpu_release_kernel(tree->pass_kernels[i]);
-// }
-
-// void space_gpu_tree_init(TaySpaceContainer *container, int dims, float4 radii, int max_depth_correction) {
-//     assert(sizeof(unsigned long long) == sizeof(void *));
-//     space_container_init(container, _init(dims, radii, max_depth_correction), dims, _destroy);
-//     container->on_simulation_start = _on_simulation_start;
-//     container->on_simulation_end = _on_simulation_end;
-//     container->on_step_start = _on_step_start;
-//     container->on_step_end = _on_step_end;
-//     container->add = _add;
-//     container->see = _see;
-//     container->act = _act;
-//     container->on_run_end = _on_run_end;
-// }
-
+static void _act(TayState *state, int pass_index) {
+    GpuShared *shared = &state->space.gpu_shared;
+    GpuTree *tree = &state->space.gpu_tree;
+    TayPass *pass = state->passes + pass_index;
+    TayGroup *group = state->groups + pass->act_group;
+    gpu_enqueue_kernel(shared->gpu, tree->pass_kernels[pass_index], group->capacity);
+}
 
 void gpu_tree_step(TayState *state) {
     tree_update(&state->space);
@@ -511,6 +256,15 @@ void gpu_tree_step(TayState *state) {
     space_gpu_shared_fix_gpu_pointers(state);
 
     /* do passes */
+    for (int i = 0; i < state->passes_count; ++i) {
+        TayPass *pass = state->passes + i;
+        if (pass->type == TAY_PASS_SEE)
+            _see(state, i);
+        else if (pass->type == TAY_PASS_ACT)
+            _act(state, i);
+        else
+            assert(0); /* unhandled pass type */
+    }
 
     tree_return_agents(&state->space);
 }
