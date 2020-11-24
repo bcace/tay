@@ -108,16 +108,10 @@ void tree_update(Space *space, Tree *tree) {
     box_reset(&space->box, tree->dims);
 }
 
-// TODO: wouldn't this be easier if it just iterated through cells instead of recursing?
-static void _return_agents(Space *space, TreeCell *cell) {
-    if (cell == 0)
-        return;
-    for (int i = 0; i < TAY_MAX_GROUPS; ++i)
-        space_return_agents(space, i, cell->first[i]);
-    _return_agents(space, cell->lo);
-    _return_agents(space, cell->hi);
-}
-
 void tree_return_agents(Space *space, Tree *tree) {
-    _return_agents(space, tree->cells);
+    for (int i = 0; i < tree->cells_count; ++i) {
+        TreeCell *cell = tree->cells + i;
+        for (int j = 0; j < TAY_MAX_GROUPS; ++j)
+            space_return_agents(space, j, cell->first[j]);
+    }
 }

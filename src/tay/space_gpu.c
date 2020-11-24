@@ -184,6 +184,7 @@ void space_gpu_fetch_agents(TayState *state) {
     }
 }
 
+// TODO: this is currently only valid for simple space, could maybe combine with the tree version somehow
 /* Translates "next" pointer addresses from CPU to GPU versions. */
 void space_gpu_shared_fix_gpu_pointers(TayState *state) {
     Space *space = &state->space;
