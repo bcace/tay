@@ -75,8 +75,7 @@ static int _max_depth(float space_side, float cell_side, int depth_correction) {
     return depth;
 }
 
-void tree_update(Space *space) {
-    Tree *tree = &space->cpu_tree.base;
+void tree_update(Space *space, Tree *tree) {
     tree->dims = space->dims;
     tree->radii = space->radii;
     tree->cells = space_get_cell_arena(space, TAY_MAX_CELLS * sizeof(TreeCell));
@@ -109,6 +108,7 @@ void tree_update(Space *space) {
     box_reset(&space->box, tree->dims);
 }
 
+// TODO: wouldn't this be easier if it just iterated through cells instead of recursing?
 static void _return_agents(Space *space, TreeCell *cell) {
     if (cell == 0)
         return;
@@ -118,6 +118,6 @@ static void _return_agents(Space *space, TreeCell *cell) {
     _return_agents(space, cell->hi);
 }
 
-void tree_return_agents(Space *space) {
-    _return_agents(space, space->cpu_tree.base.cells);
+void tree_return_agents(Space *space, Tree *tree) {
+    _return_agents(space, tree->cells);
 }

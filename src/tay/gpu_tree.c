@@ -180,7 +180,6 @@ void gpu_tree_on_simulation_start(TayState *state) {
     }
 }
 
-
 void gpu_tree_on_simulation_end(TayState *state) {
     GpuTree *tree = &state->space.gpu_tree;
     for (int i = 0; i < state->passes_count; ++i)
@@ -231,6 +230,7 @@ static void _push_cells(TayState *state) {
             }
         }
 
+
     }
 }
 
@@ -250,12 +250,48 @@ static void _act(TayState *state, int pass_index) {
     gpu_enqueue_kernel(shared->gpu, tree->pass_kernels[pass_index], group->capacity);
 }
 
-void gpu_tree_step(TayState *state) {
-    tree_update(&state->space);
-    _push_cells(state);
-    space_gpu_shared_fix_gpu_pointers(state);
+static void _fix_gpu_pointers(TayState *state) {
+    Space *space = &state->space;
+    GpuShared *shared = &space->gpu_shared;
+    Tree *base = &space->gpu_tree.base;
 
-    /* do passes */
+    int *next_indices = space_get_temp_arena(space, TAY_MAX_AGENTS * sizeof(int));
+
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage) {
+
+            /* translate next pointers to indices for live agents */
+            for (int j = 0; j < base->cells_count; ++j) {
+                TreeCell *cell = base->cells + j;
+
+                for (TayAgentTag *tag = cell->first[i]; tag; tag = tag->next) {
+                    int this_i = group_tag_to_index(group, tag);
+                    int next_i = group_tag_to_index(group, tag->next);
+                    next_indices[this_i] = next_i;
+                }
+            }
+
+            /* set all dead agents' next indices to a special value */
+            for (TayAgentTag *tag = group->first; tag; tag = tag->next) {
+                int this_i = group_tag_to_index(group, tag);
+                next_indices[this_i] = TAY_GPU_DEAD_INDEX;
+            }
+
+            gpu_enqueue_write_buffer(shared->gpu, shared->agent_io_buffer, GPU_BLOCKING, group->capacity * sizeof(int), next_indices);
+            gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 0, &shared->agent_buffers[i]);
+            gpu_set_kernel_value_argument(shared->resolve_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
+            gpu_enqueue_kernel(shared->gpu, shared->resolve_pointers_kernel, group->capacity);
+        }
+    }
+}
+
+void gpu_tree_step(TayState *state) {
+    tree_update(&state->space, &state->space.gpu_tree.base);
+
+    _push_cells(state);
+    _fix_gpu_pointers(state);
+
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
         if (pass->type == TAY_PASS_SEE)
@@ -266,5 +302,5 @@ void gpu_tree_step(TayState *state) {
             assert(0); /* unhandled pass type */
     }
 
-    tree_return_agents(&state->space);
+    tree_return_agents(&state->space, &state->space.gpu_tree.base);
 }

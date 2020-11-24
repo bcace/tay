@@ -112,7 +112,7 @@ static void _act(TayState *state, int pass_index) {
 void cpu_tree_step(TayState *state) {
 
     /* build the tree */
-    tree_update(&state->space);
+    tree_update(&state->space, &state->space.cpu_tree.base);
 
     /* do passes */
     for (int i = 0; i < state->passes_count; ++i) {
@@ -126,5 +126,5 @@ void cpu_tree_step(TayState *state) {
     }
 
     /* return agents to space and update the space box */
-    tree_return_agents(&state->space);
+    tree_return_agents(&state->space, &state->space.cpu_tree.base);
 }

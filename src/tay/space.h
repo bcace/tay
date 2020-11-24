@@ -42,8 +42,8 @@ void gpu_tree_on_simulation_start(TayState *state);
 void gpu_tree_on_simulation_end(TayState *state);
 void gpu_tree_step(TayState *state);
 
-void tree_update(Space *space);
-void tree_return_agents(Space *space);
+void tree_update(Space *space, Tree *tree);
+void tree_return_agents(Space *space, Tree *tree);
 
 void box_reset(Box *box, int dims);
 void box_update(Box *box, float4 pos, int dims);
