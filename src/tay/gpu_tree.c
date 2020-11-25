@@ -226,11 +226,10 @@ static void _push_cells(TayState *state) {
                 gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 3, &i, sizeof(i));
                 gpu_set_kernel_value_argument(tree->resolve_cell_agent_pointers_kernel, 4, &host_agents_base, sizeof(host_agents_base));
                 gpu_enqueue_kernel_nb(shared->gpu, tree->resolve_cell_agent_pointers_kernel, &cells_count);
-                gpu_finish(shared->gpu);
             }
         }
 
-
+        gpu_finish(shared->gpu);
     }
 }
 
@@ -272,16 +271,7 @@ static void _fix_gpu_pointers(TayState *state) {
                 }
             }
 
-            /* set all dead agents' next indices to a special value */
-            for (TayAgentTag *tag = group->first; tag; tag = tag->next) {
-                int this_i = group_tag_to_index(group, tag);
-                next_indices[this_i] = TAY_GPU_DEAD_INDEX;
-            }
-
-            gpu_enqueue_write_buffer(shared->gpu, shared->agent_io_buffer, GPU_BLOCKING, group->capacity * sizeof(int), next_indices);
-            gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 0, &shared->agent_buffers[i]);
-            gpu_set_kernel_value_argument(shared->resolve_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
-            gpu_enqueue_kernel(shared->gpu, shared->resolve_pointers_kernel, group->capacity);
+            space_gpu_finish_fixing_group_gpu_pointers(shared, group, i, next_indices);
         }
     }
 }

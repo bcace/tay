@@ -125,6 +125,27 @@ static void _act(TayState *state, int pass_index) {
     gpu_enqueue_kernel(shared->gpu, simple->pass_kernels[pass_index], act_group->capacity);
 }
 
+void gpu_simple_fix_gpu_pointers(TayState *state) {
+    Space *space = &state->space;
+    GpuShared *shared = &space->gpu_shared;
+
+    int *next_indices = space_get_temp_arena(space, TAY_MAX_AGENTS * sizeof(int));
+
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+        if (group->storage) {
+
+            for (TayAgentTag *tag = space->first[i]; tag; tag = tag->next) {
+                int this_i = group_tag_to_index(group, tag);
+                int next_i = group_tag_to_index(group, tag->next);
+                next_indices[this_i] = next_i;
+            }
+
+            space_gpu_finish_fixing_group_gpu_pointers(shared, group, i, next_indices);
+        }
+    }
+}
+
 void gpu_simple_step(TayState *state) {
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;

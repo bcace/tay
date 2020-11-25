@@ -71,7 +71,7 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
                     space_gpu_fetch_agent_positions(state);
             }
             if (new_type == ST_GPU_SIMPLE && old_type != ST_GPU_SIMPLE)
-                space_gpu_shared_fix_gpu_pointers(state);
+                gpu_simple_fix_gpu_pointers(state);
         }
         else if (new_type & ST_CPU) {
             if (old_type & ST_GPU)                          /* switching from gpu to cpu */

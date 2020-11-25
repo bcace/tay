@@ -29,12 +29,13 @@ void space_gpu_on_simulation_start(TayState *state);
 void space_gpu_on_simulation_end(TayState *state);
 void space_gpu_push_agents(TayState *state);
 void space_gpu_fetch_agents(TayState *state);
-void space_gpu_shared_fix_gpu_pointers(TayState *state);
+void space_gpu_finish_fixing_group_gpu_pointers(GpuShared *shared, TayGroup *group, int group_i, int *next_indices);
 void space_gpu_fetch_agent_positions(TayState *state);
 
 void gpu_simple_add_source(TayState *state);
 void gpu_simple_on_simulation_start(TayState *state);
 void gpu_simple_on_simulation_end(TayState *state);
+void gpu_simple_fix_gpu_pointers(TayState *state);
 void gpu_simple_step(TayState *state);
 
 void gpu_tree_add_source(TayState *state);

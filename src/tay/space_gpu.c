@@ -184,37 +184,21 @@ void space_gpu_fetch_agents(TayState *state) {
     }
 }
 
-// TODO: this is currently only valid for simple space, could maybe combine with the tree version somehow
-/* Translates "next" pointer addresses from CPU to GPU versions. */
-void space_gpu_shared_fix_gpu_pointers(TayState *state) {
-    Space *space = &state->space;
-    GpuShared *shared = &space->gpu_shared;
+/* Sends indices representing agent "next" pointers to GPU. Assumes the
+"next_indices" was already filled for live agents (only traversable by
+the specific space), and only only specially marks dead agents. */
+void space_gpu_finish_fixing_group_gpu_pointers(GpuShared *shared, TayGroup *group, int group_i, int *next_indices) {
 
-    int *next_indices = space_get_temp_arena(space, TAY_MAX_AGENTS * sizeof(int));
-
-    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-        TayGroup *group = state->groups + i;
-        if (group->storage) {
-
-            /* translate next pointers to indices for live agents */
-            for (TayAgentTag *tag = space->first[i]; tag; tag = tag->next) {
-                int this_i = group_tag_to_index(group, tag);
-                int next_i = group_tag_to_index(group, tag->next);
-                next_indices[this_i] = next_i;
-            }
-
-            /* set all dead agents' next indices to a special value */
-            for (TayAgentTag *tag = group->first; tag; tag = tag->next) {
-                int this_i = group_tag_to_index(group, tag);
-                next_indices[this_i] = TAY_GPU_DEAD_INDEX;
-            }
-
-            gpu_enqueue_write_buffer(shared->gpu, shared->agent_io_buffer, GPU_BLOCKING, group->capacity * sizeof(int), next_indices);
-            gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 0, &shared->agent_buffers[i]);
-            gpu_set_kernel_value_argument(shared->resolve_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
-            gpu_enqueue_kernel(shared->gpu, shared->resolve_pointers_kernel, group->capacity);
-        }
+    /* set all dead agents' next indices to a special value */
+    for (TayAgentTag *tag = group->first; tag; tag = tag->next) {
+        int this_i = group_tag_to_index(group, tag);
+        next_indices[this_i] = TAY_GPU_DEAD_INDEX;
     }
+
+    gpu_enqueue_write_buffer(shared->gpu, shared->agent_io_buffer, GPU_BLOCKING, group->capacity * sizeof(int), next_indices);
+    gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 0, &shared->agent_buffers[group_i]);
+    gpu_set_kernel_value_argument(shared->resolve_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
+    gpu_enqueue_kernel(shared->gpu, shared->resolve_pointers_kernel, group->capacity);
 }
 
 /* Gets new agent positions from GPU. Used when we only need new agent positions
