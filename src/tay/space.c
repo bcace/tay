@@ -96,10 +96,8 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
             cpu_simple_step(state);
         else if (space->type == ST_CPU_TREE)
             cpu_tree_step(state);
-        else if (space->type == ST_GPU_SIMPLE_DIRECT)
-            gpu_simple_step(state);
-        else if (space->type == ST_GPU_SIMPLE_INDIRECT)
-            gpu_simple_step(state);
+        else if (space->type & ST_GPU_SIMPLE)
+            gpu_simple_step(state, space->type == ST_GPU_SIMPLE_DIRECT);
         else if (space->type == ST_GPU_TREE)
             gpu_tree_step(state);
         else

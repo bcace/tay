@@ -51,6 +51,9 @@ kernel void %s_tree_kernel(global char *agents, int agent_size, global Cell *cel
     global TayAgentTag *seer_agent = (global TayAgentTag *)(agents + i * agent_size);\n\
     float4 seer_p = *(global float4 *)(agents + i * agent_size + sizeof(TayAgentTag));\n\
 \n\
+    if (seer_agent->next == TAY_GPU_DEAD_ADDR)\n\
+        return;\n\
+\n\
     Box seer_box;\n\
     seer_box.min = seer_p - radii;\n\
     seer_box.max = seer_p + radii;\n\
@@ -102,7 +105,9 @@ kernel void %s_tree_kernel(global char *agents, int agent_size, global Cell *cel
 
 static const char *ACT_KERNEL = "\n\
 kernel void %s_tree_kernel(global char *agents, int agent_size, global void *act_context) {\n\
-    %s((global void *)(agents + get_global_id(0) * agent_size), act_context);\n\
+    global TayAgentTag *tag = (global TayAgentTag *)(agents + get_global_id(0) * agent_size);\n\
+    if (tag->next != TAY_GPU_DEAD_ADDR)\n\
+        %s(tag, act_context);\n\
 }\n";
 
 void gpu_tree_add_source(TayState *state) {

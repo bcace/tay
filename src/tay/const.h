@@ -7,7 +7,7 @@
 #define TAY_INSTRUMENT          0
 #define TAY_MAX_AGENTS          1000000
 #define TAY_MAX_CELLS           100000
-#define TAY_GPU_MAX_TEXT_SIZE   10000
+#define TAY_GPU_MAX_TEXT_SIZE   20000
 
 #define TAY_AGENT_POSITION(__agent_tag__) (*(float4 *)((TayAgentTag *)(__agent_tag__) + 1))
 

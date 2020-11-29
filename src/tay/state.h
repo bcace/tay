@@ -29,6 +29,7 @@ typedef struct {
 
 typedef struct {
     void *pass_kernels[TAY_MAX_PASSES];
+    void *pass_kernels_indirect[TAY_MAX_PASSES];
 } GpuSimple;
 
 typedef struct {
@@ -67,7 +68,7 @@ typedef enum SpaceType {
 
     ST_CPU_SIMPLE =             (ST_FINAL | ST_CPU | ST_SIMPLE),
     ST_CPU_TREE =               (ST_FINAL | ST_CPU | ST_TREE),
-    ST_GPU_SIMPLE_DIRECT =      (ST_FINAL | 0x0100 | ST_GPU_SIMPLE),
+    ST_GPU_SIMPLE_DIRECT =      (ST_FINAL | 0x0100 | ST_GPU_SIMPLE), /* only used when agent populations don't change */
     ST_GPU_SIMPLE_INDIRECT =    (ST_FINAL | 0x0200 | ST_GPU_SIMPLE),
     ST_GPU_TREE =               (ST_FINAL | ST_GPU | ST_TREE),
     ST_CYCLE_ALL =              (ST_FINAL | 0x0ff0),
