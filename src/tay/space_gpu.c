@@ -124,7 +124,7 @@ void space_gpu_on_simulation_end(TayState *state) {
     }
 }
 
-/* Copies all agents to GPU. Agent "next" pointers are updated at the
+/* Copies all agents to GPU. Agent "next" pointers should be updated at the
 beginning of each step. */
 void space_gpu_push_agents(TayState *state) {
     Space *space = &state->space;

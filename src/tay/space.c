@@ -50,26 +50,21 @@ void space_on_simulation_end(TayState *state) {
 
 void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction) {
     Space *space = &state->space;
+    assert(space_type & ST_FINAL);
 
-#if ROUND_ROBIN
-    int round_robin = space_type == ST_CPU_ADAPTIVE;
-    if (round_robin)
-        space_type = ST_GPU_TREE;
-#endif
-
-    assert(space_type != ST_NONE); /* only actual space type can be ST_NONE, and only before the first step */
-    assert(space_type == ST_CPU_SIMPLE || space_type == ST_CPU_TREE ||
-           space_type == ST_GPU_SIMPLE || space_type == ST_GPU_TREE);
+    int cycling = space_type == ST_CYCLE_ALL;
 
     for (int step_i = 0; step_i < steps; ++step_i) {
         SpaceType old_type = space->type;
 
-        if (round_robin) {
+        if (cycling) {
             if (space_type == ST_CPU_SIMPLE)
                 space_type = ST_CPU_TREE;
             else if (space_type == ST_CPU_TREE)
-                space_type = ST_GPU_SIMPLE;
-            else if (space_type == ST_GPU_SIMPLE)
+                space_type = ST_GPU_SIMPLE_DIRECT;
+            else if (space_type == ST_GPU_SIMPLE_DIRECT)
+                space_type = ST_GPU_SIMPLE_INDIRECT;
+            else if (space_type == ST_GPU_SIMPLE_INDIRECT)
                 space_type = ST_GPU_TREE;
             else
                 space_type = ST_CPU_SIMPLE;
@@ -89,7 +84,7 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
                 if (new_type == ST_GPU_TREE)
                     space_gpu_fetch_agent_positions(state);
             }
-            if (new_type == ST_GPU_SIMPLE && old_type != ST_GPU_SIMPLE)
+            if ((new_type & ST_GPU_SIMPLE) && (old_type & ST_GPU_SIMPLE) == 0)
                 gpu_simple_fix_gpu_pointers(state);
         }
         else if (new_type & ST_CPU) {
@@ -101,7 +96,9 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
             cpu_simple_step(state);
         else if (space->type == ST_CPU_TREE)
             cpu_tree_step(state);
-        else if (space->type == ST_GPU_SIMPLE)
+        else if (space->type == ST_GPU_SIMPLE_DIRECT)
+            gpu_simple_step(state);
+        else if (space->type == ST_GPU_SIMPLE_INDIRECT)
             gpu_simple_step(state);
         else if (space->type == ST_GPU_TREE)
             gpu_tree_step(state);

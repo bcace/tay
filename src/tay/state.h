@@ -56,15 +56,21 @@ typedef struct {
 } CpuShared;
 
 typedef enum SpaceType {
-    ST_NONE =           0x00,
-    ST_CPU =            0x10,
-    ST_GPU =            0x20,
-    ST_CPU_ADAPTIVE =   (ST_CPU | 0x01),
-    ST_CPU_SIMPLE =     (ST_CPU | 0x02),
-    ST_CPU_TREE =       (ST_CPU | 0x03),
-    ST_GPU_ADAPTIVE =   (ST_GPU | 0x01),
-    ST_GPU_SIMPLE =     (ST_GPU | 0x02),
-    ST_GPU_TREE =       (ST_GPU | 0x03),
+    ST_NONE =                   0x0000,
+    ST_CPU =                    0x0001,
+    ST_GPU =                    0x0002,
+    ST_ADAPTIVE =               0x0010,
+    ST_SIMPLE =                 0x0020,
+    ST_TREE =                   0x0040,
+    ST_FINAL =                  0x1000,
+    ST_GPU_SIMPLE =             (ST_GPU | ST_SIMPLE),
+
+    ST_CPU_SIMPLE =             (ST_FINAL | ST_CPU | ST_SIMPLE),
+    ST_CPU_TREE =               (ST_FINAL | ST_CPU | ST_TREE),
+    ST_GPU_SIMPLE_DIRECT =      (ST_FINAL | 0x0100 | ST_GPU_SIMPLE),
+    ST_GPU_SIMPLE_INDIRECT =    (ST_FINAL | 0x0200 | ST_GPU_SIMPLE),
+    ST_GPU_TREE =               (ST_FINAL | ST_GPU | ST_TREE),
+    ST_CYCLE_ALL =              (ST_FINAL | 0x0ff0),
 } SpaceType;
 
 typedef struct Space {

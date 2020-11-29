@@ -109,18 +109,18 @@ void tay_simulation_start(TayState *state) {
 }
 
 static SpaceType _translate_space_type(TaySpaceType type) {
-    if (type == TAY_SPACE_CPU_ADAPTIVE)
-        return ST_CPU_ADAPTIVE;
-    else if (type == TAY_SPACE_CPU_SIMPLE)
+    if (type == TAY_SPACE_CPU_SIMPLE)
         return ST_CPU_SIMPLE;
     else if (type == TAY_SPACE_CPU_TREE)
         return ST_CPU_TREE;
-    else if (type == TAY_SPACE_GPU_ADAPTIVE)
-        return ST_GPU_ADAPTIVE;
-    else if (type == TAY_SPACE_GPU_SIMPLE)
-        return ST_GPU_SIMPLE;
+    else if (type == TAY_SPACE_GPU_SIMPLE_DIRECT)
+        return ST_GPU_SIMPLE_DIRECT;
+    else if (type == TAY_SPACE_GPU_SIMPLE_INDIRECT)
+        return ST_GPU_SIMPLE_INDIRECT;
     else if (type == TAY_SPACE_GPU_TREE)
         return ST_GPU_TREE;
+    else if (type == TAY_SPACE_CYCLE_ALL)
+        return ST_CYCLE_ALL;
     return ST_NONE;
 }
 
