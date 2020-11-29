@@ -4,6 +4,8 @@
 #include <assert.h>
 
 
+// TODO: make two versions of this kernel, one where it uses "next" pointer to iterate through seen agents,
+// and another where it just iterates all agents in order.
 static const char *SEE_KERNEL = "\n\
 kernel void %s_simple_kernel(global char *seer_agents, int seer_agent_size, global char *seen_agents, int seen_agent_size, int first_seen, float4 radii, global void *see_context) {\n\
     int i = get_global_id(0);\n\
@@ -11,6 +13,9 @@ kernel void %s_simple_kernel(global char *seer_agents, int seer_agent_size, glob
     float4 seer_p = TAY_AGENT_POSITION(seer_agent);\n\
     global TayAgentTag *seen_agent = (global TayAgentTag *)(seen_agents + first_seen * seen_agent_size);\n\
 \n\
+    // int count = get_global_size(0);\n\
+    // for (int j = 0; j < count; ++j) {\n\
+    //     global TayAgentTag *seen_agent = (global TayAgentTag *)(seen_agents + j * seer_agent_size);\n\
     while (seen_agent) {\n\
         float4 seen_p = TAY_AGENT_POSITION(seen_agent);\n\
 \n\
@@ -80,12 +85,10 @@ void gpu_simple_on_simulation_start(TayState *state) {
             kernel = gpu_create_kernel(shared->gpu, pass_kernel_name);
             TayGroup *seer_group = state->groups + pass->seer_group;
             TayGroup *seen_group = state->groups + pass->seen_group;
-            int first_seen = group_tag_to_index(seen_group, space->first[pass->seen_group]);
             gpu_set_kernel_buffer_argument(kernel, 0, &shared->agent_buffers[pass->seer_group]);
             gpu_set_kernel_value_argument(kernel, 1, &seer_group->agent_size, sizeof(seer_group->agent_size));
             gpu_set_kernel_buffer_argument(kernel, 2, &shared->agent_buffers[pass->seen_group]);
             gpu_set_kernel_value_argument(kernel, 3, &seen_group->agent_size, sizeof(seen_group->agent_size));
-            gpu_set_kernel_value_argument(kernel, 4, &first_seen, sizeof(first_seen));
             gpu_set_kernel_value_argument(kernel, 5, &pass->radii, sizeof(pass->radii));
             gpu_set_kernel_buffer_argument(kernel, 6, &shared->pass_context_buffers[i]);
         }
@@ -110,10 +113,14 @@ void gpu_simple_on_simulation_end(TayState *state) {
 }
 
 static void _see(TayState *state, int pass_index) {
-    GpuShared *shared = &state->space.gpu_shared;
-    GpuSimple *simple = &state->space.gpu_simple;
+    Space *space = &state->space;
+    GpuShared *shared = &space->gpu_shared;
+    GpuSimple *simple = &space->gpu_simple;
     TayPass *pass = state->passes + pass_index;
     TayGroup *seer_group = state->groups + pass->seer_group;
+    TayGroup *seen_group = state->groups + pass->seen_group;
+    int first_seen = group_tag_to_index(seen_group, space->first[pass->seen_group]);
+    gpu_set_kernel_value_argument(simple->pass_kernels[pass_index], 4, &first_seen, sizeof(first_seen));
     gpu_enqueue_kernel(shared->gpu, simple->pass_kernels[pass_index], seer_group->capacity);
 }
 

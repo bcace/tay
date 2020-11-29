@@ -146,10 +146,13 @@ void space_gpu_push_agents(TayState *state) {
     gpu_finish(shared->gpu);
 }
 
-/* Copies all agents from GPU and fixes pointers. */
+/* Copies all agents from GPU, returns them to space and group storage,
+and updates the space box. */
 void space_gpu_fetch_agents(TayState *state) {
     Space *space = &state->space;
     GpuShared *shared = &space->gpu_shared;
+
+    box_reset(&space->box, space->dims);
 
     /* fetch agents from GPU */
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
@@ -160,13 +163,14 @@ void space_gpu_fetch_agents(TayState *state) {
 
     gpu_finish(shared->gpu);
 
-    /* fix next pointers since we just got the ones from GPU */
+    /* fix next pointers since we just got the ones from GPU, and update the space bounding box */
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
         if (group->storage) {
 
             group->first = 0;
             space->first[i] = 0;
+            space->counts[i] = 0;
 
             for (int j = 0; j < group->capacity; ++j) {
                 TayAgentTag *tag = (TayAgentTag *)((char *)group->storage + j * group->agent_size);
@@ -175,9 +179,11 @@ void space_gpu_fetch_agents(TayState *state) {
                     tag->next = group->first;
                     group->first = tag;
                 }
-                else { /* live agents, return to tree list */
+                else { /* live agents, return to space */
                     tag->next = space->first[i];
                     space->first[i] = tag;
+                    ++space->counts[i];
+                    box_update(&space->box, TAY_AGENT_POSITION(tag), space->dims);
                 }
             }
         }

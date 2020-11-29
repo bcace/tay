@@ -46,16 +46,35 @@ void space_on_simulation_end(TayState *state) {
     space_gpu_on_simulation_end(state);     /* release all shared kernels and buffers */
 }
 
+#define ROUND_ROBIN 1
+
 void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction) {
     Space *space = &state->space;
 
+#if ROUND_ROBIN
+    int round_robin = space_type == ST_CPU_ADAPTIVE;
+    if (round_robin)
+        space_type = ST_GPU_TREE;
+#endif
+
     assert(space_type != ST_NONE); /* only actual space type can be ST_NONE, and only before the first step */
+    assert(space_type == ST_CPU_SIMPLE || space_type == ST_CPU_TREE ||
+           space_type == ST_GPU_SIMPLE || space_type == ST_GPU_TREE);
 
     for (int step_i = 0; step_i < steps; ++step_i) {
         SpaceType old_type = space->type;
 
-        assert(space_type == ST_CPU_SIMPLE || space_type == ST_CPU_TREE ||
-               space_type == ST_GPU_SIMPLE || space_type == ST_GPU_TREE);
+        if (round_robin) {
+            if (space_type == ST_CPU_SIMPLE)
+                space_type = ST_CPU_TREE;
+            else if (space_type == ST_CPU_TREE)
+                space_type = ST_GPU_SIMPLE;
+            else if (space_type == ST_GPU_SIMPLE)
+                space_type = ST_GPU_TREE;
+            else
+                space_type = ST_CPU_SIMPLE;
+        }
+
         SpaceType new_type = space_type;
         // TODO: determine space type when adaptive, for now we just fix one of the specific types
         space->type = new_type;
