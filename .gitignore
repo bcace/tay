@@ -10,4 +10,4 @@ src/gen/__pycache__
 *.filters
 *.user
 src/todo
-src/scratch
+src/results

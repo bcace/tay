@@ -144,7 +144,7 @@ void tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_corr
     tay_runner_report_stats();
 #endif
 
-    printf("run time: %g sec, %g fps\n\n", t, fps);
+    printf("FPS: %g\n\n", fps);
 }
 
 void tay_simulation_end(TayState *state) {
