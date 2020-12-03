@@ -28,6 +28,14 @@ typedef struct {
 } CpuTree;
 
 typedef struct {
+    struct GridCell *cells; /* cells storage */
+    struct GridCell *first; /* first cell that contains any agents */
+    int4 cell_counts;
+    float4 cell_sizes;
+    float4 grid_origin;
+} CpuGrid;
+
+typedef struct {
     void *pass_kernels[TAY_MAX_PASSES];
     void *pass_kernels_indirect[TAY_MAX_PASSES];
 } GpuSimple;
@@ -84,6 +92,7 @@ typedef struct Space {
     Box box;
     CpuSimple cpu_simple;
     CpuTree cpu_tree;
+    CpuGrid cpu_grid;
     CpuShared cpu_shared;
     GpuSimple gpu_simple;
     GpuTree gpu_tree;
@@ -141,6 +150,6 @@ void space_on_simulation_start(TayState *state);
 void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction);
 void space_on_simulation_end(TayState *state);
 void *space_get_temp_arena(Space *space, int size);
-void *space_get_cell_arena(Space *space, int size);
+void *space_get_cell_arena(Space *space, int size, int zero);
 
 #endif

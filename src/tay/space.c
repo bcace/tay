@@ -1,6 +1,7 @@
 #include "space.h"
 #include "thread.h"
 #include <float.h>
+#include <string.h>
 #include <assert.h>
 
 
@@ -25,9 +26,12 @@ void *space_get_temp_arena(Space *space, int size) {
     return space->cpu_shared.temp_arena;
 }
 
-void *space_get_cell_arena(Space *space, int size) {
+void *space_get_cell_arena(Space *space, int size, int zero) {
     assert(size <= TAY_CPU_SHARED_CELL_ARENA_SIZE);
-    return space->cpu_shared.cell_arena;
+    void *mem = space->cpu_shared.cell_arena;
+    if (zero)
+        memset(mem, 0, size);
+    return mem;
 }
 
 void space_add_agent(Space *space, TayAgentTag *agent, int group) {

@@ -23,6 +23,9 @@ void cpu_simple_step(TayState *state);
 
 void cpu_tree_step(TayState *state);
 
+void cpu_grid_prepare(TayState *state);
+void cpu_grid_step(TayState *state);
+
 void space_gpu_shared_init(GpuShared *shared);
 void space_gpu_shared_release(GpuShared *shared);
 void space_gpu_on_simulation_start(TayState *state);

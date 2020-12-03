@@ -78,7 +78,7 @@ static int _max_depth(float space_side, float cell_side, int depth_correction) {
 void tree_update(Space *space, Tree *tree) {
     tree->dims = space->dims;
     tree->radii = space->radii;
-    tree->cells = space_get_cell_arena(space, TAY_MAX_CELLS * sizeof(TreeCell));
+    tree->cells = space_get_cell_arena(space, TAY_MAX_CELLS * sizeof(TreeCell), 0);
 
     /* calculate max partition depths for each dimension */
     Depths root_cell_depths;
