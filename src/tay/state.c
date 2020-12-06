@@ -113,6 +113,8 @@ static SpaceType _translate_space_type(TaySpaceType type) {
         return ST_CPU_SIMPLE;
     else if (type == TAY_SPACE_CPU_TREE)
         return ST_CPU_TREE;
+    else if (type == TAY_SPACE_CPU_GRID)
+        return ST_CPU_GRID;
     else if (type == TAY_SPACE_GPU_SIMPLE_DIRECT)
         return ST_GPU_SIMPLE_DIRECT;
     else if (type == TAY_SPACE_GPU_SIMPLE_INDIRECT)

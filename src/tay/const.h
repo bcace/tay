@@ -1,6 +1,8 @@
 #ifndef tay_const_h
 #define tay_const_h
 
+#include <stdbool.h>
+
 #define TAY_MAX_GROUPS          8
 #define TAY_MAX_PASSES          32
 #define TAY_MAX_THREADS         64

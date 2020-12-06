@@ -102,8 +102,6 @@ void cpu_simple_step(TayState *state) {
         space->counts[group_i] = 0;
     }
 
-    box_reset(&space->box, space->dims);
-
     /* do passes */
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
@@ -115,7 +113,10 @@ void cpu_simple_step(TayState *state) {
             assert(0); /* unhandled pass type */
     }
 
-    /* return agents to space and update the space box */
+    /* reset the space box before returning agents */
+    box_reset(&space->box, space->dims);
+
+    /* return agents to space and update space box */
     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i)
         for (int thread_i = 0; thread_i < threads_count; ++thread_i)
             space_return_agents(space, group_i, space->cpu_simple.threads[thread_i].first[group_i]);

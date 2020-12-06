@@ -71,11 +71,13 @@ typedef enum SpaceType {
     ST_ADAPTIVE =               0x0010,
     ST_SIMPLE =                 0x0020,
     ST_TREE =                   0x0040,
+    ST_GRID =                   0x0080,
     ST_FINAL =                  0x1000,
     ST_GPU_SIMPLE =             (ST_GPU | ST_SIMPLE),
 
     ST_CPU_SIMPLE =             (ST_FINAL | ST_CPU | ST_SIMPLE),
     ST_CPU_TREE =               (ST_FINAL | ST_CPU | ST_TREE),
+    ST_CPU_GRID =               (ST_FINAL | ST_CPU | ST_GRID),
     ST_GPU_SIMPLE_DIRECT =      (ST_FINAL | 0x0100 | ST_GPU_SIMPLE), /* only used when agent populations don't change */
     ST_GPU_SIMPLE_INDIRECT =    (ST_FINAL | 0x0200 | ST_GPU_SIMPLE),
     ST_GPU_TREE =               (ST_FINAL | ST_GPU | ST_TREE),

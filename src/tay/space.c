@@ -65,6 +65,8 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
             if (space_type == ST_CPU_SIMPLE)
                 space_type = ST_CPU_TREE;
             else if (space_type == ST_CPU_TREE)
+                space_type = ST_CPU_GRID;
+            else if (space_type == ST_CPU_GRID)
                 space_type = ST_GPU_SIMPLE_DIRECT;
             else if (space_type == ST_GPU_SIMPLE_DIRECT)
                 space_type = ST_GPU_SIMPLE_INDIRECT;
@@ -94,12 +96,16 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
         else if (new_type & ST_CPU) {
             if (old_type & ST_GPU)                          /* switching from gpu to cpu */
                 space_gpu_fetch_agents(state);
+            if (new_type == ST_CPU_GRID && old_type != ST_CPU_GRID) /* prepare cpu grid */
+                cpu_grid_prepare(state);
         }
 
         if (space->type == ST_CPU_SIMPLE)
             cpu_simple_step(state);
         else if (space->type == ST_CPU_TREE)
             cpu_tree_step(state);
+        else if (space->type == ST_CPU_GRID)
+            cpu_grid_step(state);
         else if (space->type & ST_GPU_SIMPLE)
             gpu_simple_step(state, space->type == ST_GPU_SIMPLE_DIRECT);
         else if (space->type == ST_GPU_TREE)
