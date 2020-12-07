@@ -45,28 +45,28 @@ static void _see(TayState *state, int pass_index) {
 typedef struct {
     TayPass *pass;
     TayAgentTag *agents;
-} SimpleActTask;
+} ActTask;
 
-static void _init_simple_act_task(SimpleActTask *task, TayPass *pass, TayAgentTag *agents) {
+static void _init_act_task(ActTask *task, TayPass *pass, TayAgentTag *agents) {
     task->pass = pass;
     task->agents = agents;
 }
 
-static void _act_func(SimpleActTask *task, TayThreadContext *thread_context) {
-    for (TayAgentTag *a = task->agents; a; a = a->next)
-        task->pass->act(a, thread_context->context);
+static void _act_func(ActTask *task, TayThreadContext *thread_context) {
+    for (TayAgentTag *tag = task->agents; tag; tag = tag->next)
+        task->pass->act(tag, thread_context->context);
 }
 
 static void _act(TayState *state, int pass_index) {
-    static SimpleActTask act_contexts[TAY_MAX_THREADS];
+    static ActTask act_contexts[TAY_MAX_THREADS];
 
-    CpuSimple *s = &state->space.cpu_simple;
-    TayPass *p = state->passes + pass_index;
+    CpuSimple *simple = &state->space.cpu_simple;
+    TayPass *pass = state->passes + pass_index;
 
     for (int i = 0; i < runner.count; ++i) {
-        SimpleActTask *task = act_contexts + i;
-        _init_simple_act_task(task, p, s->threads[i].first[p->act_group]);
-        tay_thread_set_task(i, _act_func, task, p->context);
+        ActTask *task = act_contexts + i;
+        _init_act_task(task, pass, simple->threads[i].first[pass->act_group]);
+        tay_thread_set_task(i, _act_func, task, pass->context);
     }
     tay_runner_run();
 }
