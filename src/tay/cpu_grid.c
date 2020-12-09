@@ -3,6 +3,8 @@
 #include <math.h>
 #include <assert.h>
 
+#define TAY_MAX_KERNELS_IN_CACHE 8
+
 
 typedef struct {
     union {
@@ -13,11 +15,17 @@ typedef struct {
     };
 } ushort4;
 
+static int ushort4_eq(ushort4 a, ushort4 b, int dims) {
+    for (int i = 0; i < dims; ++i)
+        if (a.arr[i] != b.arr[i])
+            return false;
+    return true;
+}
+
 typedef struct GridCell {
     struct GridCell *next;
     TayAgentTag *first[TAY_MAX_GROUPS];
     int used;
-    // ushort4 indices;
 } GridCell;
 
 static inline ushort4 _agent_position_to_cell_indices(float4 pos, float4 orig, float4 size, int dims) {
@@ -27,9 +35,9 @@ static inline ushort4 _agent_position_to_cell_indices(float4 pos, float4 orig, f
     return indices;
 }
 
-static int _cell_indices_to_hash(ushort4 indices, int dims) {
+static unsigned _cell_indices_to_hash(ushort4 indices, int dims) {
     unsigned long long h = 0;
-    static unsigned long long c[] = { 1640531513, 2654435789, 2147483647, 6692367337 };
+    static unsigned long long c[] = { 1640531513ull, 2654435789ull, 2147483647ull, 6692367337ull };
     for (int i = 0; i < dims; ++i) {
         unsigned long long index = (unsigned long long)indices.arr[i];
         h ^= index * c[i];
@@ -49,21 +57,31 @@ typedef struct {
     GridCell *first_cell;
     int counter;
     int dims;
-    int4 kernel_radii;
+    ushort4 kernel_radii;
     float4 grid_origin;
     float4 cell_sizes;
+    unsigned *kernel_cache;
+    int kernels_per_thread;
 } _SeeTask;
 
-static void _init_see_task(_SeeTask *task, TayPass *pass, GridCell *cells, GridCell *first_cell, int thread_index, int dims, int4 kernel_radii, float4 grid_origin, float4 cell_sizes) {
+static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thread_i, int dims,
+                           ushort4 kernel_radii, int kernels_per_thread, int kernel_bytes, char *kernel_cache_mem) {
     task->pass = pass;
-    task->cells = cells;
-    task->first_cell = first_cell;
-    task->counter = thread_index;
+    task->cells = grid->cells;
+    task->first_cell = grid->first;
+    task->counter = thread_i;
     task->dims = dims;
+    task->grid_origin = grid->grid_origin;
+    task->cell_sizes = grid->cell_sizes;
     task->kernel_radii = kernel_radii;
-    task->grid_origin = grid_origin;
-    task->cell_sizes = cell_sizes;
+    task->kernels_per_thread = kernels_per_thread;
+    task->kernel_cache = (unsigned *)(kernel_cache_mem + kernels_per_thread * kernel_bytes * thread_i);
 }
+
+typedef struct {
+    ushort4 indices;
+    unsigned *hashes;
+} KernelRef;
 
 static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
     int seer_group = task->pass->seer_group;
@@ -71,62 +89,98 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
     TAY_SEE_FUNC see_func = task->pass->see;
     float4 radii = task->pass->radii;
     int dims = task->dims;
-    int4 kernel_radii = task->kernel_radii;
+    ushort4 kernel_radii = task->kernel_radii;
     float4 grid_origin = task->grid_origin;
     float4 cell_sizes = task->cell_sizes;
 
+    int kernel_hashes_count = 1;
     int4 kernel_sizes;
-    for (int i = 0; i < dims; ++i)
+    for (int i = 0; i < dims; ++i) {
         kernel_sizes.arr[i] = kernel_radii.arr[i] * 2 + 1;
+        kernel_hashes_count *= kernel_sizes.arr[i];
+    }
+
+    static KernelRef kernels[TAY_MAX_KERNELS_IN_CACHE];
+    for (int i = 0; i < task->kernels_per_thread; ++i)
+        kernels[i].hashes = task->kernel_cache + kernel_hashes_count * i;
 
     for (GridCell *seer_cell = task->first_cell; seer_cell; seer_cell = seer_cell->next) {
         if (task->counter % runner.count == 0) {
 
+            int kernels_count = 0;
+
             for (TayAgentTag *seer_agent = seer_cell->first[seer_group]; seer_agent; seer_agent = seer_agent->next) {
                 float4 seer_p = TAY_AGENT_POSITION(seer_agent);
-
                 ushort4 seer_indices = _agent_position_to_cell_indices(seer_p, grid_origin, cell_sizes, dims);
-                ushort4 origin;
-                for (int i = 0; i < dims; ++i)
-                    origin.arr[i] = seer_indices.arr[i] - kernel_radii.arr[i];
 
-                ushort4 seen_indices;
-                if (dims == 3) {
+                /* see if this agent has a kernel in the cache */
+                int kernel_i = 0;
+                for (; kernel_i < kernels_count; ++kernel_i)
+                    if (ushort4_eq(kernels[kernel_i].indices, seer_indices, dims))
+                        break;
 
-                    for (int x = 0; x < kernel_sizes.x; ++x) {
-                        seen_indices.x = origin.x + x;
-                        for (int y = 0; y < kernel_sizes.y; ++y) {
-                            seen_indices.y = origin.y + y;
-                            for (int z = 0; z < kernel_sizes.z; ++z) {
-                                seen_indices.z = origin.z + z;
+                /* if not found create it and move it to front */
+                if (kernel_i == kernels_count) {
+                    if (kernel_i == task->kernels_per_thread)
+                        --kernel_i;
+                    else
+                        kernel_i = kernels_count++;
 
-                                int hash = _cell_indices_to_hash(seen_indices, dims);
-                                GridCell *seen_cell = task->cells + hash;
+                    KernelRef *kernel_ref = kernels + kernel_i;
+                    kernel_ref->indices = seer_indices;
 
-                                if (seen_cell->used) {
-                                    for (TayAgentTag *seen_agent = seen_cell->first[seen_group]; seen_agent; seen_agent = seen_agent->next) {
-                                        float4 seen_p = TAY_AGENT_POSITION(seen_agent);
+                    ushort4 origin;
+                    for (int i = 0; i < dims; ++i)
+                        origin.arr[i] = seer_indices.arr[i] - kernel_radii.arr[i];
 
-                                        if (seer_agent == seen_agent) /* this can be removed for cases where beg_a != beg_b */
-                                            continue;
-
-                                        for (int i = 0; i < dims; ++i) {
-                                            float d = seer_p.arr[i] - seen_p.arr[i];
-                                            if (d < -radii.arr[i] || d > radii.arr[i])
-                                                goto SKIP_SEE;
-                                        }
-
-                                        see_func(seer_agent, seen_agent, thread_context->context);
-
-                                        SKIP_SEE:;
-                                    }
+                    int i = 0;
+                    ushort4 seen_indices;
+                    if (dims == 3) {
+                        for (int x = 0; x < kernel_sizes.x; ++x) {
+                            seen_indices.x = origin.x + x;
+                            for (int y = 0; y < kernel_sizes.y; ++y) {
+                                seen_indices.y = origin.y + y;
+                                for (int z = 0; z < kernel_sizes.z; ++z) {
+                                    seen_indices.z = origin.z + z;
+                                    kernel_ref->hashes[i++] = _cell_indices_to_hash(seen_indices, dims);
                                 }
                             }
                         }
                     }
                 }
-                else
-                    assert(0); /* not implemented */
+
+                /* move currently used kernel to front */
+                {
+                    KernelRef tmp = kernels[kernel_i];
+                    for (int i = kernel_i; i > 0; --i)
+                        kernels[i] = kernels[i - 1];
+                    kernels[0] = tmp;
+                }
+
+                /* use the front kernel */
+                KernelRef *kernel = kernels;
+                for (int i = 0; i < kernel_hashes_count; ++i) {
+                    GridCell *seen_cell = task->cells + kernel->hashes[i];
+
+                    if (seen_cell->used) {
+                        for (TayAgentTag *seen_agent = seen_cell->first[seen_group]; seen_agent; seen_agent = seen_agent->next) {
+                            float4 seen_p = TAY_AGENT_POSITION(seen_agent);
+
+                            if (seer_agent == seen_agent)
+                                continue;
+
+                            for (int j = 0; j < dims; ++j) {
+                                float d = seer_p.arr[j] - seen_p.arr[j];
+                                if (d < -radii.arr[j] || d > radii.arr[j])
+                                    goto SKIP_SEE;
+                            }
+
+                            see_func(seer_agent, seen_agent, thread_context->context);
+
+                            SKIP_SEE:;
+                        }
+                    }
+                }
             }
         }
         ++task->counter;
@@ -140,13 +194,28 @@ static void _see(TayState *state, int pass_index) {
     CpuGrid *grid = &space->cpu_grid;
     TayPass *pass = state->passes + pass_index;
 
-    int4 kernel_radii;
-    for (int i = 0; i < space->dims; ++i)
+    /* calculate kernel size */
+    int kernel_count = 1;
+    ushort4 kernel_radii;
+    for (int i = 0; i < space->dims; ++i) {
         kernel_radii.arr[i] = (int)ceilf(pass->radii.arr[i] / grid->cell_sizes.arr[i]);
+        kernel_count += kernel_radii.arr[i] * 2 + 1;
+    }
+
+    /* get memory for per-thread kernel caches */
+    int bytes_per_thread = (int)floorf(TAY_CPU_SHARED_MISC_ARENA_SIZE / (float)runner.count);
+    int kernel_bytes = (int)(kernel_count * sizeof(unsigned));
+    int kernels_per_thread = (int)floorf(bytes_per_thread / (float)kernel_bytes);
+    if (kernels_per_thread > TAY_MAX_KERNELS_IN_CACHE)
+        kernels_per_thread = TAY_MAX_KERNELS_IN_CACHE;
+    assert(kernels_per_thread > 0);
+
+    char *kernel_cache_mem = space_get_misc_arena(space, TAY_CPU_SHARED_MISC_ARENA_SIZE, false);
 
     for (int i = 0; i < runner.count; ++i) {
         _SeeTask *task = tasks + i;
-        _init_see_task(task, pass, grid->cells, grid->first, i, space->dims, kernel_radii, grid->grid_origin, grid->cell_sizes);
+        _init_see_task(task, pass, grid, i, space->dims,
+                       kernel_radii, kernels_per_thread, kernel_bytes, kernel_cache_mem);
         tay_thread_set_task(i, _see_func, task, pass->context);
     }
 
@@ -222,7 +291,7 @@ void cpu_grid_step(TayState *state) {
                                                                   grid->grid_origin,
                                                                   grid->cell_sizes,
                                                                   space->dims);
-                int hash = _cell_indices_to_hash(indices, space->dims);
+                unsigned hash = _cell_indices_to_hash(indices, space->dims);
                 GridCell *cell = grid->cells + hash;
 
                 tag->next = cell->first[group_i];

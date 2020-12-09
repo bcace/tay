@@ -28,10 +28,16 @@ void *space_get_temp_arena(Space *space, int size) {
 
 void *space_get_cell_arena(Space *space, int size, int zero) {
     assert(size <= TAY_CPU_SHARED_CELL_ARENA_SIZE);
-    void *mem = space->cpu_shared.cell_arena;
     if (zero)
-        memset(mem, 0, size);
-    return mem;
+        memset(space->cpu_shared.cell_arena, 0, size);
+    return space->cpu_shared.cell_arena;
+}
+
+void *space_get_misc_arena(Space *space, int size, int zero) {
+    assert(size <= TAY_CPU_SHARED_MISC_ARENA_SIZE);
+    if (zero)
+        memset(space->cpu_shared.misc_arena, 0, size);
+    return space->cpu_shared.misc_arena;
 }
 
 void space_add_agent(Space *space, TayAgentTag *agent, int group) {
