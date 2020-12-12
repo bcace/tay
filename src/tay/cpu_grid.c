@@ -100,7 +100,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
         kernel_hashes_count *= kernel_sizes.arr[i];
     }
 
-    static KernelRef kernels[TAY_MAX_KERNELS_IN_CACHE];
+    KernelRef kernels[TAY_MAX_KERNELS_IN_CACHE];
     for (int i = 0; i < task->kernels_per_thread; ++i)
         kernels[i].hashes = task->kernel_cache + kernel_hashes_count * i;
 
