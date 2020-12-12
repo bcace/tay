@@ -3,9 +3,9 @@
 
 #include "const.h"
 
-#define TAY_CPU_SHARED_TEMP_ARENA_SIZE  (TAY_MAX_AGENTS * sizeof(float4) * 2)
-#define TAY_CPU_SHARED_CELL_ARENA_SIZE  (TAY_MAX_CELLS * 200)
-#define TAY_CPU_SHARED_MISC_ARENA_SIZE  20000000
+#define TAY_CPU_SHARED_TEMP_ARENA_SIZE      (TAY_MAX_AGENTS * sizeof(float4) * 2)
+#define TAY_CPU_SHARED_CELL_ARENA_SIZE      (TAY_MAX_CELLS * 200)
+#define TAY_CPU_SHARED_THREAD_ARENA_SIZE    20000000
 
 
 typedef struct {
@@ -63,7 +63,7 @@ typedef struct {
 typedef struct {
     char temp_arena[TAY_CPU_SHARED_TEMP_ARENA_SIZE];
     char cell_arena[TAY_CPU_SHARED_CELL_ARENA_SIZE];
-    char misc_arena[TAY_CPU_SHARED_MISC_ARENA_SIZE];
+    char thread_arena[TAY_CPU_SHARED_THREAD_ARENA_SIZE];
 } CpuShared;
 
 typedef enum SpaceType {
@@ -155,6 +155,7 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
 void space_on_simulation_end(TayState *state);
 void *space_get_temp_arena(Space *space, int size);
 void *space_get_cell_arena(Space *space, int size, int zero);
-void *space_get_misc_arena(Space *space, int size, int zero);
+int space_get_thread_mem_size();
+void *space_get_thread_mem(Space *space, int thread_i);
 
 #endif

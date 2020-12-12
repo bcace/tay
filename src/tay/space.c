@@ -33,11 +33,14 @@ void *space_get_cell_arena(Space *space, int size, int zero) {
     return space->cpu_shared.cell_arena;
 }
 
-void *space_get_misc_arena(Space *space, int size, int zero) {
-    assert(size <= TAY_CPU_SHARED_MISC_ARENA_SIZE);
-    if (zero)
-        memset(space->cpu_shared.misc_arena, 0, size);
-    return space->cpu_shared.misc_arena;
+int space_get_thread_mem_size() {
+    int rem = TAY_CPU_SHARED_THREAD_ARENA_SIZE % runner.count;
+    return (TAY_CPU_SHARED_THREAD_ARENA_SIZE - rem) / runner.count;
+}
+
+void *space_get_thread_mem(Space *space, int thread_i) {
+    int size = space_get_thread_mem_size();
+    return space->cpu_shared.thread_arena + size * thread_i;
 }
 
 void space_add_agent(Space *space, TayAgentTag *agent, int group) {
@@ -55,8 +58,6 @@ void space_on_simulation_start(TayState *state) {
 void space_on_simulation_end(TayState *state) {
     space_gpu_on_simulation_end(state);     /* release all shared kernels and buffers */
 }
-
-#define ROUND_ROBIN 1
 
 void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction) {
     Space *space = &state->space;
@@ -163,7 +164,7 @@ void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC 
         for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
             float4 seen_p = TAY_AGENT_POSITION(seen_agent);
 
-            if (seer_agent == seen_agent) /* this can be removed for cases where beg_a != beg_b */
+            if (seer_agent == seen_agent)
                 continue;
 
 #if TAY_INSTRUMENT
@@ -184,6 +185,35 @@ void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC 
 
             SKIP_SEE:;
         }
+    }
+}
+
+void space_see_single_seer(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+    float4 seer_p = TAY_AGENT_POSITION(seer_agent);
+
+    for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
+        float4 seen_p = TAY_AGENT_POSITION(seen_agent);
+
+        if (seer_agent == seen_agent)
+            continue;
+
+#if TAY_INSTRUMENT
+        ++thread_context->broad_see_phase;
+#endif
+
+        for (int i = 0; i < dims; ++i) {
+            float d = seer_p.arr[i] - seen_p.arr[i];
+            if (d < -radii.arr[i] || d > radii.arr[i])
+                goto SKIP_SEE;
+        }
+
+#if TAY_INSTRUMENT
+        ++thread_context->narrow_see_phase;
+#endif
+
+        func(seer_agent, seen_agent, thread_context->context);
+
+        SKIP_SEE:;
     }
 }
 

@@ -147,12 +147,13 @@ void test() {
     Results *r = 0;
 #endif
 
+    int beg_see_radius = 0;
+    int end_see_radius = 3;
+
     int beg_depth_correction = 0;
-    int end_depth_correction = 1;
+    int end_depth_correction = 3;
 
-    /* testing model case 1 */
-
-    for (int i = 0; i < 3; ++i) {
+    for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float perception_r = 10.0f * (1 << i);
 
 #if 0
@@ -160,7 +161,7 @@ void test() {
         _test_model_case1(TAY_SPACE_CPU_SIMPLE, perception_r, 0, r);
 #endif
 
-#if 1
+#if 0
         printf("cpu tree:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_CPU_TREE, perception_r, j, r);

@@ -8,8 +8,8 @@ typedef void * Handle;
 
 typedef struct TayThreadContext {
     void *context; /* model context */
-    int broad_see_phase;
-    int narrow_see_phase;
+    unsigned long long broad_see_phase;
+    unsigned long long narrow_see_phase;
 } TayThreadContext;
 
 typedef struct TayThread {
