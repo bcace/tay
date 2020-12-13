@@ -29,8 +29,8 @@ typedef struct {
 } CpuTree;
 
 typedef struct {
-    struct GridCell *cells; /* cells storage */
-    struct GridCell *first; /* first cell that contains any agents */
+    struct Bucket *buckets; /* buckets storage */
+    struct Bucket *first_bucket; /* first bucket that contains any agents */
     int4 cell_counts;
     float4 cell_sizes;
     float4 grid_origin;
