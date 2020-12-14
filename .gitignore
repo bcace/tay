@@ -3,7 +3,7 @@ Debug
 Release
 x64
 lib
-src/gen/__pycache__
+src/preproc/__pycache__
 *.vcxproj
 *.sln
 *.log
