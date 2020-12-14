@@ -148,7 +148,7 @@ void test() {
 #endif
 
     int beg_see_radius = 0;
-    int end_see_radius = 3;
+    int end_see_radius = 1;
 
     int beg_depth_correction = 0;
     int end_depth_correction = 3;

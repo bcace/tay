@@ -140,13 +140,13 @@ void tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_corr
 
     timespec_get(&end, TIME_UTC);
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
-    double fps = steps / t;
+    double ms = (t / (double)steps) * 1000.0;
 
 #if TAY_INSTRUMENT
     tay_runner_report_stats();
 #endif
 
-    printf("FPS: %g\n\n", fps);
+    printf("ms: %g\n\n", ms);
 }
 
 void tay_simulation_end(TayState *state) {
