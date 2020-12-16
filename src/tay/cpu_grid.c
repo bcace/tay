@@ -236,7 +236,7 @@ static void _see(TayState *state, int pass_index) {
         kernel_size *= kernel_radii.arr[i] * 2 + 1;
     }
 
-    assert(kernel_size * sizeof(BucketRef) <= space_get_thread_mem_size());
+    assert(kernel_size * sizeof(Bucket *) <= space_get_thread_mem_size());
 
     for (int i = 0; i < runner.count; ++i) {
         _SeeTask *task = tasks + i;
