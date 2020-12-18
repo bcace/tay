@@ -44,14 +44,14 @@ static inline ushort4 _agent_position_to_cell_indices(float4 pos, float4 orig, f
 static inline unsigned _cell_indices_to_hash_1(ushort4 indices) {
     return (
         ((unsigned long long)indices.x * HASH_FACTOR_X)
-    ) % TAY_MAX_CELLS;
+    ) & TAY_MAX_CELLS; /* this is a % operation, works with & only if done with a number that's (2^n - 1) */
 }
 
 static inline unsigned _cell_indices_to_hash_2(ushort4 indices) {
     return (
         ((unsigned long long)indices.x * HASH_FACTOR_X) ^
         ((unsigned long long)indices.y * HASH_FACTOR_Y)
-    ) % TAY_MAX_CELLS;
+    ) & TAY_MAX_CELLS; /* this is a % operation, works with & only if done with a number that's (2^n - 1) */
 }
 
 static inline unsigned _cell_indices_to_hash_3(ushort4 indices) {
@@ -59,7 +59,7 @@ static inline unsigned _cell_indices_to_hash_3(ushort4 indices) {
         ((unsigned long long)indices.x * HASH_FACTOR_X) ^
         ((unsigned long long)indices.y * HASH_FACTOR_Y) ^
         ((unsigned long long)indices.z * HASH_FACTOR_Z)
-    ) % TAY_MAX_CELLS;
+    ) & TAY_MAX_CELLS; /* this is a % operation, works with & only if done with a number that's (2^n - 1) */
 }
 
 static inline unsigned _cell_indices_to_hash_4(ushort4 indices) {
@@ -68,7 +68,7 @@ static inline unsigned _cell_indices_to_hash_4(ushort4 indices) {
         ((unsigned long long)indices.y * HASH_FACTOR_Y) ^
         ((unsigned long long)indices.z * HASH_FACTOR_Z) ^
         ((unsigned long long)indices.w * HASH_FACTOR_W)
-    ) % TAY_MAX_CELLS;
+    ) & TAY_MAX_CELLS; /* this is a % operation, works with & only if done with a number that's (2^n - 1) */
 }
 
 static inline unsigned _cell_indices_to_hash(ushort4 indices, int dims) {

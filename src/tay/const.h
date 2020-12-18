@@ -8,7 +8,7 @@
 #define TAY_MAX_THREADS         64
 #define TAY_INSTRUMENT          1
 #define TAY_MAX_AGENTS          1000000
-#define TAY_MAX_CELLS           1000000
+#define TAY_MAX_CELLS           ((1 << 20) - 1) /* this makes it work faster with & instead of % */
 #define TAY_GPU_MAX_TEXT_SIZE   20000
 
 #define TAY_AGENT_POSITION(__agent_tag__) (*(float4 *)((TayAgentTag *)(__agent_tag__) + 1))
