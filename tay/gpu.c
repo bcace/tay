@@ -168,7 +168,7 @@ int gpu_enqueue_kernel(GpuContext *c, GpuKernel kernel, int count) {
     cl_int err = clEnqueueNDRangeKernel(c->commands, kernel, 1, 0, &wide_count, 0, 0, 0, 0);
     if (_check_errors(err, "clEnqueueNDRangeKernel"))
         return 1;
-    clFinish(c->commands); /* must be here because each kernel represents a iteration phase, and also having a pointer to wide_count local variable wouldn't work */
+    clFinish(c->commands); /* must be here because each kernel represents an iteration phase, and also having a pointer to wide_count local variable wouldn't work */
     return 0;
 }
 
