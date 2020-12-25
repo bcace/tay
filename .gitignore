@@ -3,11 +3,10 @@ Debug
 Release
 x64
 lib
-src/preproc/__pycache__
+benchmark/preproc/__pycache__
+flocking/graphics
 *.vcxproj
 *.sln
 *.log
 *.filters
 *.user
-src/todo
-src/results
