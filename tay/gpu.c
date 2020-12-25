@@ -173,7 +173,7 @@ int gpu_enqueue_kernel(GpuContext *c, GpuKernel kernel, int count) {
 }
 
 int gpu_enqueue_kernel_nb(GpuContext *c, GpuKernel kernel, long long int *count) {
-    cl_int err = clEnqueueNDRangeKernel(c->commands, kernel, 1, 0, count, 0, 0, 0, 0);
+    cl_int err = clEnqueueNDRangeKernel(c->commands, kernel, 1, 0, (size_t *)count, 0, 0, 0, 0);
     if (_check_errors(err, "clEnqueueNDRangeKernel"))
         return 1;
     return 0;
