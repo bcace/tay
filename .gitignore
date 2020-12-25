@@ -5,6 +5,7 @@ x64
 lib
 benchmark/preproc/__pycache__
 flocking/graphics
+todo
 *.vcxproj
 *.sln
 *.log
