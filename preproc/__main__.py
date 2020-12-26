@@ -1,16 +1,20 @@
+import sys
 
 
-def read(path):
+def _read(path):
     with open(path, "r") as f:
         return f.read()
 
-_AGENT_H = read('preproc/agent.h')
-_AGENT_C = read('preproc/agent.c')
-_BUILTINS_C = read('preproc/builtins.c')
+def main(proj_dir):
 
-# generate opencl kernel source
+    _AGENT_H = _read('%s/preproc/agent.h' % proj_dir)
+    _AGENT_C = _read('%s/preproc/agent.c' % proj_dir)
 
-_OPENCL_SOURCE = """
+    _BUILTINS_C = _read('preproc/builtins.c')
+
+    # generate opencl kernel source
+
+    _OPENCL_SOURCE = """
 {0}
 {1}
 {2}
@@ -20,10 +24,10 @@ _OPENCL_SOURCE = """
     _AGENT_C
 ).replace('__PACK__', '__attribute__((packed))').replace('__GLOBAL__', 'global').replace('\n', '\\n\\\n')
 
-# generate files
+    # generate files
 
-with open('agent.h', 'w+') as f:
-    f.write("""#ifndef tay_agent_h
+    with open('%s/agent.h' % proj_dir, 'w+') as f:
+        f.write("""#ifndef tay_agent_h
 #define tay_agent_h
 
 #include "state.h"
@@ -51,8 +55,8 @@ extern const char *agent_kernels_source;
     ).replace('__PACK__ ', '')
 )
 
-with open('agent.c', 'w+') as f:
-    f.write("""#include "agent.h"
+    with open('%s/agent.c' % proj_dir, 'w+') as f:
+        f.write("""#include "agent.h"
 
 
 {0}
@@ -64,3 +68,7 @@ const char *agent_kernels_source = "{2}";
     _OPENCL_SOURCE
     )
 )
+
+
+if __name__ == "__main__":
+   main(sys.argv[1])

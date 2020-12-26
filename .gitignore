@@ -3,7 +3,7 @@ Debug
 Release
 x64
 lib
-benchmark/preproc/__pycache__
+preproc/__pycache__
 flocking/graphics
 todo
 *.vcxproj
