@@ -30,7 +30,7 @@ def main(proj_dir):
         f.write("""#ifndef tay_agent_h
 #define tay_agent_h
 
-#include "state.h"
+#include "tay.h"
 
 
 #pragma pack(push, 1)

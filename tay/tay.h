@@ -12,6 +12,28 @@ typedef enum TaySpaceType {
     TAY_SPACE_CYCLE_ALL,
 } TaySpaceType;
 
+#pragma pack(push, 1)
+
+typedef struct float4 {
+    union {
+        struct {
+            float x, y, z, w;
+        };
+        float arr[4];
+    };
+} float4;
+
+typedef struct {
+    float4 min;
+    float4 max;
+} Box;
+
+typedef struct TayAgentTag {
+    struct TayAgentTag *next;
+} TayAgentTag;
+
+#pragma pack(pop)
+
 typedef struct TayState TayState;
 
 TayState *tay_create_state(int space_dims, struct float4 see_radii);

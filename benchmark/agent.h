@@ -1,7 +1,7 @@
 #ifndef tay_agent_h
 #define tay_agent_h
 
-#include "state.h"
+#include "tay.h"
 
 
 #pragma pack(push, 1)

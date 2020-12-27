@@ -23,30 +23,6 @@ typedef struct {
     };
 } int4;
 
-#pragma pack(push, 1)
-typedef struct float4 {
-    union {
-        struct {
-            float x, y, z, w;
-        };
-        float arr[4];
-    };
-} float4;
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-typedef struct {
-    float4 min;
-    float4 max;
-} Box;
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-typedef struct TayAgentTag {
-    struct TayAgentTag *next;
-} TayAgentTag;
-#pragma pack(pop)
-
 typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 

@@ -1,6 +1,7 @@
 #ifndef tay_state_h
 #define tay_state_h
 
+#include "tay.h"
 #include "const.h"
 
 #define TAY_CPU_SHARED_TEMP_ARENA_SIZE      (TAY_MAX_AGENTS * sizeof(float4) * 2)
