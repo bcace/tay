@@ -54,17 +54,23 @@ void shader_program_set_uniform_vec4(Program *p, int uniform_index, vec4 *vec) {
     glUniform4f(p->uniforms[uniform_index], vec->x, vec->y, vec->z, vec->w);
 }
 
-void _define_in(Program *p, int components, int type) {
+void _define_in(Program *p, int components, int type, int instanced) {
     assert(p->vbo_count < GRAPH_MAX_VBOS);
-    glGenBuffers(1, &p->vbos[p->vbo_count]);
-    glBindBuffer(GL_ARRAY_BUFFER, p->vbos[p->vbo_count]);
-    glVertexAttribPointer(p->vbo_count, components, type, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(p->vbo_count);
-    ++p->vbo_count;
+    int attr_loc = p->vbo_count++;
+    glGenBuffers(1, &p->vbos[attr_loc]);
+    glBindBuffer(GL_ARRAY_BUFFER, p->vbos[attr_loc]);
+    glVertexAttribPointer(attr_loc, components, type, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(attr_loc);
+    if (instanced)
+        glVertexAttribDivisor(attr_loc, 1);
 }
 
 void shader_program_define_in_float(Program *p, int components) {
-    _define_in(p, components, GL_FLOAT);
+    _define_in(p, components, GL_FLOAT, 0);
+}
+
+void shader_program_define_in_float_instanced(Program *p, int components) {
+    _define_in(p, components, GL_FLOAT, 1);
 }
 
 void shader_program_set_data_float(Program *p, int vbo_index, int count, int components, void *data) {
@@ -193,6 +199,10 @@ void graphics_draw_lines(int verts_count) {
     glDrawArrays(GL_LINES, 0, verts_count);
 }
 
+void graphics_draw_triangles(int verts_count) {
+    glDrawArrays(GL_TRIANGLES, 0, verts_count);
+}
+
 void graphics_draw_quads(int verts_count) {
     glDrawArrays(GL_QUADS, 0, verts_count);
 }
@@ -203,6 +213,14 @@ void graphics_draw_triangles_indexed(int indices_count, int *indices) {
 
 void graphics_draw_quads_indexed(int indices_count, int *indices) {
     glDrawElements(GL_QUADS, indices_count, GL_UNSIGNED_INT, indices);
+}
+
+void graphics_draw_triangles_instanced(int indices_count, int instances_count) {
+    glDrawArraysInstanced(GL_TRIANGLES, 0, indices_count, instances_count);
+}
+
+void graphics_draw_quads_instanced(int indices_count, int instances_count) {
+    glDrawArraysInstanced(GL_QUADS, 0, indices_count, instances_count);
 }
 
 void graphics_read_pixels(int x, int y, int w, int h, unsigned char *rgba) {
@@ -310,4 +328,26 @@ void mat4_rotate(mat4 *m, float a, float x, float y, float z) {
     r[3][3] = m->v[3][3];
 
     memcpy(m->v, r, 16 * sizeof(float));
+}
+
+void mat4_multiply(mat4 *r, mat4 *a, mat4 *b) {
+    r->v[0][0] = a->v[0][0] * b->v[0][0] + a->v[1][0] * b->v[0][1] + a->v[2][0] * b->v[0][2] + a->v[3][0] * b->v[0][3];
+    r->v[0][1] = a->v[0][1] * b->v[0][0] + a->v[1][1] * b->v[0][1] + a->v[2][1] * b->v[0][2] + a->v[3][1] * b->v[0][3];
+    r->v[0][2] = a->v[0][2] * b->v[0][0] + a->v[1][2] * b->v[0][1] + a->v[2][2] * b->v[0][2] + a->v[3][2] * b->v[0][3];
+    r->v[0][3] = a->v[0][3] * b->v[0][0] + a->v[1][3] * b->v[0][1] + a->v[2][3] * b->v[0][2] + a->v[3][3] * b->v[0][3];
+
+    r->v[1][0] = a->v[0][0] * b->v[1][0] + a->v[1][0] * b->v[1][1] + a->v[2][0] * b->v[1][2] + a->v[3][0] * b->v[1][3];
+    r->v[1][1] = a->v[0][1] * b->v[1][0] + a->v[1][1] * b->v[1][1] + a->v[2][1] * b->v[1][2] + a->v[3][1] * b->v[1][3];
+    r->v[1][2] = a->v[0][2] * b->v[1][0] + a->v[1][2] * b->v[1][1] + a->v[2][2] * b->v[1][2] + a->v[3][2] * b->v[1][3];
+    r->v[1][3] = a->v[0][3] * b->v[1][0] + a->v[1][3] * b->v[1][1] + a->v[2][3] * b->v[1][2] + a->v[3][3] * b->v[1][3];
+
+    r->v[2][0] = a->v[0][0] * b->v[2][0] + a->v[1][0] * b->v[2][1] + a->v[2][0] * b->v[2][2] + a->v[3][0] * b->v[2][3];
+    r->v[2][1] = a->v[0][1] * b->v[2][0] + a->v[1][1] * b->v[2][1] + a->v[2][1] * b->v[2][2] + a->v[3][1] * b->v[2][3];
+    r->v[2][2] = a->v[0][2] * b->v[2][0] + a->v[1][2] * b->v[2][1] + a->v[2][2] * b->v[2][2] + a->v[3][2] * b->v[2][3];
+    r->v[2][3] = a->v[0][3] * b->v[2][0] + a->v[1][3] * b->v[2][1] + a->v[2][3] * b->v[2][2] + a->v[3][3] * b->v[2][3];
+
+    r->v[3][0] = a->v[0][0] * b->v[3][0] + a->v[1][0] * b->v[3][1] + a->v[2][0] * b->v[3][2] + a->v[3][0] * b->v[3][3];
+    r->v[3][1] = a->v[0][1] * b->v[3][0] + a->v[1][1] * b->v[3][1] + a->v[2][1] * b->v[3][2] + a->v[3][1] * b->v[3][3];
+    r->v[3][2] = a->v[0][2] * b->v[3][0] + a->v[1][2] * b->v[3][1] + a->v[2][2] * b->v[3][2] + a->v[3][2] * b->v[3][3];
+    r->v[3][3] = a->v[0][3] * b->v[3][0] + a->v[1][3] * b->v[3][1] + a->v[2][3] * b->v[3][2] + a->v[3][3] * b->v[3][3];
 }

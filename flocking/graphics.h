@@ -44,6 +44,7 @@ void shader_program_set_uniform_mat4(Program *p, int uniform_index, mat4 *mat);
 void shader_program_set_uniform_vec4(Program *p, int uniform_index, vec4 *vec);
 
 void shader_program_define_in_float(Program *p, int components);
+void shader_program_define_in_float_instanced(Program *p, int components);
 void shader_program_set_data_float(Program *p, int vbo_index, int count, int components, void *data);
 
 void graphics_enable_depth_test(int enable);
@@ -53,9 +54,12 @@ void graphics_enable_smooth_polygon(int enable);
 
 void graphics_draw_points(int verts_count);
 void graphics_draw_lines(int verts_count);
+void graphics_draw_triangles(int verts_count);
 void graphics_draw_quads(int verts_count);
 void graphics_draw_triangles_indexed(int indices_count, int *indices);
 void graphics_draw_quads_indexed(int indices_count, int *indices);
+void graphics_draw_triangles_instanced(int indices_count, int instances_count);
+void graphics_draw_quads_instanced(int indices_count, int instances_count);
 
 void graphics_read_pixels(int x, int y, int w, int h, unsigned char *rgba);
 void graphics_read_depths(int x, int y, int w, int h, float *depths);
@@ -80,5 +84,6 @@ void mat4_set_identity(mat4 *m);
 void mat4_scale(mat4 *m, float v);
 void mat4_translate(mat4 *m, float x, float y, float z);
 void mat4_rotate(mat4 *m, float angle, float x, float y, float z);
+void mat4_multiply(mat4 *r, mat4 *a, mat4 *b);
 
 #endif
