@@ -99,7 +99,7 @@ int main() {
     glfwSetWindowCloseCallback(window, _close_callback);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress); /* load extensions */
 
-    shader_program_init(&program, shaded_instanced_vert, "shaded_instanced.vert", shaded_frag, "shaded.frag");
+    shader_program_init(&program, boids_vert, "boids.vert", boids_frag, "boids.frag");
     shader_program_define_in_float(&program, 3); /* vertex position */
     shader_program_define_in_float_instanced(&program, 3); /* instance position */
     shader_program_define_uniform(&program, "projection");
