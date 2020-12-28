@@ -20,13 +20,6 @@ static Program program;
 static TayState *tay;
 static int boids_group;
 static float pyramid[] = {
-    /*
-    -1.0f, -1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f,
-    1.0f, 1.0f, 0.0f,
-    -1.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 2.0f,
-    */
     -1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 2.0f,
     1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 2.0f,
     1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 2.0f,
@@ -34,6 +27,8 @@ static float pyramid[] = {
     -1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f,
     -1.0f, -1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
 };
+static vec3 *boids_draw_data;
+static int boids_count = 10000;
 
 static void _close_callback(GLFWwindow *window) {
     window_quit = true;
@@ -53,7 +48,7 @@ static void _main_loop_func(GLFWwindow *window) {
 
     mat4 perspective;
     graphics_perspective(&perspective, 0.8f, (float)window_w / (float)window_h, 1.0f, 1000.0f);
-    vec3 pos = {0.0f, 0.0f, 100.0f};
+    vec3 pos = {0.0f, 0.0f, 500.0f};
     vec3 fwd = {0.0f, 0.0f, -1.0f};
     vec3 up = {0.0f, 1.0f, 0.0f};
 
@@ -69,11 +64,15 @@ static void _main_loop_func(GLFWwindow *window) {
     mat4_set_identity(&modelview);
     shader_program_set_uniform_mat4(&program, 1, &modelview);
 
-    static float test[] = { 0.0f, 0.0f, 0.0f };
-    int instances_count = 1;
+    for (int i = 0; i < boids_count; ++i) {
+        Agent *boid = tay_get_agent(tay, boids_group, i);
+        boids_draw_data[i].x = boid->p.x;
+        boids_draw_data[i].y = boid->p.y;
+        boids_draw_data[i].z = boid->p.z;
+    }
 
-    shader_program_set_data_float(&program, 1, instances_count, 3, test);
-    graphics_draw_triangles_instanced(18, instances_count);
+    shader_program_set_data_float(&program, 1, boids_count, 3, boids_draw_data);
+    graphics_draw_triangles_instanced(18, boids_count);
 
     glfwSwapBuffers(window);
     platform_sleep(10);
@@ -109,11 +108,13 @@ int main() {
     /* fill pyramid buffer */
     shader_program_set_data_float(&program, 0, 18, 3, pyramid);
 
+    const int max_boids_count = 100000;
     const float4 see_radii = { 10.0f, 10.0f, 10.0f, 10.0f };
-    const int boids_count = 10000;
     const float velocity = 1.0f;
     const float4 min = { 0.0f, 0.0f, 0.0f, 0.0f };
     const float4 max = { 100.0f, 100.0f, 100.0f, 100.0f };
+
+    boids_draw_data = malloc(sizeof(vec3) * max_boids_count);
 
     ActContext act_context;
     SeeContext see_context;

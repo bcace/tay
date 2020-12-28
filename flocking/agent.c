@@ -4,7 +4,8 @@
 void agent_see(Agent *a, Agent *b, SeeContext *c) {
 }
 
-void agent_act(Agent *agent, ActContext *c) {
+void agent_act(Agent *a, ActContext *c) {
+    a->p = float4_add(a->p, a->v);
 }
 
 float4 float4_null() {
@@ -105,7 +106,8 @@ float4 float4_div_scalar(float4 a, float s) {\n\
 void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
 }\n\
 \n\
-void agent_act(global Agent *agent, global ActContext *c) {\n\
+void agent_act(global Agent *a, global ActContext *c) {\n\
+    a->p = float4_add(a->p, a->v);\n\
 }\n\
 \n\
 ";
