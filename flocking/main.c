@@ -59,8 +59,6 @@ static void _main_loop_func(GLFWwindow *window) {
 
     tay_run(tay, 1, TAY_SPACE_CPU_GRID, 0);
 
-    // TODO: copy data to buffer
-
     shader_program_use(&program);
 
     mat4 perspective;
