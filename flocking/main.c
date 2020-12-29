@@ -20,14 +20,31 @@ static Program program;
 static TayState *tay;
 static int boids_group;
 static float pyramid[] = {
-    -1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 2.0f,
-    1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 2.0f,
-    1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 2.0f,
-    -1.0f, 1.0f, 0.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 2.0f,
-    -1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f,
-    -1.0f, -1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+    -1.0f, -1.0f, 0.0f, 0.0f,
+    1.0f, -1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 2.0f, 0.0f,
+
+    1.0f, -1.0f, 0.0f, 0.0f,
+    1.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 2.0f, 0.0f,
+
+    1.0f, 1.0f, 0.0f, 0.0f,
+    -1.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 2.0f, 0.0f,
+
+    -1.0f, 1.0f, 0.0f, 0.0f,
+    -1.0f, -1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 2.0f, 0.0f,
+
+    -1.0f, -1.0f, 0.0f, 0.0f,
+    1.0f, 1.0f, 0.0f, 0.0f,
+    1.0f, -1.0f, 0.0f, 0.0f,
+
+    -1.0f, -1.0f, 0.0f, 0.0f,
+    -1.0f, 1.0f, 0.0f, 0.0f,
+    1.0f, 1.0f, 0.0f, 0.0f,
 };
-static vec3 *boids_draw_data;
+static vec4 *boids_draw_data;
 static int boids_count = 10000;
 
 static void _close_callback(GLFWwindow *window) {
@@ -71,7 +88,7 @@ static void _main_loop_func(GLFWwindow *window) {
         boids_draw_data[i].z = boid->p.z;
     }
 
-    shader_program_set_data_float(&program, 1, boids_count, 3, boids_draw_data);
+    shader_program_set_data_float(&program, 1, boids_count, 4, boids_draw_data);
     graphics_draw_triangles_instanced(18, boids_count);
 
     glfwSwapBuffers(window);
@@ -100,13 +117,13 @@ int main() {
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress); /* load extensions */
 
     shader_program_init(&program, boids_vert, "boids.vert", boids_frag, "boids.frag");
-    shader_program_define_in_float(&program, 3); /* vertex position */
-    shader_program_define_in_float_instanced(&program, 3); /* instance position */
+    shader_program_define_in_float(&program, 4); /* vertex position */
+    shader_program_define_in_float_instanced(&program, 4); /* instance position */
     shader_program_define_uniform(&program, "projection");
     shader_program_define_uniform(&program, "modelview");
 
     /* fill pyramid buffer */
-    shader_program_set_data_float(&program, 0, 18, 3, pyramid);
+    shader_program_set_data_float(&program, 0, 18, 4, pyramid);
 
     const int max_boids_count = 100000;
     const float4 see_radii = { 10.0f, 10.0f, 10.0f, 10.0f };
@@ -114,7 +131,7 @@ int main() {
     const float4 min = { 0.0f, 0.0f, 0.0f, 0.0f };
     const float4 max = { 100.0f, 100.0f, 100.0f, 100.0f };
 
-    boids_draw_data = malloc(sizeof(vec3) * max_boids_count);
+    boids_draw_data = malloc(sizeof(vec4) * max_boids_count);
 
     ActContext act_context;
     SeeContext see_context;
