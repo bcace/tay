@@ -76,10 +76,6 @@ static void _main_loop_func(GLFWwindow *window) {
 
     shader_program_set_uniform_mat4(&program, 0, &projection);
 
-    mat4 modelview;
-    mat4_set_identity(&modelview);
-    shader_program_set_uniform_mat4(&program, 1, &modelview);
-
     for (int i = 0; i < boids_count; ++i) {
         Agent *boid = tay_get_agent(tay, boids_group, i);
         inst_pos[i].x = boid->p.x;
@@ -95,7 +91,7 @@ static void _main_loop_func(GLFWwindow *window) {
     graphics_draw_triangles_instanced(18, boids_count);
 
     glfwSwapBuffers(window);
-    platform_sleep(10);
+    // platform_sleep(10);
     glfwPollEvents();
 }
 
@@ -124,7 +120,6 @@ int main() {
     shader_program_define_instanced_in_float(&program, 3); /* instance position */
     shader_program_define_instanced_in_float(&program, 3); /* instance direction */
     shader_program_define_uniform(&program, "projection");
-    shader_program_define_uniform(&program, "modelview");
 
     /* fill pyramid buffer */
     shader_program_set_data_float(&program, 0, 18, 3, pyramid);

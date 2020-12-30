@@ -28,7 +28,6 @@ out vec3 _light;\n \
 out vec3 _pos;\n \
 \n \
 uniform mat4 projection;\n \
-uniform mat4 modelview;\n \
 \n \
 \n \
 vec4 rotation_between_vectors(vec3 v1, vec3 v2) {\n \
@@ -39,9 +38,6 @@ vec4 rotation_between_vectors(vec3 v1, vec3 v2) {\n \
     float s = sqrt((1.0 + cos_theta) * 2.0);\n \
     float invs = 1.0 / s;\n \
 \n \
-    // float theta_2 = acos(cos_theta) * 0.5;\n \
-    // float sin_theta_2 = sin(theta_2);\n \
-\n \
     vec3 axis = cross(v1, v2);\n \
 \n \
     return vec4(\n \
@@ -50,16 +46,6 @@ vec4 rotation_between_vectors(vec3 v1, vec3 v2) {\n \
         axis.z * invs,\n \
         s * 0.5\n \
     );\n \
-\n \
-    // vec4 q = vec4(\n \
-    //     axis.x * sin_theta_2,\n \
-    //     axis.y * sin_theta_2,\n \
-    //     axis.z * sin_theta_2,\n \
-    //     cos(theta_2)\n \
-    // );\n \
-\n \
-    // // return normalize(q);\n \
-    // return q;\n \
 }\n \
 \n \
 vec4 quat_multiply(vec4 q1, vec4 q2) {\n \
@@ -84,16 +70,10 @@ void main(void) {\n \
     vec4 rotated_pos = quat_multiply(rot1, vec4(pos, 0.0));\n \
 \n \
     vec3 actual_pos = rotated_pos.xyz + inst_pos;\n \
-    vec4 modelview_pos = modelview * vec4(actual_pos, 1.0);\n \
-    gl_Position = projection * modelview_pos;\n \
-\n \
-    vec3 _modelview_pos;\n \
-    _modelview_pos.x = modelview_pos.x;\n \
-    _modelview_pos.y = modelview_pos.y;\n \
-    _modelview_pos.z = modelview_pos.z;\n \
+    gl_Position = projection * vec4(actual_pos, 1.0);\n \
 \n \
     _color = vec4(1.0, 0.0, 0.0, 1.0);\n \
-    _light = normalize(_modelview_pos - vec3(1000, -1000, 1000));\n \
-    _pos = _modelview_pos;\n \
+    _light = normalize(actual_pos - vec3(1000, -1000, 1000));\n \
+    _pos = actual_pos;\n \
 }\n \
 ";
