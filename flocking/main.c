@@ -60,22 +60,6 @@ static void _main_loop_func(GLFWwindow *window) {
 
     tay_run(tay, 1, TAY_SPACE_CPU_GRID, 0);
 
-    shader_program_use(&program);
-
-    mat4 perspective;
-    graphics_perspective(&perspective, 0.8f, (float)window_w / (float)window_h, 1.0f, 1000.0f);
-    vec3 pos = {0.0f, 0.0f, 500.0f};
-    vec3 fwd = {0.0f, 0.0f, -1.0f};
-    vec3 up = {0.0f, 1.0f, 0.0f};
-
-    mat4 lookat;
-    graphics_lookat(&lookat, pos, fwd, up);
-
-    mat4 projection;
-    mat4_multiply(&projection, &perspective, &lookat);
-
-    shader_program_set_uniform_mat4(&program, 0, &projection);
-
     for (int i = 0; i < boids_count; ++i) {
         Agent *boid = tay_get_agent(tay, boids_group, i);
         inst_pos[i].x = boid->p.x;
@@ -85,6 +69,33 @@ static void _main_loop_func(GLFWwindow *window) {
         inst_dir[i].y = boid->v.y;
         inst_dir[i].z = boid->v.z;
     }
+
+    shader_program_use(&program);
+
+    mat4 perspective;
+    graphics_perspective(&perspective, 0.8f, (float)window_w / (float)window_h, 1.0f, 1000.0f);
+
+    vec3 pos, fwd, up;
+    {
+        Agent *watch_boid = tay_get_agent(tay, boids_group, 100);
+        pos.x = watch_boid->p.x;
+        pos.y = watch_boid->p.y;
+        pos.z = watch_boid->p.z;
+        fwd.x = watch_boid->v.x;
+        fwd.y = watch_boid->v.y;
+        fwd.z = watch_boid->v.z;
+        up.x = 0.0f;
+        up.y = 0.0f;
+        up.z = 1.0f;
+    }
+
+    mat4 lookat;
+    graphics_lookat(&lookat, pos, fwd, up);
+
+    mat4 projection;
+    mat4_multiply(&projection, &perspective, &lookat);
+
+    shader_program_set_uniform_mat4(&program, 0, &projection);
 
     shader_program_set_data_float(&program, 1, boids_count, 3, inst_pos);
     shader_program_set_data_float(&program, 2, boids_count, 3, inst_dir);
