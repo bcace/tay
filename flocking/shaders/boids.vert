@@ -17,20 +17,17 @@ vec4 rotation_between_vectors(vec3 v1, vec3 v2) {
     v2 = normalize(v2);
 
     float cos_theta = dot(v1, v2);
-    float theta_2 = acos(cos_theta) * 0.5;
-    float sin_theta_2 = sin(theta_2);
+    float s = sqrt((1.0 + cos_theta) * 2.0);
+    float invs = 1.0 / s;
 
     vec3 axis = cross(v1, v2);
 
-    vec4 q = vec4(
-        axis.x * sin_theta_2,
-        axis.y * sin_theta_2,
-        axis.z * sin_theta_2,
-        cos(theta_2)
+    return vec4(
+        axis.x * invs,
+        axis.y * invs,
+        axis.z * invs,
+        s * 0.5
     );
-
-    // return normalize(q);
-    return q;
 }
 
 vec4 quat_multiply(vec4 q1, vec4 q2) {

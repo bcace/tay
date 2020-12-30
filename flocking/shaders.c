@@ -36,20 +36,30 @@ vec4 rotation_between_vectors(vec3 v1, vec3 v2) {\n \
     v2 = normalize(v2);\n \
 \n \
     float cos_theta = dot(v1, v2);\n \
-    float theta_2 = acos(cos_theta) * 0.5;\n \
-    float sin_theta_2 = sin(theta_2);\n \
+    float s = sqrt((1.0 + cos_theta) * 2.0);\n \
+    float invs = 1.0 / s;\n \
+\n \
+    // float theta_2 = acos(cos_theta) * 0.5;\n \
+    // float sin_theta_2 = sin(theta_2);\n \
 \n \
     vec3 axis = cross(v1, v2);\n \
 \n \
-    vec4 q = vec4(\n \
-        axis.x * sin_theta_2,\n \
-        axis.y * sin_theta_2,\n \
-        axis.z * sin_theta_2,\n \
-        cos(theta_2)\n \
+    return vec4(\n \
+        axis.x * invs,\n \
+        axis.y * invs,\n \
+        axis.z * invs,\n \
+        s * 0.5\n \
     );\n \
 \n \
-    // return normalize(q);\n \
-    return q;\n \
+    // vec4 q = vec4(\n \
+    //     axis.x * sin_theta_2,\n \
+    //     axis.y * sin_theta_2,\n \
+    //     axis.z * sin_theta_2,\n \
+    //     cos(theta_2)\n \
+    // );\n \
+\n \
+    // // return normalize(q);\n \
+    // return q;\n \
 }\n \
 \n \
 vec4 quat_multiply(vec4 q1, vec4 q2) {\n \
