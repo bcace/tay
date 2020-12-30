@@ -47,6 +47,7 @@ static float pyramid[] = {
 static vec3 *inst_pos;
 static vec3 *inst_dir;
 static int boids_count = 10000;
+static int camera = -1;
 
 static void _close_callback(GLFWwindow *window) {
     window_quit = true;
@@ -76,14 +77,25 @@ static void _main_loop_func(GLFWwindow *window) {
     graphics_perspective(&perspective, 0.8f, (float)window_w / (float)window_h, 1.0f, 1000.0f);
 
     vec3 pos, fwd, up;
-    {
-        Agent *watch_boid = tay_get_agent(tay, boids_group, 100);
+    if (camera >= 0 && camera < boids_count) {
+        Agent *watch_boid = tay_get_agent(tay, boids_group, camera);
         pos.x = watch_boid->p.x;
         pos.y = watch_boid->p.y;
         pos.z = watch_boid->p.z;
         fwd.x = watch_boid->v.x;
         fwd.y = watch_boid->v.y;
         fwd.z = watch_boid->v.z;
+        up.x = 0.0f;
+        up.y = 0.0f;
+        up.z = 1.0f;
+    }
+    else {
+        pos.x = -500.0f;
+        pos.y = 0.0f;
+        pos.z = 0.0f;
+        fwd.x = 1.0f;
+        fwd.y = 0.0f;
+        fwd.z = 0.0f;
         up.x = 0.0f;
         up.y = 0.0f;
         up.z = 1.0f;

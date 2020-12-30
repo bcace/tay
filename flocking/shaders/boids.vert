@@ -53,7 +53,7 @@ void main(void) {
     vec3 actual_pos = rotated_pos.xyz + inst_pos;
     gl_Position = projection * vec4(actual_pos, 1.0);
 
-    _color = vec4(1.0, 0.0, 0.0, 1.0);
+    _color = vec4(0.8, 0.8, 0.8, 1.0);
     _light = normalize(actual_pos - vec3(1000, -1000, 1000));
     _pos = actual_pos;
 }
