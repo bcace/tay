@@ -1,7 +1,8 @@
-#version 130
+#version 450
 
-in vec3 pos;
-in vec3 inst_pos;
+layout(location = 0) in vec4 pos;
+layout(location = 1) in vec4 inst_pos;
+layout(location = 2) in vec4 inst_dir;
 
 out vec4 _color;
 out vec3 _light;
@@ -12,7 +13,9 @@ uniform mat4 modelview;
 
 
 void main(void) {
-    vec3 actual_pos = pos + inst_pos;
+    float hhh = inst_dir.x;
+
+    vec3 actual_pos = pos.xyz + inst_pos.xyz;
     vec4 modelview_pos = modelview * vec4(actual_pos, 1.0);
     gl_Position = projection * modelview_pos;
 

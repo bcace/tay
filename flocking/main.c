@@ -44,7 +44,8 @@ static float pyramid[] = {
     -1.0f, 1.0f, 0.0f, 0.0f,
     1.0f, 1.0f, 0.0f, 0.0f,
 };
-static vec4 *boids_draw_data;
+static vec4 *inst_pos;
+static vec4 *inst_dir;
 static int boids_count = 10000;
 
 static void _close_callback(GLFWwindow *window) {
@@ -81,12 +82,16 @@ static void _main_loop_func(GLFWwindow *window) {
 
     for (int i = 0; i < boids_count; ++i) {
         Agent *boid = tay_get_agent(tay, boids_group, i);
-        boids_draw_data[i].x = boid->p.x;
-        boids_draw_data[i].y = boid->p.y;
-        boids_draw_data[i].z = boid->p.z;
+        inst_pos[i].x = boid->p.x;
+        inst_pos[i].y = boid->p.y;
+        inst_pos[i].z = boid->p.z;
+        inst_dir[i].x = boid->v.x;
+        inst_dir[i].y = boid->v.y;
+        inst_dir[i].z = boid->v.z;
     }
 
-    shader_program_set_data_float(&program, 1, boids_count, 4, boids_draw_data);
+    shader_program_set_data_float(&program, 1, boids_count, 4, inst_pos);
+    shader_program_set_data_float(&program, 2, boids_count, 4, inst_dir);
     graphics_draw_triangles_instanced(18, boids_count);
 
     glfwSwapBuffers(window);
@@ -116,7 +121,8 @@ int main() {
 
     shader_program_init(&program, boids_vert, "boids.vert", boids_frag, "boids.frag");
     shader_program_define_in_float(&program, 4); /* vertex position */
-    shader_program_define_in_float_instanced(&program, 4); /* instance position */
+    shader_program_define_instanced_in_float(&program, 4); /* instance position */
+    shader_program_define_instanced_in_float(&program, 4); /* instance direction */
     shader_program_define_uniform(&program, "projection");
     shader_program_define_uniform(&program, "modelview");
 
@@ -129,7 +135,8 @@ int main() {
     const float4 min = { 0.0f, 0.0f, 0.0f, 0.0f };
     const float4 max = { 100.0f, 100.0f, 100.0f, 100.0f };
 
-    boids_draw_data = malloc(sizeof(vec4) * max_boids_count);
+    inst_pos = malloc(sizeof(vec4) * max_boids_count);
+    inst_dir = malloc(sizeof(vec4) * max_boids_count);
 
     ActContext act_context;
     SeeContext see_context;

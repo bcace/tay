@@ -1,7 +1,7 @@
 #include "shaders.h"
 
 
-const char *boids_frag = "#version 130\n \
+const char *boids_frag = "#version 450\n \
 \n \
 in vec4 _color;\n \
 in vec3 _light;\n \
@@ -17,10 +17,11 @@ void main(void) {\n \
 }\n \
 ";
 
-const char *boids_vert = "#version 130\n \
+const char *boids_vert = "#version 450\n \
 \n \
-in vec3 pos;\n \
-in vec3 inst_pos;\n \
+layout(location = 0) in vec4 pos;\n \
+layout(location = 1) in vec4 inst_pos;\n \
+layout(location = 2) in vec4 inst_dir;\n \
 \n \
 out vec4 _color;\n \
 out vec3 _light;\n \
@@ -31,7 +32,9 @@ uniform mat4 modelview;\n \
 \n \
 \n \
 void main(void) {\n \
-    vec3 actual_pos = pos + inst_pos;\n \
+    float hhh = inst_dir.x;\n \
+\n \
+    vec3 actual_pos = pos.xyz + inst_pos.xyz;\n \
     vec4 modelview_pos = modelview * vec4(actual_pos, 1.0);\n \
     gl_Position = projection * modelview_pos;\n \
 \n \

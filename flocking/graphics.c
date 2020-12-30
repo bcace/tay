@@ -54,27 +54,23 @@ void shader_program_set_uniform_vec4(Program *p, int uniform_index, vec4 *vec) {
     glUniform4f(p->uniforms[uniform_index], vec->x, vec->y, vec->z, vec->w);
 }
 
-void _define_in(Program *p, int components, int type) {
-    assert(p->vbo_count < GRAPH_MAX_VBOS);
-    int attr_loc = p->vbo_count++;
-    glGenBuffers(1, &p->vbos[attr_loc]);
-    glBindBuffer(GL_ARRAY_BUFFER, p->vbos[attr_loc]);
-    glVertexAttribPointer(attr_loc, components, type, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(attr_loc);
-}
-
 void shader_program_define_in_float(Program *p, int components) {
-    _define_in(p, components, GL_FLOAT);
+    assert(p->vbo_count < GRAPH_MAX_VBOS);
+    int vbo_index = p->vbo_count++; /* this assumes vertex buffer index and attribute index (layout) are the same thing */
+    glGenBuffers(1, &p->vbos[vbo_index]);
+    glBindBuffer(GL_ARRAY_BUFFER, p->vbos[vbo_index]);
+    glVertexAttribPointer(vbo_index, components, GL_FLOAT, GL_FALSE, 0, (void *)0);
+    glEnableVertexAttribArray(vbo_index);
 }
 
-void shader_program_define_in_float_instanced(Program *p, int components) {
+void shader_program_define_instanced_in_float(Program *p, int components) {
     assert(p->vbo_count < GRAPH_MAX_VBOS);
-    int attr_loc = p->vbo_count++;
-    glGenBuffers(1, &p->vbos[attr_loc]);
-    glBindBuffer(GL_ARRAY_BUFFER, p->vbos[attr_loc]);
-    glVertexAttribPointer(attr_loc, components, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(attr_loc);
-    glVertexAttribDivisor(attr_loc, 1);
+    int vbo_index = p->vbo_count++; /* this assumes vertex buffer index and attribute index (layout) are the same thing */
+    glGenBuffers(1, &p->vbos[vbo_index]);
+    glBindBuffer(GL_ARRAY_BUFFER, p->vbos[vbo_index]);
+    glEnableVertexAttribArray(vbo_index);
+    glVertexAttribPointer(vbo_index, components, GL_FLOAT, GL_FALSE, 0, (void *)0);
+    glVertexAttribDivisor(vbo_index, 1);
 }
 
 void shader_program_set_data_float(Program *p, int vbo_index, int count, int components, void *data) {

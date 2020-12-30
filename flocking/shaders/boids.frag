@@ -1,4 +1,4 @@
-#version 130
+#version 450
 
 in vec4 _color;
 in vec3 _light;

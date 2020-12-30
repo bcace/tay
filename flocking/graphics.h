@@ -44,7 +44,7 @@ void shader_program_set_uniform_mat4(Program *p, int uniform_index, mat4 *mat);
 void shader_program_set_uniform_vec4(Program *p, int uniform_index, vec4 *vec);
 
 void shader_program_define_in_float(Program *p, int components);
-void shader_program_define_in_float_instanced(Program *p, int components);
+void shader_program_define_instanced_in_float(Program *p, int components);
 void shader_program_set_data_float(Program *p, int vbo_index, int count, int components, void *data);
 
 void graphics_enable_depth_test(int enable);
