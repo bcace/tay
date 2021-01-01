@@ -9,10 +9,10 @@
 typedef struct Agent {
     TayAgentTag tag;
     float4 p;
-    float4 v;
-    float4 b_buffer;
+    float3 v;
+    float3 b_buffer;
     int b_buffer_count;
-    float4 f_buffer;
+    float3 f_buffer;
 } Agent;
 
 typedef struct ActContext {
@@ -27,11 +27,20 @@ typedef struct SeeContext {
 void agent_see(Agent *a, Agent *b, SeeContext *context);
 void agent_act(Agent *agent, ActContext *context);
 
-float4 float4_null();
-float4 float4_make(float x, float y, float z);
-float4 float4_add(float4 a, float4 b);
-float4 float4_sub(float4 a, float4 b);
-float4 float4_div_scalar(float4 a, float s);
+
+float2 float2_get_agent_position(void *agent);
+float3 float3_get_agent_position(void *agent);
+float4 float4_get_agent_position(void *agent);
+
+void float2_set_agent_position(void *agent, float2 p);
+void float3_set_agent_position(void *agent, float3 p);
+void float4_set_agent_position(void *agent, float4 p);
+
+float3 float3_null();
+float3 float3_make(float x, float y, float z);
+float3 float3_add(float3 a, float3 b);
+float3 float3_sub(float3 a, float3 b);
+float3 float3_div_scalar(float3 a, float s);
 
 extern const char *agent_kernels_source;
 

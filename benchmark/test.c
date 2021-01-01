@@ -10,7 +10,7 @@
 
 /* Note that this only makes agents with randomized directions. Should implement another
 one for all agents with same direction later. */
-static void _make_cluster(TayState *state, int group, int count, float4 min, float4 max, float velocity) {
+static void _make_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity) {
     for (int i = 0; i < count; ++i) {
         Agent *a = tay_get_available_agent(state, group);
         a->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
@@ -50,7 +50,7 @@ typedef enum {
 } ResultsAction;
 
 typedef struct {
-    float4 data[10000000];
+    float3 data[10000000];
     int first_time;
 } Results;
 
@@ -100,7 +100,7 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int dep
     tay_add_see(s, g, g, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(s, g, agent_act, "agent_act", &act_context, sizeof(act_context));
 
-    _make_cluster(s, g, agents_count, float4_make(0.0f, 0.0f, 0.0f), float4_make(space_size, space_size, space_size), 1.0f);
+    _make_cluster(s, g, agents_count, float3_make(0.0f, 0.0f, 0.0f), float3_make(space_size, space_size, space_size), 1.0f);
 
     printf("R: %g, depth_correction: %d\n", see_radius, depth_correction);
 
@@ -121,8 +121,8 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int dep
 
             for (int i = 0; i < agents_count; ++i) {
                 Agent *agent = tay_get_agent(s, g, i);
-                float4 a = results->data[i];
-                float4 b = agent->f_buffer;
+                float3 a = results->data[i];
+                float3 b = agent->f_buffer;
                 _check_error(a.x, b.x, &max_error);
                 _check_error(a.y, b.y, &max_error);
                 _check_error(a.z, b.z, &max_error);
@@ -161,7 +161,7 @@ void test() {
         _test_model_case1(TAY_SPACE_CPU_SIMPLE, perception_r, 0, r);
 #endif
 
-#if 0
+#if 1
         printf("cpu tree:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_CPU_TREE, perception_r, j, r);
@@ -173,7 +173,7 @@ void test() {
             _test_model_case1(TAY_SPACE_CPU_GRID, perception_r, j, r);
 #endif
 
-#if 0
+#if 1
         printf("gpu simple direct:\n");
         _test_model_case1(TAY_SPACE_GPU_SIMPLE_DIRECT, perception_r, 0, r);
 #endif
