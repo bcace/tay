@@ -1,7 +1,10 @@
 typedef struct __PACK__ Agent {
     TayAgentTag tag;
     float4 p;
-    float4 v;
+    float3 v;
+    float3 separation;
+    float3 cohesion;
+    float3 alignment;
 } Agent;
 
 typedef struct __PACK__ ActContext {
@@ -9,5 +12,5 @@ typedef struct __PACK__ ActContext {
 } ActContext;
 
 typedef struct __PACK__ SeeContext {
-    float4 radii;
+    float4 radii_sq;
 } SeeContext;

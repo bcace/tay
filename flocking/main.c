@@ -158,7 +158,9 @@ int main() {
 
     ActContext act_context;
     SeeContext see_context;
-    see_context.radii = see_radii;
+    see_context.radii_sq.x = see_radii.x * see_radii.x;
+    see_context.radii_sq.y = see_radii.y * see_radii.y;
+    see_context.radii_sq.z = see_radii.z * see_radii.z;
 
     tay_runner_init(); // TODO: remove this!!!
     tay_runner_start_threads(8); // TODO: remove this!!!
@@ -182,6 +184,9 @@ int main() {
         boid->v.x *= l;
         boid->v.y *= l;
         boid->v.z *= l;
+        boid->separation = float3_null();
+        boid->cohesion = float3_null();
+        boid->alignment = float3_null();
         tay_commit_available_agent(tay, boids_group);
     }
 
