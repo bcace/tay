@@ -23,6 +23,24 @@ typedef struct float4 {
     };
 } float4;
 
+typedef struct float3 {
+    union {
+        struct {
+            float x, y, z;
+        };
+        float arr[3];
+    };
+} float3;
+
+typedef struct float2 {
+    union {
+        struct {
+            float x, y;
+            float arr[2];
+        };
+    };
+} float2;
+
 typedef struct {
     float4 min;
     float4 max;
