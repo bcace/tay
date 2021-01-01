@@ -1,10 +1,10 @@
 typedef struct __PACK__ Agent {
     TayAgentTag tag;
     float4 p;
-    float3 v;
-    float3 b_buffer;
+    float4 v;
+    float4 b_buffer;
     int b_buffer_count;
-    float3 f_buffer;
+    float4 f_buffer;
 } Agent;
 
 typedef struct __PACK__ ActContext {

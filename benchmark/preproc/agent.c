@@ -1,8 +1,8 @@
 void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *c) {
-    float3 a_p = float3_get_agent_position(a);
-    float3 b_p = float3_get_agent_position(b);
+    float4 a_p = float4_get_agent_position(a);
+    float4 b_p = float4_get_agent_position(b);
     for (int i = 0; i < 1; ++i)
-        a->b_buffer = float3_add(a->b_buffer, float3_sub(b_p, a_p));
+        a->b_buffer = float4_add(a->b_buffer, float4_sub(b_p, a_p));
     a->b_buffer_count++;
 }
 
@@ -11,16 +11,16 @@ void agent_act(__GLOBAL__ Agent *agent, __GLOBAL__ ActContext *c) {
     /* buffer swap */
 
     if (agent->b_buffer_count != 0) {
-        float3 n = float3_div_scalar(agent->b_buffer, (float)agent->b_buffer_count);
-        agent->f_buffer = float3_add(agent->f_buffer, n);
-        agent->b_buffer = float3_null();
+        float4 n = float4_div_scalar(agent->b_buffer, (float)agent->b_buffer_count);
+        agent->f_buffer = float4_add(agent->f_buffer, n);
+        agent->b_buffer = float4_null();
         agent->b_buffer_count = 0;
     }
 
     /* move */
 
-    float3 p = float3_get_agent_position(agent);
-    float3_set_agent_position(agent, float3_add(p, agent->v));
+    float4 p = float4_get_agent_position(agent);
+    float4_set_agent_position(agent, float4_add(p, agent->v));
 
     if (agent->p.x < c->min.x) {
         agent->p.x = c->min.x;

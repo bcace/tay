@@ -50,7 +50,7 @@ typedef enum {
 } ResultsAction;
 
 typedef struct {
-    float3 data[10000000];
+    float4 data[10000000];
     int first_time;
 } Results;
 
@@ -105,7 +105,7 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int dep
     printf("R: %g, depth_correction: %d\n", see_radius, depth_correction);
 
     tay_simulation_start(s);
-    tay_run(s, 500, space_type, depth_correction);
+    tay_run(s, 100, space_type, depth_correction);
     tay_simulation_end(s);
 
     if (results) {
@@ -121,8 +121,8 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int dep
 
             for (int i = 0; i < agents_count; ++i) {
                 Agent *agent = tay_get_agent(s, g, i);
-                float3 a = results->data[i];
-                float3 b = agent->f_buffer;
+                float4 a = results->data[i];
+                float4 b = agent->f_buffer;
                 _check_error(a.x, b.x, &max_error);
                 _check_error(a.y, b.y, &max_error);
                 _check_error(a.z, b.z, &max_error);
@@ -148,7 +148,7 @@ void test() {
 #endif
 
     int beg_see_radius = 0;
-    int end_see_radius = 1;
+    int end_see_radius = 2;
 
     int beg_depth_correction = 0;
     int end_depth_correction = 3;
@@ -156,7 +156,7 @@ void test() {
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float perception_r = 10.0f * (1 << i);
 
-#if 0
+#if 1
         printf("cpu simple:\n");
         _test_model_case1(TAY_SPACE_CPU_SIMPLE, perception_r, 0, r);
 #endif
@@ -178,18 +178,18 @@ void test() {
         _test_model_case1(TAY_SPACE_GPU_SIMPLE_DIRECT, perception_r, 0, r);
 #endif
 
-#if 0
+#if 1
         printf("gpu simple indirect:\n");
         _test_model_case1(TAY_SPACE_GPU_SIMPLE_INDIRECT, perception_r, 0, r);
 #endif
 
-#if 0
+#if 1
         printf("gpu tree:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_GPU_TREE, perception_r, j, r);
 #endif
 
-#if 0
+#if 1
         printf("cycling:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_CYCLE_ALL, perception_r, j, r);

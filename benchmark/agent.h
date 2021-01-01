@@ -9,10 +9,10 @@
 typedef struct Agent {
     TayAgentTag tag;
     float4 p;
-    float3 v;
-    float3 b_buffer;
+    float4 v;
+    float4 b_buffer;
     int b_buffer_count;
-    float3 f_buffer;
+    float4 f_buffer;
 } Agent;
 
 typedef struct ActContext {
@@ -41,6 +41,12 @@ float3 float3_make(float x, float y, float z);
 float3 float3_add(float3 a, float3 b);
 float3 float3_sub(float3 a, float3 b);
 float3 float3_div_scalar(float3 a, float s);
+
+float4 float4_null();
+float4 float4_make(float x, float y, float z, float w);
+float4 float4_add(float4 a, float4 b);
+float4 float4_sub(float4 a, float4 b);
+float4 float4_div_scalar(float4 a, float s);
 
 extern const char *agent_kernels_source;
 
