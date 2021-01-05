@@ -10,7 +10,9 @@ static const char *HEADER = "\n\
 #define TAY_GPU_NULL_INDEX %d\n\
 #define TAY_GPU_DEAD_INDEX %d\n\
 \n\
-#define TAY_AGENT_POSITION(__agent_tag__) (*(global float4 *)(__agent_tag__ + 1))\n\
+#define float4_agent_position(__agent_tag__) (*(global float4 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float3_agent_position(__agent_tag__) (*(global float3 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float2_agent_position(__agent_tag__) (*(global float2 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
 \n\
 \n\
 typedef struct __attribute__((packed)) TayAgentTag {\n\
@@ -183,7 +185,7 @@ void space_gpu_fetch_agents(TayState *state) {
                     tag->next = space->first[i];
                     space->first[i] = tag;
                     ++space->counts[i];
-                    box_update(&space->box, TAY_AGENT_POSITION(tag), space->dims);
+                    box_update(&space->box, float4_agent_position(tag), space->dims);
                 }
             }
         }
@@ -230,7 +232,7 @@ void space_gpu_fetch_agent_positions(TayState *state) {
 
             /* copy new positions into agents */
             for (int i = 0; i < group->capacity; ++i) {
-                TAY_AGENT_POSITION((char *)group->storage + group->agent_size * i) = positions[i];
+                float4_agent_position((char *)group->storage + group->agent_size * i) = positions[i];
                 box_update(&space->box, positions[i], space->dims);
             }
         }

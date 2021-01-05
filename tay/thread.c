@@ -100,7 +100,7 @@ void tay_runner_reset_stats() {
     }
 }
 
-void tay_runner_report_stats() {
+void tay_runner_report_stats(int steps) {
     unsigned long long broad_see_phase = 0;
     unsigned long long narrow_see_phase = 0;
     for (int i = 0; i < runner.count; ++i) {
@@ -110,5 +110,5 @@ void tay_runner_report_stats() {
         broad_see_phase += c->broad_see_phase;
         narrow_see_phase += c->narrow_see_phase;
     }
-    printf("sum pf see phases: %llu/%llu\n", narrow_see_phase, broad_see_phase);
+    printf("sum of see phases: %llu/%llu, %f per step\n", narrow_see_phase, broad_see_phase, narrow_see_phase / (double)steps);
 }

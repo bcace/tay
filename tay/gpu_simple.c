@@ -9,12 +9,12 @@ static const char *SEE_KERNEL = "\n\
 kernel void %s_simple_kernel(global char *seer_agents, int seer_agent_size, global char *seen_agents, int seen_agent_size, float4 radii, global void *see_context) {\n\
     int i = get_global_id(0);\n\
     global TayAgentTag *seer_agent = (global TayAgentTag *)(seer_agents + i * seer_agent_size);\n\
-    float4 seer_p = TAY_AGENT_POSITION(seer_agent);\n\
+    float4 seer_p = float4_agent_position(seer_agent);\n\
 \n\
     int count = get_global_size(0);\n\
     for (int j = 0; j < count; ++j) {\n\
         global TayAgentTag *seen_agent = (global TayAgentTag *)(seen_agents + j * seer_agent_size);\n\
-        float4 seen_p = TAY_AGENT_POSITION(seen_agent);\n\
+        float4 seen_p = float4_agent_position(seen_agent);\n\
 \n\
         if (seer_agent == seen_agent)\n\
             goto SKIP_SEE;\n\
@@ -44,7 +44,7 @@ kernel void %s_simple_kernel(global char *seer_agents, int seer_agent_size, glob
 kernel void %s_simple_kernel_indirect(global char *seer_agents, int seer_agent_size, global char *seen_agents, int seen_agent_size, int first_seen, float4 radii, global void *see_context) {\n\
     int i = get_global_id(0);\n\
     global TayAgentTag *seer_agent = (global TayAgentTag *)(seer_agents + i * seer_agent_size);\n\
-    float4 seer_p = TAY_AGENT_POSITION(seer_agent);\n\
+    float4 seer_p = float4_agent_position(seer_agent);\n\
 \n\
     if (seer_agent->next == TAY_GPU_DEAD_ADDR)\n\
         return;\n\
@@ -52,7 +52,7 @@ kernel void %s_simple_kernel_indirect(global char *seer_agents, int seer_agent_s
     global TayAgentTag *seen_agent = (global TayAgentTag *)(seen_agents + first_seen * seen_agent_size);\n\
 \n\
     while (seen_agent) {\n\
-        float4 seen_p = TAY_AGENT_POSITION(seen_agent);\n\
+        float4 seen_p = float4_agent_position(seen_agent);\n\
 \n\
         if (seer_agent == seen_agent)\n\
             goto SKIP_SEE;\n\

@@ -1,6 +1,10 @@
 #ifndef tay_h
 #define tay_h
 
+#define float4_agent_position(__agent_tag__) (*(float4 *)((TayAgentTag *)(__agent_tag__) + 1))
+#define float3_agent_position(__agent_tag__) (*(float3 *)((TayAgentTag *)(__agent_tag__) + 1))
+#define float2_agent_position(__agent_tag__) (*(float2 *)((TayAgentTag *)(__agent_tag__) + 1))
+
 
 typedef enum TaySpaceType {
     TAY_SPACE_CPU_SIMPLE,

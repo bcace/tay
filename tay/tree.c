@@ -40,7 +40,7 @@ static void _sort_agent(Tree *tree, TreeCell *cell, TayAgentTag *agent, int grou
         Depths sub_node_depths = cell_depths;
         ++sub_node_depths.arr[cell->dim];
 
-        float pos = TAY_AGENT_POSITION(agent).arr[cell->dim];
+        float pos = float4_agent_position(agent).arr[cell->dim];
         if (pos < cell->mid) {
             if (cell->lo == 0) {
                 assert(tree->cells_count * sizeof(TreeCell) < TAY_CPU_SHARED_CELL_ARENA_SIZE);

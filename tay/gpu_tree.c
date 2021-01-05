@@ -79,7 +79,7 @@ kernel void %s_tree_kernel(global char *agents, int agent_size, global Cell *cel
 \n\
             global TayAgentTag *seen_agent = seen_cell->first[seen_group];\n\
             while (seen_agent) {\n\
-                float4 seen_p = TAY_AGENT_POSITION(seen_agent);\n\
+                float4 seen_p = float4_agent_position(seen_agent);\n\
 \n\
                 if (seer_agent == seen_agent)\n\
                     goto SKIP_SEE;\n\

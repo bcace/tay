@@ -46,7 +46,7 @@ void *space_get_thread_mem(Space *space, int thread_i) {
 void space_add_agent(Space *space, TayAgentTag *agent, int group) {
     agent->next = space->first[group];
     space->first[group] = agent;
-    box_update(&space->box, TAY_AGENT_POSITION(agent), space->dims);
+    box_update(&space->box, float4_agent_position(agent), space->dims);
     ++space->counts[group];
 }
 
@@ -146,7 +146,7 @@ void space_return_agents(Space *space, int group_i, TayAgentTag *tag) {
         return;
     TayAgentTag *last = tag;
     while (1) {
-        box_update(&space->box, TAY_AGENT_POSITION(last), space->dims);
+        box_update(&space->box, float4_agent_position(last), space->dims);
         ++space->counts[group_i];
         if (last->next)
             last = last->next;
@@ -159,10 +159,10 @@ void space_return_agents(Space *space, int group_i, TayAgentTag *tag) {
 
 void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
-        float4 seer_p = TAY_AGENT_POSITION(seer_agent);
+        float4 seer_p = float4_agent_position(seer_agent);
 
         for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-            float4 seen_p = TAY_AGENT_POSITION(seen_agent);
+            float4 seen_p = float4_agent_position(seen_agent);
 
             if (seer_agent == seen_agent)
                 continue;
@@ -189,10 +189,10 @@ void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC 
 }
 
 void space_see_single_seer(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    float4 seer_p = TAY_AGENT_POSITION(seer_agent);
+    float4 seer_p = float4_agent_position(seer_agent);
 
     for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-        float4 seen_p = TAY_AGENT_POSITION(seen_agent);
+        float4 seen_p = float4_agent_position(seen_agent);
 
         if (seer_agent == seen_agent)
             continue;

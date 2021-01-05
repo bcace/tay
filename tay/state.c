@@ -143,7 +143,7 @@ void tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_corr
     double ms = (t / (double)steps) * 1000.0;
 
 #if TAY_INSTRUMENT
-    tay_runner_report_stats();
+    tay_runner_report_stats(steps);
 #endif
 
     printf("ms: %g\n\n", ms);

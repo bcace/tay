@@ -128,7 +128,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
             ushort4 prev_seer_indices = { 0, 0, 0, 0 };
 
             for (TayAgentTag *seer_agent = seer_bucket->first[seer_group]; seer_agent; seer_agent = seer_agent->next) {
-                float4 seer_p = TAY_AGENT_POSITION(seer_agent);
+                float4 seer_p = float4_agent_position(seer_agent);
                 ushort4 seer_indices = _agent_position_to_cell_indices(seer_p, grid_origin, cell_sizes, dims);
 
                 if (kernel_buckets_count > 0 && ushort4_eq(prev_seer_indices, seer_indices, dims)) {
@@ -315,7 +315,7 @@ void cpu_grid_step(TayState *state) {
                 TayAgentTag *tag = next;
                 next = next->next;
 
-                float4 p = TAY_AGENT_POSITION(tag);
+                float4 p = float4_agent_position(tag);
                 ushort4 indices = _agent_position_to_cell_indices(p,
                                                                   grid->grid_origin,
                                                                   grid->cell_sizes,

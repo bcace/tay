@@ -41,7 +41,7 @@ void tay_runner_run();
 void tay_runner_stop_threads();
 void tay_runner_run_no_threads();
 void tay_runner_reset_stats();
-void tay_runner_report_stats();
+void tay_runner_report_stats(int steps);
 
 extern TayRunner runner;
 
