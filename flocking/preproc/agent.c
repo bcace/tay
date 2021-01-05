@@ -1,6 +1,6 @@
 void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *c) {
-    float3 a_p = float3_get_agent_position(a);
-    float3 b_p = float3_get_agent_position(b);
+    float3 a_p = float3_agent_position(a);
+    float3 b_p = float3_agent_position(b);
 
     float dx_sq = b_p.x - a_p.x;
     float dy_sq = b_p.y - a_p.y;
@@ -18,8 +18,8 @@ void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *
 }
 
 void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
-    float3 p = float3_get_agent_position(a);
-    float3_set_agent_position(a, float3_add(p, a->v));
+    float3 p = float3_agent_position(a);
+    float3_agent_position(a) = float3_add(p, a->v);
     a->separation.x = 0.0f;
     a->separation.y = 0.0f;
     a->separation.z = 0.0f;

@@ -1,9 +1,10 @@
 #include "agent.h"
+#include "tay.h"
 
 
 void agent_see(Agent *a, Agent *b, SeeContext *c) {
-    float3 a_p = float3_get_agent_position(a);
-    float3 b_p = float3_get_agent_position(b);
+    float3 a_p = float3_agent_position(a);
+    float3 b_p = float3_agent_position(b);
 
     float dx_sq = b_p.x - a_p.x;
     float dy_sq = b_p.y - a_p.y;
@@ -21,8 +22,8 @@ void agent_see(Agent *a, Agent *b, SeeContext *c) {
 }
 
 void agent_act(Agent *a, ActContext *c) {
-    float3 p = float3_get_agent_position(a);
-    float3_set_agent_position(a, float3_add(p, a->v));
+    float3 p = float3_agent_position(a);
+    float3_agent_position(a) = float3_add(p, a->v);
     a->separation.x = 0.0f;
     a->separation.y = 0.0f;
     a->separation.z = 0.0f;
@@ -34,30 +35,6 @@ void agent_act(Agent *a, ActContext *c) {
     a->alignment.z = 0.0f;
 }
 
-
-float2 float2_get_agent_position(void *agent) {
-    return *(float2 *)((TayAgentTag *)agent + 1);
-}
-
-float3 float3_get_agent_position(void *agent) {
-    return *(float3 *)((TayAgentTag *)agent + 1);
-}
-
-float4 float4_get_agent_position(void *agent) {
-    return *(float4 *)((TayAgentTag *)agent + 1);
-}
-
-void float2_set_agent_position(void *agent, float2 p) {
-    *(float2 *)((TayAgentTag *)agent + 1) = p;
-}
-
-void float3_set_agent_position(void *agent, float3 p) {
-    *(float3 *)((TayAgentTag *)agent + 1) = p;
-}
-
-void float4_set_agent_position(void *agent, float4 p) {
-    *(float4 *)((TayAgentTag *)agent + 1) = p;
-}
 
 float3 float3_null() {
     float3 r;
@@ -99,6 +76,51 @@ float3 float3_div_scalar(float3 a, float s) {
     return r;
 }
 
+float4 float4_null() {
+    float4 r;
+    r.x = 0.0f;
+    r.y = 0.0f;
+    r.z = 0.0f;
+    r.w = 0.0f;
+    return r;
+}
+
+float4 float4_make(float x, float y, float z, float w) {
+    float4 r;
+    r.x = x;
+    r.y = y;
+    r.z = z;
+    r.w = w;
+    return r;
+}
+
+float4 float4_add(float4 a, float4 b) {
+    float4 r;
+    r.x = a.x + b.x;
+    r.y = a.y + b.y;
+    r.z = a.z + b.z;
+    r.w = a.w + b.w;
+    return r;
+}
+
+float4 float4_sub(float4 a, float4 b) {
+    float4 r;
+    r.x = a.x - b.x;
+    r.y = a.y - b.y;
+    r.z = a.z - b.z;
+    r.w = a.w - b.w;
+    return r;
+}
+
+float4 float4_div_scalar(float4 a, float s) {
+    float4 r;
+    r.x = a.x / s;
+    r.y = a.y / s;
+    r.z = a.z / s;
+    r.w = a.w / s;
+    return r;
+}
+
 const char *agent_kernels_source = "\n\
 typedef struct __attribute__((packed)) Agent {\n\
     TayAgentTag tag;\n\
@@ -117,30 +139,6 @@ typedef struct __attribute__((packed)) SeeContext {\n\
     float4 radii_sq;\n\
 } SeeContext;\n\
 \n\
-\n\
-float2 float2_get_agent_position(global void *agent) {\n\
-    return *(global float2 *)((global TayAgentTag *)agent + 1);\n\
-}\n\
-\n\
-float3 float3_get_agent_position(global void *agent) {\n\
-    return *(global float3 *)((global TayAgentTag *)agent + 1);\n\
-}\n\
-\n\
-float4 float4_get_agent_position(global void *agent) {\n\
-    return *(global float4 *)((global TayAgentTag *)agent + 1);\n\
-}\n\
-\n\
-void float2_set_agent_position(global void *agent, float2 p) {\n\
-    *(global float2 *)((global TayAgentTag *)agent + 1) = p;\n\
-}\n\
-\n\
-void float3_set_agent_position(global void *agent, float3 p) {\n\
-    *(global float3 *)((global TayAgentTag *)agent + 1) = p;\n\
-}\n\
-\n\
-void float4_set_agent_position(global void *agent, float4 p) {\n\
-    *(global float4 *)((global TayAgentTag *)agent + 1) = p;\n\
-}\n\
 \n\
 float3 float3_null() {\n\
     float3 r;\n\
@@ -182,9 +180,54 @@ float3 float3_div_scalar(float3 a, float s) {\n\
     return r;\n\
 }\n\
 \n\
+float4 float4_null() {\n\
+    float4 r;\n\
+    r.x = 0.0f;\n\
+    r.y = 0.0f;\n\
+    r.z = 0.0f;\n\
+    r.w = 0.0f;\n\
+    return r;\n\
+}\n\
+\n\
+float4 float4_make(float x, float y, float z, float w) {\n\
+    float4 r;\n\
+    r.x = x;\n\
+    r.y = y;\n\
+    r.z = z;\n\
+    r.w = w;\n\
+    return r;\n\
+}\n\
+\n\
+float4 float4_add(float4 a, float4 b) {\n\
+    float4 r;\n\
+    r.x = a.x + b.x;\n\
+    r.y = a.y + b.y;\n\
+    r.z = a.z + b.z;\n\
+    r.w = a.w + b.w;\n\
+    return r;\n\
+}\n\
+\n\
+float4 float4_sub(float4 a, float4 b) {\n\
+    float4 r;\n\
+    r.x = a.x - b.x;\n\
+    r.y = a.y - b.y;\n\
+    r.z = a.z - b.z;\n\
+    r.w = a.w - b.w;\n\
+    return r;\n\
+}\n\
+\n\
+float4 float4_div_scalar(float4 a, float s) {\n\
+    float4 r;\n\
+    r.x = a.x / s;\n\
+    r.y = a.y / s;\n\
+    r.z = a.z / s;\n\
+    r.w = a.w / s;\n\
+    return r;\n\
+}\n\
+\n\
 void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
-    float3 a_p = float3_get_agent_position(a);\n\
-    float3 b_p = float3_get_agent_position(b);\n\
+    float3 a_p = float3_agent_position(a);\n\
+    float3 b_p = float3_agent_position(b);\n\
 \n\
     float dx_sq = b_p.x - a_p.x;\n\
     float dy_sq = b_p.y - a_p.y;\n\
@@ -202,8 +245,8 @@ void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
 }\n\
 \n\
 void agent_act(global Agent *a, global ActContext *c) {\n\
-    float3 p = float3_get_agent_position(a);\n\
-    float3_set_agent_position(a, float3_add(p, a->v));\n\
+    float3 p = float3_agent_position(a);\n\
+    float3_agent_position(a) = float3_add(p, a->v);\n\
     a->separation.x = 0.0f;\n\
     a->separation.y = 0.0f;\n\
     a->separation.z = 0.0f;\n\
