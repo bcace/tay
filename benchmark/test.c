@@ -73,8 +73,8 @@ static void _destroy_results(Results *r) {
 /* TODO: describe model case */
 static void _test_model_case1(TaySpaceType space_type, float see_radius, int depth_correction, Results *results) {
     int dims = 3;
-    int agents_count = 4000;
-    float space_size = 200.0f;
+    int agents_count = 10000;
+    float space_size = 1000.0f;
 
     srand(1);
 
@@ -148,13 +148,13 @@ void test() {
 #endif
 
     int beg_see_radius = 0;
-    int end_see_radius = 2;
+    int end_see_radius = 3;
 
     int beg_depth_correction = 0;
     int end_depth_correction = 3;
 
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
-        float perception_r = 10.0f * (1 << i);
+        float perception_r = 50.0f * (1 << i);
 
 #if 1
         printf("cpu simple:\n");

@@ -1,9 +1,10 @@
 #include "agent.h"
+#include "tay.h"
 
 
 void agent_see(Agent *a, Agent *b, SeeContext *c) {
-    float4 a_p = float4_get_agent_position(a);
-    float4 b_p = float4_get_agent_position(b);
+    float4 a_p = float4_agent_position(a);
+    float4 b_p = float4_agent_position(b);
     for (int i = 0; i < 1; ++i)
         a->b_buffer = float4_add(a->b_buffer, float4_sub(b_p, a_p));
     a->b_buffer_count++;
@@ -22,8 +23,8 @@ void agent_act(Agent *agent, ActContext *c) {
 
     /* move */
 
-    float4 p = float4_get_agent_position(agent);
-    float4_set_agent_position(agent, float4_add(p, agent->v));
+    float4 p = float4_agent_position(agent);
+    float4_agent_position(agent) = float4_add(p, agent->v);
 
     if (agent->p.x < c->min.x) {
         agent->p.x = c->min.x;
@@ -56,30 +57,6 @@ void agent_act(Agent *agent, ActContext *c) {
     }
 }
 
-
-float2 float2_get_agent_position(void *agent) {
-    return *(float2 *)((TayAgentTag *)agent + 1);
-}
-
-float3 float3_get_agent_position(void *agent) {
-    return *(float3 *)((TayAgentTag *)agent + 1);
-}
-
-float4 float4_get_agent_position(void *agent) {
-    return *(float4 *)((TayAgentTag *)agent + 1);
-}
-
-void float2_set_agent_position(void *agent, float2 p) {
-    *(float2 *)((TayAgentTag *)agent + 1) = p;
-}
-
-void float3_set_agent_position(void *agent, float3 p) {
-    *(float3 *)((TayAgentTag *)agent + 1) = p;
-}
-
-void float4_set_agent_position(void *agent, float4 p) {
-    *(float4 *)((TayAgentTag *)agent + 1) = p;
-}
 
 float3 float3_null() {
     float3 r;
@@ -186,30 +163,6 @@ typedef struct __attribute__((packed)) SeeContext {\n\
 } SeeContext;\n\
 \n\
 \n\
-float2 float2_get_agent_position(global void *agent) {\n\
-    return *(global float2 *)((global TayAgentTag *)agent + 1);\n\
-}\n\
-\n\
-float3 float3_get_agent_position(global void *agent) {\n\
-    return *(global float3 *)((global TayAgentTag *)agent + 1);\n\
-}\n\
-\n\
-float4 float4_get_agent_position(global void *agent) {\n\
-    return *(global float4 *)((global TayAgentTag *)agent + 1);\n\
-}\n\
-\n\
-void float2_set_agent_position(global void *agent, float2 p) {\n\
-    *(global float2 *)((global TayAgentTag *)agent + 1) = p;\n\
-}\n\
-\n\
-void float3_set_agent_position(global void *agent, float3 p) {\n\
-    *(global float3 *)((global TayAgentTag *)agent + 1) = p;\n\
-}\n\
-\n\
-void float4_set_agent_position(global void *agent, float4 p) {\n\
-    *(global float4 *)((global TayAgentTag *)agent + 1) = p;\n\
-}\n\
-\n\
 float3 float3_null() {\n\
     float3 r;\n\
     r.x = 0.0f;\n\
@@ -296,8 +249,8 @@ float4 float4_div_scalar(float4 a, float s) {\n\
 }\n\
 \n\
 void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
-    float4 a_p = float4_get_agent_position(a);\n\
-    float4 b_p = float4_get_agent_position(b);\n\
+    float4 a_p = float4_agent_position(a);\n\
+    float4 b_p = float4_agent_position(b);\n\
     for (int i = 0; i < 1; ++i)\n\
         a->b_buffer = float4_add(a->b_buffer, float4_sub(b_p, a_p));\n\
     a->b_buffer_count++;\n\
@@ -316,8 +269,8 @@ void agent_act(global Agent *agent, global ActContext *c) {\n\
 \n\
     /* move */\n\
 \n\
-    float4 p = float4_get_agent_position(agent);\n\
-    float4_set_agent_position(agent, float4_add(p, agent->v));\n\
+    float4 p = float4_agent_position(agent);\n\
+    float4_agent_position(agent) = float4_add(p, agent->v);\n\
 \n\
     if (agent->p.x < c->min.x) {\n\
         agent->p.x = c->min.x;\n\
