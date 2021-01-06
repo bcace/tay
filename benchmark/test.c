@@ -10,7 +10,7 @@
 
 /* Note that this only makes agents with randomized directions. Should implement another
 one for all agents with same direction later. */
-static void _make_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity) {
+static void _make_randomized_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity) {
     for (int i = 0; i < count; ++i) {
         Agent *a = tay_get_available_agent(state, group);
         a->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
@@ -23,6 +23,34 @@ static void _make_cluster(TayState *state, int group, int count, float3 min, flo
         a->v.x *= l;
         a->v.y *= l;
         a->v.z *= l;
+        a->b_buffer.x = 0.0f;
+        a->b_buffer.y = 0.0f;
+        a->b_buffer.z = 0.0f;
+        a->b_buffer_count = 0;
+        a->f_buffer.x = 0.0f;
+        a->f_buffer.y = 0.0f;
+        a->f_buffer.z = 0.0f;
+        tay_commit_available_agent(state, group);
+    }
+}
+
+static void _make_uniform_velocity_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity) {
+    float3 v;
+    v.x = -0.5f + rand() / (float)RAND_MAX;
+    v.y = -0.5f + rand() / (float)RAND_MAX;
+    v.z = -0.5f + rand() / (float)RAND_MAX;
+    float l = velocity / sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+    v.x *= l;
+    v.y *= l;
+    v.z *= l;
+    for (int i = 0; i < count; ++i) {
+        Agent *a = tay_get_available_agent(state, group);
+        a->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
+        a->p.y = min.y + rand() * (max.y - min.y) / (float)RAND_MAX;
+        a->p.z = min.z + rand() * (max.z - min.z) / (float)RAND_MAX;
+        a->v.x = v.x;
+        a->v.y = v.y;
+        a->v.z = v.z;
         a->b_buffer.x = 0.0f;
         a->b_buffer.y = 0.0f;
         a->b_buffer.z = 0.0f;
@@ -100,12 +128,12 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int dep
     tay_add_see(s, g, g, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(s, g, agent_act, "agent_act", &act_context, sizeof(act_context));
 
-    _make_cluster(s, g, agents_count, float3_make(0.0f, 0.0f, 0.0f), float3_make(space_size, space_size, space_size), 1.0f);
+    _make_randomized_cluster(s, g, agents_count, float3_make(0.0f, 0.0f, 0.0f), float3_make(space_size, space_size, space_size), 1.0f);
 
     printf("R: %g, depth_correction: %d\n", see_radius, depth_correction);
 
     tay_simulation_start(s);
-    tay_run(s, 100, space_type, depth_correction);
+    tay_run(s, 1000, space_type, depth_correction);
     tay_simulation_end(s);
 
     if (results) {
@@ -148,20 +176,20 @@ void test() {
 #endif
 
     int beg_see_radius = 0;
-    int end_see_radius = 3;
+    int end_see_radius = 1;
 
     int beg_depth_correction = 0;
-    int end_depth_correction = 3;
+    int end_depth_correction = 1;
 
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float perception_r = 50.0f * (1 << i);
 
-#if 1
+#if 0
         printf("cpu simple:\n");
         _test_model_case1(TAY_SPACE_CPU_SIMPLE, perception_r, 0, r);
 #endif
 
-#if 1
+#if 0
         printf("cpu tree:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_CPU_TREE, perception_r, j, r);
@@ -173,23 +201,23 @@ void test() {
             _test_model_case1(TAY_SPACE_CPU_GRID, perception_r, j, r);
 #endif
 
-#if 1
+#if 0
         printf("gpu simple direct:\n");
         _test_model_case1(TAY_SPACE_GPU_SIMPLE_DIRECT, perception_r, 0, r);
 #endif
 
-#if 1
+#if 0
         printf("gpu simple indirect:\n");
         _test_model_case1(TAY_SPACE_GPU_SIMPLE_INDIRECT, perception_r, 0, r);
 #endif
 
-#if 1
+#if 0
         printf("gpu tree:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_GPU_TREE, perception_r, j, r);
 #endif
 
-#if 1
+#if 0
         printf("cycling:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
             _test_model_case1(TAY_SPACE_CYCLE_ALL, perception_r, j, r);
