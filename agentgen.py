@@ -7,6 +7,8 @@ float3 float3_make(float x, float y, float z);
 float3 float3_add(float3 a, float3 b);
 float3 float3_sub(float3 a, float3 b);
 float3 float3_div_scalar(float3 a, float s);
+float3 float3_mul_scalar(float3 a, float s);
+float3 float3_normalize(float3 a);
 
 float4 float4_null();
 float4 float4_make(float x, float y, float z, float w);
@@ -53,6 +55,23 @@ float3 float3_div_scalar(float3 a, float s) {
     r.x = a.x / s;
     r.y = a.y / s;
     r.z = a.z / s;
+    return r;
+}
+
+float3 float3_mul_scalar(float3 a, float s) {
+    float3 r;
+    r.x = a.x * s;
+    r.y = a.y * s;
+    r.z = a.z * s;
+    return r;
+}
+
+float3 float3_normalize(float3 a) {
+    float l = (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+    float3 r;
+    r.x = a.x / l;
+    r.y = a.y / l;
+    r.z = a.z / l;
     return r;
 }
 
@@ -160,6 +179,7 @@ extern const char *agent_kernels_source;
     with open('%s/agent.c' % proj_dir, 'w+') as f:
         f.write("""#include "agent.h"
 #include "tay.h"
+#include <math.h>
 
 
 {0}

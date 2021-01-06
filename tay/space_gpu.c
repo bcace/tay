@@ -25,7 +25,7 @@ kernel void fix_pointers(global char *agents, global int *next_indices, int agen
     if (next_indices[i] == TAY_GPU_NULL_INDEX)\n\
         tag->next = 0;\n\
     else if (next_indices[i] == TAY_GPU_DEAD_INDEX)\n\
-        tag->next = TAY_GPU_DEAD_ADDR;\n\
+        tag->next = (global TayAgentTag *)TAY_GPU_DEAD_ADDR;\n\
     else\n\
         tag->next = (global TayAgentTag *)(agents + next_indices[i] * agent_size);\n\
 }\n\
