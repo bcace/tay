@@ -3,8 +3,6 @@
 
 #include "const.h"
 
-#define TAY_TELEMETRY_MAX_SAMPLES 100
-
 
 typedef void * Handle;
 
@@ -33,10 +31,9 @@ typedef enum TayRunnerState {
 typedef struct {
     unsigned long long b_see_sum;
     unsigned long long n_see_sum;
-    unsigned b_see_max, b_see_min;
-    unsigned b_see_samples[TAY_TELEMETRY_MAX_SAMPLES];
-    int thread_runs_count;
-    int samples_count;
+    double rel_dev_mean_sum;
+    double rel_dev_max_sum;
+    double rel_dev_max;
     int steps_count;
 } TayTelemetry;
 

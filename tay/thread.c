@@ -34,20 +34,17 @@ unsigned int WINAPI _thread_func(TayThread *thread) {
 
 static void _reset_telemetry() {
     TayTelemetry *t = &runner.telemetry;
-    t->thread_runs_count = 0;
-    t->samples_count = 0;
+    t->b_see_sum = 0;
+    t->n_see_sum = 0;
+    t->rel_dev_mean_sum = 0.0;
+    t->rel_dev_max_sum = 0.0;
+    t->rel_dev_max = 0.0;
     t->steps_count = 0;
-    t->b_see_sum = 0ull;
-    t->n_see_sum = 0ull;
-    t->b_see_max = 0;
-    t->b_see_min = 0xffffffff;
     for (int i = 0; i < TAY_MAX_THREADS; ++i) {
         TayThreadContext *ctx = &runner.threads[i].context;
         ctx->broad_see_phase = 0;
         ctx->narrow_see_phase = 0;
     }
-    for (int i = 0; i < TAY_TELEMETRY_MAX_SAMPLES; ++i)
-        t->b_see_samples[i] = 0;
 }
 
 void tay_runner_start_threads(int threads_count) {
@@ -112,31 +109,44 @@ void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *
     t->context.context = context;
 }
 
+/* Updates telemetry for one simulation step. */
 void tay_threads_update_telemetry() {
     TayTelemetry *t = &runner.telemetry;
 
+    double sum = 0.0;
     for (int i = 0; i < runner.count; ++i) {
         TayThreadContext *c = &runner.threads[i].context;
+        sum += (double)c->broad_see_phase;
         t->b_see_sum += c->broad_see_phase;
         t->n_see_sum += c->narrow_see_phase;
-        if (c->broad_see_phase > t->b_see_max)
-            t->b_see_max = c->broad_see_phase;
-        if (c->broad_see_phase < t->b_see_min)
-            t->b_see_min = c->broad_see_phase;
-        if (t->samples_count < TAY_TELEMETRY_MAX_SAMPLES) {
-            t->b_see_samples[t->samples_count] = c->broad_see_phase;
-            ++t->samples_count;
-        }
-        else {
-            int sample = rand() % TAY_TELEMETRY_MAX_SAMPLES;
-            t->b_see_samples[sample] = c->broad_see_phase;
-        }
-        c->broad_see_phase = 0;
-        c->narrow_see_phase = 0;
-        ++t->thread_runs_count;
     }
+    double mean = sum / (double)runner.count;
+
+    double dev_sum = 0.0;
+    double dev_max = 0.0;
+    for (int i = 0; i < runner.count; ++i) {
+        TayThreadContext *c = &runner.threads[i].context;
+        double dev = fabs(c->broad_see_phase - mean);
+        dev_sum += dev;
+        if (dev > dev_max)
+            dev_max = dev;
+    }
+    double dev_mean = dev_sum / (double)runner.count;
+    double rel_dev_mean = dev_mean / mean;
+    double rel_dev_max = dev_max / mean;
+
+    t->rel_dev_mean_sum += rel_dev_mean;
+    t->rel_dev_max_sum += rel_dev_max;
+    if (rel_dev_max > t->rel_dev_max)
+        t->rel_dev_max = rel_dev_max;
 
     ++t->steps_count;
+
+    for (int i = 0; i < runner.count; ++i) {
+        TayThreadContext *c = &runner.threads[i].context;
+        c->broad_see_phase = 0;
+        c->narrow_see_phase = 0;
+    }
 }
 
 static double _max(double a, double b) {
@@ -148,16 +158,10 @@ void tay_threads_report_telemetry(unsigned steps_between_reports) {
     if ((steps_between_reports != 0) && (t->steps_count % steps_between_reports))
         return;
 
-    double b_see_mean = t->b_see_sum / (double)t->thread_runs_count;
-    double b_see_deviation_mean = 0.0;
-    for (int i = 0; i < t->samples_count; ++i)
-        b_see_deviation_mean += fabs((double)t->b_see_samples[i] - b_see_mean);
-    b_see_deviation_mean /= (double)t->samples_count;
-    double b_see_deviation_max = _max(fabs((double)t->b_see_max - b_see_mean), fabs((double)t->b_see_min - b_see_mean));
-
     printf("Thread see phase balancing (potential see interactions per thread per step):\n");
-    printf(" -relative deviation mean: %.2f%%\n", b_see_deviation_mean * 100.0 / b_see_mean);
-    printf(" -relative deviation max: %.2f%%\n", b_see_deviation_max * 100.0 / b_see_mean);
+    printf(" - mean relative deviation (averaged over steps): %.2f%%\n", t->rel_dev_mean_sum * 100.0 / (double)t->steps_count);
+    printf(" - max relative deviation (averaged over steps): %.2f%%\n", t->rel_dev_max_sum * 100.0 / (double)t->steps_count);
+    printf(" - max relative deviation: %.2f%%\n", t->rel_dev_max * 100.0);
     printf("See interaction culling efficiency (actual / potential): %.2f%%\n", t->n_see_sum * 100.0 / (double)t->b_see_sum);
     printf("Mean actual see interactions per step: %.2f\n", t->n_see_sum / (double)t->steps_count);
 
