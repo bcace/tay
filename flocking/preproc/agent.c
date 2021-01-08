@@ -2,31 +2,31 @@ void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *
     float3 a_p = float3_agent_position(a);
     float3 b_p = float3_agent_position(b);
 
-    float dx_sq = b_p.x - a_p.x;
-    float dy_sq = b_p.y - a_p.y;
-    float dz_sq = b_p.z - a_p.z;
-    dx_sq *= dx_sq;
-    dy_sq *= dy_sq;
-    dz_sq *= dz_sq;
-    float d_sq = dx_sq + dy_sq + dz_sq;
+    float dx = b_p.x - a_p.x;
+    float dy = b_p.y - a_p.y;
+    float dz = b_p.z - a_p.z;
+    float d_sq = dx * dx + dy * dy + dz * dz;
 
-    /* separation */
+    if (d_sq >= c->r_sq) /* narrow narrow phase */
+        return;
 
-    /* cohesion */
+    float d = (float)sqrt(d_sq);
 
-    /* alignment */
+    float f = 0.0f;
+    if (d < c->r1)
+        f = c->repulsion;
+    else if (d < c->r2)
+        f = c->repulsion + (c->attraction - c->repulsion) * (d - c->r1) / (c->r2 - c->r1);
+    else
+        f = c->attraction + c->attraction * (d - c->r2) / (c->r - c->r2);
+
+    a->f.x += f * dx / d;
+    a->f.y += f * dy / d;
+    a->f.z += f * dz / d;
 }
 
 void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
-    float3 p = float3_agent_position(a);
-    float3_agent_position(a) = float3_add(p, a->v);
-    a->separation.x = 0.0f;
-    a->separation.y = 0.0f;
-    a->separation.z = 0.0f;
-    a->cohesion.x = 0.0f;
-    a->cohesion.y = 0.0f;
-    a->cohesion.z = 0.0f;
-    a->alignment.x = 0.0f;
-    a->alignment.y = 0.0f;
-    a->alignment.z = 0.0f;
+    a->v = float3_add(a->v, float3_mul_scalar(float3_normalize(a->f), 0.1f));
+    a->f = float3_null();
+    float3_agent_position(a) = float3_add(float3_agent_position(a), a->v);
 }

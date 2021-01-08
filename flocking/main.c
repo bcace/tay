@@ -53,13 +53,16 @@ static void _close_callback(GLFWwindow *window) {
     window_quit = true;
 }
 
+static int step = 0;
+
 static void _main_loop_func(GLFWwindow *window) {
     graphics_viewport(0, 0, window_w, window_h);
     graphics_clear(0.2f, 0.2f, 0.2f);
     graphics_clear_depth();
     graphics_enable_depth_test(1);
 
-    tay_run(tay, 1, TAY_SPACE_CPU_GRID, 0);
+    tay_run(tay, 1, TAY_SPACE_CPU_GRID, 1);
+    tay_threads_report_telemetry(50);
 
     for (int i = 0; i < boids_count; ++i) {
         Agent *boid = tay_get_agent(tay, boids_group, i);
@@ -116,6 +119,8 @@ static void _main_loop_func(GLFWwindow *window) {
     glfwSwapBuffers(window);
     // platform_sleep(10);
     glfwPollEvents();
+
+    ++step;
 }
 
 int main() {
@@ -147,8 +152,9 @@ int main() {
     /* fill pyramid buffer */
     shader_program_set_data_float(&program, 0, 18, 3, pyramid);
 
+    const float radius = 10.0f;
     const int max_boids_count = 100000;
-    const float4 see_radii = { 10.0f, 10.0f, 10.0f, 10.0f };
+    const float4 see_radii = { radius, radius, radius, radius };
     const float velocity = 1.0f;
     const float4 min = { 0.0f, 0.0f, 0.0f, 0.0f };
     const float4 max = { 100.0f, 100.0f, 100.0f, 100.0f };
@@ -158,9 +164,12 @@ int main() {
 
     ActContext act_context;
     SeeContext see_context;
-    see_context.radii_sq.x = see_radii.x * see_radii.x;
-    see_context.radii_sq.y = see_radii.y * see_radii.y;
-    see_context.radii_sq.z = see_radii.z * see_radii.z;
+    see_context.r_sq = radius * radius;
+    see_context.r = radius;
+    see_context.r1 = radius * 0.4f;
+    see_context.r2 = radius * 0.6f;
+    see_context.repulsion = -20.5f;
+    see_context.attraction = 1.0f;
 
     tay_runner_init(); // TODO: remove this!!!
     tay_runner_start_threads(8); // TODO: remove this!!!
@@ -177,16 +186,14 @@ int main() {
         boid->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
         boid->p.y = min.y + rand() * (max.y - min.y) / (float)RAND_MAX;
         boid->p.z = min.z + rand() * (max.z - min.z) / (float)RAND_MAX;
-        boid->v.x = -0.5f + rand() / (float)RAND_MAX;
-        boid->v.y = -0.5f + rand() / (float)RAND_MAX;
-        boid->v.z = -0.5f + rand() / (float)RAND_MAX;
-        float l = velocity / sqrtf(boid->v.x * boid->v.x + boid->v.y * boid->v.y + boid->v.z * boid->v.z);
-        boid->v.x *= l;
-        boid->v.y *= l;
-        boid->v.z *= l;
-        boid->separation = float3_null();
-        boid->cohesion = float3_null();
-        boid->alignment = float3_null();
+        boid->v.x = 0.0f;// -0.5f + rand() / (float)RAND_MAX;
+        boid->v.y = 0.0f;// -0.5f + rand() / (float)RAND_MAX;
+        boid->v.z = 0.0f;// -0.5f + rand() / (float)RAND_MAX;
+        // float l = velocity / sqrtf(boid->v.x * boid->v.x + boid->v.y * boid->v.y + boid->v.z * boid->v.z);
+        // boid->v.x *= l;
+        // boid->v.y *= l;
+        // boid->v.z *= l;
+        boid->f = float3_null();
         tay_commit_available_agent(tay, boids_group);
     }
 

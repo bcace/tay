@@ -10,9 +10,7 @@ typedef struct Agent {
     TayAgentTag tag;
     float4 p;
     float3 v;
-    float3 separation;
-    float3 cohesion;
-    float3 alignment;
+    float3 f;
 } Agent;
 
 typedef struct ActContext {
@@ -20,7 +18,12 @@ typedef struct ActContext {
 } ActContext;
 
 typedef struct SeeContext {
-    float4 radii_sq;
+    float r_sq;
+    float r;
+    float r1;
+    float r2;
+    float repulsion;
+    float attraction;
 } SeeContext;
 
 void agent_see(Agent *a, Agent *b, SeeContext *context);
@@ -32,6 +35,8 @@ float3 float3_make(float x, float y, float z);
 float3 float3_add(float3 a, float3 b);
 float3 float3_sub(float3 a, float3 b);
 float3 float3_div_scalar(float3 a, float s);
+float3 float3_mul_scalar(float3 a, float s);
+float3 float3_normalize(float3 a);
 
 float4 float4_null();
 float4 float4_make(float x, float y, float z, float w);
