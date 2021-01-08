@@ -143,9 +143,9 @@ static double _max(double a, double b) {
     return (a > b) ? a : b;
 }
 
-void tay_threads_report_telemetry(int steps_between_reports) {
+void tay_threads_report_telemetry(unsigned steps_between_reports) {
     TayTelemetry *t = &runner.telemetry;
-    if (t->steps_count % steps_between_reports)
+    if ((steps_between_reports != 0) && (t->steps_count % steps_between_reports))
         return;
 
     double b_see_mean = t->b_see_sum / (double)t->thread_runs_count;
@@ -157,7 +157,7 @@ void tay_threads_report_telemetry(int steps_between_reports) {
 
     printf("Thread see phase balancing (potential see interactions per thread per step):\n");
     printf(" -relative deviation mean: %.2f%%\n", b_see_deviation_mean * 100.0 / b_see_mean);
-    printf(" -trelative deviation max: %.2f%%\n", b_see_deviation_max * 100.0 / b_see_mean);
+    printf(" -relative deviation max: %.2f%%\n", b_see_deviation_max * 100.0 / b_see_mean);
     printf("See interaction culling efficiency (actual / potential): %.2f%%\n", t->n_see_sum * 100.0 / (double)t->b_see_sum);
     printf("Mean actual see interactions per step: %.2f\n", t->n_see_sum / (double)t->steps_count);
 
