@@ -133,7 +133,10 @@ static void _test_model_case1(TaySpaceType space_type, float see_radius, int dep
     printf("R: %g, depth_correction: %d\n", see_radius, depth_correction);
 
     tay_simulation_start(s);
-    tay_run(s, 1000, space_type, depth_correction);
+    tay_run(s, 500, space_type, depth_correction);
+#if TAY_TELEMETRY
+    tay_threads_report_telemetry(0);
+#endif
     tay_simulation_end(s);
 
     if (results) {
@@ -179,7 +182,7 @@ void test() {
     int end_see_radius = 1;
 
     int beg_depth_correction = 0;
-    int end_depth_correction = 1;
+    int end_depth_correction = 3;
 
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float perception_r = 50.0f * (1 << i);
