@@ -119,6 +119,10 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
             gpu_tree_step(state);
         else
             assert(0); /* unhandled space type */
+
+#if TAY_TELEMETRY
+        tay_threads_update_telemetry();
+#endif
     }
 
     if (space->type & ST_GPU)
@@ -167,7 +171,7 @@ void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC 
             if (seer_agent == seen_agent)
                 continue;
 
-#if TAY_INSTRUMENT
+#if TAY_TELEMETRY
             ++thread_context->broad_see_phase;
 #endif
 
@@ -177,7 +181,7 @@ void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC 
                     goto SKIP_SEE;
             }
 
-#if TAY_INSTRUMENT
+#if TAY_TELEMETRY
             ++thread_context->narrow_see_phase;
 #endif
 
@@ -197,7 +201,7 @@ void space_see_single_seer(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TA
         if (seer_agent == seen_agent)
             continue;
 
-#if TAY_INSTRUMENT
+#if TAY_TELEMETRY
         ++thread_context->broad_see_phase;
 #endif
 
@@ -207,7 +211,7 @@ void space_see_single_seer(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TA
                 goto SKIP_SEE;
         }
 
-#if TAY_INSTRUMENT
+#if TAY_TELEMETRY
         ++thread_context->narrow_see_phase;
 #endif
 

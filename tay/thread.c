@@ -1,6 +1,7 @@
 #include "thread.h"
 #include "state.h"
 #include "tay.h"
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -31,6 +32,27 @@ unsigned int WINAPI _thread_func(TayThread *thread) {
     return 0;
 }
 
+static void _reset_telemetry() {
+    TayTelemetry *t = &runner.telemetry;
+    t->thread_runs_count = 0;
+    t->samples_count = 0;
+    t->b_see_sum = 0ull;
+    t->n_see_sum = 0ull;
+    t->b_see_max = 0;
+    t->n_see_max = 0;
+    t->b_see_min = 0xffffffff;
+    t->n_see_min = 0xffffffff;
+    for (int i = 0; i < TAY_MAX_THREADS; ++i) {
+        TayThreadContext *ctx = &runner.threads[i].context;
+        ctx->broad_see_phase = 0;
+        ctx->narrow_see_phase = 0;
+    }
+    for (int i = 0; i < TAY_TELEMETRY_MAX_SAMPLES; ++i) {
+        t->b_see_samples[i] = 0;
+        t->n_see_samples[i] = 0;
+    }
+}
+
 void tay_runner_start_threads(int threads_count) {
     assert(runner.state == TAY_RUNNER_IDLE);
     for (int i = 0; i < threads_count; ++i) {
@@ -42,6 +64,7 @@ void tay_runner_start_threads(int threads_count) {
     }
     runner.count = threads_count;
     runner.state = TAY_RUNNER_WAITING;
+    _reset_telemetry();
 }
 
 void tay_runner_run() {
@@ -92,23 +115,58 @@ void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *
     t->context.context = context;
 }
 
-void tay_runner_reset_stats() {
-    for (int i = 0; i < TAY_MAX_THREADS; ++i) {
+void tay_threads_update_telemetry() {
+    TayTelemetry *t = &runner.telemetry;
+
+    for (int i = 0; i < runner.count; ++i) {
         TayThreadContext *c = &runner.threads[i].context;
+        t->b_see_sum += c->broad_see_phase;
+        t->n_see_sum += c->narrow_see_phase;
+        if (c->broad_see_phase > t->b_see_max)
+            t->b_see_max = c->broad_see_phase;
+        if (c->broad_see_phase < t->b_see_min)
+            t->b_see_min = c->broad_see_phase;
+        if (c->narrow_see_phase > t->n_see_max)
+            t->n_see_max = c->narrow_see_phase;
+        if (c->narrow_see_phase < t->n_see_min)
+            t->n_see_min = c->narrow_see_phase;
+        if (t->samples_count < TAY_TELEMETRY_MAX_SAMPLES) {
+            t->b_see_samples[t->samples_count] = c->broad_see_phase;
+            t->n_see_samples[t->samples_count] = c->narrow_see_phase;
+            ++t->samples_count;
+        }
+        else {
+            int sample = rand() % TAY_TELEMETRY_MAX_SAMPLES;
+            t->b_see_samples[sample] = c->broad_see_phase;
+            t->n_see_samples[sample] = c->narrow_see_phase;
+        }
         c->broad_see_phase = 0;
         c->narrow_see_phase = 0;
+        ++t->thread_runs_count;
     }
 }
 
-void tay_runner_report_stats(int steps) {
-    unsigned long long broad_see_phase = 0;
-    unsigned long long narrow_see_phase = 0;
-    for (int i = 0; i < runner.count; ++i) {
-        TayThreadContext *c = &runner.threads[i].context;
-        printf("  thread %d\n", i);
-        printf("    see phases: %llu/%llu\n", c->narrow_see_phase, c->broad_see_phase);
-        broad_see_phase += c->broad_see_phase;
-        narrow_see_phase += c->narrow_see_phase;
+static double _max(double a, double b) {
+    return (a > b) ? a : b;
+}
+
+void tay_threads_report_telemetry() {
+    TayTelemetry *t = &runner.telemetry;
+
+    double b_see_mean = t->b_see_sum / (double)t->thread_runs_count;
+    double n_see_mean = t->n_see_sum / (double)t->thread_runs_count;
+    double b_see_deviation_mean = 0.0;
+    double n_see_deviation_mean = 0.0;
+    for (int i = 0; i < t->samples_count; ++i) {
+        b_see_deviation_mean += fabs((double)t->b_see_samples[i] - b_see_mean);
+        n_see_deviation_mean += fabs((double)t->n_see_samples[i] - n_see_mean);
     }
-    printf("sum of see phases: %llu/%llu, %f per step\n", narrow_see_phase, broad_see_phase, narrow_see_phase / (double)steps);
+    b_see_deviation_mean /= (double)t->samples_count;
+    n_see_deviation_mean /= (double)t->samples_count;
+    double b_see_deviation_max = _max(fabs((double)t->b_see_max - b_see_mean), fabs((double)t->b_see_min - b_see_mean));
+    double n_see_deviation_max = _max(fabs((double)t->n_see_max - n_see_mean), fabs((double)t->n_see_min - n_see_mean));
+    printf("[broad see] mean: %f, relative deviation mean: %f, relative deviation max: %f\n", b_see_mean, b_see_deviation_mean / b_see_mean, b_see_deviation_max / b_see_mean);
+    printf("[narrow see] mean: %f, relative deviation mean: %f, relative deviation max: %f\n", n_see_mean, n_see_deviation_mean / n_see_mean, n_see_deviation_max / n_see_mean);
+
+    _reset_telemetry();
 }

@@ -132,21 +132,13 @@ void tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_corr
     struct timespec beg, end;
     timespec_get(&beg, TIME_UTC);
 
-#if TAY_INSTRUMENT
-    tay_runner_reset_stats();
-#endif
-
     space_run(state, steps, _translate_space_type(space_type), depth_correction);
 
     timespec_get(&end, TIME_UTC);
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
     double ms = (t / (double)steps) * 1000.0;
 
-#if TAY_INSTRUMENT
-    tay_runner_report_stats(steps);
-#endif
-
-    printf("ms: %g\n\n", ms);
+    // printf("ms: %g\n\n", ms);
 }
 
 void tay_simulation_end(TayState *state) {
