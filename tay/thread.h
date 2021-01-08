@@ -34,9 +34,7 @@ typedef struct {
     unsigned long long b_see_sum;
     unsigned long long n_see_sum;
     unsigned b_see_max, b_see_min;
-    unsigned n_see_max, n_see_min;
     unsigned b_see_samples[TAY_TELEMETRY_MAX_SAMPLES];
-    unsigned n_see_samples[TAY_TELEMETRY_MAX_SAMPLES];
     int thread_runs_count;
     int samples_count;
     int steps_count;
