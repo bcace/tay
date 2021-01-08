@@ -37,8 +37,9 @@ typedef struct {
     unsigned n_see_max, n_see_min;
     unsigned b_see_samples[TAY_TELEMETRY_MAX_SAMPLES];
     unsigned n_see_samples[TAY_TELEMETRY_MAX_SAMPLES];
-    int thread_runs_count; // TODO: rename! this is thread runs count or something...
+    int thread_runs_count;
     int samples_count;
+    int steps_count;
 } TayTelemetry;
 
 typedef struct TayRunner {
@@ -56,7 +57,7 @@ void tay_runner_stop_threads();
 void tay_runner_run_no_threads();
 
 void tay_threads_update_telemetry();
-void tay_threads_report_telemetry();
+void tay_threads_report_telemetry(int steps_between_reports);
 
 extern TayRunner runner;
 
