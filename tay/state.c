@@ -138,7 +138,7 @@ void tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_corr
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
     double ms = (t / (double)steps) * 1000.0;
 
-    // printf("ms: %g\n\n", ms);
+    printf("ms: %g\n", ms);
 }
 
 void tay_simulation_end(TayState *state) {

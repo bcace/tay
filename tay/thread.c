@@ -158,12 +158,13 @@ void tay_threads_report_telemetry(unsigned steps_between_reports) {
     if ((steps_between_reports != 0) && (t->steps_count % steps_between_reports))
         return;
 
-    printf("Thread see phase balancing (potential see interactions per thread per step):\n");
-    printf(" - mean relative deviation (averaged over steps): %.2f%%\n", t->rel_dev_mean_sum * 100.0 / (double)t->steps_count);
-    printf(" - max relative deviation (averaged over steps): %.2f%%\n", t->rel_dev_max_sum * 100.0 / (double)t->steps_count);
-    printf(" - max relative deviation: %.2f%%\n", t->rel_dev_max * 100.0);
-    printf("See interaction culling efficiency (actual / potential): %.2f%%\n", t->n_see_sum * 100.0 / (double)t->b_see_sum);
-    printf("Mean actual see interactions per step: %.2f\n", t->n_see_sum / (double)t->steps_count);
+    printf("telemetry:\n");
+    printf("  thread see phase balancing (potential see interactions per thread per step):\n");
+    printf("   - mean relative deviation (averaged over steps): %.2f%%\n", t->rel_dev_mean_sum * 100.0 / (double)t->steps_count);
+    printf("   - max relative deviation (averaged over steps): %.2f%%\n", t->rel_dev_max_sum * 100.0 / (double)t->steps_count);
+    printf("   - max relative deviation: %.2f%%\n", t->rel_dev_max * 100.0);
+    printf("  see interaction culling efficiency (actual / potential): %.2f%%\n", t->n_see_sum * 100.0 / (double)t->b_see_sum);
+    printf("  mean actual see interactions per step: %.2f\n", t->n_see_sum / (double)t->steps_count);
 
     _reset_telemetry();
 }
