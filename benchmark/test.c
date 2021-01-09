@@ -164,7 +164,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
                                                velocity);
         } break;
         case MC_UNIFORM_WITH_ONE_CLUMP: {
-            int clump_count = agents_count / 2;
+            int clump_count = (int)floor(agents_count * 0.2);
             _make_randomized_direction_cluster(tay,
                                                group,
                                                agents_count - clump_count,
@@ -212,46 +212,48 @@ void test() {
     int beg_depth_correction = 0;
     int end_depth_correction = 2;
 
+    int model_case = MC_UNIFORM_WITH_ONE_CLUMP;
+
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float perception_r = 50.0f * (1 << i);
 
 #if 0
         printf("cpu simple:\n");
-        _test(MC_UNIFORM, TAY_SPACE_CPU_SIMPLE, perception_r, 0, r, steps);
+        _test(model_case, TAY_SPACE_CPU_SIMPLE, perception_r, 0, r, steps);
 #endif
 
 #if 1
         printf("cpu tree:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-            _test(MC_UNIFORM_WITH_ONE_CLUMP, TAY_SPACE_CPU_TREE, perception_r, j, r, steps);
+            _test(model_case, TAY_SPACE_CPU_TREE, perception_r, j, r, steps);
 #endif
 
 #if 1
         printf("cpu grid:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-            _test(MC_UNIFORM_WITH_ONE_CLUMP, TAY_SPACE_CPU_GRID, perception_r, j, r, steps);
+            _test(model_case, TAY_SPACE_CPU_GRID, perception_r, j, r, steps);
 #endif
 
 #if 0
         printf("gpu simple direct:\n");
-        _test(MC_UNIFORM, TAY_SPACE_GPU_SIMPLE_DIRECT, perception_r, 0, r, steps);
+        _test(model_case, TAY_SPACE_GPU_SIMPLE_DIRECT, perception_r, 0, r, steps);
 #endif
 
 #if 0
         printf("gpu simple indirect:\n");
-        _test(MC_UNIFORM, TAY_SPACE_GPU_SIMPLE_INDIRECT, perception_r, 0, r, steps);
+        _test(model_case, TAY_SPACE_GPU_SIMPLE_INDIRECT, perception_r, 0, r, steps);
 #endif
 
 #if 0
         printf("gpu tree:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-            _test(MC_UNIFORM, TAY_SPACE_GPU_TREE, perception_r, j, r, steps);
+            _test(model_case, TAY_SPACE_GPU_TREE, perception_r, j, r, steps);
 #endif
 
 #if 0
         printf("cycling:\n");
         for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-            _test(MC_UNIFORM, TAY_SPACE_CYCLE_ALL, perception_r, j, r, steps);
+            _test(model_case, TAY_SPACE_CYCLE_ALL, perception_r, j, r, steps);
 #endif
 
         printf("\n");
