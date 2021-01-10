@@ -126,7 +126,7 @@ static SpaceType _translate_space_type(TaySpaceType type) {
     return ST_NONE;
 }
 
-void tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_correction) {
+double tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_correction) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
 
     struct timespec beg, end;
@@ -137,8 +137,7 @@ void tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_corr
     timespec_get(&end, TIME_UTC);
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
     double ms = (t / (double)steps) * 1000.0;
-
-    printf("ms: %g\n", ms);
+    return ms;
 }
 
 void tay_simulation_end(TayState *state) {
