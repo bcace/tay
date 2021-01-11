@@ -186,9 +186,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
     tay_simulation_start(tay);
     double ms = tay_run(tay, steps, space_type, depth_correction);
     printf("    milliseconds per frame: %g\n", ms);
-#if TAY_TELEMETRY
     tay_threads_report_telemetry(0);
-#endif
     tay_simulation_end(tay);
 
     _write_or_compare_results(results, tay, group, agents_count);
@@ -210,10 +208,10 @@ int main() {
     int model_case = MC_UNIFORM;
 
     int beg_see_radius = 0;
-    int end_see_radius = 2;
+    int end_see_radius = 3;
 
     int beg_depth_correction = 0;
-    int end_depth_correction = 2;
+    int end_depth_correction = 3;
 
     bool run_cpu_simple = false;
     bool run_cpu_tree = true;
