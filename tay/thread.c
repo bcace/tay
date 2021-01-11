@@ -154,6 +154,7 @@ static double _max(double a, double b) {
 }
 
 void tay_threads_report_telemetry(unsigned steps_between_reports) {
+#if TAY_TELEMETRY
     TayTelemetry *t = &runner.telemetry;
     if ((steps_between_reports != 0) && (t->steps_count % steps_between_reports))
         return;
@@ -167,4 +168,5 @@ void tay_threads_report_telemetry(unsigned steps_between_reports) {
     printf("      mean actual see interactions per step: %.2f\n", t->n_see_sum / (double)t->steps_count);
 
     _reset_telemetry();
+#endif
 }
