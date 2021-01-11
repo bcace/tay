@@ -53,15 +53,14 @@ static void _close_callback(GLFWwindow *window) {
     window_quit = true;
 }
 
-static int step = 0;
-
 static void _main_loop_func(GLFWwindow *window) {
     graphics_viewport(0, 0, window_w, window_h);
     graphics_clear(0.2f, 0.2f, 0.2f);
     graphics_clear_depth();
     graphics_enable_depth_test(1);
 
-    tay_run(tay, 1, TAY_SPACE_CPU_GRID, 1);
+    double ms = tay_run(tay, 1, TAY_SPACE_CPU_GRID, 1);
+    printf("ms: %.4f\n", ms);
     tay_threads_report_telemetry(50);
 
     for (int i = 0; i < boids_count; ++i) {
@@ -119,8 +118,6 @@ static void _main_loop_func(GLFWwindow *window) {
     glfwSwapBuffers(window);
     // platform_sleep(10);
     glfwPollEvents();
-
-    ++step;
 }
 
 int main() {

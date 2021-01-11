@@ -88,10 +88,21 @@ float3 float3_mul_scalar(float3 a, float s) {
 float3 float3_normalize(float3 a) {
     float l = (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
     float3 r;
-    r.x = a.x / l;
-    r.y = a.y / l;
-    r.z = a.z / l;
+    if (l < 0.000001f) {
+        r.x = 1.0f;
+        r.y = 0.0f;
+        r.z = 0.0f;
+    }
+    else {
+        r.x = a.x / l;
+        r.y = a.y / l;
+        r.z = a.z / l;
+    }
     return r;
+}
+
+float float3_length(float3 a) {
+    return (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 }
 
 float4 float4_null() {
@@ -212,10 +223,21 @@ float3 float3_mul_scalar(float3 a, float s) {\n\
 float3 float3_normalize(float3 a) {\n\
     float l = (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);\n\
     float3 r;\n\
-    r.x = a.x / l;\n\
-    r.y = a.y / l;\n\
-    r.z = a.z / l;\n\
+    if (l < 0.000001f) {\n\
+        r.x = 1.0f;\n\
+        r.y = 0.0f;\n\
+        r.z = 0.0f;\n\
+    }\n\
+    else {\n\
+        r.x = a.x / l;\n\
+        r.y = a.y / l;\n\
+        r.z = a.z / l;\n\
+    }\n\
     return r;\n\
+}\n\
+\n\
+float float3_length(float3 a) {\n\
+    return (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);\n\
 }\n\
 \n\
 float4 float4_null() {\n\
