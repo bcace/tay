@@ -3,6 +3,7 @@ typedef struct __PACK__ Agent {
     float4 p;
     float3 v;
     float3 f;
+    int seen;
 } Agent;
 
 typedef struct __PACK__ ActContext {

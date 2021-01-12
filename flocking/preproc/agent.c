@@ -23,14 +23,27 @@ void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *
     a->f.x += f * dx / d;
     a->f.y += f * dy / d;
     a->f.z += f * dz / d;
+
+    ++a->seen;
 }
 
 void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
-    a->v = float3_add(a->v, float3_mul_scalar(float3_normalize(a->f), 0.001f));
-    float v = float3_length(a->v);
+    float3 f;
+    if (a->seen)
+        f = float3_mul_scalar(float3_div_scalar(a->f, (float)a->seen), 0.2f);
+    else {
+        f.x = 0.0f;
+        f.y = 0.0f;
+        f.z = 0.0f;
+    }
+
+    /* velocity from force */
 
     const float min_v = 0.1f;
     const float max_v = 0.2f;
+
+    a->v = float3_add(a->v, f);
+    float v = float3_length(a->v);
 
     if (v < 0.000001f) {
         a->v.x = min_v;
@@ -47,6 +60,9 @@ void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
         a->v.y *= max_v / v;
         a->v.z *= max_v / v;
     }
+
     float3_agent_position(a) = float3_add(float3_agent_position(a), a->v);
+
     a->f = float3_null();
+    a->seen = 0;
 }

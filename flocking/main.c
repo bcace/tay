@@ -192,6 +192,7 @@ int main() {
         // boid->v.y *= l;
         // boid->v.z *= l;
         boid->f = float3_null();
+        boid->seen = 0;
         tay_commit_available_agent(tay, boids_group);
     }
 

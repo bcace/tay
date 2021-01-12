@@ -28,14 +28,27 @@ void agent_see(Agent *a, Agent *b, SeeContext *c) {
     a->f.x += f * dx / d;
     a->f.y += f * dy / d;
     a->f.z += f * dz / d;
+
+    ++a->seen;
 }
 
 void agent_act(Agent *a, ActContext *c) {
-    a->v = float3_add(a->v, float3_mul_scalar(float3_normalize(a->f), 0.001f));
-    float v = float3_length(a->v);
+    float3 f;
+    if (a->seen)
+        f = float3_mul_scalar(float3_div_scalar(a->f, (float)a->seen), 0.2f);
+    else {
+        f.x = 0.0f;
+        f.y = 0.0f;
+        f.z = 0.0f;
+    }
+
+    /* velocity from force */
 
     const float min_v = 0.1f;
     const float max_v = 0.2f;
+
+    a->v = float3_add(a->v, f);
+    float v = float3_length(a->v);
 
     if (v < 0.000001f) {
         a->v.x = min_v;
@@ -52,9 +65,11 @@ void agent_act(Agent *a, ActContext *c) {
         a->v.y *= max_v / v;
         a->v.z *= max_v / v;
     }
-    // a->v = float3_mul_scalar(a->v, 0.95f);
+
     float3_agent_position(a) = float3_add(float3_agent_position(a), a->v);
+
     a->f = float3_null();
+    a->seen = 0;
 }
 
 
@@ -194,6 +209,7 @@ typedef struct __attribute__((packed)) Agent {\n\
     float4 p;\n\
     float3 v;\n\
     float3 f;\n\
+    int seen;\n\
 } Agent;\n\
 \n\
 typedef struct __attribute__((packed)) ActContext {\n\
@@ -365,14 +381,27 @@ void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
     a->f.x += f * dx / d;\n\
     a->f.y += f * dy / d;\n\
     a->f.z += f * dz / d;\n\
+\n\
+    ++a->seen;\n\
 }\n\
 \n\
 void agent_act(global Agent *a, global ActContext *c) {\n\
-    a->v = float3_add(a->v, float3_mul_scalar(float3_normalize(a->f), 0.001f));\n\
-    float v = float3_length(a->v);\n\
+    float3 f;\n\
+    if (a->seen)\n\
+        f = float3_mul_scalar(float3_div_scalar(a->f, (float)a->seen), 0.2f);\n\
+    else {\n\
+        f.x = 0.0f;\n\
+        f.y = 0.0f;\n\
+        f.z = 0.0f;\n\
+    }\n\
+\n\
+    /* velocity from force */\n\
 \n\
     const float min_v = 0.1f;\n\
     const float max_v = 0.2f;\n\
+\n\
+    a->v = float3_add(a->v, f);\n\
+    float v = float3_length(a->v);\n\
 \n\
     if (v < 0.000001f) {\n\
         a->v.x = min_v;\n\
@@ -389,9 +418,11 @@ void agent_act(global Agent *a, global ActContext *c) {\n\
         a->v.y *= max_v / v;\n\
         a->v.z *= max_v / v;\n\
     }\n\
-    // a->v = float3_mul_scalar(a->v, 0.95f);\n\
+\n\
     float3_agent_position(a) = float3_add(float3_agent_position(a), a->v);\n\
+\n\
     a->f = float3_null();\n\
+    a->seen = 0;\n\
 }\n\
 \n\
 ";
