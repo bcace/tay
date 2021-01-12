@@ -33,19 +33,29 @@ void agent_see(Agent *a, Agent *b, SeeContext *c) {
 }
 
 void agent_act(Agent *a, ActContext *c) {
+    float3 p = float3_agent_position(a);
+
+    /* calculate force */
+
+    const float gravity = 0.000001f;
+
     float3 f;
-    if (a->seen)
+    if (a->seen) {
         f = float3_mul_scalar(float3_div_scalar(a->f, (float)a->seen), 0.2f);
+        f.x -= p.x * gravity;
+        f.y -= p.y * gravity;
+        f.z -= p.z * gravity;
+    }
     else {
-        f.x = 0.0f;
-        f.y = 0.0f;
-        f.z = 0.0f;
+        f.x = -p.x * gravity;
+        f.y = -p.y * gravity;
+        f.z = -p.z * gravity;
     }
 
     /* velocity from force */
 
-    const float min_v = 0.1f;
-    const float max_v = 0.2f;
+    const float min_v = 0.2f;
+    const float max_v = 0.3f;
 
     a->v = float3_add(a->v, f);
     float v = float3_length(a->v);
@@ -66,7 +76,7 @@ void agent_act(Agent *a, ActContext *c) {
         a->v.z *= max_v / v;
     }
 
-    float3_agent_position(a) = float3_add(float3_agent_position(a), a->v);
+    float3_agent_position(a) = float3_add(p, a->v);
 
     a->f = float3_null();
     a->seen = 0;
@@ -386,19 +396,29 @@ void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
 }\n\
 \n\
 void agent_act(global Agent *a, global ActContext *c) {\n\
+    float3 p = float3_agent_position(a);\n\
+\n\
+    /* calculate force */\n\
+\n\
+    const float gravity = 0.000001f;\n\
+\n\
     float3 f;\n\
-    if (a->seen)\n\
+    if (a->seen) {\n\
         f = float3_mul_scalar(float3_div_scalar(a->f, (float)a->seen), 0.2f);\n\
+        f.x -= p.x * gravity;\n\
+        f.y -= p.y * gravity;\n\
+        f.z -= p.z * gravity;\n\
+    }\n\
     else {\n\
-        f.x = 0.0f;\n\
-        f.y = 0.0f;\n\
-        f.z = 0.0f;\n\
+        f.x = -p.x * gravity;\n\
+        f.y = -p.y * gravity;\n\
+        f.z = -p.z * gravity;\n\
     }\n\
 \n\
     /* velocity from force */\n\
 \n\
-    const float min_v = 0.1f;\n\
-    const float max_v = 0.2f;\n\
+    const float min_v = 0.2f;\n\
+    const float max_v = 0.3f;\n\
 \n\
     a->v = float3_add(a->v, f);\n\
     float v = float3_length(a->v);\n\
@@ -419,7 +439,7 @@ void agent_act(global Agent *a, global ActContext *c) {\n\
         a->v.z *= max_v / v;\n\
     }\n\
 \n\
-    float3_agent_position(a) = float3_add(float3_agent_position(a), a->v);\n\
+    float3_agent_position(a) = float3_add(p, a->v);\n\
 \n\
     a->f = float3_null();\n\
     a->seen = 0;\n\
