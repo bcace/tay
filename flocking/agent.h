@@ -37,6 +37,7 @@ float3 float3_sub(float3 a, float3 b);
 float3 float3_div_scalar(float3 a, float s);
 float3 float3_mul_scalar(float3 a, float s);
 float3 float3_normalize(float3 a);
+float3 float3_normalize_t(float3 a, float b);
 float float3_length(float3 a);
 
 float4 float4_null();

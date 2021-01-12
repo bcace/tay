@@ -46,7 +46,7 @@ static float pyramid[] = {
 };
 static vec3 *inst_pos;
 static vec3 *inst_dir;
-static int boids_count = 10000;
+static int boids_count = 4000;
 static int camera = -1;
 
 static void _close_callback(GLFWwindow *window) {
@@ -81,12 +81,13 @@ static void _main_loop_func(GLFWwindow *window) {
     vec3 pos, fwd, up;
     if (camera >= 0 && camera < boids_count) {
         Agent *watch_boid = tay_get_agent(tay, boids_group, camera);
-        pos.x = watch_boid->p.x;
-        pos.y = watch_boid->p.y;
-        pos.z = watch_boid->p.z;
-        fwd.x = watch_boid->v.x;
-        fwd.y = watch_boid->v.y;
-        fwd.z = watch_boid->v.z;
+        float3 nv = float3_normalize(watch_boid->v);
+        pos.x = watch_boid->p.x + nv.x;
+        pos.y = watch_boid->p.y + nv.y;
+        pos.z = watch_boid->p.z + nv.z;
+        fwd.x = nv.x;
+        fwd.y = nv.y;
+        fwd.z = nv.z;
         up.x = 0.0f;
         up.y = 0.0f;
         up.z = 1.0f;
@@ -149,7 +150,7 @@ int main() {
     /* fill pyramid buffer */
     shader_program_set_data_float(&program, 0, 18, 3, pyramid);
 
-    const float radius = 10.0f;
+    const float radius = 20.0f;
     const int max_boids_count = 100000;
     const float4 see_radii = { radius, radius, radius, radius };
     const float velocity = 1.0f;
@@ -164,9 +165,9 @@ int main() {
     see_context.r_sq = radius * radius;
     see_context.r = radius;
     see_context.r1 = radius * 0.4f;
-    see_context.r2 = radius * 0.6f;
-    see_context.repulsion = -20.5f;
-    see_context.attraction = 1.0f;
+    see_context.r2 = radius * 0.5f;
+    see_context.repulsion = -1.0f;
+    see_context.attraction = 0.01f;
 
     tay_runner_init(); // TODO: remove this!!!
     tay_runner_start_threads(8); // TODO: remove this!!!
