@@ -22,12 +22,13 @@ static int ushort4_eq(ushort4 a, ushort4 b, int dims) {
     return true;
 }
 
-typedef struct Bucket {
-    struct Bucket *next;
+// TODO: rename to bin
+typedef struct Bin {
+    struct Bin *next;
     TayAgentTag *first[TAY_MAX_GROUPS];
     int used;
     unsigned char visited[TAY_MAX_THREADS];
-} Bucket;
+} Bin;
 
 static inline ushort4 _agent_position_to_cell_indices(float4 pos, float4 orig, float4 size, int dims) {
     ushort4 indices;
@@ -82,22 +83,22 @@ static inline unsigned _cell_indices_to_hash(ushort4 indices, int dims) {
 
 typedef struct {
     TayPass *pass;
-    Bucket *buckets;
-    Bucket *first_bucket;
+    Bin *bins;
+    Bin *first_bin;
     int thread_i;
     int counter;
     int dims;
     ushort4 kernel_radii;
     float4 grid_origin;
     float4 cell_sizes;
-    Bucket **kernel;
+    Bin **kernel;
 } _SeeTask;
 
 static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thread_i, int dims,
                            ushort4 kernel_radii, void *thread_mem) {
     task->pass = pass;
-    task->buckets = grid->buckets;
-    task->first_bucket = grid->first_bucket;
+    task->bins = grid->bins;
+    task->first_bin = grid->first_bin;
     task->thread_i = thread_i;
     task->counter = thread_i;
     task->dims = dims;
@@ -121,38 +122,38 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
     for (int i = 0; i < dims; ++i)
         kernel_sizes.arr[i] = kernel_radii.arr[i] * 2 + 1;
 
-    for (Bucket *seer_bucket = task->first_bucket; seer_bucket; seer_bucket = seer_bucket->next) {
+    for (Bin *seer_bin = task->first_bin; seer_bin; seer_bin = seer_bin->next) {
         if (task->counter % runner.count == 0) {
 
-            int kernel_buckets_count = 0;
+            int kernel_bins_count = 0;
             ushort4 prev_seer_indices = { 0, 0, 0, 0 };
 
-            for (TayAgentTag *seer_agent = seer_bucket->first[seer_group]; seer_agent; seer_agent = seer_agent->next) {
+            for (TayAgentTag *seer_agent = seer_bin->first[seer_group]; seer_agent; seer_agent = seer_agent->next) {
                 float4 seer_p = float4_agent_position(seer_agent);
                 ushort4 seer_indices = _agent_position_to_cell_indices(seer_p, grid_origin, cell_sizes, dims);
 
-                if (kernel_buckets_count > 0 && ushort4_eq(prev_seer_indices, seer_indices, dims)) {
-                    for (int i = 0; i < kernel_buckets_count; ++i)
+                if (kernel_bins_count > 0 && ushort4_eq(prev_seer_indices, seer_indices, dims)) {
+                    for (int i = 0; i < kernel_bins_count; ++i)
                         task->kernel[i]->visited[task->thread_i] = false;
                 }
                 else {
-                    kernel_buckets_count = 0;
+                    kernel_bins_count = 0;
 
                     ushort4 origin;
                     for (int i = 0; i < dims; ++i)
                         origin.arr[i] = seer_indices.arr[i] - kernel_radii.arr[i];
 
                     ushort4 seen_indices;
-                    Bucket *seen_bucket;
+                    Bin *seen_bin;
 
                     switch (dims) {
                         case 1: {
                             for (int x = 0; x < kernel_sizes.x; ++x) {
                                 seen_indices.x = origin.x + x;
-                                seen_bucket = task->buckets + _cell_indices_to_hash_1(seen_indices);
-                                if (seen_bucket->used) {
-                                    task->kernel[kernel_buckets_count++] = seen_bucket;
-                                    seen_bucket->visited[task->thread_i] = false;
+                                seen_bin = task->bins + _cell_indices_to_hash_1(seen_indices);
+                                if (seen_bin->used) {
+                                    task->kernel[kernel_bins_count++] = seen_bin;
+                                    seen_bin->visited[task->thread_i] = false;
                                 }
                             }
                         } break;
@@ -161,10 +162,10 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                                 seen_indices.x = origin.x + x;
                                 for (int y = 0; y < kernel_sizes.y; ++y) {
                                     seen_indices.y = origin.y + y;
-                                    seen_bucket = task->buckets + _cell_indices_to_hash_2(seen_indices);
-                                    if (seen_bucket->used) {
-                                        task->kernel[kernel_buckets_count++] = seen_bucket;
-                                        seen_bucket->visited[task->thread_i] = false;
+                                    seen_bin = task->bins + _cell_indices_to_hash_2(seen_indices);
+                                    if (seen_bin->used) {
+                                        task->kernel[kernel_bins_count++] = seen_bin;
+                                        seen_bin->visited[task->thread_i] = false;
                                     }
                                 }
                             }
@@ -176,10 +177,10 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                                     seen_indices.y = origin.y + y;
                                     for (int z = 0; z < kernel_sizes.z; ++z) {
                                         seen_indices.z = origin.z + z;
-                                        seen_bucket = task->buckets + _cell_indices_to_hash_3(seen_indices);
-                                        if (seen_bucket->used) {
-                                            task->kernel[kernel_buckets_count++] = seen_bucket;
-                                            seen_bucket->visited[task->thread_i] = false;
+                                        seen_bin = task->bins + _cell_indices_to_hash_3(seen_indices);
+                                        if (seen_bin->used) {
+                                            task->kernel[kernel_bins_count++] = seen_bin;
+                                            seen_bin->visited[task->thread_i] = false;
                                         }
                                     }
                                 }
@@ -194,10 +195,10 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                                         seen_indices.z = origin.z + z;
                                         for (int w = 0; w < kernel_sizes.w; ++w) {
                                             seen_indices.w = origin.w + w;
-                                            seen_bucket = task->buckets + _cell_indices_to_hash_4(seen_indices);
-                                            if (seen_bucket->used) {
-                                                task->kernel[kernel_buckets_count++] = seen_bucket;
-                                                seen_bucket->visited[task->thread_i] = false;
+                                            seen_bin = task->bins + _cell_indices_to_hash_4(seen_indices);
+                                            if (seen_bin->used) {
+                                                task->kernel[kernel_bins_count++] = seen_bin;
+                                                seen_bin->visited[task->thread_i] = false;
                                             }
                                         }
                                     }
@@ -208,11 +209,11 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                     prev_seer_indices = seer_indices;
                 }
 
-                for (int i = 0; i < kernel_buckets_count; ++i) {
-                    Bucket *seen_bucket = task->kernel[i];
-                    if (!seen_bucket->visited[task->thread_i]) {
-                        seen_bucket->visited[task->thread_i] = true;
-                        space_see_single_seer(seer_agent, seen_bucket->first[seen_group], see_func, radii, dims, thread_context);
+                for (int i = 0; i < kernel_bins_count; ++i) {
+                    Bin *seen_bin = task->kernel[i];
+                    if (!seen_bin->visited[task->thread_i]) {
+                        seen_bin->visited[task->thread_i] = true;
+                        space_see_single_seer(seer_agent, seen_bin->first[seen_group], see_func, radii, dims, thread_context);
                     }
                 }
             }
@@ -236,7 +237,7 @@ static void _see(TayState *state, int pass_index) {
         kernel_size *= kernel_radii.arr[i] * 2 + 1;
     }
 
-    assert(kernel_size * sizeof(Bucket *) <= space_get_thread_mem_size());
+    assert(kernel_size * sizeof(Bin *) <= space_get_thread_mem_size());
 
     for (int i = 0; i < runner.count; ++i) {
         _SeeTask *task = tasks + i;
@@ -249,21 +250,21 @@ static void _see(TayState *state, int pass_index) {
 
 typedef struct {
     TayPass *pass;
-    Bucket *first_bucket;
+    Bin *first_bin;
     int counter;
 } ActTask;
 
-static void _init_act_task(ActTask *task, TayPass *pass, Bucket *first_bucket, int thread_index) {
+static void _init_act_task(ActTask *task, TayPass *pass, Bin *first_bin, int thread_index) {
     task->pass = pass;
-    task->first_bucket = first_bucket;
+    task->first_bin = first_bin;
     task->counter = thread_index;
 }
 
 // TODO: try with aliases...
 static void _act_func(ActTask *task, TayThreadContext *thread_context) {
-    for (Bucket *bucket = task->first_bucket; bucket; bucket = bucket->next) {
+    for (Bin *bin = task->first_bin; bin; bin = bin->next) {
         if (task->counter % runner.count == 0)
-            for (TayAgentTag *tag = bucket->first[task->pass->act_group]; tag; tag = tag->next)
+            for (TayAgentTag *tag = bin->first[task->pass->act_group]; tag; tag = tag->next)
                 task->pass->act(tag, thread_context->context);
         ++task->counter;
     }
@@ -277,7 +278,7 @@ static void _act(TayState *state, int pass_index) {
 
     for (int i = 0; i < runner.count; ++i) {
         ActTask *task = tasks + i;
-        _init_act_task(task, pass, grid->first_bucket, i);
+        _init_act_task(task, pass, grid->first_bin, i);
         tay_thread_set_task(i, _act_func, task, pass->context);
     }
 
@@ -287,7 +288,7 @@ static void _act(TayState *state, int pass_index) {
 void cpu_grid_prepare(TayState *state) {
     Space *space = &state->space;
     CpuGrid *grid = &space->cpu_grid;
-    grid->buckets = space_get_cell_arena(space, TAY_MAX_CELLS * sizeof(Bucket), true);
+    grid->bins = space_get_cell_arena(space, TAY_MAX_CELLS * sizeof(Bin), true);
 }
 
 void cpu_grid_step(TayState *state) {
@@ -305,9 +306,9 @@ void cpu_grid_step(TayState *state) {
         grid->grid_origin.arr[i] = space->box.min.arr[i] - margin;
     }
 
-    /* sort agents into buckets */
+    /* sort agents into bins */
     {
-        grid->first_bucket = 0;
+        grid->first_bin = 0;
 
         for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
             TayAgentTag *next = space->first[group_i];
@@ -321,15 +322,15 @@ void cpu_grid_step(TayState *state) {
                                                                   grid->cell_sizes,
                                                                   space->dims);
                 unsigned hash = _cell_indices_to_hash(indices, space->dims);
-                Bucket *bucket = grid->buckets + hash;
+                Bin *bin = grid->bins + hash;
 
-                tag->next = bucket->first[group_i];
-                bucket->first[group_i] = tag;
+                tag->next = bin->first[group_i];
+                bin->first[group_i] = tag;
 
-                if (bucket->used == false) {
-                    bucket->next = grid->first_bucket;
-                    grid->first_bucket = bucket;
-                    bucket->used = true;
+                if (bin->used == false) {
+                    bin->next = grid->first_bin;
+                    grid->first_bin = bin;
+                    bin->used = true;
                 }
             }
             space->first[group_i] = 0;
@@ -352,11 +353,11 @@ void cpu_grid_step(TayState *state) {
     box_reset(&space->box, space->dims);
 
     /* return agents and update space box */
-    for (Bucket *bucket = grid->first_bucket; bucket; bucket = bucket->next) {
+    for (Bin *bin = grid->first_bin; bin; bin = bin->next) {
         for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-            space_return_agents(space, group_i, bucket->first[group_i]);
-            bucket->first[group_i] = 0;
+            space_return_agents(space, group_i, bin->first[group_i]);
+            bin->first[group_i] = 0;
         }
-        bucket->used = false;
+        bin->used = false;
     }
 }

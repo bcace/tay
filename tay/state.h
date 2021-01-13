@@ -30,8 +30,8 @@ typedef struct {
 } CpuTree;
 
 typedef struct {
-    struct Bucket *buckets; /* buckets storage */
-    struct Bucket *first_bucket; /* first bucket that contains any agents */
+    struct Bin *bins; /* bins storage */
+    struct Bin *first_bin; /* first bin that contains any agents */
     int4 cell_counts;
     float4 cell_sizes;
     float4 grid_origin;
