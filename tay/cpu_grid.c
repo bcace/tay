@@ -3,7 +3,7 @@
 #include <math.h>
 #include <assert.h>
 
-#define TAY_MAX_KERNELS_IN_CACHE 8
+#define _BALANCED 0
 
 
 typedef struct {
@@ -22,11 +22,14 @@ static int ushort4_eq(ushort4 a, ushort4 b, int dims) {
     return true;
 }
 
-// TODO: rename to bin
 typedef struct Bin {
     struct Bin *next;
+#if _BALANCED
+    struct Bin *thread_next;
+#endif
     TayAgentTag *first[TAY_MAX_GROUPS];
-    int used;
+    unsigned counts[TAY_MAX_GROUPS];
+    int used; // TODO: try using counts instead
     unsigned char visited[TAY_MAX_THREADS];
 } Bin;
 
@@ -85,8 +88,10 @@ typedef struct {
     TayPass *pass;
     Bin *bins;
     Bin *first_bin;
-    int thread_i;
+#if !_BALANCED
     int counter;
+#endif
+    int thread_i;
     int dims;
     ushort4 kernel_radii;
     float4 grid_origin;
@@ -95,12 +100,14 @@ typedef struct {
 } _SeeTask;
 
 static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thread_i, int dims,
-                           ushort4 kernel_radii, void *thread_mem) {
+                           ushort4 kernel_radii, void *thread_mem, int bins_count) {
     task->pass = pass;
     task->bins = grid->bins;
-    task->first_bin = grid->first_bin;
     task->thread_i = thread_i;
+#if !_BALANCED
+    task->first_bin = grid->first_bin;
     task->counter = thread_i;
+#endif
     task->dims = dims;
     task->grid_origin = grid->grid_origin;
     task->cell_sizes = grid->cell_sizes;
@@ -122,8 +129,12 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
     for (int i = 0; i < dims; ++i)
         kernel_sizes.arr[i] = kernel_radii.arr[i] * 2 + 1;
 
+#if _BALANCED
+    for (Bin *seer_bin = task->first_bin; seer_bin; seer_bin = seer_bin->thread_next) {
+#else
     for (Bin *seer_bin = task->first_bin; seer_bin; seer_bin = seer_bin->next) {
         if (task->counter % runner.count == 0) {
+#endif
 
             int kernel_bins_count = 0;
             ushort4 prev_seer_indices = { 0, 0, 0, 0 };
@@ -151,7 +162,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                             for (int x = 0; x < kernel_sizes.x; ++x) {
                                 seen_indices.x = origin.x + x;
                                 seen_bin = task->bins + _cell_indices_to_hash_1(seen_indices);
-                                if (seen_bin->used) {
+                                if (seen_bin->used) { // TODO: used for what agent type exactly? Maybe use counts here.
                                     task->kernel[kernel_bins_count++] = seen_bin;
                                     seen_bin->visited[task->thread_i] = false;
                                 }
@@ -217,12 +228,24 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                     }
                 }
             }
+#if !_BALANCED
         }
         ++task->counter;
+#endif
     }
 }
 
-static void _see(TayState *state, int pass_index) {
+#define _MIN_POW 5
+#define _MAX_POW 20
+
+static int _get_bin_bin(int count) {
+    int pow = _MIN_POW;
+    while (pow < _MAX_POW && (1 << pow) < count)
+        ++pow;
+    return _MAX_POW - pow;
+}
+
+static void _see(TayState *state, int pass_index, float *agents_per_thread) {
     static _SeeTask tasks[TAY_MAX_THREADS];
 
     Space *space = &state->space;
@@ -236,12 +259,44 @@ static void _see(TayState *state, int pass_index) {
         kernel_radii.arr[i] = (int)ceilf(pass->radii.arr[i] / grid->cell_sizes.arr[i]);
         kernel_size *= kernel_radii.arr[i] * 2 + 1;
     }
-
     assert(kernel_size * sizeof(Bin *) <= space_get_thread_mem_size());
 
+    /* create see tasks */
+#if _BALANCED
+    for (int i = 0; i < runner.count; ++i)
+        tasks[i].first_bin = 0;
+
+    Bin *bin_bins[32] = { 0 };
+
+    /* sort bins into buckets wrt number of contained agents */
+    for (Bin *bin = grid->first_bin; bin; bin = bin->next) {
+        int count = bin->counts[pass->seer_group];
+        if (count) {
+            int bin_bin_i = _get_bin_bin(count);
+            bin->thread_next = bin_bins[bin_bin_i];
+            bin_bins[bin_bin_i] = bin;
+        }
+    }
+
+    /* distribute bins among threads */
+    int thread_i = 0;
+    for (int bin_bin_i = 0; bin_bin_i < 32; ++bin_bin_i) {
+        Bin *bin = bin_bins[bin_bin_i];
+        while (bin) {
+            Bin *next_bin = bin->thread_next;
+
+            _SeeTask *task = tasks + thread_i;
+            bin->thread_next = task->first_bin;
+            task->first_bin = bin;
+
+            bin = next_bin;
+            thread_i = (thread_i + 1) % runner.count;
+        }
+    }
+#endif
     for (int i = 0; i < runner.count; ++i) {
         _SeeTask *task = tasks + i;
-        _init_see_task(task, pass, grid, i, space->dims, kernel_radii, space_get_thread_mem(space, i));
+        _init_see_task(task, pass, grid, i, space->dims, kernel_radii, space_get_thread_mem(space, i), 0);
         tay_thread_set_task(i, _see_func, task, pass->context);
     }
 
@@ -306,11 +361,14 @@ void cpu_grid_step(TayState *state) {
         grid->grid_origin.arr[i] = space->box.min.arr[i] - margin;
     }
 
+    float agents_per_thread[TAY_MAX_GROUPS] = { 0.0f };
+
     /* sort agents into bins */
     {
         grid->first_bin = 0;
 
         for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+
             TayAgentTag *next = space->first[group_i];
             while (next) {
                 TayAgentTag *tag = next;
@@ -326,6 +384,7 @@ void cpu_grid_step(TayState *state) {
 
                 tag->next = bin->first[group_i];
                 bin->first[group_i] = tag;
+                ++bin->counts[group_i];
 
                 if (bin->used == false) {
                     bin->next = grid->first_bin;
@@ -333,6 +392,9 @@ void cpu_grid_step(TayState *state) {
                     bin->used = true;
                 }
             }
+
+            agents_per_thread[group_i] = space->counts[group_i] / (float)runner.count;
+
             space->first[group_i] = 0;
             space->counts[group_i] = 0;
         }
@@ -342,7 +404,7 @@ void cpu_grid_step(TayState *state) {
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
         if (pass->type == TAY_PASS_SEE)
-            _see(state, i);
+            _see(state, i, agents_per_thread);
         else if (pass->type == TAY_PASS_ACT)
             _act(state, i);
         else
@@ -357,6 +419,7 @@ void cpu_grid_step(TayState *state) {
         for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
             space_return_agents(space, group_i, bin->first[group_i]);
             bin->first[group_i] = 0;
+            bin->counts[group_i] = 0;
         }
         bin->used = false;
     }
