@@ -3,7 +3,7 @@
 #include <math.h>
 #include <assert.h>
 
-#define _BALANCED 0
+#define _BALANCED 1
 
 
 typedef struct {
@@ -88,7 +88,9 @@ typedef struct {
     TayPass *pass;
     Bin *bins;
     Bin *first_bin;
-#if !_BALANCED
+#if _BALANCED
+    unsigned agents_count;
+#else
     int counter;
 #endif
     int thread_i;
@@ -247,6 +249,7 @@ static int _get_bin_bin(int count) {
 
 static void _see(TayState *state, int pass_index, float *agents_per_thread) {
     static _SeeTask tasks[TAY_MAX_THREADS];
+    static _SeeTask *sorted_tasks[TAY_MAX_THREADS];
 
     Space *space = &state->space;
     CpuGrid *grid = &space->cpu_grid;
@@ -261,10 +264,14 @@ static void _see(TayState *state, int pass_index, float *agents_per_thread) {
     }
     assert(kernel_size * sizeof(Bin *) <= space_get_thread_mem_size());
 
-    /* create see tasks */
 #if _BALANCED
-    for (int i = 0; i < runner.count; ++i)
+
+    /* reset tasks */
+    for (int i = 0; i < runner.count; ++i) {
         tasks[i].first_bin = 0;
+        tasks[i].agents_count = 0;
+        sorted_tasks[i] = tasks + i;
+    }
 
     Bin *bin_bins[32] = { 0 };
 
@@ -279,21 +286,31 @@ static void _see(TayState *state, int pass_index, float *agents_per_thread) {
     }
 
     /* distribute bins among threads */
-    int thread_i = 0;
     for (int bin_bin_i = 0; bin_bin_i < 32; ++bin_bin_i) {
         Bin *bin = bin_bins[bin_bin_i];
         while (bin) {
             Bin *next_bin = bin->thread_next;
 
-            _SeeTask *task = tasks + thread_i;
+            _SeeTask *task = sorted_tasks[0]; /* always take the task with fewest agents */
             bin->thread_next = task->first_bin;
             task->first_bin = bin;
+            task->agents_count += bin->counts[pass->seer_group];
+
+            /* sort the task wrt its number of agents */
+            {
+                int index = 1;
+                for (; index < runner.count && task->agents_count > sorted_tasks[index]->agents_count; ++index);
+                for (int i = 1; i < index; ++i)
+                    sorted_tasks[i - 1] = sorted_tasks[i];
+                sorted_tasks[index - 1] = task;
+            }
 
             bin = next_bin;
-            thread_i = (thread_i + 1) % runner.count;
         }
     }
 #endif
+
+    /* set tasks */
     for (int i = 0; i < runner.count; ++i) {
         _SeeTask *task = tasks + i;
         _init_see_task(task, pass, grid, i, space->dims, kernel_radii, space_get_thread_mem(space, i), 0);
