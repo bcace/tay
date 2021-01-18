@@ -9,8 +9,9 @@ float3 float3_sub(float3 a, float3 b);
 float3 float3_div_scalar(float3 a, float s);
 float3 float3_mul_scalar(float3 a, float s);
 float3 float3_normalize(float3 a);
-float3 float3_normalize_t(float3 a, float b);
+float3 float3_normalize_to(float3 a, float b);
 float float3_length(float3 a);
+float float3_dot(float3 a, float3 b);
 
 float4 float4_null();
 float4 float4_make(float x, float y, float z, float w);
@@ -88,9 +89,9 @@ float3 float3_normalize_to(float3 a, float b) {
     float l = (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
     float3 r;
     if (l < 0.000001f) {
-        r.x = b;
-        r.y = 0.0f;
-        r.z = 0.0f;
+        r.x = a.x;
+        r.y = a.y;
+        r.z = a.z;
     }
     else {
         float c = b / l;
@@ -103,6 +104,10 @@ float3 float3_normalize_to(float3 a, float b) {
 
 float float3_length(float3 a) {
     return (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+
+float float3_dot(float3 a, float3 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 float4 float4_null() {

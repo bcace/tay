@@ -3,7 +3,7 @@
 #include <math.h>
 #include <assert.h>
 
-#define _BALANCED 1
+#define _BALANCED 0
 
 
 typedef struct {
@@ -139,7 +139,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
 #endif
 
             int kernel_bins_count = 0;
-            ushort4 prev_seer_indices = { 0, 0, 0, 0 };
+            ushort4 prev_seer_indices = { 0xffff, 0xffff, 0xffff, 0xffff };
 
             for (TayAgentTag *seer_agent = seer_bin->first[seer_group]; seer_agent; seer_agent = seer_agent->next) {
                 float4 seer_p = float4_agent_position(seer_agent);
@@ -308,6 +308,7 @@ static void _see(TayState *state, int pass_index, float *agents_per_thread) {
             bin = next_bin;
         }
     }
+
 #endif
 
     /* set tasks */
