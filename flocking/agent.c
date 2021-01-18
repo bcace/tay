@@ -7,79 +7,60 @@ void agent_see(Agent *a, Agent *b, SeeContext *c) {
     float3 a_p = float3_agent_position(a);
     float3 b_p = float3_agent_position(b);
 
-    float dx = b_p.x - a_p.x;
-    float dy = b_p.y - a_p.y;
-    float dz = b_p.z - a_p.z;
-    float d_sq = dx * dx + dy * dy + dz * dz;
+    float3 d = float3_sub(b_p, a_p);
+    float dl = float3_length(d);
 
-    if (d_sq >= c->r_sq) /* narrow narrow phase */
+    if (dl >= c->r) /* narrow narrow phase */
         return;
 
-    float d = (float)sqrt(d_sq);
+    /* alignment */
 
-    float f = 0.0f;
-    if (d < c->r1)
-        f = c->repulsion;
-    else if (d < c->r2)
-        f = c->repulsion + (c->attraction - c->repulsion) * (d - c->r1) / (c->r2 - c->r1);
-    else
-        f = c->attraction + c->attraction * (1.0f - (d - c->r2) / (c->r - c->r2));
+    a->alignment = float3_add(a->alignment, b->dir);
 
-    a->f.x += f * dx / d;
-    a->f.y += f * dy / d;
-    a->f.z += f * dz / d;
+    /* separation */
 
-    ++a->seen;
+    const float separation_f = 0.5f;
+
+    if (dl < (c->r * separation_f)) {
+        float dot = float3_dot(a->dir, d);
+        if (dot > 0.0f)
+            a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));
+    }
 }
 
 void agent_act(Agent *a, ActContext *c) {
     float3 p = float3_agent_position(a);
+    float3 acc = float3_null();
 
-    /* calculate force */
+    /* gravity */
 
-    const float gravity = 0.000001f;
+    const float gravity_r = 200.0f;
+    const float gravity_a = 0.00001f;
 
-    float3 f;
-    if (a->seen) {
-        f = float3_mul_scalar(float3_div_scalar(a->f, (float)a->seen), 0.2f);
-        f.x -= p.x * gravity;
-        f.y -= p.y * gravity;
-        f.z -= p.z * gravity;
-    }
-    else {
-        f.x = -p.x * gravity;
-        f.y = -p.y * gravity;
-        f.z = -p.z * gravity;
-    }
+    float d = (float)sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+    if (d > gravity_r)
+        acc = float3_sub(acc, float3_mul_scalar(p, (d - gravity_r) * gravity_a / d));
 
-    /* velocity from force */
+    /* alignment */
 
-    const float min_v = 0.2f;
-    const float max_v = 0.3f;
+    const float alignment_a = 0.01f;
 
-    a->v = float3_add(a->v, f);
-    float v = float3_length(a->v);
+    acc = float3_add(acc, float3_normalize_to(a->alignment, alignment_a));
 
-    if (v < 0.000001f) {
-        a->v.x = min_v;
-        a->v.y = 0.0f;
-        a->v.z = 0.0f;
-    }
-    else if (v < min_v) {
-        a->v.x *= min_v / v;
-        a->v.y *= min_v / v;
-        a->v.z *= min_v / v;
-    }
-    else if (v > max_v) {
-        a->v.x *= max_v / v;
-        a->v.y *= max_v / v;
-        a->v.z *= max_v / v;
-    }
+    /* separation */
 
-    float3_agent_position(a) = float3_add(p, a->v);
+    const float separation_a = 0.03f;
 
-    a->f = float3_null();
-    a->seen = 0;
+    acc = float3_add(acc, float3_normalize_to(a->separation, separation_a));
+
+    /* update */
+
+    a->dir = float3_normalize(float3_add(a->dir, acc));
+    float3_agent_position(a) = float3_add(p, float3_mul_scalar(a->dir, a->speed));
+
+    a->separation = float3_null();
+    a->alignment = float3_null();
+    a->cohesion = float3_null();
 }
 
 
@@ -151,9 +132,9 @@ float3 float3_normalize_to(float3 a, float b) {
     float l = (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
     float3 r;
     if (l < 0.000001f) {
-        r.x = b;
-        r.y = 0.0f;
-        r.z = 0.0f;
+        r.x = a.x;
+        r.y = a.y;
+        r.z = a.z;
     }
     else {
         float c = b / l;
@@ -166,6 +147,10 @@ float3 float3_normalize_to(float3 a, float b) {
 
 float float3_length(float3 a) {
     return (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+
+float float3_dot(float3 a, float3 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 float4 float4_null() {
@@ -217,9 +202,11 @@ const char *agent_kernels_source = "\n\
 typedef struct __attribute__((packed)) Agent {\n\
     TayAgentTag tag;\n\
     float4 p;\n\
-    float3 v;\n\
-    float3 f;\n\
-    int seen;\n\
+    float3 dir;\n\
+    float speed;\n\
+    float3 separation;\n\
+    float3 alignment;\n\
+    float3 cohesion;\n\
 } Agent;\n\
 \n\
 typedef struct __attribute__((packed)) ActContext {\n\
@@ -229,10 +216,6 @@ typedef struct __attribute__((packed)) ActContext {\n\
 typedef struct __attribute__((packed)) SeeContext {\n\
     float r_sq;\n\
     float r;\n\
-    float r1;\n\
-    float r2;\n\
-    float repulsion;\n\
-    float attraction;\n\
 } SeeContext;\n\
 \n\
 \n\
@@ -304,9 +287,9 @@ float3 float3_normalize_to(float3 a, float b) {\n\
     float l = (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);\n\
     float3 r;\n\
     if (l < 0.000001f) {\n\
-        r.x = b;\n\
-        r.y = 0.0f;\n\
-        r.z = 0.0f;\n\
+        r.x = a.x;\n\
+        r.y = a.y;\n\
+        r.z = a.z;\n\
     }\n\
     else {\n\
         float c = b / l;\n\
@@ -319,6 +302,10 @@ float3 float3_normalize_to(float3 a, float b) {\n\
 \n\
 float float3_length(float3 a) {\n\
     return (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);\n\
+}\n\
+\n\
+float float3_dot(float3 a, float3 b) {\n\
+    return a.x * b.x + a.y * b.y + a.z * b.z;\n\
 }\n\
 \n\
 float4 float4_null() {\n\
@@ -370,79 +357,60 @@ void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
     float3 a_p = float3_agent_position(a);\n\
     float3 b_p = float3_agent_position(b);\n\
 \n\
-    float dx = b_p.x - a_p.x;\n\
-    float dy = b_p.y - a_p.y;\n\
-    float dz = b_p.z - a_p.z;\n\
-    float d_sq = dx * dx + dy * dy + dz * dz;\n\
+    float3 d = float3_sub(b_p, a_p);\n\
+    float dl = float3_length(d);\n\
 \n\
-    if (d_sq >= c->r_sq) /* narrow narrow phase */\n\
+    if (dl >= c->r) /* narrow narrow phase */\n\
         return;\n\
 \n\
-    float d = (float)sqrt(d_sq);\n\
+    /* alignment */\n\
 \n\
-    float f = 0.0f;\n\
-    if (d < c->r1)\n\
-        f = c->repulsion;\n\
-    else if (d < c->r2)\n\
-        f = c->repulsion + (c->attraction - c->repulsion) * (d - c->r1) / (c->r2 - c->r1);\n\
-    else\n\
-        f = c->attraction + c->attraction * (1.0f - (d - c->r2) / (c->r - c->r2));\n\
+    a->alignment = float3_add(a->alignment, b->dir);\n\
 \n\
-    a->f.x += f * dx / d;\n\
-    a->f.y += f * dy / d;\n\
-    a->f.z += f * dz / d;\n\
+    /* separation */\n\
 \n\
-    ++a->seen;\n\
+    const float separation_f = 0.5f;\n\
+\n\
+    if (dl < (c->r * separation_f)) {\n\
+        float dot = float3_dot(a->dir, d);\n\
+        if (dot > 0.0f)\n\
+            a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));\n\
+    }\n\
 }\n\
 \n\
 void agent_act(global Agent *a, global ActContext *c) {\n\
     float3 p = float3_agent_position(a);\n\
+    float3 acc = float3_null();\n\
 \n\
-    /* calculate force */\n\
+    /* gravity */\n\
 \n\
-    const float gravity = 0.000001f;\n\
+    const float gravity_r = 200.0f;\n\
+    const float gravity_a = 0.00001f;\n\
 \n\
-    float3 f;\n\
-    if (a->seen) {\n\
-        f = float3_mul_scalar(float3_div_scalar(a->f, (float)a->seen), 0.2f);\n\
-        f.x -= p.x * gravity;\n\
-        f.y -= p.y * gravity;\n\
-        f.z -= p.z * gravity;\n\
-    }\n\
-    else {\n\
-        f.x = -p.x * gravity;\n\
-        f.y = -p.y * gravity;\n\
-        f.z = -p.z * gravity;\n\
-    }\n\
+    float d = (float)sqrt(p.x * p.x + p.y * p.y + p.z * p.z);\n\
+    if (d > gravity_r)\n\
+        acc = float3_sub(acc, float3_mul_scalar(p, (d - gravity_r) * gravity_a / d));\n\
 \n\
-    /* velocity from force */\n\
+    /* alignment */\n\
 \n\
-    const float min_v = 0.2f;\n\
-    const float max_v = 0.3f;\n\
+    const float alignment_a = 0.01f;\n\
 \n\
-    a->v = float3_add(a->v, f);\n\
-    float v = float3_length(a->v);\n\
+    acc = float3_add(acc, float3_normalize_to(a->alignment, alignment_a));\n\
 \n\
-    if (v < 0.000001f) {\n\
-        a->v.x = min_v;\n\
-        a->v.y = 0.0f;\n\
-        a->v.z = 0.0f;\n\
-    }\n\
-    else if (v < min_v) {\n\
-        a->v.x *= min_v / v;\n\
-        a->v.y *= min_v / v;\n\
-        a->v.z *= min_v / v;\n\
-    }\n\
-    else if (v > max_v) {\n\
-        a->v.x *= max_v / v;\n\
-        a->v.y *= max_v / v;\n\
-        a->v.z *= max_v / v;\n\
-    }\n\
+    /* separation */\n\
 \n\
-    float3_agent_position(a) = float3_add(p, a->v);\n\
+    const float separation_a = 0.03f;\n\
 \n\
-    a->f = float3_null();\n\
-    a->seen = 0;\n\
+    acc = float3_add(acc, float3_normalize_to(a->separation, separation_a));\n\
+\n\
+    /* update */\n\
+\n\
+    a->dir = float3_normalize(float3_add(a->dir, acc));\n\
+    float3_agent_position(a) = float3_add(p, float3_mul_scalar(a->dir, a->speed));\n\
+\n\
+    a->separation = float3_null();\n\
+    a->alignment = float3_null();\n\
+    a->cohesion = float3_null();\n\
 }\n\
 \n\
 ";

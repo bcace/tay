@@ -2,77 +2,58 @@ void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *
     float3 a_p = float3_agent_position(a);
     float3 b_p = float3_agent_position(b);
 
-    float dx = b_p.x - a_p.x;
-    float dy = b_p.y - a_p.y;
-    float dz = b_p.z - a_p.z;
-    float d_sq = dx * dx + dy * dy + dz * dz;
+    float3 d = float3_sub(b_p, a_p);
+    float dl = float3_length(d);
 
-    if (d_sq >= c->r_sq) /* narrow narrow phase */
+    if (dl >= c->r) /* narrow narrow phase */
         return;
 
-    float d = (float)sqrt(d_sq);
+    /* alignment */
 
-    float f = 0.0f;
-    if (d < c->r1)
-        f = c->repulsion;
-    else if (d < c->r2)
-        f = c->repulsion + (c->attraction - c->repulsion) * (d - c->r1) / (c->r2 - c->r1);
-    else
-        f = c->attraction + c->attraction * (1.0f - (d - c->r2) / (c->r - c->r2));
+    a->alignment = float3_add(a->alignment, b->dir);
 
-    a->f.x += f * dx / d;
-    a->f.y += f * dy / d;
-    a->f.z += f * dz / d;
+    /* separation */
 
-    ++a->seen;
+    const float separation_f = 0.5f;
+
+    if (dl < (c->r * separation_f)) {
+        float dot = float3_dot(a->dir, d);
+        if (dot > 0.0f)
+            a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));
+    }
 }
 
 void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
     float3 p = float3_agent_position(a);
+    float3 acc = float3_null();
 
-    /* calculate force */
+    /* gravity */
 
-    const float gravity = 0.000001f;
+    const float gravity_r = 200.0f;
+    const float gravity_a = 0.00001f;
 
-    float3 f;
-    if (a->seen) {
-        f = float3_mul_scalar(float3_div_scalar(a->f, (float)a->seen), 0.2f);
-        f.x -= p.x * gravity;
-        f.y -= p.y * gravity;
-        f.z -= p.z * gravity;
-    }
-    else {
-        f.x = -p.x * gravity;
-        f.y = -p.y * gravity;
-        f.z = -p.z * gravity;
-    }
+    float d = (float)sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+    if (d > gravity_r)
+        acc = float3_sub(acc, float3_mul_scalar(p, (d - gravity_r) * gravity_a / d));
 
-    /* velocity from force */
+    /* alignment */
 
-    const float min_v = 0.2f;
-    const float max_v = 0.3f;
+    const float alignment_a = 0.01f;
 
-    a->v = float3_add(a->v, f);
-    float v = float3_length(a->v);
+    acc = float3_add(acc, float3_normalize_to(a->alignment, alignment_a));
 
-    if (v < 0.000001f) {
-        a->v.x = min_v;
-        a->v.y = 0.0f;
-        a->v.z = 0.0f;
-    }
-    else if (v < min_v) {
-        a->v.x *= min_v / v;
-        a->v.y *= min_v / v;
-        a->v.z *= min_v / v;
-    }
-    else if (v > max_v) {
-        a->v.x *= max_v / v;
-        a->v.y *= max_v / v;
-        a->v.z *= max_v / v;
-    }
+    /* separation */
 
-    float3_agent_position(a) = float3_add(p, a->v);
+    const float separation_a = 0.03f;
 
-    a->f = float3_null();
-    a->seen = 0;
+    acc = float3_add(acc, float3_normalize_to(a->separation, separation_a));
+
+    /* update */
+
+    a->dir = float3_normalize(float3_add(a->dir, acc));
+    float3_agent_position(a) = float3_add(p, float3_mul_scalar(a->dir, a->speed));
+
+    a->separation = float3_null();
+    a->alignment = float3_null();
+    a->cohesion = float3_null();
 }

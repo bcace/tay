@@ -68,23 +68,23 @@ static void _main_loop_func(GLFWwindow *window) {
         inst_pos[i].x = boid->p.x;
         inst_pos[i].y = boid->p.y;
         inst_pos[i].z = boid->p.z;
-        inst_dir[i].x = boid->v.x;
-        inst_dir[i].y = boid->v.y;
-        inst_dir[i].z = boid->v.z;
+        inst_dir[i].x = boid->dir.x;
+        inst_dir[i].y = boid->dir.y;
+        inst_dir[i].z = boid->dir.z;
     }
 
     shader_program_use(&program);
 
     mat4 perspective;
-    graphics_perspective(&perspective, 0.8f, (float)window_w / (float)window_h, 1.0f, 1000.0f);
+    graphics_perspective(&perspective, 1.2f, (float)window_w / (float)window_h, 1.0f, 1000.0f);
 
     vec3 pos, fwd, up;
     if (camera >= 0 && camera < boids_count) {
         Agent *watch_boid = tay_get_agent(tay, boids_group, camera);
-        float3 nv = float3_normalize(watch_boid->v);
-        pos.x = watch_boid->p.x + nv.x;
-        pos.y = watch_boid->p.y + nv.y;
-        pos.z = watch_boid->p.z + nv.z;
+        float3 nv = watch_boid->dir;
+        pos.x = watch_boid->p.x - nv.x * 40.0f;
+        pos.y = watch_boid->p.y - nv.y * 40.0f;
+        pos.z = watch_boid->p.z - nv.z * 40.0f;
         fwd.x = nv.x;
         fwd.y = nv.y;
         fwd.z = nv.z;
@@ -154,7 +154,7 @@ int main() {
     const int max_boids_count = 100000;
     const float4 see_radii = { radius, radius, radius, radius };
     const float velocity = 1.0f;
-    const float4 min = { 0.0f, 0.0f, 0.0f, 0.0f };
+    const float4 min = { -100.0f, -100.0f, -100.0f, -100.0f };
     const float4 max = { 100.0f, 100.0f, 100.0f, 100.0f };
 
     inst_pos = malloc(sizeof(vec3) * max_boids_count);
@@ -164,10 +164,6 @@ int main() {
     SeeContext see_context;
     see_context.r_sq = radius * radius;
     see_context.r = radius;
-    see_context.r1 = radius * 0.4f;
-    see_context.r2 = radius * 0.5f;
-    see_context.repulsion = -1.0f;
-    see_context.attraction = 0.01f;
 
     tay_runner_init(); // TODO: remove this!!!
     tay_runner_start_threads(8); // TODO: remove this!!!
@@ -184,15 +180,17 @@ int main() {
         boid->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
         boid->p.y = min.y + rand() * (max.y - min.y) / (float)RAND_MAX;
         boid->p.z = min.z + rand() * (max.z - min.z) / (float)RAND_MAX;
-        boid->v.x = 0.0f;// -0.5f + rand() / (float)RAND_MAX;
-        boid->v.y = 0.0f;// -0.5f + rand() / (float)RAND_MAX;
-        boid->v.z = 0.0f;// -0.5f + rand() / (float)RAND_MAX;
-        // float l = velocity / sqrtf(boid->v.x * boid->v.x + boid->v.y * boid->v.y + boid->v.z * boid->v.z);
-        // boid->v.x *= l;
-        // boid->v.y *= l;
-        // boid->v.z *= l;
-        boid->f = float3_null();
-        boid->seen = 0;
+        boid->dir.x = -0.5f + rand() / (float)RAND_MAX;
+        boid->dir.y = -0.5f + rand() / (float)RAND_MAX;
+        boid->dir.z = -0.5f + rand() / (float)RAND_MAX;
+        float l = velocity / sqrtf(boid->dir.x * boid->dir.x + boid->dir.y * boid->dir.y + boid->dir.z * boid->dir.z);
+        boid->dir.x *= l;
+        boid->dir.y *= l;
+        boid->dir.z *= l;
+        boid->speed = 0.3f;
+        boid->separation = float3_null();
+        boid->alignment = float3_null();
+        boid->cohesion = float3_null();
         tay_commit_available_agent(tay, boids_group);
     }
 
