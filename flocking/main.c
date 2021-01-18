@@ -46,7 +46,7 @@ static float pyramid[] = {
 };
 static vec3 *inst_pos;
 static vec3 *inst_dir;
-static int boids_count = 4000;
+static int boids_count = 10000;
 static int camera = -1;
 
 static void _close_callback(GLFWwindow *window) {
@@ -191,6 +191,7 @@ int main() {
         boid->separation = float3_null();
         boid->alignment = float3_null();
         boid->cohesion = float3_null();
+        boid->cohesion_count = 0;
         tay_commit_available_agent(tay, boids_group);
     }
 

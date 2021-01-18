@@ -12,14 +12,23 @@ void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *
 
     a->alignment = float3_add(a->alignment, b->dir);
 
-    /* separation */
+    float dot = float3_dot(a->dir, d);
+    if (dot > 0.0f) {
 
-    const float separation_f = 0.5f;
+        /* separation */
 
-    if (dl < (c->r * separation_f)) {
-        float dot = float3_dot(a->dir, d);
-        if (dot > 0.0f)
-            a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));
+        const float separation_f = 0.5f;
+
+        if (dl < (c->r * separation_f)) {
+            float dot = float3_dot(a->dir, d);
+            if (dot > 0.0f)
+                a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));
+        }
+
+        /* cohesion */
+
+        a->cohesion = float3_add(a->cohesion, d);
+        ++a->cohesion_count;
     }
 }
 
@@ -48,6 +57,12 @@ void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
 
     acc = float3_add(acc, float3_normalize_to(a->separation, separation_a));
 
+    /* cohesion */
+
+    const float cohesion_a = 0.01f;
+
+    acc = float3_add(acc, float3_normalize_to(a->cohesion, cohesion_a));
+
     /* update */
 
     a->dir = float3_normalize(float3_add(a->dir, acc));
@@ -56,4 +71,5 @@ void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
     a->separation = float3_null();
     a->alignment = float3_null();
     a->cohesion = float3_null();
+    a->cohesion_count = 0;
 }

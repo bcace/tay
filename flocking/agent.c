@@ -17,14 +17,23 @@ void agent_see(Agent *a, Agent *b, SeeContext *c) {
 
     a->alignment = float3_add(a->alignment, b->dir);
 
-    /* separation */
+    float dot = float3_dot(a->dir, d);
+    if (dot > 0.0f) {
 
-    const float separation_f = 0.5f;
+        /* separation */
 
-    if (dl < (c->r * separation_f)) {
-        float dot = float3_dot(a->dir, d);
-        if (dot > 0.0f)
-            a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));
+        const float separation_f = 0.5f;
+
+        if (dl < (c->r * separation_f)) {
+            float dot = float3_dot(a->dir, d);
+            if (dot > 0.0f)
+                a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));
+        }
+
+        /* cohesion */
+
+        a->cohesion = float3_add(a->cohesion, d);
+        ++a->cohesion_count;
     }
 }
 
@@ -53,6 +62,12 @@ void agent_act(Agent *a, ActContext *c) {
 
     acc = float3_add(acc, float3_normalize_to(a->separation, separation_a));
 
+    /* cohesion */
+
+    const float cohesion_a = 0.01f;
+
+    acc = float3_add(acc, float3_normalize_to(a->cohesion, cohesion_a));
+
     /* update */
 
     a->dir = float3_normalize(float3_add(a->dir, acc));
@@ -61,6 +76,7 @@ void agent_act(Agent *a, ActContext *c) {
     a->separation = float3_null();
     a->alignment = float3_null();
     a->cohesion = float3_null();
+    a->cohesion_count = 0;
 }
 
 
@@ -207,6 +223,7 @@ typedef struct __attribute__((packed)) Agent {\n\
     float3 separation;\n\
     float3 alignment;\n\
     float3 cohesion;\n\
+    int cohesion_count;\n\
 } Agent;\n\
 \n\
 typedef struct __attribute__((packed)) ActContext {\n\
@@ -367,14 +384,23 @@ void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
 \n\
     a->alignment = float3_add(a->alignment, b->dir);\n\
 \n\
-    /* separation */\n\
+    float dot = float3_dot(a->dir, d);\n\
+    if (dot > 0.0f) {\n\
 \n\
-    const float separation_f = 0.5f;\n\
+        /* separation */\n\
 \n\
-    if (dl < (c->r * separation_f)) {\n\
-        float dot = float3_dot(a->dir, d);\n\
-        if (dot > 0.0f)\n\
-            a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));\n\
+        const float separation_f = 0.5f;\n\
+\n\
+        if (dl < (c->r * separation_f)) {\n\
+            float dot = float3_dot(a->dir, d);\n\
+            if (dot > 0.0f)\n\
+                a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));\n\
+        }\n\
+\n\
+        /* cohesion */\n\
+\n\
+        a->cohesion = float3_add(a->cohesion, d);\n\
+        ++a->cohesion_count;\n\
     }\n\
 }\n\
 \n\
@@ -403,6 +429,12 @@ void agent_act(global Agent *a, global ActContext *c) {\n\
 \n\
     acc = float3_add(acc, float3_normalize_to(a->separation, separation_a));\n\
 \n\
+    /* cohesion */\n\
+\n\
+    const float cohesion_a = 0.01f;\n\
+\n\
+    acc = float3_add(acc, float3_normalize_to(a->cohesion, cohesion_a));\n\
+\n\
     /* update */\n\
 \n\
     a->dir = float3_normalize(float3_add(a->dir, acc));\n\
@@ -411,6 +443,7 @@ void agent_act(global Agent *a, global ActContext *c) {\n\
     a->separation = float3_null();\n\
     a->alignment = float3_null();\n\
     a->cohesion = float3_null();\n\
+    a->cohesion_count = 0;\n\
 }\n\
 \n\
 ";
