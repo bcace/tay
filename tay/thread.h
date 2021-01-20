@@ -48,8 +48,8 @@ void tay_runner_init();
 void tay_runner_start_threads(int threads_count);
 void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *), void *task, void *context);
 void tay_runner_run();
-void tay_runner_stop_threads();
 void tay_runner_run_no_threads();
+void tay_runner_stop_threads();
 
 void tay_threads_update_telemetry();
 void tay_threads_report_telemetry(unsigned steps_between_reports);

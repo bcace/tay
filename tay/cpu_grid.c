@@ -3,7 +3,7 @@
 #include <math.h>
 #include <assert.h>
 
-#define _BALANCED 0
+#define _BALANCED 1
 
 
 typedef struct {
@@ -24,9 +24,7 @@ static int ushort4_eq(ushort4 a, ushort4 b, int dims) {
 
 typedef struct Bin {
     struct Bin *next;
-#if _BALANCED
     struct Bin *thread_next;
-#endif
     TayAgentTag *first[TAY_MAX_GROUPS];
     unsigned counts[TAY_MAX_GROUPS];
     int used; // TODO: try using counts instead
@@ -86,13 +84,9 @@ static inline unsigned _cell_indices_to_hash(ushort4 indices, int dims) {
 
 typedef struct {
     TayPass *pass;
-    Bin *bins;
-    Bin *first_bin;
-#if _BALANCED
+    Bin *bins;          /* for finding kernel bins */
+    Bin *first_bin;     /* bins are balanced into separate lists for each task */
     unsigned agents_count;
-#else
-    int counter;
-#endif
     int thread_i;
     int dims;
     ushort4 kernel_radii;
@@ -102,14 +96,10 @@ typedef struct {
 } _SeeTask;
 
 static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thread_i, int dims,
-                           ushort4 kernel_radii, void *thread_mem, int bins_count) {
+                           ushort4 kernel_radii, void *thread_mem) {
     task->pass = pass;
     task->bins = grid->bins;
     task->thread_i = thread_i;
-#if !_BALANCED
-    task->first_bin = grid->first_bin;
-    task->counter = thread_i;
-#endif
     task->dims = dims;
     task->grid_origin = grid->grid_origin;
     task->cell_sizes = grid->cell_sizes;
@@ -131,66 +121,78 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
     for (int i = 0; i < dims; ++i)
         kernel_sizes.arr[i] = kernel_radii.arr[i] * 2 + 1;
 
-#if _BALANCED
     for (Bin *seer_bin = task->first_bin; seer_bin; seer_bin = seer_bin->thread_next) {
-#else
-    for (Bin *seer_bin = task->first_bin; seer_bin; seer_bin = seer_bin->next) {
-        if (task->counter % runner.count == 0) {
-#endif
+        int kernel_bins_count = 0;
+        ushort4 prev_seer_indices = { 0xffff, 0xffff, 0xffff, 0xffff };
 
-            int kernel_bins_count = 0;
-            ushort4 prev_seer_indices = { 0xffff, 0xffff, 0xffff, 0xffff };
+        for (TayAgentTag *seer_agent = seer_bin->first[seer_group]; seer_agent; seer_agent = seer_agent->next) {
+            float4 seer_p = float4_agent_position(seer_agent);
+            ushort4 seer_indices = _agent_position_to_cell_indices(seer_p, grid_origin, cell_sizes, dims);
 
-            for (TayAgentTag *seer_agent = seer_bin->first[seer_group]; seer_agent; seer_agent = seer_agent->next) {
-                float4 seer_p = float4_agent_position(seer_agent);
-                ushort4 seer_indices = _agent_position_to_cell_indices(seer_p, grid_origin, cell_sizes, dims);
+            if (kernel_bins_count > 0 && ushort4_eq(prev_seer_indices, seer_indices, dims)) {
+                for (int i = 0; i < kernel_bins_count; ++i)
+                    task->kernel[i]->visited[task->thread_i] = false;
+            }
+            else {
+                kernel_bins_count = 0;
 
-                if (kernel_bins_count > 0 && ushort4_eq(prev_seer_indices, seer_indices, dims)) {
-                    for (int i = 0; i < kernel_bins_count; ++i)
-                        task->kernel[i]->visited[task->thread_i] = false;
-                }
-                else {
-                    kernel_bins_count = 0;
+                ushort4 origin;
+                for (int i = 0; i < dims; ++i)
+                    origin.arr[i] = seer_indices.arr[i] - kernel_radii.arr[i];
 
-                    ushort4 origin;
-                    for (int i = 0; i < dims; ++i)
-                        origin.arr[i] = seer_indices.arr[i] - kernel_radii.arr[i];
+                ushort4 seen_indices;
+                Bin *seen_bin;
 
-                    ushort4 seen_indices;
-                    Bin *seen_bin;
-
-                    switch (dims) {
-                        case 1: {
-                            for (int x = 0; x < kernel_sizes.x; ++x) {
-                                seen_indices.x = origin.x + x;
-                                seen_bin = task->bins + _cell_indices_to_hash_1(seen_indices);
-                                if (seen_bin->used) { // TODO: used for what agent type exactly? Maybe use counts here.
+                switch (dims) {
+                    case 1: {
+                        for (int x = 0; x < kernel_sizes.x; ++x) {
+                            seen_indices.x = origin.x + x;
+                            seen_bin = task->bins + _cell_indices_to_hash_1(seen_indices);
+                            if (seen_bin->used) { // TODO: used for what agent type exactly? Maybe use counts here.
+                                task->kernel[kernel_bins_count++] = seen_bin;
+                                seen_bin->visited[task->thread_i] = false;
+                            }
+                        }
+                    } break;
+                    case 2: {
+                        for (int x = 0; x < kernel_sizes.x; ++x) {
+                            seen_indices.x = origin.x + x;
+                            for (int y = 0; y < kernel_sizes.y; ++y) {
+                                seen_indices.y = origin.y + y;
+                                seen_bin = task->bins + _cell_indices_to_hash_2(seen_indices);
+                                if (seen_bin->used) {
                                     task->kernel[kernel_bins_count++] = seen_bin;
                                     seen_bin->visited[task->thread_i] = false;
                                 }
                             }
-                        } break;
-                        case 2: {
-                            for (int x = 0; x < kernel_sizes.x; ++x) {
-                                seen_indices.x = origin.x + x;
-                                for (int y = 0; y < kernel_sizes.y; ++y) {
-                                    seen_indices.y = origin.y + y;
-                                    seen_bin = task->bins + _cell_indices_to_hash_2(seen_indices);
+                        }
+                    } break;
+                    case 3: {
+                        for (int x = 0; x < kernel_sizes.x; ++x) {
+                            seen_indices.x = origin.x + x;
+                            for (int y = 0; y < kernel_sizes.y; ++y) {
+                                seen_indices.y = origin.y + y;
+                                for (int z = 0; z < kernel_sizes.z; ++z) {
+                                    seen_indices.z = origin.z + z;
+                                    seen_bin = task->bins + _cell_indices_to_hash_3(seen_indices);
                                     if (seen_bin->used) {
                                         task->kernel[kernel_bins_count++] = seen_bin;
                                         seen_bin->visited[task->thread_i] = false;
                                     }
                                 }
                             }
-                        } break;
-                        case 3: {
-                            for (int x = 0; x < kernel_sizes.x; ++x) {
-                                seen_indices.x = origin.x + x;
-                                for (int y = 0; y < kernel_sizes.y; ++y) {
-                                    seen_indices.y = origin.y + y;
-                                    for (int z = 0; z < kernel_sizes.z; ++z) {
-                                        seen_indices.z = origin.z + z;
-                                        seen_bin = task->bins + _cell_indices_to_hash_3(seen_indices);
+                        }
+                    } break;
+                    default: {
+                        for (int x = 0; x < kernel_sizes.x; ++x) {
+                            seen_indices.x = origin.x + x;
+                            for (int y = 0; y < kernel_sizes.y; ++y) {
+                                seen_indices.y = origin.y + y;
+                                for (int z = 0; z < kernel_sizes.z; ++z) {
+                                    seen_indices.z = origin.z + z;
+                                    for (int w = 0; w < kernel_sizes.w; ++w) {
+                                        seen_indices.w = origin.w + w;
+                                        seen_bin = task->bins + _cell_indices_to_hash_4(seen_indices);
                                         if (seen_bin->used) {
                                             task->kernel[kernel_bins_count++] = seen_bin;
                                             seen_bin->visited[task->thread_i] = false;
@@ -198,56 +200,34 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                                     }
                                 }
                             }
-                        } break;
-                        default: {
-                            for (int x = 0; x < kernel_sizes.x; ++x) {
-                                seen_indices.x = origin.x + x;
-                                for (int y = 0; y < kernel_sizes.y; ++y) {
-                                    seen_indices.y = origin.y + y;
-                                    for (int z = 0; z < kernel_sizes.z; ++z) {
-                                        seen_indices.z = origin.z + z;
-                                        for (int w = 0; w < kernel_sizes.w; ++w) {
-                                            seen_indices.w = origin.w + w;
-                                            seen_bin = task->bins + _cell_indices_to_hash_4(seen_indices);
-                                            if (seen_bin->used) {
-                                                task->kernel[kernel_bins_count++] = seen_bin;
-                                                seen_bin->visited[task->thread_i] = false;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        };
-                    }
-                    prev_seer_indices = seer_indices;
+                        }
+                    };
                 }
+                prev_seer_indices = seer_indices;
+            }
 
-                for (int i = 0; i < kernel_bins_count; ++i) {
-                    Bin *seen_bin = task->kernel[i];
-                    if (!seen_bin->visited[task->thread_i]) {
-                        seen_bin->visited[task->thread_i] = true;
-                        space_see_single_seer(seer_agent, seen_bin->first[seen_group], see_func, radii, dims, thread_context);
-                    }
+            for (int i = 0; i < kernel_bins_count; ++i) {
+                Bin *seen_bin = task->kernel[i];
+                if (!seen_bin->visited[task->thread_i]) {
+                    seen_bin->visited[task->thread_i] = true;
+                    space_see_single_seer(seer_agent, seen_bin->first[seen_group], see_func, radii, dims, thread_context);
                 }
             }
-#if !_BALANCED
         }
-        ++task->counter;
-#endif
     }
 }
 
 #define _MIN_POW 5
 #define _MAX_POW 20
 
-static int _get_bin_bin(int count) {
+static int _agent_count_to_bucket_index(int count) {
     int pow = _MIN_POW;
     while (pow < _MAX_POW && (1 << pow) < count)
         ++pow;
     return _MAX_POW - pow;
 }
 
-static void _see(TayState *state, int pass_index, float *agents_per_thread) {
+static void _see(TayState *state, int pass_index) {
     static _SeeTask tasks[TAY_MAX_THREADS];
     static _SeeTask *sorted_tasks[TAY_MAX_THREADS];
 
@@ -264,8 +244,6 @@ static void _see(TayState *state, int pass_index, float *agents_per_thread) {
     }
     assert(kernel_size * sizeof(Bin *) <= space_get_thread_mem_size());
 
-#if _BALANCED
-
     /* reset tasks */
     for (int i = 0; i < runner.count; ++i) {
         tasks[i].first_bin = 0;
@@ -273,21 +251,22 @@ static void _see(TayState *state, int pass_index, float *agents_per_thread) {
         sorted_tasks[i] = tasks + i;
     }
 
-    Bin *bin_bins[32] = { 0 };
+    Bin *buckets[32] = { 0 };
 
     /* sort bins into buckets wrt number of contained agents */
     for (Bin *bin = grid->first_bin; bin; bin = bin->next) {
-        int count = bin->counts[pass->seer_group];
+        unsigned count = bin->counts[pass->seer_group];
         if (count) {
-            int bin_bin_i = _get_bin_bin(count);
-            bin->thread_next = bin_bins[bin_bin_i];
-            bin_bins[bin_bin_i] = bin;
+            int bucket_i = _agent_count_to_bucket_index(count);
+            bin->thread_next = buckets[bucket_i];
+            buckets[bucket_i] = bin;
         }
     }
 
     /* distribute bins among threads */
-    for (int bin_bin_i = 0; bin_bin_i < 32; ++bin_bin_i) {
-        Bin *bin = bin_bins[bin_bin_i];
+    for (int bucket_i = 0; bucket_i < 32; ++bucket_i) {
+        Bin *bin = buckets[bucket_i];
+
         while (bin) {
             Bin *next_bin = bin->thread_next;
 
@@ -309,12 +288,10 @@ static void _see(TayState *state, int pass_index, float *agents_per_thread) {
         }
     }
 
-#endif
-
     /* set tasks */
     for (int i = 0; i < runner.count; ++i) {
         _SeeTask *task = tasks + i;
-        _init_see_task(task, pass, grid, i, space->dims, kernel_radii, space_get_thread_mem(space, i), 0);
+        _init_see_task(task, pass, grid, i, space->dims, kernel_radii, space_get_thread_mem(space, i));
         tay_thread_set_task(i, _see_func, task, pass->context);
     }
 
@@ -379,8 +356,6 @@ void cpu_grid_step(TayState *state) {
         grid->grid_origin.arr[i] = space->box.min.arr[i] - margin;
     }
 
-    float agents_per_thread[TAY_MAX_GROUPS] = { 0.0f };
-
     /* sort agents into bins */
     {
         grid->first_bin = 0;
@@ -411,8 +386,6 @@ void cpu_grid_step(TayState *state) {
                 }
             }
 
-            agents_per_thread[group_i] = space->counts[group_i] / (float)runner.count;
-
             space->first[group_i] = 0;
             space->counts[group_i] = 0;
         }
@@ -422,7 +395,7 @@ void cpu_grid_step(TayState *state) {
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
         if (pass->type == TAY_PASS_SEE)
-            _see(state, i, agents_per_thread);
+            _see(state, i);
         else if (pass->type == TAY_PASS_ACT)
             _act(state, i);
         else
