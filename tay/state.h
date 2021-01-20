@@ -23,10 +23,6 @@ typedef struct {
     int dims;
     float4 radii;
     int4 max_depths;
-} Tree;
-
-typedef struct {
-    Tree base;
 } CpuTree;
 
 typedef struct {
