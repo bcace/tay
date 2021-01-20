@@ -27,7 +27,7 @@ typedef struct Bin {
     struct Bin *thread_next;
     TayAgentTag *first[TAY_MAX_GROUPS];
     unsigned counts[TAY_MAX_GROUPS];
-    int used; // TODO: try using counts instead
+    int used;
     unsigned char visited[TAY_MAX_THREADS];
 } Bin;
 
@@ -148,7 +148,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                         for (int x = 0; x < kernel_sizes.x; ++x) {
                             seen_indices.x = origin.x + x;
                             seen_bin = task->bins + _cell_indices_to_hash_1(seen_indices);
-                            if (seen_bin->used) { // TODO: used for what agent type exactly? Maybe use counts here.
+                            if (seen_bin->counts[seer_group]) {
                                 task->kernel[kernel_bins_count++] = seen_bin;
                                 seen_bin->visited[task->thread_i] = false;
                             }
@@ -160,7 +160,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                             for (int y = 0; y < kernel_sizes.y; ++y) {
                                 seen_indices.y = origin.y + y;
                                 seen_bin = task->bins + _cell_indices_to_hash_2(seen_indices);
-                                if (seen_bin->used) {
+                                if (seen_bin->counts[seer_group]) {
                                     task->kernel[kernel_bins_count++] = seen_bin;
                                     seen_bin->visited[task->thread_i] = false;
                                 }
@@ -175,7 +175,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                                 for (int z = 0; z < kernel_sizes.z; ++z) {
                                     seen_indices.z = origin.z + z;
                                     seen_bin = task->bins + _cell_indices_to_hash_3(seen_indices);
-                                    if (seen_bin->used) {
+                                    if (seen_bin->counts[seer_group]) {
                                         task->kernel[kernel_bins_count++] = seen_bin;
                                         seen_bin->visited[task->thread_i] = false;
                                     }
@@ -193,7 +193,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                                     for (int w = 0; w < kernel_sizes.w; ++w) {
                                         seen_indices.w = origin.w + w;
                                         seen_bin = task->bins + _cell_indices_to_hash_4(seen_indices);
-                                        if (seen_bin->used) {
+                                        if (seen_bin->counts[seer_group]) {
                                             task->kernel[kernel_bins_count++] = seen_bin;
                                             seen_bin->visited[task->thread_i] = false;
                                         }
