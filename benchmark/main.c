@@ -174,7 +174,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
                                             group,
                                             clump_count,
                                             float3_make(0.0f, 0.0f, 0.0f),
-                                            float3_make(space_size * 0.1f, space_size * 0.1f, space_size * 0.1f),
+                                            float3_make(space_size * 0.05f, space_size * 0.05f, space_size * 0.05f),
                                             velocity);
         } break;
         default:
@@ -205,20 +205,19 @@ int main() {
 #endif
 
     int steps = 100;
-    int model_case = MC_UNIFORM;
+    int model_case = MC_UNIFORM_WITH_ONE_CLUMP;
 
     int beg_see_radius = 0;
-    int end_see_radius = 3;
+    int end_see_radius = 1;
 
-    int beg_depth_correction = 0;
+    int beg_depth_correction = 2;
     int end_depth_correction = 3;
 
     bool run_cpu_simple = false;
-    bool run_cpu_tree = true;
-    bool run_cpu_gird = true;
+    bool run_cpu_tree = false;
+    bool run_cpu_grid = true;
     bool run_gpu_simple_direct = false;
     bool run_gpu_simple_indirect = false;
-    bool run_gpu_tree = false;
     bool run_cycling = false;
 
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
@@ -237,7 +236,7 @@ int main() {
                 _test(model_case, TAY_SPACE_CPU_TREE, see_radius, j, results, steps);
         }
 
-        if (run_cpu_gird) {
+        if (run_cpu_grid) {
             printf("  cpu grid:\n");
             for (int j = beg_depth_correction; j < end_depth_correction; ++j)
                 _test(model_case, TAY_SPACE_CPU_GRID, see_radius, j, results, steps);
@@ -251,12 +250,6 @@ int main() {
         if (run_gpu_simple_indirect) {
             printf("  gpu simple indirect:\n");
             _test(model_case, TAY_SPACE_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps);
-        }
-
-        if (run_gpu_tree) {
-            printf("  gpu tree:\n");
-            for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-                _test(model_case, TAY_SPACE_GPU_TREE, see_radius, j, results, steps);
         }
 
         if (run_cycling) {
