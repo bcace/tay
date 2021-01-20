@@ -42,11 +42,6 @@ void gpu_simple_on_simulation_end(TayState *state);
 void gpu_simple_fix_gpu_pointers(TayState *state);
 void gpu_simple_step(TayState *state, int direct);
 
-void gpu_tree_add_source(TayState *state);
-void gpu_tree_on_simulation_start(TayState *state);
-void gpu_tree_on_simulation_end(TayState *state);
-void gpu_tree_step(TayState *state);
-
 void tree_update(Space *space, Tree *tree);
 void tree_return_agents(Space *space, Tree *tree);
 

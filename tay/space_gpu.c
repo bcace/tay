@@ -56,7 +56,6 @@ void space_gpu_on_simulation_start(TayState *state) {
                                        space->dims, TAY_GPU_DEAD_ADDR, TAY_GPU_NULL_INDEX, TAY_GPU_DEAD_INDEX);
         shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, state->source);
         gpu_simple_add_source(state);
-        gpu_tree_add_source(state);
     }
 
     /* build program */
@@ -93,7 +92,6 @@ void space_gpu_on_simulation_start(TayState *state) {
     /* create private buffers and kernels */
     {
         gpu_simple_on_simulation_start(state);
-        gpu_tree_on_simulation_start(state);
     }
 }
 
@@ -122,7 +120,6 @@ void space_gpu_on_simulation_end(TayState *state) {
     /* release private buffers and kernels */
     {
         gpu_simple_on_simulation_end(state);
-        gpu_tree_on_simulation_end(state);
     }
 }
 

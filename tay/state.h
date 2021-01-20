@@ -43,16 +43,9 @@ typedef struct {
 } GpuSimple;
 
 typedef struct {
-    Tree base;
-    void *pass_kernels[TAY_MAX_PASSES];
-    void *resolve_cell_pointers_kernel;
-    void *resolve_cell_agent_pointers_kernel;
-} GpuTree;
-
-typedef struct {
     struct GpuContext *gpu;
-    void *agent_io_buffer; // equivalent to temp_arena
-    void *cells_buffer; // equivalent to cell arena
+    void *agent_io_buffer; // TODO: equivalent to temp_arena
+    void *cells_buffer; // TODO: equivalent to cell arena
     void *agent_buffers[TAY_MAX_GROUPS];
     void *pass_context_buffers[TAY_MAX_PASSES];
     void *resolve_pointers_kernel;
@@ -83,7 +76,6 @@ typedef enum SpaceType {
     ST_CPU_GRID =               (ST_FINAL | ST_CPU | ST_GRID),
     ST_GPU_SIMPLE_DIRECT =      (ST_FINAL | 0x0100 | ST_GPU_SIMPLE), /* only used when agent populations don't change */
     ST_GPU_SIMPLE_INDIRECT =    (ST_FINAL | 0x0200 | ST_GPU_SIMPLE),
-    ST_GPU_TREE =               (ST_FINAL | ST_GPU | ST_TREE),
     ST_CYCLE_ALL =              (ST_FINAL | 0x0ff0),
 } SpaceType;
 
@@ -100,7 +92,6 @@ typedef struct Space {
     CpuGrid cpu_grid;
     CpuShared cpu_shared;
     GpuSimple gpu_simple;
-    GpuTree gpu_tree;
     GpuShared gpu_shared;
 } Space;
 
