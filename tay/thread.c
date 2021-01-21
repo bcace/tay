@@ -10,11 +10,6 @@
 
 TayRunner runner;
 
-void tay_runner_init() {
-    runner.count = 0;
-    runner.state = TAY_RUNNER_IDLE;
-}
-
 static void _thread_work(TayThread *thread) {
     thread->task_func(thread->task, &thread->context);
 }
@@ -47,7 +42,7 @@ static void _reset_telemetry() {
     }
 }
 
-void tay_runner_start_threads(int threads_count) {
+void _start_threads(int threads_count) {
     assert(runner.state == TAY_RUNNER_IDLE);
     for (int i = 0; i < threads_count; ++i) {
         TayThread *t = runner.threads + i;
@@ -59,6 +54,10 @@ void tay_runner_start_threads(int threads_count) {
     runner.count = threads_count;
     runner.state = TAY_RUNNER_WAITING;
     _reset_telemetry();
+}
+
+void tay_threads_start() {
+    _start_threads(GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS));
 }
 
 void tay_runner_run() {
@@ -80,7 +79,7 @@ void tay_runner_run_no_threads() {
         _thread_work(runner.threads + i);
 }
 
-void tay_runner_stop_threads() {
+void _stop_threads() {
     assert(runner.state == TAY_RUNNER_WAITING);
     for (int i = 0; i < runner.count; ++i) {
         TayThread *t = runner.threads + i;
@@ -94,6 +93,10 @@ void tay_runner_stop_threads() {
         CloseHandle(t->end_semaphore);
     }
     runner.state = TAY_RUNNER_IDLE;
+}
+
+void tay_threads_stop() {
+    _stop_threads();
 }
 
 static void _init_thread(TayThread *thread) {
@@ -153,6 +156,7 @@ static double _max(double a, double b) {
     return (a > b) ? a : b;
 }
 
+// TODO: make the entire function into a macro that optionally tuns to a no-op
 void tay_threads_report_telemetry(unsigned steps_between_reports) {
 #if TAY_TELEMETRY
     TayTelemetry *t = &runner.telemetry;

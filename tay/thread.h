@@ -23,9 +23,9 @@ typedef struct TayThread {
 } TayThread;
 
 typedef enum TayRunnerState {
-    TAY_RUNNER_IDLE,
-    TAY_RUNNER_RUNNING,
-    TAY_RUNNER_WAITING,
+    TAY_RUNNER_IDLE,    /* no threads started */
+    TAY_RUNNER_RUNNING, /* threads started and working on tasks */
+    TAY_RUNNER_WAITING, /* threads started but waiting for tasks */
 } TayRunnerState;
 
 typedef struct {
@@ -44,12 +44,12 @@ typedef struct TayRunner {
     TayTelemetry telemetry;
 } TayRunner;
 
-void tay_runner_init();
-void tay_runner_start_threads(int threads_count);
+void tay_threads_start();
+void tay_threads_stop();
+
 void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *), void *task, void *context);
 void tay_runner_run();
 void tay_runner_run_no_threads();
-void tay_runner_stop_threads();
 
 void tay_threads_update_telemetry();
 void tay_threads_report_telemetry(unsigned steps_between_reports);
