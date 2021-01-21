@@ -195,8 +195,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
 }
 
 int main() {
-    tay_runner_init();
-    tay_runner_start_threads(8);
+    tay_threads_start();
 
 #if 1
     Results *results = _create_results();
@@ -205,16 +204,16 @@ int main() {
 #endif
 
     int steps = 100;
-    int model_case = MC_UNIFORM_WITH_ONE_CLUMP;
+    int model_case = MC_UNIFORM;
 
     int beg_see_radius = 0;
     int end_see_radius = 1;
 
-    int beg_depth_correction = 2;
-    int end_depth_correction = 3;
+    int beg_depth_correction = 0;
+    int end_depth_correction = 4;
 
     bool run_cpu_simple = false;
-    bool run_cpu_tree = false;
+    bool run_cpu_tree = true;
     bool run_cpu_grid = true;
     bool run_gpu_simple_direct = false;
     bool run_gpu_simple_indirect = false;
@@ -263,6 +262,6 @@ int main() {
 
     _destroy_results(results);
 
-    tay_runner_stop_threads();
+    tay_threads_stop();
     return 0;
 }
