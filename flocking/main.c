@@ -165,8 +165,7 @@ int main() {
     see_context.r_sq = radius * radius;
     see_context.r = radius;
 
-    tay_runner_init(); // TODO: remove this!!!
-    tay_runner_start_threads(8); // TODO: remove this!!!
+    tay_threads_start(); // TODO: remove this!!!
 
     tay = tay_create_state(3, see_radii);
     tay_set_source(tay, agent_kernels_source); // TODO: remove this!!!
@@ -203,7 +202,7 @@ int main() {
     tay_simulation_end(tay);
     tay_destroy_state(tay);
 
-    tay_runner_stop_threads(); // TODO: remove this!!!
+    tay_threads_stop(); // TODO: remove this!!!
 
     glfwDestroyWindow(window);
     glfwTerminate();
