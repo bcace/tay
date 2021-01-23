@@ -123,7 +123,7 @@ typedef enum {
     MC_UNIFORM_WITH_ONE_CLUMP,
 } ModelCase;
 
-static void _test(ModelCase model_case, TaySpaceType space_type, float see_radius, int depth_correction, Results *results, int steps) {
+static double _test(ModelCase model_case, TaySpaceType space_type, float see_radius, int depth_correction, Results *results, int steps) {
     srand(1);
 
     int dims = 3;
@@ -192,6 +192,8 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
     _write_or_compare_results(results, tay, group, agents_count);
 
     tay_destroy_state(tay);
+
+    return ms;
 }
 
 int main() {
@@ -203,21 +205,26 @@ int main() {
     Results *results = 0;
 #endif
 
-    int steps = 100;
+    int steps = 1000;
     int model_case = MC_UNIFORM;
 
-    int beg_see_radius = 0;
-    int end_see_radius = 1;
+    int beg_see_radius = 2;
+    int end_see_radius = 3;
 
     int beg_depth_correction = 0;
-    int end_depth_correction = 4;
+    int end_depth_correction = 1;
 
     bool run_cpu_simple = false;
     bool run_cpu_tree = true;
-    bool run_cpu_grid = true;
+    bool run_cpu_grid = false;
     bool run_gpu_simple_direct = false;
     bool run_gpu_simple_indirect = false;
     bool run_cycling = false;
+
+    FILE *plot;
+    fopen_s(&plot, "plot", "w");
+
+    fprintf(plot, "%d %d\n", beg_depth_correction, end_depth_correction);
 
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float see_radius = 50.0f * (1 << i);
@@ -225,30 +232,44 @@ int main() {
         printf("see radius: %.2f\n", see_radius);
 
         if (run_cpu_simple) {
+            fprintf(plot, "CpuSimple::%d", i);
             printf("  cpu simple:\n");
-            _test(model_case, TAY_SPACE_CPU_SIMPLE, see_radius, 0, results, steps);
+            double ms = _test(model_case, TAY_SPACE_CPU_SIMPLE, see_radius, 0, results, steps);
+            fprintf(plot, " %g\n", ms);
         }
 
         if (run_cpu_tree) {
+            fprintf(plot, "CpuTree::%d", i);
             printf("  cpu tree:\n");
-            for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-                _test(model_case, TAY_SPACE_CPU_TREE, see_radius, j, results, steps);
+            for (int j = beg_depth_correction; j < end_depth_correction; ++j) {
+                double ms = _test(model_case, TAY_SPACE_CPU_TREE, see_radius, j, results, steps);
+                fprintf(plot, " %g", ms);
+            }
+            fprintf(plot, "\n");
         }
 
         if (run_cpu_grid) {
+            fprintf(plot, "CpuGrid::%d", i);
             printf("  cpu grid:\n");
-            for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-                _test(model_case, TAY_SPACE_CPU_GRID, see_radius, j, results, steps);
+            for (int j = beg_depth_correction; j < end_depth_correction; ++j) {
+                double ms = _test(model_case, TAY_SPACE_CPU_GRID, see_radius, j, results, steps);
+                fprintf(plot, " %g", ms);
+            }
+            fprintf(plot, "\n");
         }
 
         if (run_gpu_simple_direct) {
+            fprintf(plot, "GpuSimple (direct)::%d", i);
             printf("  gpu simple direct:\n");
-            _test(model_case, TAY_SPACE_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps);
+            double ms = _test(model_case, TAY_SPACE_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps);
+            fprintf(plot, " %g\n", ms);
         }
 
         if (run_gpu_simple_indirect) {
+            fprintf(plot, "GpuSimple (indirect)::%d", i);
             printf("  gpu simple indirect:\n");
-            _test(model_case, TAY_SPACE_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps);
+            double ms = _test(model_case, TAY_SPACE_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps);
+            fprintf(plot, " %g\n", ms);
         }
 
         if (run_cycling) {
@@ -261,6 +282,8 @@ int main() {
     }
 
     _destroy_results(results);
+
+    fclose(plot);
 
     tay_threads_stop();
     return 0;
