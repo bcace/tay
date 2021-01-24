@@ -123,7 +123,8 @@ typedef enum {
     MC_UNIFORM_WITH_ONE_CLUMP,
 } ModelCase;
 
-static double _test(ModelCase model_case, TaySpaceType space_type, float see_radius, int depth_correction, Results *results, int steps) {
+static double _test(ModelCase model_case, TaySpaceType space_type, float see_radius, int depth_correction, Results *results, int steps,
+                    TayTelemetryResults *telemetry_results) {
     srand(1);
 
     int dims = 3;
@@ -186,6 +187,7 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     tay_simulation_start(tay);
     double ms = tay_run(tay, steps, space_type, depth_correction);
     printf("    milliseconds per frame: %g\n", ms);
+    tay_threads_get_telemetry_results(telemetry_results);
     tay_threads_report_telemetry(0);
     tay_simulation_end(tay);
 
@@ -205,18 +207,18 @@ int main() {
     Results *results = 0;
 #endif
 
-    int steps = 1000;
+    int steps = 200;
     int model_case = MC_UNIFORM;
 
-    int beg_see_radius = 2;
+    int beg_see_radius = 0;
     int end_see_radius = 3;
 
     int beg_depth_correction = 0;
-    int end_depth_correction = 1;
+    int end_depth_correction = 4;
 
-    bool run_cpu_simple = false;
+    bool run_cpu_simple = true;
     bool run_cpu_tree = true;
-    bool run_cpu_grid = false;
+    bool run_cpu_grid = true;
     bool run_gpu_simple_direct = false;
     bool run_gpu_simple_indirect = false;
     bool run_cycling = false;
@@ -226,6 +228,8 @@ int main() {
 
     fprintf(plot, "%d %d\n", beg_depth_correction, end_depth_correction);
 
+    TayTelemetryResults telemetry_results;
+
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float see_radius = 50.0f * (1 << i);
 
@@ -234,16 +238,34 @@ int main() {
         if (run_cpu_simple) {
             fprintf(plot, "CpuSimple::%d", i);
             printf("  cpu simple:\n");
-            double ms = _test(model_case, TAY_SPACE_CPU_SIMPLE, see_radius, 0, results, steps);
+            double ms = _test(model_case, TAY_SPACE_CPU_SIMPLE, see_radius, 0, results, steps, &telemetry_results);
+#if TAY_TELEMETRY
+            fprintf(plot, " %g|%g|%g|%g|%g\n",
+                telemetry_results.mean_relative_deviation_averaged,
+                telemetry_results.max_relative_deviation_averaged,
+                telemetry_results.max_relative_deviation,
+                telemetry_results.see_culling_efficiency,
+                telemetry_results.mean_see_interactions_per_step);
+#else
             fprintf(plot, " %g\n", ms);
+#endif
         }
 
         if (run_cpu_tree) {
             fprintf(plot, "CpuTree::%d", i);
             printf("  cpu tree:\n");
             for (int j = beg_depth_correction; j < end_depth_correction; ++j) {
-                double ms = _test(model_case, TAY_SPACE_CPU_TREE, see_radius, j, results, steps);
+                double ms = _test(model_case, TAY_SPACE_CPU_TREE, see_radius, j, results, steps, &telemetry_results);
+#if TAY_TELEMETRY
+                fprintf(plot, " %g|%g|%g|%g|%g",
+                    telemetry_results.mean_relative_deviation_averaged,
+                    telemetry_results.max_relative_deviation_averaged,
+                    telemetry_results.max_relative_deviation,
+                    telemetry_results.see_culling_efficiency,
+                    telemetry_results.mean_see_interactions_per_step);
+#else
                 fprintf(plot, " %g", ms);
+#endif
             }
             fprintf(plot, "\n");
         }
@@ -252,8 +274,17 @@ int main() {
             fprintf(plot, "CpuGrid::%d", i);
             printf("  cpu grid:\n");
             for (int j = beg_depth_correction; j < end_depth_correction; ++j) {
-                double ms = _test(model_case, TAY_SPACE_CPU_GRID, see_radius, j, results, steps);
+                double ms = _test(model_case, TAY_SPACE_CPU_GRID, see_radius, j, results, steps, &telemetry_results);
+#if TAY_TELEMETRY
+                fprintf(plot, " %g|%g|%g|%g|%g",
+                    telemetry_results.mean_relative_deviation_averaged,
+                    telemetry_results.max_relative_deviation_averaged,
+                    telemetry_results.max_relative_deviation,
+                    telemetry_results.see_culling_efficiency,
+                    telemetry_results.mean_see_interactions_per_step);
+#else
                 fprintf(plot, " %g", ms);
+#endif
             }
             fprintf(plot, "\n");
         }
@@ -261,21 +292,39 @@ int main() {
         if (run_gpu_simple_direct) {
             fprintf(plot, "GpuSimple (direct)::%d", i);
             printf("  gpu simple direct:\n");
-            double ms = _test(model_case, TAY_SPACE_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps);
+            double ms = _test(model_case, TAY_SPACE_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps, &telemetry_results);
+#if TAY_TELEMETRY
+            fprintf(plot, " %g|%g|%g|%g|%g\n",
+                telemetry_results.mean_relative_deviation_averaged,
+                telemetry_results.max_relative_deviation_averaged,
+                telemetry_results.max_relative_deviation,
+                telemetry_results.see_culling_efficiency,
+                telemetry_results.mean_see_interactions_per_step);
+#else
             fprintf(plot, " %g\n", ms);
+#endif
         }
 
         if (run_gpu_simple_indirect) {
             fprintf(plot, "GpuSimple (indirect)::%d", i);
             printf("  gpu simple indirect:\n");
-            double ms = _test(model_case, TAY_SPACE_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps);
+            double ms = _test(model_case, TAY_SPACE_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps, &telemetry_results);
+#if TAY_TELEMETRY
+            fprintf(plot, " %g|%g|%g|%g|%g\n",
+                telemetry_results.mean_relative_deviation_averaged,
+                telemetry_results.max_relative_deviation_averaged,
+                telemetry_results.max_relative_deviation,
+                telemetry_results.see_culling_efficiency,
+                telemetry_results.mean_see_interactions_per_step);
+#else
             fprintf(plot, " %g\n", ms);
+#endif
         }
 
         if (run_cycling) {
             printf("  cycling:\n");
             for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-                _test(model_case, TAY_SPACE_CYCLE_ALL, see_radius, j, results, steps);
+                _test(model_case, TAY_SPACE_CYCLE_ALL, see_radius, j, results, steps, &telemetry_results);
         }
 
         _reset_results(results);
