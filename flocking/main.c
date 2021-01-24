@@ -46,12 +46,14 @@ static float pyramid[] = {
 };
 static vec3 *inst_pos;
 static vec3 *inst_dir;
-static int boids_count = 10000;
+static int boids_count = 5000;
 static int camera = -1;
 
 static void _close_callback(GLFWwindow *window) {
     window_quit = true;
 }
+
+static int step = 0;
 
 static void _main_loop_func(GLFWwindow *window) {
     graphics_viewport(0, 0, window_w, window_h);
@@ -60,7 +62,8 @@ static void _main_loop_func(GLFWwindow *window) {
     graphics_enable_depth_test(1);
 
     double ms = tay_run(tay, 1, TAY_SPACE_CPU_GRID, 1);
-    printf("ms: %.4f\n", ms);
+    if ((++step % 50) == 0)
+        printf("ms: %.4f\n", ms);
     tay_threads_report_telemetry(50);
 
     for (int i = 0; i < boids_count; ++i) {
@@ -162,8 +165,8 @@ int main() {
 
     ActContext act_context;
     SeeContext see_context;
-    see_context.r_sq = radius * radius;
     see_context.r = radius;
+    see_context.separation_r = radius * 0.5f;
 
     tay_threads_start(); // TODO: remove this!!!
 

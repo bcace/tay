@@ -22,8 +22,8 @@ typedef struct ActContext {
 } ActContext;
 
 typedef struct SeeContext {
-    float r_sq;
     float r;
+    float separation_r;
 } SeeContext;
 
 void agent_see(Agent *a, Agent *b, SeeContext *context);

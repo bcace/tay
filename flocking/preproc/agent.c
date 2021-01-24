@@ -8,21 +8,21 @@ void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *
     if (dl >= c->r) /* narrow narrow phase */
         return;
 
-    /* alignment */
-
-    a->alignment = float3_add(a->alignment, b->dir);
+    /* forces are only calculated for neighbors in front of the boid */
 
     float dot = float3_dot(a->dir, d);
     if (dot > 0.0f) {
 
+        /* alignment */
+
+        a->alignment = float3_add(a->alignment, b->dir);
+
         /* separation */
 
-        const float separation_f = 0.5f;
-
-        if (dl < (c->r * separation_f)) {
-            float dot = float3_dot(a->dir, d);
-            if (dot > 0.0f)
-                a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));
+        if (dl < c->separation_r) {
+            float3 s = float3_sub(d, float3_mul_scalar(a->dir, -dot));
+            s = float3_normalize_to(s, c->separation_r - float3_length(s));
+            a->separation = float3_sub(a->separation, s);
         }
 
         /* cohesion */
@@ -59,7 +59,7 @@ void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
 
     /* cohesion */
 
-    const float cohesion_a = 0.01f;
+    const float cohesion_a = 0.04f;
 
     acc = float3_add(acc, float3_normalize_to(a->cohesion, cohesion_a));
 

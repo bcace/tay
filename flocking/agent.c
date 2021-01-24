@@ -13,21 +13,21 @@ void agent_see(Agent *a, Agent *b, SeeContext *c) {
     if (dl >= c->r) /* narrow narrow phase */
         return;
 
-    /* alignment */
-
-    a->alignment = float3_add(a->alignment, b->dir);
+    /* forces are only calculated for neighbors in front of the boid */
 
     float dot = float3_dot(a->dir, d);
     if (dot > 0.0f) {
 
+        /* alignment */
+
+        a->alignment = float3_add(a->alignment, b->dir);
+
         /* separation */
 
-        const float separation_f = 0.5f;
-
-        if (dl < (c->r * separation_f)) {
-            float dot = float3_dot(a->dir, d);
-            if (dot > 0.0f)
-                a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));
+        if (dl < c->separation_r) {
+            float3 s = float3_sub(d, float3_mul_scalar(a->dir, -dot));
+            s = float3_normalize_to(s, c->separation_r - float3_length(s));
+            a->separation = float3_sub(a->separation, s);
         }
 
         /* cohesion */
@@ -64,7 +64,7 @@ void agent_act(Agent *a, ActContext *c) {
 
     /* cohesion */
 
-    const float cohesion_a = 0.01f;
+    const float cohesion_a = 0.04f;
 
     acc = float3_add(acc, float3_normalize_to(a->cohesion, cohesion_a));
 
@@ -231,8 +231,8 @@ typedef struct __attribute__((packed)) ActContext {\n\
 } ActContext;\n\
 \n\
 typedef struct __attribute__((packed)) SeeContext {\n\
-    float r_sq;\n\
     float r;\n\
+    float separation_r;\n\
 } SeeContext;\n\
 \n\
 \n\
@@ -380,21 +380,21 @@ void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
     if (dl >= c->r) /* narrow narrow phase */\n\
         return;\n\
 \n\
-    /* alignment */\n\
-\n\
-    a->alignment = float3_add(a->alignment, b->dir);\n\
+    /* forces are only calculated for neighbors in front of the boid */\n\
 \n\
     float dot = float3_dot(a->dir, d);\n\
     if (dot > 0.0f) {\n\
 \n\
+        /* alignment */\n\
+\n\
+        a->alignment = float3_add(a->alignment, b->dir);\n\
+\n\
         /* separation */\n\
 \n\
-        const float separation_f = 0.5f;\n\
-\n\
-        if (dl < (c->r * separation_f)) {\n\
-            float dot = float3_dot(a->dir, d);\n\
-            if (dot > 0.0f)\n\
-                a->separation = float3_sub(a->separation, float3_sub(d, float3_mul_scalar(a->dir, -dot)));\n\
+        if (dl < c->separation_r) {\n\
+            float3 s = float3_sub(d, float3_mul_scalar(a->dir, -dot));\n\
+            s = float3_normalize_to(s, c->separation_r - float3_length(s));\n\
+            a->separation = float3_sub(a->separation, s);\n\
         }\n\
 \n\
         /* cohesion */\n\
@@ -431,7 +431,7 @@ void agent_act(global Agent *a, global ActContext *c) {\n\
 \n\
     /* cohesion */\n\
 \n\
-    const float cohesion_a = 0.01f;\n\
+    const float cohesion_a = 0.04f;\n\
 \n\
     acc = float3_add(acc, float3_normalize_to(a->cohesion, cohesion_a));\n\
 \n\

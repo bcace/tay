@@ -14,6 +14,6 @@ typedef struct __PACK__ ActContext {
 } ActContext;
 
 typedef struct __PACK__ SeeContext {
-    float r_sq;
     float r;
+    float separation_r;
 } SeeContext;
