@@ -156,20 +156,40 @@ static double _max(double a, double b) {
     return (a > b) ? a : b;
 }
 
-// TODO: make the entire function into a macro that optionally tuns to a no-op
+static void _calculate_telemetry_results(TayTelemetryResults *r) {
+    TayTelemetry *t = &runner.telemetry;
+    r->mean_relative_deviation_averaged = t->rel_dev_mean_sum * 100.0 / (double)t->steps_count;
+    r->max_relative_deviation_averaged = t->rel_dev_max_sum * 100.0 / (double)t->steps_count;
+    r->max_relative_deviation = t->rel_dev_max * 100.0;
+    r->see_culling_efficiency = t->n_see_sum * 100.0 / (double)t->b_see_sum;
+    r->mean_see_interactions_per_step = t->n_see_sum / (double)t->steps_count;
+}
+
+// TODO: make the following funcs into macros that optionally turn into no-ops
+
+void tay_threads_get_telemetry_results(TayTelemetryResults *results) {
+#if TAY_TELEMETRY
+    _calculate_telemetry_results(results);
+#endif
+}
+
 void tay_threads_report_telemetry(unsigned steps_between_reports) {
 #if TAY_TELEMETRY
     TayTelemetry *t = &runner.telemetry;
+
     if ((steps_between_reports != 0) && (t->steps_count % steps_between_reports))
         return;
 
+    TayTelemetryResults results;
+    tay_threads_get_telemetry_results(&results);
+
     printf("    telemetry:\n");
     printf("      thread see phase balancing (potential see interactions per thread per step):\n");
-    printf("        mean relative deviation (averaged over steps): %.2f%%\n", t->rel_dev_mean_sum * 100.0 / (double)t->steps_count);
-    printf("        max relative deviation (averaged over steps): %.2f%%\n", t->rel_dev_max_sum * 100.0 / (double)t->steps_count);
-    printf("        max relative deviation: %.2f%%\n", t->rel_dev_max * 100.0);
-    printf("      see interaction culling efficiency (actual / potential): %.2f%%\n", t->n_see_sum * 100.0 / (double)t->b_see_sum);
-    printf("      mean actual see interactions per step: %.2f\n", t->n_see_sum / (double)t->steps_count);
+    printf("        mean relative deviation (averaged over steps): %.2f%%\n", results.mean_relative_deviation_averaged);
+    printf("        max relative deviation (averaged over steps): %.2f%%\n", results.max_relative_deviation_averaged);
+    printf("        max relative deviation: %.2f%%\n", results.max_relative_deviation);
+    printf("      see interaction culling efficiency (actual / potential): %.2f%%\n", results.see_culling_efficiency);
+    printf("      mean actual see interactions per step: %.2f\n", results.mean_see_interactions_per_step);
 
     _reset_telemetry();
 #endif

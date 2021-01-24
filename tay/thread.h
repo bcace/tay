@@ -37,6 +37,14 @@ typedef struct {
     int steps_count;
 } TayTelemetry;
 
+typedef struct {
+    double mean_relative_deviation_averaged;
+    double max_relative_deviation_averaged;
+    double max_relative_deviation;
+    double see_culling_efficiency;
+    double mean_see_interactions_per_step;
+} TayTelemetryResults;
+
 typedef struct TayRunner {
     TayThread threads[TAY_MAX_THREADS];
     int count;
@@ -53,6 +61,7 @@ void tay_runner_run_no_threads();
 
 void tay_threads_update_telemetry();
 void tay_threads_report_telemetry(unsigned steps_between_reports);
+void tay_threads_get_telemetry_results(TayTelemetryResults *telemetry_results);
 
 extern TayRunner runner;
 
