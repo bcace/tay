@@ -8,8 +8,13 @@ typedef void * Handle;
 
 typedef struct TayThreadContext {
     void *context; /* model context */
+#if TAY_TELEMETRY
+    // TODO: make names more similar to ones in telemetry structures
     unsigned broad_see_phase;   /* single simulation step only */
     unsigned narrow_see_phase;  /* single simulation step only */
+    unsigned long long grid_sees;                   /* single simulation step only */
+    unsigned long long grid_see_kernel_rebuilds;    /* single simulation step only */
+#endif
 } TayThreadContext;
 
 typedef struct TayThread {
@@ -34,6 +39,8 @@ typedef struct {
     double rel_dev_mean_sum;
     double rel_dev_max_sum;
     double rel_dev_max;
+    unsigned long long g_see_sum;
+    unsigned long long g_see_kernel_rebuilds_sum;
     int steps_count;
 } TayTelemetry;
 
@@ -43,6 +50,7 @@ typedef struct {
     double max_relative_deviation;
     double see_culling_efficiency;
     double mean_see_interactions_per_step;
+    double grid_kernel_rebuilds;
 } TayTelemetryResults;
 
 typedef struct TayRunner {

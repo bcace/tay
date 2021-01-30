@@ -129,12 +129,20 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
             float4 seer_p = float4_agent_position(seer_agent);
             ushort4 seer_indices = _agent_position_to_cell_indices(seer_p, grid_origin, cell_sizes, dims);
 
-            if (kernel_bins_count > 0 && ushort4_eq(prev_seer_indices, seer_indices, dims)) {
+#if TAY_TELEMETRY
+            ++thread_context->grid_sees;
+#endif
+
+            if (ushort4_eq(prev_seer_indices, seer_indices, dims)) {
                 for (int i = 0; i < kernel_bins_count; ++i)
                     task->kernel[i]->visited[task->thread_i] = false;
             }
             else {
                 kernel_bins_count = 0;
+
+#if TAY_TELEMETRY
+                ++thread_context->grid_see_kernel_rebuilds;
+#endif
 
                 ushort4 origin;
                 for (int i = 0; i < dims; ++i)
@@ -242,6 +250,9 @@ static void _see(TayState *state, int pass_index) {
         kernel_radii.arr[i] = (int)ceilf(pass->radii.arr[i] / grid->cell_sizes.arr[i]);
         kernel_size *= kernel_radii.arr[i] * 2 + 1;
     }
+    int a = space_get_thread_mem_size();
+    int b = kernel_size * sizeof(Bin *);
+    int c = a / b;
     assert(kernel_size * sizeof(Bin *) <= space_get_thread_mem_size());
 
     /* reset tasks */

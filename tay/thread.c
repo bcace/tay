@@ -29,17 +29,23 @@ unsigned int WINAPI _thread_func(TayThread *thread) {
 
 static void _reset_telemetry() {
     TayTelemetry *t = &runner.telemetry;
-    t->b_see_sum = 0;
-    t->n_see_sum = 0;
+    t->b_see_sum = 0ull;
+    t->n_see_sum = 0ull;
     t->rel_dev_mean_sum = 0.0;
     t->rel_dev_max_sum = 0.0;
     t->rel_dev_max = 0.0;
     t->steps_count = 0;
+    t->g_see_sum = 0ull;
+    t->g_see_kernel_rebuilds_sum = 0ull;
+#if TAY_TELEMETRY
     for (int i = 0; i < TAY_MAX_THREADS; ++i) {
-        TayThreadContext *ctx = &runner.threads[i].context;
-        ctx->broad_see_phase = 0;
-        ctx->narrow_see_phase = 0;
+        TayThreadContext *c = &runner.threads[i].context;
+        c->broad_see_phase = 0;
+        c->narrow_see_phase = 0;
+        c->grid_sees = 0;
+        c->grid_see_kernel_rebuilds = 0;
     }
+#endif
 }
 
 void _start_threads(int threads_count) {
@@ -53,7 +59,9 @@ void _start_threads(int threads_count) {
     }
     runner.count = threads_count;
     runner.state = TAY_RUNNER_WAITING;
+#if TAY_TELEMETRY
     _reset_telemetry();
+#endif
 }
 
 void tay_threads_start() {
@@ -114,6 +122,7 @@ void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *
 
 /* Updates telemetry for one simulation step. */
 void tay_threads_update_telemetry() {
+#if TAY_TELEMETRY
     TayTelemetry *t = &runner.telemetry;
 
     double sum = 0.0;
@@ -122,6 +131,8 @@ void tay_threads_update_telemetry() {
         sum += (double)c->broad_see_phase;
         t->b_see_sum += c->broad_see_phase;
         t->n_see_sum += c->narrow_see_phase;
+        t->g_see_sum += c->grid_sees;
+        t->g_see_kernel_rebuilds_sum += c->grid_see_kernel_rebuilds;
     }
     double mean = sum / (double)runner.count;
 
@@ -149,7 +160,10 @@ void tay_threads_update_telemetry() {
         TayThreadContext *c = &runner.threads[i].context;
         c->broad_see_phase = 0;
         c->narrow_see_phase = 0;
+        c->grid_sees = 0ull;
+        c->grid_see_kernel_rebuilds = 0ull;
     }
+#endif
 }
 
 static double _max(double a, double b) {
@@ -163,6 +177,7 @@ static void _calculate_telemetry_results(TayTelemetryResults *r) {
     r->max_relative_deviation = t->rel_dev_max * 100.0;
     r->see_culling_efficiency = t->n_see_sum * 100.0 / (double)t->b_see_sum;
     r->mean_see_interactions_per_step = t->n_see_sum / (double)t->steps_count;
+    r->grid_kernel_rebuilds = t->g_see_kernel_rebuilds_sum * 100.0 / (double)t->g_see_sum;
 }
 
 // TODO: make the following funcs into macros that optionally turn into no-ops
@@ -190,6 +205,7 @@ void tay_threads_report_telemetry(unsigned steps_between_reports) {
     printf("        max relative deviation: %.2f%%\n", results.max_relative_deviation);
     printf("      see interaction culling efficiency (actual / potential): %.2f%%\n", results.see_culling_efficiency);
     printf("      mean actual see interactions per step: %.2f\n", results.mean_see_interactions_per_step);
+    printf("      grid kernel rebuilds: %.2f%%\n", results.grid_kernel_rebuilds);
 
     _reset_telemetry();
 #endif
