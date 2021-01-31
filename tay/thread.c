@@ -35,15 +35,15 @@ static void _reset_telemetry() {
     t->rel_dev_max_sum = 0.0;
     t->rel_dev_max = 0.0;
     t->steps_count = 0;
-    t->g_see_sum = 0ull;
-    t->g_see_kernel_rebuilds_sum = 0ull;
+    t->g_seer_bins = 0ull;
+    t->g_seer_kernel_rebuilds = 0ull;
 #if TAY_TELEMETRY
     for (int i = 0; i < TAY_MAX_THREADS; ++i) {
         TayThreadContext *c = &runner.threads[i].context;
         c->broad_see_phase = 0;
         c->narrow_see_phase = 0;
-        c->grid_sees = 0;
-        c->grid_see_kernel_rebuilds = 0;
+        c->grid_seer_bins = 0;
+        c->grid_seer_kernel_rebuilds = 0;
     }
 #endif
 }
@@ -131,8 +131,8 @@ void tay_threads_update_telemetry() {
         sum += (double)c->broad_see_phase;
         t->b_see_sum += c->broad_see_phase;
         t->n_see_sum += c->narrow_see_phase;
-        t->g_see_sum += c->grid_sees;
-        t->g_see_kernel_rebuilds_sum += c->grid_see_kernel_rebuilds;
+        t->g_seer_bins += c->grid_seer_bins;
+        t->g_seer_kernel_rebuilds += c->grid_seer_kernel_rebuilds;
     }
     double mean = sum / (double)runner.count;
 
@@ -160,8 +160,8 @@ void tay_threads_update_telemetry() {
         TayThreadContext *c = &runner.threads[i].context;
         c->broad_see_phase = 0;
         c->narrow_see_phase = 0;
-        c->grid_sees = 0ull;
-        c->grid_see_kernel_rebuilds = 0ull;
+        c->grid_seer_bins = 0ull;
+        c->grid_seer_kernel_rebuilds = 0ull;
     }
 #endif
 }
@@ -177,7 +177,7 @@ static void _calculate_telemetry_results(TayTelemetryResults *r) {
     r->max_relative_deviation = t->rel_dev_max * 100.0;
     r->see_culling_efficiency = t->n_see_sum * 100.0 / (double)t->b_see_sum;
     r->mean_see_interactions_per_step = t->n_see_sum / (double)t->steps_count;
-    r->grid_kernel_rebuilds = t->g_see_kernel_rebuilds_sum * 100.0 / (double)t->g_see_sum;
+    r->grid_kernel_rebuilds = t->g_seer_kernel_rebuilds * 100.0 / (double)t->g_seer_bins;
 }
 
 // TODO: make the following funcs into macros that optionally turn into no-ops

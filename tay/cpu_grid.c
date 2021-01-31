@@ -125,13 +125,14 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
         int kernel_bins_count = 0;
         ushort4 prev_seer_indices = { 0xffff, 0xffff, 0xffff, 0xffff };
 
+#if TAY_TELEMETRY
+        if (seer_bin->first[seer_group])
+            ++thread_context->grid_seer_bins;
+#endif
+
         for (TayAgentTag *seer_agent = seer_bin->first[seer_group]; seer_agent; seer_agent = seer_agent->next) {
             float4 seer_p = float4_agent_position(seer_agent);
             ushort4 seer_indices = _agent_position_to_cell_indices(seer_p, grid_origin, cell_sizes, dims);
-
-#if TAY_TELEMETRY
-            ++thread_context->grid_sees;
-#endif
 
             if (ushort4_eq(prev_seer_indices, seer_indices, dims)) {
                 for (int i = 0; i < kernel_bins_count; ++i)
@@ -141,7 +142,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                 kernel_bins_count = 0;
 
 #if TAY_TELEMETRY
-                ++thread_context->grid_see_kernel_rebuilds;
+                ++thread_context->grid_seer_kernel_rebuilds;
 #endif
 
                 ushort4 origin;
