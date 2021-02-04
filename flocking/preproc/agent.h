@@ -7,6 +7,7 @@ typedef struct __PACK__ Agent {
     float3 alignment;
     float3 cohesion;
     int cohesion_count;
+    int separation_count;
 } Agent;
 
 typedef struct __PACK__ ActContext {

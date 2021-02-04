@@ -79,7 +79,7 @@ static void _main_loop_func(GLFWwindow *window) {
     shader_program_use(&program);
 
     mat4 perspective;
-    graphics_perspective(&perspective, 1.2f, (float)window_w / (float)window_h, 1.0f, 1000.0f);
+    graphics_perspective(&perspective, 1.2f, (float)window_w / (float)window_h, 1.0f, 2000.0f);
 
     vec3 pos, fwd, up;
     if (camera >= 0 && camera < boids_count) {
@@ -96,7 +96,7 @@ static void _main_loop_func(GLFWwindow *window) {
         up.z = 1.0f;
     }
     else {
-        pos.x = -500.0f;
+        pos.x = -1000.0f;
         pos.y = 0.0f;
         pos.z = 0.0f;
         fwd.x = 1.0f;
@@ -194,6 +194,7 @@ int main() {
         boid->alignment = float3_null();
         boid->cohesion = float3_null();
         boid->cohesion_count = 0;
+        boid->separation_count = 0;
         tay_commit_available_agent(tay, boids_group);
     }
 

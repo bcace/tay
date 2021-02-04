@@ -25,9 +25,8 @@ void agent_see(Agent *a, Agent *b, SeeContext *c) {
         /* separation */
 
         if (dl < c->separation_r) {
-            float3 s = float3_sub(d, float3_mul_scalar(a->dir, -dot));
-            s = float3_normalize_to(s, c->separation_r - float3_length(s));
-            a->separation = float3_sub(a->separation, s);
+            a->separation = float3_sub(a->separation, float3_normalize_to(d, c->separation_r - dl));
+            ++a->separation_count;
         }
 
         /* cohesion */
@@ -52,31 +51,44 @@ void agent_act(Agent *a, ActContext *c) {
 
     /* alignment */
 
-    const float alignment_a = 0.01f;
+    const float alignment_a = 0.02f;
 
-    acc = float3_add(acc, float3_normalize_to(a->alignment, alignment_a));
+    if (a->cohesion_count)
+        acc = float3_add(acc, float3_mul_scalar(a->alignment, alignment_a / (float)a->cohesion_count));
 
     /* separation */
 
-    const float separation_a = 0.03f;
+    const float separation_a = 0.02f;
 
-    acc = float3_add(acc, float3_normalize_to(a->separation, separation_a));
+    if (a->separation_count)
+        acc = float3_add(acc, float3_mul_scalar(a->separation, separation_a / (float)a->separation_count));
 
     /* cohesion */
 
-    const float cohesion_a = 0.04f;
+    const float cohesion_a = 0.001f;
 
-    acc = float3_add(acc, float3_normalize_to(a->cohesion, cohesion_a));
+    if (a->cohesion_count)
+        acc = float3_add(acc, float3_mul_scalar(a->cohesion, cohesion_a / (float)a->cohesion_count));
 
     /* update */
 
+    // const float min_speed = 0.2f;
+    // const float max_speed = 0.4f;
+
     a->dir = float3_normalize(float3_add(a->dir, acc));
+    // float dir_acc = float3_dot(a->dir, acc) * 0.01f;
+    // a->speed += dir_acc;
+    // if (a->speed < min_speed)
+    //     a->speed = min_speed;
+    // else if (a->speed > max_speed)
+    //     a->speed = max_speed;
     float3_agent_position(a) = float3_add(p, float3_mul_scalar(a->dir, a->speed));
 
     a->separation = float3_null();
     a->alignment = float3_null();
     a->cohesion = float3_null();
     a->cohesion_count = 0;
+    a->separation_count = 0;
 }
 
 
@@ -224,6 +236,7 @@ typedef struct __attribute__((packed)) Agent {\n\
     float3 alignment;\n\
     float3 cohesion;\n\
     int cohesion_count;\n\
+    int separation_count;\n\
 } Agent;\n\
 \n\
 typedef struct __attribute__((packed)) ActContext {\n\
@@ -392,9 +405,8 @@ void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
         /* separation */\n\
 \n\
         if (dl < c->separation_r) {\n\
-            float3 s = float3_sub(d, float3_mul_scalar(a->dir, -dot));\n\
-            s = float3_normalize_to(s, c->separation_r - float3_length(s));\n\
-            a->separation = float3_sub(a->separation, s);\n\
+            a->separation = float3_sub(a->separation, float3_normalize_to(d, c->separation_r - dl));\n\
+            ++a->separation_count;\n\
         }\n\
 \n\
         /* cohesion */\n\
@@ -419,31 +431,44 @@ void agent_act(global Agent *a, global ActContext *c) {\n\
 \n\
     /* alignment */\n\
 \n\
-    const float alignment_a = 0.01f;\n\
+    const float alignment_a = 0.02f;\n\
 \n\
-    acc = float3_add(acc, float3_normalize_to(a->alignment, alignment_a));\n\
+    if (a->cohesion_count)\n\
+        acc = float3_add(acc, float3_mul_scalar(a->alignment, alignment_a / (float)a->cohesion_count));\n\
 \n\
     /* separation */\n\
 \n\
-    const float separation_a = 0.03f;\n\
+    const float separation_a = 0.02f;\n\
 \n\
-    acc = float3_add(acc, float3_normalize_to(a->separation, separation_a));\n\
+    if (a->separation_count)\n\
+        acc = float3_add(acc, float3_mul_scalar(a->separation, separation_a / (float)a->separation_count));\n\
 \n\
     /* cohesion */\n\
 \n\
-    const float cohesion_a = 0.04f;\n\
+    const float cohesion_a = 0.001f;\n\
 \n\
-    acc = float3_add(acc, float3_normalize_to(a->cohesion, cohesion_a));\n\
+    if (a->cohesion_count)\n\
+        acc = float3_add(acc, float3_mul_scalar(a->cohesion, cohesion_a / (float)a->cohesion_count));\n\
 \n\
     /* update */\n\
 \n\
+    // const float min_speed = 0.2f;\n\
+    // const float max_speed = 0.4f;\n\
+\n\
     a->dir = float3_normalize(float3_add(a->dir, acc));\n\
+    // float dir_acc = float3_dot(a->dir, acc) * 0.01f;\n\
+    // a->speed += dir_acc;\n\
+    // if (a->speed < min_speed)\n\
+    //     a->speed = min_speed;\n\
+    // else if (a->speed > max_speed)\n\
+    //     a->speed = max_speed;\n\
     float3_agent_position(a) = float3_add(p, float3_mul_scalar(a->dir, a->speed));\n\
 \n\
     a->separation = float3_null();\n\
     a->alignment = float3_null();\n\
     a->cohesion = float3_null();\n\
     a->cohesion_count = 0;\n\
+    a->separation_count = 0;\n\
 }\n\
 \n\
 ";

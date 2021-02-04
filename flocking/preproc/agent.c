@@ -20,9 +20,8 @@ void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *
         /* separation */
 
         if (dl < c->separation_r) {
-            float3 s = float3_sub(d, float3_mul_scalar(a->dir, -dot));
-            s = float3_normalize_to(s, c->separation_r - float3_length(s));
-            a->separation = float3_sub(a->separation, s);
+            a->separation = float3_sub(a->separation, float3_normalize_to(d, c->separation_r - dl));
+            ++a->separation_count;
         }
 
         /* cohesion */
@@ -47,29 +46,42 @@ void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
 
     /* alignment */
 
-    const float alignment_a = 0.01f;
+    const float alignment_a = 0.02f;
 
-    acc = float3_add(acc, float3_normalize_to(a->alignment, alignment_a));
+    if (a->cohesion_count)
+        acc = float3_add(acc, float3_mul_scalar(a->alignment, alignment_a / (float)a->cohesion_count));
 
     /* separation */
 
-    const float separation_a = 0.03f;
+    const float separation_a = 0.02f;
 
-    acc = float3_add(acc, float3_normalize_to(a->separation, separation_a));
+    if (a->separation_count)
+        acc = float3_add(acc, float3_mul_scalar(a->separation, separation_a / (float)a->separation_count));
 
     /* cohesion */
 
-    const float cohesion_a = 0.04f;
+    const float cohesion_a = 0.001f;
 
-    acc = float3_add(acc, float3_normalize_to(a->cohesion, cohesion_a));
+    if (a->cohesion_count)
+        acc = float3_add(acc, float3_mul_scalar(a->cohesion, cohesion_a / (float)a->cohesion_count));
 
     /* update */
 
+    // const float min_speed = 0.2f;
+    // const float max_speed = 0.4f;
+
     a->dir = float3_normalize(float3_add(a->dir, acc));
+    // float dir_acc = float3_dot(a->dir, acc) * 0.01f;
+    // a->speed += dir_acc;
+    // if (a->speed < min_speed)
+    //     a->speed = min_speed;
+    // else if (a->speed > max_speed)
+    //     a->speed = max_speed;
     float3_agent_position(a) = float3_add(p, float3_mul_scalar(a->dir, a->speed));
 
     a->separation = float3_null();
     a->alignment = float3_null();
     a->cohesion = float3_null();
     a->cohesion_count = 0;
+    a->separation_count = 0;
 }
