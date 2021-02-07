@@ -46,6 +46,7 @@ static float pyramid[] = {
 };
 static vec3 *inst_pos;
 static vec3 *inst_dir;
+static float *inst_shd;
 static int boids_count = 5000;
 static int camera = 1;
 static float3 camera_dir;
@@ -75,6 +76,10 @@ static void _main_loop_func(GLFWwindow *window) {
         inst_dir[i].x = boid->dir.x;
         inst_dir[i].y = boid->dir.y;
         inst_dir[i].z = boid->dir.z;
+        if (i == camera)
+            inst_shd[i] = 1.0f;
+        else
+            inst_shd[i] = 0.0f;
     }
 
     shader_program_use(&program);
@@ -126,6 +131,8 @@ static void _main_loop_func(GLFWwindow *window) {
 
     shader_program_set_data_float(&program, 1, boids_count, 3, inst_pos);
     shader_program_set_data_float(&program, 2, boids_count, 3, inst_dir);
+    shader_program_set_data_float(&program, 3, boids_count, 1, inst_shd);
+
     graphics_draw_triangles_instanced(18, boids_count);
 
     glfwSwapBuffers(window);
@@ -157,6 +164,7 @@ int main() {
     shader_program_define_in_float(&program, 3); /* vertex position */
     shader_program_define_instanced_in_float(&program, 3); /* instance position */
     shader_program_define_instanced_in_float(&program, 3); /* instance direction */
+    shader_program_define_instanced_in_float(&program, 1); /* instance shade */
     shader_program_define_uniform(&program, "projection");
 
     /* fill pyramid buffer */
@@ -171,6 +179,7 @@ int main() {
 
     inst_pos = malloc(sizeof(vec3) * max_boids_count);
     inst_dir = malloc(sizeof(vec3) * max_boids_count);
+    inst_shd = malloc(sizeof(float) * max_boids_count);
 
     ActContext act_context;
     SeeContext see_context;

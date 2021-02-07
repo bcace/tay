@@ -3,6 +3,7 @@
 layout(location = 0) in vec3 pos;
 layout(location = 1) in vec3 inst_pos;
 layout(location = 2) in vec3 inst_dir;
+layout(location = 3) in float inst_shd;
 
 out vec4 _color;
 out vec3 _light;
@@ -82,7 +83,10 @@ void main(void) {
     vec3 actual_pos = rot_pos + inst_pos;
     gl_Position = projection * vec4(actual_pos, 1.0);
 
-    _color = vec4(0.8, 0.8, 0.8, 1.0);
+    if (inst_shd == 0.0)
+        _color = vec4(0.8, 0.8, 0.8, 1.0);
+    else
+        _color = vec4(1.0, 0.0, 0.0, 1.0);
     _light = normalize(actual_pos - vec3(1000, -1000, 1000));
     _pos = actual_pos;
 }
