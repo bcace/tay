@@ -48,6 +48,7 @@ static vec3 *inst_pos;
 static vec3 *inst_dir;
 static int boids_count = 5000;
 static int camera = 1;
+static float3 camera_dir;
 
 static void _close_callback(GLFWwindow *window) {
     window_quit = true;
@@ -84,13 +85,21 @@ static void _main_loop_func(GLFWwindow *window) {
     vec3 pos, fwd, up;
     if (camera >= 0 && camera < boids_count) {
         Agent *watch_boid = tay_get_agent(tay, boids_group, camera);
-        float3 nv = watch_boid->dir;
-        pos.x = watch_boid->p.x - nv.x * 40.0f;
-        pos.y = watch_boid->p.y - nv.y * 40.0f;
-        pos.z = watch_boid->p.z - nv.z * 40.0f;
-        fwd.x = nv.x;
-        fwd.y = nv.y;
-        fwd.z = nv.z;
+
+        camera_dir.x += watch_boid->dir.x * 0.01f;
+        camera_dir.y += watch_boid->dir.y * 0.01f;
+        camera_dir.z += watch_boid->dir.z * 0.01f;
+        float l = sqrtf(camera_dir.x * camera_dir.x + camera_dir.y * camera_dir.y + camera_dir.z * camera_dir.z);
+        camera_dir.x /= l;
+        camera_dir.y /= l;
+        camera_dir.z /= l;
+
+        pos.x = watch_boid->p.x - camera_dir.x * 40.0f;
+        pos.y = watch_boid->p.y - camera_dir.y * 40.0f;
+        pos.z = watch_boid->p.z - camera_dir.z * 40.0f;
+        fwd.x = camera_dir.x;
+        fwd.y = camera_dir.y;
+        fwd.z = camera_dir.z;
         up.x = 0.0f;
         up.y = 0.0f;
         up.z = 1.0f;
@@ -196,6 +205,12 @@ int main() {
         boid->cohesion_count = 0;
         boid->separation_count = 0;
         tay_commit_available_agent(tay, boids_group);
+
+        if (i == camera) {
+            camera_dir.x = boid->dir.x;
+            camera_dir.y = boid->dir.y;
+            camera_dir.z = boid->dir.z;
+        }
     }
 
     tay_simulation_start(tay);
