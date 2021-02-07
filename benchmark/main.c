@@ -207,8 +207,8 @@ int main() {
     Results *results = 0;
 #endif
 
-    int steps = 200;
-    int model_case = MC_UNIFORM;
+    int steps = 1000;
+    int model_case = MC_UNIFORM_WITH_ONE_CLUMP;
 
     int beg_see_radius = 0;
     int end_see_radius = 3;
@@ -240,12 +240,13 @@ int main() {
             printf("  cpu simple:\n");
             double ms = _test(model_case, TAY_SPACE_CPU_SIMPLE, see_radius, 0, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
-            fprintf(plot, " %g|%g|%g|%g|%g\n",
+            fprintf(plot, " %g|%g|%g|%g|%g|%g\n",
                 telemetry_results.mean_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation,
                 telemetry_results.see_culling_efficiency,
-                telemetry_results.mean_see_interactions_per_step);
+                telemetry_results.mean_see_interactions_per_step,
+                telemetry_results.grid_kernel_rebuilds);
 #else
             fprintf(plot, " %g\n", ms);
 #endif
@@ -257,12 +258,13 @@ int main() {
             for (int j = beg_depth_correction; j < end_depth_correction; ++j) {
                 double ms = _test(model_case, TAY_SPACE_CPU_TREE, see_radius, j, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
-                fprintf(plot, " %g|%g|%g|%g|%g",
+                fprintf(plot, " %g|%g|%g|%g|%g|%g",
                     telemetry_results.mean_relative_deviation_averaged,
                     telemetry_results.max_relative_deviation_averaged,
                     telemetry_results.max_relative_deviation,
                     telemetry_results.see_culling_efficiency,
-                    telemetry_results.mean_see_interactions_per_step);
+                    telemetry_results.mean_see_interactions_per_step,
+                    telemetry_results.grid_kernel_rebuilds);
 #else
                 fprintf(plot, " %g", ms);
 #endif
@@ -276,12 +278,13 @@ int main() {
             for (int j = beg_depth_correction; j < end_depth_correction; ++j) {
                 double ms = _test(model_case, TAY_SPACE_CPU_GRID, see_radius, j, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
-                fprintf(plot, " %g|%g|%g|%g|%g",
+                fprintf(plot, " %g|%g|%g|%g|%g|%g",
                     telemetry_results.mean_relative_deviation_averaged,
                     telemetry_results.max_relative_deviation_averaged,
                     telemetry_results.max_relative_deviation,
                     telemetry_results.see_culling_efficiency,
-                    telemetry_results.mean_see_interactions_per_step);
+                    telemetry_results.mean_see_interactions_per_step,
+                    telemetry_results.grid_kernel_rebuilds);
 #else
                 fprintf(plot, " %g", ms);
 #endif
@@ -294,12 +297,13 @@ int main() {
             printf("  gpu simple direct:\n");
             double ms = _test(model_case, TAY_SPACE_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
-            fprintf(plot, " %g|%g|%g|%g|%g\n",
+            fprintf(plot, " %g|%g|%g|%g|%g|%g\n",
                 telemetry_results.mean_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation,
                 telemetry_results.see_culling_efficiency,
-                telemetry_results.mean_see_interactions_per_step);
+                telemetry_results.mean_see_interactions_per_step,
+                telemetry_results.grid_kernel_rebuilds);
 #else
             fprintf(plot, " %g\n", ms);
 #endif
@@ -310,12 +314,13 @@ int main() {
             printf("  gpu simple indirect:\n");
             double ms = _test(model_case, TAY_SPACE_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
-            fprintf(plot, " %g|%g|%g|%g|%g\n",
+            fprintf(plot, " %g|%g|%g|%g|%g|%g\n",
                 telemetry_results.mean_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation,
                 telemetry_results.see_culling_efficiency,
-                telemetry_results.mean_see_interactions_per_step);
+                telemetry_results.mean_see_interactions_per_step,
+                telemetry_results.grid_kernel_rebuilds);
 #else
             fprintf(plot, " %g\n", ms);
 #endif
