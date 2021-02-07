@@ -22,19 +22,19 @@ static int boids_group;
 static float pyramid[] = {
     -1.0f, -1.0f, 0.0f,
     1.0f, -1.0f, 0.0f,
-    0.0f, 0.0f, 2.0f,
+    0.0f, 0.0f, 4.0f,
 
     1.0f, -1.0f, 0.0f,
     1.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 2.0f,
+    0.0f, 0.0f, 4.0f,
 
     1.0f, 1.0f, 0.0f,
     -1.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 2.0f,
+    0.0f, 0.0f, 4.0f,
 
     -1.0f, 1.0f, 0.0f,
     -1.0f, -1.0f, 0.0f,
-    0.0f, 0.0f, 2.0f,
+    0.0f, 0.0f, 4.0f,
 
     -1.0f, -1.0f, 0.0f,
     1.0f, 1.0f, 0.0f,
@@ -47,7 +47,7 @@ static float pyramid[] = {
 static vec3 *inst_pos;
 static vec3 *inst_dir;
 static int boids_count = 5000;
-static int camera = -1;
+static int camera = 1;
 
 static void _close_callback(GLFWwindow *window) {
     window_quit = true;
