@@ -47,8 +47,8 @@ static float pyramid[] = {
 static vec3 *inst_pos;
 static vec3 *inst_dir;
 static float *inst_shd;
-static int boids_count = 5000;
-static int camera = 1;
+static int boids_count = 30000;
+static int camera = -1;
 static float3 camera_dir;
 
 static void _close_callback(GLFWwindow *window) {
@@ -59,7 +59,7 @@ static int step = 0;
 
 static void _main_loop_func(GLFWwindow *window) {
     graphics_viewport(0, 0, window_w, window_h);
-    graphics_clear(0.2f, 0.2f, 0.2f);
+    graphics_clear(0.98f, 0.98f, 0.98f);
     graphics_clear_depth();
     graphics_enable_depth_test(1);
 
@@ -91,17 +91,17 @@ static void _main_loop_func(GLFWwindow *window) {
     if (camera >= 0 && camera < boids_count) {
         Agent *watch_boid = tay_get_agent(tay, boids_group, camera);
 
-        camera_dir.x += watch_boid->dir.x * 0.01f;
-        camera_dir.y += watch_boid->dir.y * 0.01f;
-        camera_dir.z += watch_boid->dir.z * 0.01f;
+        camera_dir.x += watch_boid->dir.x * 0.005f;
+        camera_dir.y += watch_boid->dir.y * 0.005f;
+        camera_dir.z += watch_boid->dir.z * 0.005f;
         float l = sqrtf(camera_dir.x * camera_dir.x + camera_dir.y * camera_dir.y + camera_dir.z * camera_dir.z);
         camera_dir.x /= l;
         camera_dir.y /= l;
         camera_dir.z /= l;
 
-        pos.x = watch_boid->p.x - camera_dir.x * 40.0f;
-        pos.y = watch_boid->p.y - camera_dir.y * 40.0f;
-        pos.z = watch_boid->p.z - camera_dir.z * 40.0f;
+        pos.x = watch_boid->p.x - camera_dir.x * 200.0f;
+        pos.y = watch_boid->p.y - camera_dir.y * 200.0f;
+        pos.z = watch_boid->p.z - camera_dir.z * 200.0f;
         fwd.x = camera_dir.x;
         fwd.y = camera_dir.y;
         fwd.z = camera_dir.z;
@@ -207,7 +207,7 @@ int main() {
         boid->dir.x *= l;
         boid->dir.y *= l;
         boid->dir.z *= l;
-        boid->speed = 0.3f;
+        boid->speed = 1.0f;
         boid->separation = float3_null();
         boid->alignment = float3_null();
         boid->cohesion = float3_null();

@@ -87,23 +87,14 @@ vec3 quat_rotate(vec4 q, vec3 v) {\n \
 }\n \
 \n \
 void main(void) {\n \
-    // vec3 inst_up = vec3(0.0, 0.0, 1.0);\n \
-\n \
     vec4 rot1 = rotation_between_vectors(vec3(0.0f, 0.0f, 1.0f), inst_dir);\n \
-    // vec3 right = cross(inst_dir, inst_up);\n \
-    // inst_up = cross(right, inst_dir);\n \
-    // vec3 new_up = rot1.xyz * vec3(0.0f, 1.0f, 0.0f);\n \
-    // vec4 rot2 = rotation_between_vectors(new_up, inst_up);\n \
-    // vec4 target_orientation = rot2 * rot1;\n \
-\n \
-    // vec4 rotated_pos = quat_multiply(rot1, vec4(pos, 0.0));\n \
     vec3 rot_pos = quat_rotate(rot1, pos);\n \
 \n \
     vec3 actual_pos = rot_pos + inst_pos;\n \
     gl_Position = projection * vec4(actual_pos, 1.0);\n \
 \n \
     if (inst_shd == 0.0)\n \
-        _color = vec4(0.8, 0.8, 0.8, 1.0);\n \
+        _color = vec4(0.4, 0.4, 0.4, 1.0);\n \
     else\n \
         _color = vec4(1.0, 0.0, 0.0, 1.0);\n \
     _light = normalize(actual_pos - vec3(1000, -1000, 1000));\n \
