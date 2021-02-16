@@ -3,8 +3,6 @@
 #include <math.h>
 #include <assert.h>
 
-#define _BALANCED 1
-
 
 typedef struct {
     union {
