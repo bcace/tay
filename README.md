@@ -1,22 +1,16 @@
 # Tay
 
-Tay is a spatial agent-based simulation library that focuses on simulation speed and correctness.
+Tay is a spatial agent-based simulation library that focuses on simulation speed.
 
-Agent-based simulation speed quickly decreases with the increase of interactions between agents, and when optimizing simulation run-times, the best approach depends to a high degree on the model itself: Are agents points or do they vary in size? Do they interact at certain range, or through fixed references, or through a grid? Do all agents move or are some of them stationary? Are agents evenly distributed in space or are they tightly grouped in certain spots? Sometimes it even depends on hardware used: is GPU available for simulation, or is it already busy with some demanding rendering?
+Agent-based simulation speed quickly decreases with the increase of interactions between agents, and the best approach to optimizing the simulation depends to a high degree on the model itself: are agents points or do they vary in size? Do they interact at certain range, or through fixed references, or through a grid? Do all agents move or are some of them stationary? Are agents evenly distributed in space or are they tightly grouped in certain locations? Sometimes it even depends on hardware used: is GPU available for simulation, or is it already busy with some demanding rendering?
 
 Tay tries to cover all these cases with a set of *interchangeable* and *composable* space partitioning structures. *Interchangeable* means that it's easy to experiment which structure best suits the model, even during later stages of model development. *Composable* means that agents can be divided into several different structures, each chosen to be optimal for its agents while never interfering with their ability to interact.
 
+> Tay is still in its experimental stage, there's still a lot of features to add, but progress can be seen [here](https://bcace.github.io/tay.html), where I use a series of tests to compare how different structures work in different model scenarios, and [here](https://www.youtube.com/watch?v=DD93xIQqz5s), where I try to showcase as many features of Tay as possible.
 
-(Currently the library is in experimental state, I'm still building a set of test cases, benchmarking simulation runs and comparing results, all of which can be seen [here](https://bcace.github.io/tay.html).)
+## Basic concepts
 
-(This repo contains three projects:
-* tay - the library itself,
-* benchmark - executable that runs simulations for different test cases, checks that all run correctly and logs run-times,
-* flocking - a showcase program that uses the library to its fullest potential, see [one of the videos](https://www.youtube.com/watch?v=DD93xIQqz5s).)
-
-## Features
-
-...
+(agent types/groups, simulation step phases, seer/seen)
 
 ## How does it work?
 
