@@ -6,11 +6,11 @@ Agent-based simulation speed quickly decreases with the increase of interactions
 
 Tay tries to cover all these cases with a set of *interchangeable* and *composable* space partitioning structures. *Interchangeable* means that it's easy to experiment which structure best suits the model, even during later stages of model development. *Composable* means that agents can be divided into several different structures, each chosen to be optimal for its agents while never interfering with their ability to interact.
 
-> Tay is still in its experimental stage, there's still a lot of features to add, but progress can be seen [here](https://bcace.github.io/tay.html), where I use a series of tests to compare how different structures work in different model scenarios, and [here](https://www.youtube.com/watch?v=DD93xIQqz5s), where I try to showcase as many features of Tay as possible.
+> Note that Tay is still in its experimental stage, there's still a lot of features to add, but progress can be seen [here](https://bcace.github.io/tay.html), where I use a series of tests to compare how different structures work in different model scenarios, and [here](https://www.youtube.com/watch?v=DD93xIQqz5s), where I try to showcase some of Tay's features.
 
 ## Basic concepts
 
-(agent types/groups, simulation step phases, seer/seen)
+Tay decouples model code (agent definitions and behavior) and the framework that makes the simulation run efficiently. The framework manages space partitioning structures, allocates agent storage, acitvates/deactivates agents, executes agent behavior code and manages worker threads. Interface between the model and the framework is needed to organize the model in such a way that it can be managed by the framework, and it contains concepts like agent groups (types) and simulation step phases.
 
 ## How does it work?
 
