@@ -6,28 +6,26 @@ Agent-based simulation speed quickly decreases with the increase of interactions
 
 Tay tries to cover all these cases with a set of *interchangeable* and *composable* space partitioning structures. *Interchangeable* means that it's easy to experiment which structure best suits the model, even during later stages of model development. *Composable* means that agents can be divided into several different structures, each chosen to be optimal for its agents while never interfering with their ability to interact.
 
-> Note that Tay is still in its experimental stage, there's still a lot of features to add, but progress can be seen [here](https://bcace.github.io/tay.html), where I use a series of tests to compare how different structures work in different model scenarios, and [here](https://www.youtube.com/watch?v=DD93xIQqz5s), where I try to showcase some of Tay's features.
+> Note that Tay is still in its experimental stage, there's still a lot of features to add, but progress can be seen [here](https://bcace.github.io/tay.html), where I use a series of tests to compare how different structures work in different scenarios (*benchmark* directory), and [here](https://www.youtube.com/watch?v=DD93xIQqz5s), where I try to showcase some of Tay's features (*flocking* directory).
 
-## Basic concepts
+(Tay decouples the infrastucture needed to run efficient simulations (managing structures, storage, worker threads, synchronization with GPU) from the model itself (agent definitions and behavior).)
 
-Tay decouples model code (agent definitions and behavior) and the framework that makes the simulation run efficiently. The framework manages space partitioning structures, allocates agent storage, acitvates/deactivates agents, executes agent behavior code and manages worker threads. Interface between the model and the framework is needed to organize the model in such a way that it can be managed by the framework, and it contains concepts like agent groups (types) and simulation step phases.
+## Tay basics
 
-## How does it work?
-
-... various space partitioning structures, multithreaded, plus (for now) experimental support for execution on GPU via OpenCL
-
-First, a Tay state has to be created:
+Tay is a library written in C and is meant to used from other C code with which it can share data and code (simple C structs and C function pointers) directly. The entire environment necessary to run simulations based on a model reside in a `TayState` object that has to be created first.
 
 ```C
 float4 partition_radii = { 10.0f, 10.0f, 10.0f };
 TayState *tay = tay_create_state(3, partition_radii);
 
-/* use Tay */
+/* define the model, run simulations */
 
 tay_destroy_state(tay);
 ```
 
-After creating the state we can add some agent types to it:
+### Agent types
+
+Agent types are simply C structs that as first two members must contain a `TayAgentTag` structure for Tay's intenal use and a `float4` structure representing the agent's position in space.
 
 ```C
 /* our agent type, defined in host code */
@@ -40,12 +38,18 @@ struct Agent {
 TayGroup *agent_type = tay_add_group(tay, sizeof(Agent), 100000);
 ```
 
-Then we can add some behaviors between agents of those types:
+### Agent behavior
+
+Similarly, agent behavior is just a set of C functions with predefined arguments that describe what a single agent does, or how two agents interact; and those functions are simply passed to Tay as function pointers. In case of GPU simulations, agent behavior code is passed as a C string containing OpenCL C code similar to that of normal C functions.
+
+(simulation step phases, seer/seen)
 
 ```C
 tay_add_see(tay, agent_type, agent_type, agent_see, "agent_see", see_radii, 0, 0);
 tay_add_act(tay, agent_type, agent_act, "agent_act", 0, 0);
 ```
+
+### Simulation setup and running
 
 Then we allocate agents, initialize their data and add them to the space (storage is in the TayGroup object, adding to a space just makes the agent "live"):
 
@@ -68,6 +72,10 @@ and get new agent data:
 ```C
 Agent *agent = tay_get_agent(tay, agent_type, agent_index);
 ```
+
+## Space partitioning structures
+
+(list with short descriptions)
 
 ## What's next?
 
