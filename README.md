@@ -12,7 +12,7 @@ Tay tries to cover all these cases with a set of *interchangeable* and *composab
 
 ## Tay basics
 
-Tay is a library written in C and is meant to used from other C code with which it can share data and code (simple C structs and C function pointers) directly. The entire environment necessary to run simulations based on a model reside in a `TayState` object that has to be created first.
+A a library written in C Tay is meant to used from other C code with which it can share data and code (simple C structs and C function pointers). `TayState` object contains the environment that contains the model definition and runs simulations mased on that model.
 
 ```C
 float4 partition_radii = { 10.0f, 10.0f, 10.0f };
@@ -23,7 +23,7 @@ TayState *tay = tay_create_state(3, partition_radii);
 tay_destroy_state(tay);
 ```
 
-### Agent types
+#### Agent types
 
 Agent types are simply C structs that as first two members must contain a `TayAgentTag` structure for Tay's intenal use and a `float4` structure representing the agent's position in space.
 
@@ -35,14 +35,15 @@ struct Agent {
     int a;              /* some agent variable */
 };
 
+/* we let Tay know about the new type, and reserve storage for 100000 agents of that type */
 TayGroup *agent_type = tay_add_group(tay, sizeof(Agent), 100000);
 ```
 
-### Agent behavior
+#### Agent behavior
 
-Similarly, agent behavior is just a set of C functions with predefined arguments that describe what a single agent does, or how two agents interact; and those functions are simply passed to Tay as function pointers. In case of GPU simulations, agent behavior code is passed as a C string containing OpenCL C code similar to that of normal C functions.
+Agent behavior is just a set of C functions with predefined arguments that describe either what a single agent does, or how two agents interact. These functions are simply passed to Tay as function pointers. In case of GPU simulations, agent behavior code is passed as a C string containing OpenCL C code similar to that of normal C functions.
 
-(simulation step phases, seer/seen)
+As described in [this](https://bcace.github.io/ochre.html) post, if agents use shared memory to communicate directly, in order to avoid data races and race conditions
 
 ```C
 tay_add_see(tay, agent_type, agent_type, agent_see, "agent_see", see_radii, 0, 0);
