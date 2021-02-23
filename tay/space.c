@@ -99,6 +99,8 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
                 space_gpu_fetch_agents(state);
             if (new_type == ST_CPU_GRID && old_type != ST_CPU_GRID) /* prepare cpu grid */
                 cpu_grid_prepare(state);
+            if (new_type == ST_CPU_TREE && old_type != ST_CPU_TREE) /* prepare cpu tree */
+                cpu_tree_prepare(state);
         }
 
         if (space->type == ST_CPU_SIMPLE)

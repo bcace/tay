@@ -14,6 +14,7 @@ void space_see_single_seer(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TA
 
 void cpu_simple_step(TayState *state);
 
+void cpu_tree_prepare(TayState *state);
 void cpu_tree_step(TayState *state);
 
 void cpu_grid_prepare(TayState *state);

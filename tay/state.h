@@ -21,7 +21,6 @@ typedef struct {
     struct TreeCell *cells; /* cells storage, first cell is always the root cell */
     int cells_count;
     int dims;
-    float4 radii;
     int4 max_depths;
 } CpuTree;
 
