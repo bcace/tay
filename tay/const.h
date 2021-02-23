@@ -6,7 +6,7 @@
 #define TAY_MAX_GROUPS          8
 #define TAY_MAX_PASSES          32
 #define TAY_MAX_THREADS         64
-#define TAY_TELEMETRY           1
+#define TAY_TELEMETRY           0
 #define TAY_MAX_AGENTS          1000000
 #define TAY_MAX_CELLS           ((1 << 20) - 1) /* this makes it work faster with & instead of % */
 #define TAY_GPU_MAX_TEXT_SIZE   20000

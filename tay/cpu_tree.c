@@ -7,6 +7,7 @@
 
 typedef struct TreeCell {
     struct TreeCell *lo, *hi;           /* child partitions */
+    struct TreeCell *thread_next;
     TayAgentTag *first[TAY_MAX_GROUPS]; /* agents contained in this cell */
     unsigned counts[TAY_MAX_GROUPS];    /* agent counts for this cell */
     int dim;                            /* dimension along which the cell's partition is divided into child partitions */
@@ -17,13 +18,13 @@ typedef struct TreeCell {
 typedef struct {
     CpuTree *tree;
     TayPass *pass;
-    int counter; /* tree cell skipping counter so each thread processes different seer nodes */
+    TreeCell *first_cell;
+    unsigned agents_count;
 } SeeTask;
 
 static void _init_tree_see_task(SeeTask *task, CpuTree *tree, TayPass *pass, int thread_index) {
     task->tree = tree;
     task->pass = pass;
-    task->counter = thread_index;
 }
 
 static void _thread_traverse_seen(CpuTree *tree, TreeCell *seer_cell, TreeCell *seen_cell, TayPass *pass, Box seer_box, TayThreadContext *thread_context) {
@@ -38,9 +39,9 @@ static void _thread_traverse_seen(CpuTree *tree, TreeCell *seer_cell, TreeCell *
         _thread_traverse_seen(tree, seer_cell, seen_cell->hi, pass, seer_box, thread_context);
 }
 
-static void _thread_traverse_seers(SeeTask *task, TreeCell *cell, TayThreadContext *thread_context) {
-    if (task->counter % runner.count == 0) {
-        if (cell->first[task->pass->seer_group]) { /* if there are any "seeing" agents */
+static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
+    for (TreeCell *cell = task->first_cell; cell; cell = cell->thread_next) { /* seer cells */
+        if (cell->first[task->pass->seer_group]) {
             Box seer_box = cell->box;
             for (int i = 0; i < task->tree->dims; ++i) {
                 seer_box.min.arr[i] -= task->pass->radii.arr[i];
@@ -49,27 +50,75 @@ static void _thread_traverse_seers(SeeTask *task, TreeCell *cell, TayThreadConte
             _thread_traverse_seen(task->tree, cell, task->tree->cells, task->pass, seer_box, thread_context);
         }
     }
-    ++task->counter;
-    if (cell->lo)
-        _thread_traverse_seers(task, cell->lo, thread_context);
-    if (cell->hi)
-        _thread_traverse_seers(task, cell->hi, thread_context);
 }
 
-static void _thread_see_traverse(SeeTask *task, TayThreadContext *thread_context) {
-    _thread_traverse_seers(task, task->tree->cells, thread_context);
+#define _MIN_POW 5
+#define _MAX_POW 20
+
+static int _agent_count_to_bucket_index(int count) { // TODO: deduplicate...
+    int pow = _MIN_POW;
+    while (pow < _MAX_POW && (1 << pow) < count)
+        ++pow;
+    return _MAX_POW - pow;
 }
 
 static void _see(TayState *state, int pass_index) {
+    static SeeTask tasks[TAY_MAX_THREADS];
+    static SeeTask *sorted_tasks[TAY_MAX_THREADS];
+
     CpuTree *tree = &state->space.cpu_tree;
     TayPass *pass = state->passes + pass_index;
 
-    static SeeTask tasks[TAY_MAX_THREADS];
+    /* reset tasks */
+    for (int i = 0; i < runner.count; ++i) {
+        tasks[i].first_cell = 0;
+        tasks[i].agents_count = 0;
+        sorted_tasks[i] = tasks + i;
+    }
 
+    TreeCell *buckets[32] = { 0 };
+
+    /* sort cells into buckets wrt number of contained agents */
+    for (int i = 0; i < tree->cells_count; ++i) {
+        TreeCell *cell = tree->cells + i;
+        unsigned count = cell->counts[pass->seer_group];
+        if (count) {
+            int bucket_i = _agent_count_to_bucket_index(count);
+            cell->thread_next = buckets[bucket_i];
+            buckets[bucket_i] = cell;
+        }
+    }
+
+    /* distribute bins among threads */
+    for (int bucket_i = 0; bucket_i < 32; ++bucket_i) {
+        TreeCell *cell = buckets[bucket_i];
+
+        while (cell) {
+            TreeCell *next_cell = cell->thread_next;
+
+            SeeTask *task = sorted_tasks[0]; /* always take the task with fewest agents */
+            cell->thread_next = task->first_cell;
+            task->first_cell = cell;
+            task->agents_count += cell->counts[pass->seer_group];
+
+            /* sort the task wrt its number of agents */
+            {
+                int index = 1;
+                for (; index < runner.count && task->agents_count > sorted_tasks[index]->agents_count; ++index);
+                for (int i = 1; i < index; ++i)
+                    sorted_tasks[i - 1] = sorted_tasks[i];
+                sorted_tasks[index - 1] = task;
+            }
+
+            cell = next_cell;
+        }
+    }
+
+    /* set tasks */
     for (int i = 0; i < runner.count; ++i) {
         SeeTask *task = tasks + i;
         _init_tree_see_task(task, tree, pass, i);
-        tay_thread_set_task(i, _thread_see_traverse, task, pass->context);
+        tay_thread_set_task(i, _see_func, task, pass->context);
     }
 
     tay_runner_run();
