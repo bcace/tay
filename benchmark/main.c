@@ -150,7 +150,7 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     see_context.radii.y = see_radius;
     see_context.radii.z = see_radius;
 
-    int group = tay_add_group(tay, sizeof(Agent), agents_count);
+    int group = tay_add_group(tay, sizeof(Agent), agents_count, 1);
     tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(tay, group, agent_act, "agent_act", &act_context, sizeof(act_context));
 
@@ -207,14 +207,14 @@ int main() {
     Results *results = 0;
 #endif
 
-    int steps = 1000;
-    int model_case = MC_UNIFORM_WITH_ONE_CLUMP;
+    int steps = 100;
+    int model_case = MC_UNIFORM;
 
     int beg_see_radius = 0;
-    int end_see_radius = 3;
+    int end_see_radius = 2;
 
     int beg_depth_correction = 0;
-    int end_depth_correction = 4;
+    int end_depth_correction = 3;
 
     bool run_cpu_simple = true;
     bool run_cpu_tree = true;
