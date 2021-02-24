@@ -186,7 +186,7 @@ void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC 
     }
 }
 
-void space_see_single_seer(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+void space_single_seer_see(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     float4 seer_p = float4_agent_position(seer_agent);
 
     for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
@@ -217,4 +217,14 @@ void space_see_single_seer(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TA
 
 int group_tag_to_index(TayGroup *group, TayAgentTag *tag) {
     return (tag != 0) ? (int)((char *)tag - (char *)group->storage) / group->agent_size : TAY_GPU_NULL_INDEX;
+}
+
+int space_agent_count_to_bucket_index(int count) {
+    /* both these consts must be within [0, TAY_MAX_BUCKETS> */
+    const int min_pow = 5;
+    const int max_pow = 20;
+    int pow = min_pow;
+    while (pow < max_pow && (1 << pow) < count)
+        ++pow;
+    return max_pow - pow;
 }

@@ -217,21 +217,11 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                 Bin *seen_bin = task->kernel[i];
                 if (!seen_bin->visited[task->thread_i]) {
                     seen_bin->visited[task->thread_i] = true;
-                    space_see_single_seer(seer_agent, seen_bin->first[seen_group], see_func, radii, dims, thread_context);
+                    space_single_seer_see(seer_agent, seen_bin->first[seen_group], see_func, radii, dims, thread_context);
                 }
             }
         }
     }
-}
-
-#define _MIN_POW 5
-#define _MAX_POW 20
-
-static int _agent_count_to_bucket_index(int count) {
-    int pow = _MIN_POW;
-    while (pow < _MAX_POW && (1 << pow) < count)
-        ++pow;
-    return _MAX_POW - pow;
 }
 
 static void _see(TayState *state, int pass_index) {
@@ -261,20 +251,20 @@ static void _see(TayState *state, int pass_index) {
         sorted_tasks[i] = tasks + i;
     }
 
-    Bin *buckets[32] = { 0 };
+    Bin *buckets[TAY_MAX_BUCKETS] = { 0 };
 
     /* sort bins into buckets wrt number of contained agents */
     for (Bin *bin = grid->first_bin; bin; bin = bin->next) {
         unsigned count = bin->counts[pass->seer_group];
         if (count) {
-            int bucket_i = _agent_count_to_bucket_index(count);
+            int bucket_i = space_agent_count_to_bucket_index(count);
             bin->thread_next = buckets[bucket_i];
             buckets[bucket_i] = bin;
         }
     }
 
     /* distribute bins among threads */
-    for (int bucket_i = 0; bucket_i < 32; ++bucket_i) {
+    for (int bucket_i = 0; bucket_i < TAY_MAX_BUCKETS; ++bucket_i) {
         Bin *bin = buckets[bucket_i];
 
         while (bin) {

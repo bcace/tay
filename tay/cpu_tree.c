@@ -52,16 +52,6 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
     }
 }
 
-#define _MIN_POW 5
-#define _MAX_POW 20
-
-static int _agent_count_to_bucket_index(int count) { // TODO: deduplicate...
-    int pow = _MIN_POW;
-    while (pow < _MAX_POW && (1 << pow) < count)
-        ++pow;
-    return _MAX_POW - pow;
-}
-
 static void _see(TayState *state, int pass_index) {
     static SeeTask tasks[TAY_MAX_THREADS];
     static SeeTask *sorted_tasks[TAY_MAX_THREADS];
@@ -76,21 +66,21 @@ static void _see(TayState *state, int pass_index) {
         sorted_tasks[i] = tasks + i;
     }
 
-    TreeCell *buckets[32] = { 0 };
+    TreeCell *buckets[TAY_MAX_BUCKETS] = { 0 };
 
     /* sort cells into buckets wrt number of contained agents */
     for (int i = 0; i < tree->cells_count; ++i) {
         TreeCell *cell = tree->cells + i;
         unsigned count = cell->counts[pass->seer_group];
         if (count) {
-            int bucket_i = _agent_count_to_bucket_index(count);
+            int bucket_i = space_agent_count_to_bucket_index(count);
             cell->thread_next = buckets[bucket_i];
             buckets[bucket_i] = cell;
         }
     }
 
     /* distribute bins among threads */
-    for (int bucket_i = 0; bucket_i < 32; ++bucket_i) {
+    for (int bucket_i = 0; bucket_i < TAY_MAX_BUCKETS; ++bucket_i) {
         TreeCell *cell = buckets[bucket_i];
 
         while (cell) {
