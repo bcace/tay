@@ -5,6 +5,17 @@
 #define float3_agent_position(__agent_tag__) (*(float3 *)((TayAgentTag *)(__agent_tag__) + 1))
 #define float2_agent_position(__agent_tag__) (*(float2 *)((TayAgentTag *)(__agent_tag__) + 1))
 
+#define float4_agent_min(__agent_tag__) (*(float4 *)((TayAgentTag *)(__agent_tag__) + 1))
+#define float3_agent_min(__agent_tag__) (*(float3 *)((TayAgentTag *)(__agent_tag__) + 1))
+#define float2_agent_min(__agent_tag__) (*(float2 *)((TayAgentTag *)(__agent_tag__) + 1))
+#define float4_agent_max(__agent_tag__) (*(float4 *)((char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))
+#define float3_agent_max(__agent_tag__) (*(float3 *)((char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))
+#define float2_agent_max(__agent_tag__) (*(float2 *)((char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))
+
+typedef enum TayAgentSize {
+    TAY_AGENT_NON_POINT,
+    TAY_AGENT_POINT,
+} TayAgentSize;
 
 typedef enum TaySpaceType {
     TAY_SPACE_CPU_SIMPLE,
@@ -62,7 +73,7 @@ void tay_destroy_state(TayState *state);
 
 void tay_set_source(TayState *state, const char *source);
 
-int tay_add_group(TayState *state, int agent_size, int agent_capacity);
+int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_point);
 void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, void *), const char *func_name, struct float4 radii, void *context, int context_size);
 void tay_add_act(TayState *state, int act_group, void (*func)(void *, void *), const char *func_name, void *context, int context_size);
 

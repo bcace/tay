@@ -33,7 +33,7 @@ void tay_set_source(TayState *state, const char *source) {
     state->source = source;
 }
 
-int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
+int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_point) {
     assert(agent_capacity > 0 && agent_capacity < TAY_MAX_AGENTS);
     int index = 0;
     for (; index < TAY_MAX_GROUPS; ++index)
@@ -44,7 +44,7 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity) {
     g->agent_size = agent_size;
     g->storage = calloc(agent_capacity, agent_size);
     g->capacity = agent_capacity;
-    g->is_point = 1;
+    g->is_point = is_point;
     g->first = g->storage;
     TayAgentTag *prev = g->first;
     for (int i = 0; i < agent_capacity - 1; ++i) {
