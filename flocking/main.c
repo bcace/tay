@@ -190,7 +190,7 @@ int main() {
 
     tay = tay_create_state(3, see_radii);
     tay_set_source(tay, agent_kernels_source); // TODO: remove this!!!
-    boids_group = tay_add_group(tay, sizeof(Agent), boids_count);
+    boids_group = tay_add_group(tay, sizeof(Agent), boids_count, 1);
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context, sizeof(act_context));
 
