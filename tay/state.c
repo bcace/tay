@@ -138,6 +138,72 @@ double tay_run(TayState *state, int steps, TaySpaceType space_type, int depth_co
     return ms;
 }
 
+double tay_run_(TayState *state, int steps) {
+    assert(state->running == TAY_STATE_STATUS_RUNNING);
+
+    struct timespec beg, end;
+    timespec_get(&beg, TIME_UTC);
+
+    for (int step_i = 0; step_i < steps; ++step_i) {
+
+        /* sort all agents in structures */
+        for (int space_i = 0; space_i < state->spaces_count; ++space_i) {
+            Space *space = state->spaces + space_i;
+
+            switch (space->type) {
+                case ST_CPU_SIMPLE: cpu_simple_sort(space); break;
+                case ST_CPU_TREE: cpu_tree_sort(space); break;
+                case ST_CPU_GRID: cpu_grid_sort(space); break;
+                default: assert(0);
+            }
+        }
+
+        /* do passes */
+        for (int pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+            TayPass *pass = state->passes + pass_i;
+
+            if (pass->type == TAY_PASS_SEE) {
+                TayGroup *seer_group = state->groups + pass->seer_group;
+                TayGroup *seen_group = state->groups + pass->seen_group;
+                Space *seer_space = seer_group->space;
+                Space *seen_space = seen_group->space;
+
+                if (seer_space == seen_space) {
+                    /* single space see */
+                }
+                else {
+                    /* two space see */
+                }
+            }
+            else if (pass->type == TAY_PASS_ACT) {
+                TayGroup *act_group = state->groups + pass->act_group;
+                Space *act_space = act_group->space;
+
+                /* act */
+            }
+            else
+                assert(0); /* unhandled pass type */
+        }
+
+        /* return agents from structures */
+        for (int space_i = 0; space_i < state->spaces_count; ++space_i) {
+            Space *space = state->spaces + space_i;
+
+            switch (space->type) {
+                case ST_CPU_SIMPLE: cpu_simple_unsort(space); break;
+                case ST_CPU_TREE: cpu_tree_unsort(space); break;
+                case ST_CPU_GRID: cpu_grid_unsort(space); break;
+                default: assert(0);
+            }
+        }
+    }
+
+    timespec_get(&end, TIME_UTC);
+    double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
+    double ms = (t / (double)steps) * 1000.0;
+    return ms;
+}
+
 void tay_simulation_end(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
     state->running = TAY_STATE_STATUS_IDLE;
