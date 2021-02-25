@@ -79,7 +79,7 @@ static void _see(TayState *state, int pass_index) {
         }
     }
 
-    /* distribute bins among threads */
+    /* distribute cells among threads */
     for (int bucket_i = 0; bucket_i < TAY_MAX_BUCKETS; ++bucket_i) {
         TreeCell *cell = buckets[bucket_i];
 
