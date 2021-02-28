@@ -141,7 +141,6 @@ void space_init(Space *space, int dims, float4 radii);
 void space_release(Space *space);
 void space_add_agent(Space *space, TayAgentTag *agent, int group);
 void space_on_simulation_start(Space *space);
-// void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction);
 void space_on_simulation_end(Space *space);
 void *space_get_temp_arena(Space *space, int size);
 void *space_get_cell_arena(Space *space, int size, int zero);

@@ -177,6 +177,7 @@ double tay_run(TayState *state, int steps) {
             switch (space->type) {
                 case ST_CPU_SIMPLE: cpu_simple_sort(space, state->groups); break;
                 case ST_CPU_TREE: cpu_tree_sort(space, state->groups); break;
+                case ST_CPU_GRID: cpu_grid_sort(space, state->groups); break;
                 default: assert(0);
             }
         }
@@ -195,6 +196,7 @@ double tay_run(TayState *state, int steps) {
                     switch (space->type) {
                         case ST_CPU_SIMPLE: cpu_simple_single_space_see(space, pass); break;
                         case ST_CPU_TREE: cpu_tree_single_space_see(space, pass); break;
+                        case ST_CPU_GRID: cpu_grid_single_space_see(space, pass); break;
                         default: assert(0); /* not implemented */
                     }
                 }
@@ -209,6 +211,7 @@ double tay_run(TayState *state, int steps) {
                 switch (space->type) {
                     case ST_CPU_SIMPLE: cpu_simple_act(space, pass); break;
                     case ST_CPU_TREE: cpu_tree_act(space, pass); break;
+                    case ST_CPU_GRID: cpu_grid_act(space, pass); break;
                     default: assert(0); /* not implemented */
                 }
             }
@@ -223,6 +226,7 @@ double tay_run(TayState *state, int steps) {
             switch (space->type) {
                 case ST_CPU_SIMPLE: cpu_simple_unsort(space, state->groups); break;
                 case ST_CPU_TREE: cpu_tree_unsort(space, state->groups); break;
+                case ST_CPU_GRID: cpu_grid_unsort(space, state->groups); break;
                 default: assert(0);
             }
         }
