@@ -1,3 +1,4 @@
+#if 0
 #include "space.h"
 #include "gpu.h"
 #include <stdio.h>
@@ -226,3 +227,4 @@ void gpu_simple_step(TayState *state, int direct) {
             assert(0); /* unhandled pass type */
     }
 }
+#endif

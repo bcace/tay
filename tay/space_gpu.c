@@ -1,3 +1,4 @@
+#if 0
 #include "space.h"
 #include "gpu.h"
 #include <stdio.h>
@@ -235,3 +236,4 @@ void space_gpu_fetch_agent_positions(TayState *state) {
         }
     }
 }
+#endif

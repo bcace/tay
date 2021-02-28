@@ -52,12 +52,73 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
     }
 }
 
-static void _see(TayState *state, int pass_index) {
+// static void _see(TayState *state, int pass_index) {
+//     static SeeTask tasks[TAY_MAX_THREADS];
+//     static SeeTask *sorted_tasks[TAY_MAX_THREADS];
+
+//     CpuTree *tree = &state->space.cpu_tree;
+//     TayPass *pass = state->passes + pass_index;
+
+//     /* reset tasks */
+//     for (int i = 0; i < runner.count; ++i) {
+//         tasks[i].first_cell = 0;
+//         tasks[i].agents_count = 0;
+//         sorted_tasks[i] = tasks + i;
+//     }
+
+//     TreeCell *buckets[TAY_MAX_BUCKETS] = { 0 };
+
+//     /* sort cells into buckets wrt number of contained agents */
+//     for (int i = 0; i < tree->cells_count; ++i) {
+//         TreeCell *cell = tree->cells + i;
+//         unsigned count = cell->counts[pass->seer_group];
+//         if (count) {
+//             int bucket_i = space_agent_count_to_bucket_index(count);
+//             cell->thread_next = buckets[bucket_i];
+//             buckets[bucket_i] = cell;
+//         }
+//     }
+
+//     /* distribute cells among threads */
+//     for (int bucket_i = 0; bucket_i < TAY_MAX_BUCKETS; ++bucket_i) {
+//         TreeCell *cell = buckets[bucket_i];
+
+//         while (cell) {
+//             TreeCell *next_cell = cell->thread_next;
+
+//             SeeTask *task = sorted_tasks[0]; /* always take the task with fewest agents */
+//             cell->thread_next = task->first_cell;
+//             task->first_cell = cell;
+//             task->agents_count += cell->counts[pass->seer_group];
+
+//             /* sort the task wrt its number of agents */
+//             {
+//                 int index = 1;
+//                 for (; index < runner.count && task->agents_count > sorted_tasks[index]->agents_count; ++index);
+//                 for (int i = 1; i < index; ++i)
+//                     sorted_tasks[i - 1] = sorted_tasks[i];
+//                 sorted_tasks[index - 1] = task;
+//             }
+
+//             cell = next_cell;
+//         }
+//     }
+
+//     /* set tasks */
+//     for (int i = 0; i < runner.count; ++i) {
+//         SeeTask *task = tasks + i;
+//         _init_tree_see_task(task, tree, pass, i);
+//         tay_thread_set_task(i, _see_func, task, pass->context);
+//     }
+
+//     tay_runner_run();
+// }
+
+void cpu_tree_single_space_see(Space *space, TayPass *pass) {
     static SeeTask tasks[TAY_MAX_THREADS];
     static SeeTask *sorted_tasks[TAY_MAX_THREADS];
 
-    CpuTree *tree = &state->space.cpu_tree;
-    TayPass *pass = state->passes + pass_index;
+    CpuTree *tree = &space->cpu_tree;
 
     /* reset tasks */
     for (int i = 0; i < runner.count; ++i) {
@@ -144,11 +205,10 @@ static void _thread_act_traverse(ActTask *task, TayThreadContext *thread_context
     _thread_traverse_actors(task, task->tree->cells, thread_context);
 }
 
-static void _act(TayState *state, int pass_index) {
-    CpuTree *tree = &state->space.cpu_tree;
-    TayPass *pass = state->passes + pass_index;
-
+void cpu_tree_act(Space *space, TayPass *pass) {
     static ActTask tasks[TAY_MAX_THREADS];
+
+    CpuTree *tree = &space->cpu_tree;
 
     for (int i = 0; i < runner.count; ++i) {
         ActTask *task = tasks + i;
@@ -233,15 +293,13 @@ static int _max_depth(float space_side, float cell_side, int depth_correction) {
     return depth;
 }
 
-void cpu_tree_prepare(TayState *state) {
-    Space *space = &state->space;
+void cpu_tree_on_type_switch(Space *space) {
     CpuTree *tree = &space->cpu_tree;
     tree->dims = space->dims;
     tree->cells = space_get_cell_arena(space, TAY_MAX_CELLS * sizeof(TreeCell), false);
 }
 
-void cpu_tree_step(TayState *state) {
-    Space *space = &state->space;
+void cpu_tree_sort(Space *space, TayGroup *groups) {
     CpuTree *tree = &space->cpu_tree;
 
     /* calculate max partition depths for each dimension */
@@ -261,6 +319,10 @@ void cpu_tree_step(TayState *state) {
 
     /* sort all agents from tree into nodes */
     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+        TayGroup *group = groups + group_i;
+        if (group->space != space)
+            continue;
+
         TayAgentTag *next = space->first[group_i];
         while (next) {
             TayAgentTag *tag = next;
@@ -270,25 +332,75 @@ void cpu_tree_step(TayState *state) {
         space->first[group_i] = 0;
         space->counts[group_i] = 0;
     }
+}
 
-    /* do passes */
-    for (int i = 0; i < state->passes_count; ++i) {
-        TayPass *pass = state->passes + i;
-        if (pass->type == TAY_PASS_SEE)
-            _see(state, i);
-        else if (pass->type == TAY_PASS_ACT)
-            _act(state, i);
-        else
-            assert(0); /* unhandled pass type */
-    }
+void cpu_tree_unsort(Space *space, TayGroup *groups) {
+    CpuTree *tree = &space->cpu_tree;
 
-    /* reset the space box before returning agents */
     box_reset(&space->box, space->dims);
 
-    /* return agents to space and update the space box */
-    for (int i = 0; i < tree->cells_count; ++i) {
-        TreeCell *cell = tree->cells + i;
-        for (int j = 0; j < TAY_MAX_GROUPS; ++j)
-            space_return_agents(space, j, cell->first[j]);
+    for (int cell_i = 0; cell_i < tree->cells_count; ++cell_i) {
+        TreeCell *cell = tree->cells + cell_i;
+
+        for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+            TayGroup *group = groups + group_i;
+            if (group->space != space)
+                continue;
+
+            space_return_agents(space, group_i, cell->first[group_i]);
+        }
     }
 }
+
+// void cpu_tree_step(TayState *state) {
+//     Space *space = &state->space;
+//     CpuTree *tree = &space->cpu_tree;
+
+//     /* calculate max partition depths for each dimension */
+//     Depths root_cell_depths;
+//     for (int i = 0; i < tree->dims; ++i) {
+//         tree->max_depths.arr[i] = _max_depth(space->box.max.arr[i] - space->box.min.arr[i], space->radii.arr[i] * 2.0f, space->depth_correction);
+//         root_cell_depths.arr[i] = 0;
+//     }
+
+//     /* set up root cell */
+//     {
+//         tree->cells_count = 1;
+//         _tree_clear_cell(tree->cells);
+//         tree->cells->box = space->box; /* root cell inherits tree's box */
+//         _decide_cell_split(tree->cells, tree->dims, tree->max_depths.arr, space->radii.arr, root_cell_depths);
+//     }
+
+//     /* sort all agents from tree into nodes */
+//     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+//         TayAgentTag *next = space->first[group_i];
+//         while (next) {
+//             TayAgentTag *tag = next;
+//             next = next->next;
+//             _sort_agent(tree, tree->cells, tag, group_i, root_cell_depths, space->radii.arr);
+//         }
+//         space->first[group_i] = 0;
+//         space->counts[group_i] = 0;
+//     }
+
+//     /* do passes */
+//     for (int i = 0; i < state->passes_count; ++i) {
+//         TayPass *pass = state->passes + i;
+//         if (pass->type == TAY_PASS_SEE)
+//             _see(state, i);
+//         else if (pass->type == TAY_PASS_ACT)
+//             _act(state, i);
+//         else
+//             assert(0); /* unhandled pass type */
+//     }
+
+//     /* reset the space box before returning agents */
+//     box_reset(&space->box, space->dims);
+
+//     /* return agents to space and update the space box */
+//     for (int i = 0; i < tree->cells_count; ++i) {
+//         TreeCell *cell = tree->cells + i;
+//         for (int j = 0; j < TAY_MAX_GROUPS; ++j)
+//             space_return_agents(space, j, cell->first[j]);
+//     }
+// }

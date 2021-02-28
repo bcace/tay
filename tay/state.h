@@ -78,8 +78,9 @@ typedef struct Space {
     int dims;
     int depth_correction;
     float4 radii; /* if space is partitioned, these are suggested subdivision radii */
-    SpaceType type;
-    TayAgentTag *first[TAY_MAX_GROUPS]; /* agents about to be activated (inactive live agents) */
+    SpaceType type; /* actual space type */
+    SpaceType requested_type; /* user can request type change between runs */
+    TayAgentTag *first[TAY_MAX_GROUPS]; /* agents about to be activated (inactive live agents, agents currently not sorted in any structure) */
     int counts[TAY_MAX_GROUPS];
     Box box;
     CpuSimple cpu_simple;
@@ -96,6 +97,7 @@ typedef struct TayGroup {
     int agent_size;             /* agent size in bytes */
     int capacity;               /* max. number of agents */
     int is_point;
+    Space *space;
 } TayGroup;
 
 typedef enum TayPassType {
@@ -129,7 +131,8 @@ typedef struct TayState {
     TayGroup groups[TAY_MAX_GROUPS];
     TayPass passes[TAY_MAX_PASSES];
     int passes_count;
-    Space space;
+    Space spaces[TAY_MAX_SPACES];
+    int spaces_count;
     TayStateStatus running;
     const char *source;
 } TayState;
@@ -137,9 +140,9 @@ typedef struct TayState {
 void space_init(Space *space, int dims, float4 radii);
 void space_release(Space *space);
 void space_add_agent(Space *space, TayAgentTag *agent, int group);
-void space_on_simulation_start(TayState *state);
-void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction);
-void space_on_simulation_end(TayState *state);
+void space_on_simulation_start(Space *space);
+// void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction);
+void space_on_simulation_end(Space *space);
 void *space_get_temp_arena(Space *space, int size);
 void *space_get_cell_arena(Space *space, int size, int zero);
 int space_get_thread_mem_size();

@@ -224,79 +224,79 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
     }
 }
 
-static void _see(TayState *state, int pass_index) {
-    static _SeeTask tasks[TAY_MAX_THREADS];
-    static _SeeTask *sorted_tasks[TAY_MAX_THREADS];
+// static void _see(TayState *state, int pass_index) {
+//     static _SeeTask tasks[TAY_MAX_THREADS];
+//     static _SeeTask *sorted_tasks[TAY_MAX_THREADS];
 
-    Space *space = &state->space;
-    CpuGrid *grid = &space->cpu_grid;
-    TayPass *pass = state->passes + pass_index;
+//     Space *space = &state->space;
+//     CpuGrid *grid = &space->cpu_grid;
+//     TayPass *pass = state->passes + pass_index;
 
-    /* calculate kernel size */
-    int kernel_size = 1;
-    ushort4 kernel_radii;
-    for (int i = 0; i < space->dims; ++i) {
-        kernel_radii.arr[i] = (int)ceilf(pass->radii.arr[i] / grid->cell_sizes.arr[i]);
-        kernel_size *= kernel_radii.arr[i] * 2 + 1;
-    }
-    int a = space_get_thread_mem_size();
-    int b = kernel_size * sizeof(Bin *);
-    int c = a / b;
-    assert(kernel_size * sizeof(Bin *) <= space_get_thread_mem_size());
+//     /* calculate kernel size */
+//     int kernel_size = 1;
+//     ushort4 kernel_radii;
+//     for (int i = 0; i < space->dims; ++i) {
+//         kernel_radii.arr[i] = (int)ceilf(pass->radii.arr[i] / grid->cell_sizes.arr[i]);
+//         kernel_size *= kernel_radii.arr[i] * 2 + 1;
+//     }
+//     int a = space_get_thread_mem_size();
+//     int b = kernel_size * sizeof(Bin *);
+//     int c = a / b;
+//     assert(kernel_size * sizeof(Bin *) <= space_get_thread_mem_size());
 
-    /* reset tasks */
-    for (int i = 0; i < runner.count; ++i) {
-        tasks[i].first_bin = 0;
-        tasks[i].agents_count = 0;
-        sorted_tasks[i] = tasks + i;
-    }
+//     /* reset tasks */
+//     for (int i = 0; i < runner.count; ++i) {
+//         tasks[i].first_bin = 0;
+//         tasks[i].agents_count = 0;
+//         sorted_tasks[i] = tasks + i;
+//     }
 
-    Bin *buckets[TAY_MAX_BUCKETS] = { 0 };
+//     Bin *buckets[TAY_MAX_BUCKETS] = { 0 };
 
-    /* sort bins into buckets wrt number of contained agents */
-    for (Bin *bin = grid->first_bin; bin; bin = bin->next) {
-        unsigned count = bin->counts[pass->seer_group];
-        if (count) {
-            int bucket_i = space_agent_count_to_bucket_index(count);
-            bin->thread_next = buckets[bucket_i];
-            buckets[bucket_i] = bin;
-        }
-    }
+//     /* sort bins into buckets wrt number of contained agents */
+//     for (Bin *bin = grid->first_bin; bin; bin = bin->next) {
+//         unsigned count = bin->counts[pass->seer_group];
+//         if (count) {
+//             int bucket_i = space_agent_count_to_bucket_index(count);
+//             bin->thread_next = buckets[bucket_i];
+//             buckets[bucket_i] = bin;
+//         }
+//     }
 
-    /* distribute bins among threads */
-    for (int bucket_i = 0; bucket_i < TAY_MAX_BUCKETS; ++bucket_i) {
-        Bin *bin = buckets[bucket_i];
+//     /* distribute bins among threads */
+//     for (int bucket_i = 0; bucket_i < TAY_MAX_BUCKETS; ++bucket_i) {
+//         Bin *bin = buckets[bucket_i];
 
-        while (bin) {
-            Bin *next_bin = bin->thread_next;
+//         while (bin) {
+//             Bin *next_bin = bin->thread_next;
 
-            _SeeTask *task = sorted_tasks[0]; /* always take the task with fewest agents */
-            bin->thread_next = task->first_bin;
-            task->first_bin = bin;
-            task->agents_count += bin->counts[pass->seer_group];
+//             _SeeTask *task = sorted_tasks[0]; /* always take the task with fewest agents */
+//             bin->thread_next = task->first_bin;
+//             task->first_bin = bin;
+//             task->agents_count += bin->counts[pass->seer_group];
 
-            /* sort the task wrt its number of agents */
-            {
-                int index = 1;
-                for (; index < runner.count && task->agents_count > sorted_tasks[index]->agents_count; ++index);
-                for (int i = 1; i < index; ++i)
-                    sorted_tasks[i - 1] = sorted_tasks[i];
-                sorted_tasks[index - 1] = task;
-            }
+//             /* sort the task wrt its number of agents */
+//             {
+//                 int index = 1;
+//                 for (; index < runner.count && task->agents_count > sorted_tasks[index]->agents_count; ++index);
+//                 for (int i = 1; i < index; ++i)
+//                     sorted_tasks[i - 1] = sorted_tasks[i];
+//                 sorted_tasks[index - 1] = task;
+//             }
 
-            bin = next_bin;
-        }
-    }
+//             bin = next_bin;
+//         }
+//     }
 
-    /* set tasks */
-    for (int i = 0; i < runner.count; ++i) {
-        _SeeTask *task = tasks + i;
-        _init_see_task(task, pass, grid, i, space->dims, kernel_radii, space_get_thread_mem(space, i));
-        tay_thread_set_task(i, _see_func, task, pass->context);
-    }
+//     /* set tasks */
+//     for (int i = 0; i < runner.count; ++i) {
+//         _SeeTask *task = tasks + i;
+//         _init_see_task(task, pass, grid, i, space->dims, kernel_radii, space_get_thread_mem(space, i));
+//         tay_thread_set_task(i, _see_func, task, pass->context);
+//     }
 
-    tay_runner_run();
-}
+//     tay_runner_run();
+// }
 
 typedef struct {
     TayPass *pass;
@@ -320,98 +320,97 @@ static void _act_func(ActTask *task, TayThreadContext *thread_context) {
     }
 }
 
-static void _act(TayState *state, int pass_index) {
-    static ActTask tasks[TAY_MAX_THREADS];
+// static void _act(TayState *state, int pass_index) {
+//     static ActTask tasks[TAY_MAX_THREADS];
 
-    CpuGrid *grid = &state->space.cpu_grid;
-    TayPass *pass = state->passes + pass_index;
+//     CpuGrid *grid = &state->space.cpu_grid;
+//     TayPass *pass = state->passes + pass_index;
 
-    for (int i = 0; i < runner.count; ++i) {
-        ActTask *task = tasks + i;
-        _init_act_task(task, pass, grid->first_bin, i);
-        tay_thread_set_task(i, _act_func, task, pass->context);
-    }
+//     for (int i = 0; i < runner.count; ++i) {
+//         ActTask *task = tasks + i;
+//         _init_act_task(task, pass, grid->first_bin, i);
+//         tay_thread_set_task(i, _act_func, task, pass->context);
+//     }
 
-    tay_runner_run();
-}
+//     tay_runner_run();
+// }
 
-void cpu_grid_prepare(TayState *state) {
-    Space *space = &state->space;
+void cpu_grid_on_type_switch(Space *space) {
     CpuGrid *grid = &space->cpu_grid;
     grid->bins = space_get_cell_arena(space, TAY_MAX_CELLS * sizeof(Bin), true);
 }
 
-void cpu_grid_step(TayState *state) {
-    Space *space = &state->space;
-    CpuGrid *grid = &space->cpu_grid;
+// void cpu_grid_step(TayState *state) {
+//     Space *space = &state->space;
+//     CpuGrid *grid = &space->cpu_grid;
 
-    /* calculate grid parameters */
-    for (int i = 0; i < space->dims; ++i) {
-        float cell_size = (space->radii.arr[i] * 2.0f) / (float)(1 << space->depth_correction);
-        float space_size = space->box.max.arr[i] - space->box.min.arr[i];
-        int count = (int)ceilf(space_size / cell_size);
-        float margin = (count * cell_size - space_size) * 0.5f;
-        grid->cell_counts.arr[i] = count;
-        grid->cell_sizes.arr[i] = cell_size;
-        grid->grid_origin.arr[i] = space->box.min.arr[i] - margin;
-    }
+//     /* calculate grid parameters */
+//     for (int i = 0; i < space->dims; ++i) {
+//         float cell_size = (space->radii.arr[i] * 2.0f) / (float)(1 << space->depth_correction);
+//         float space_size = space->box.max.arr[i] - space->box.min.arr[i];
+//         int count = (int)ceilf(space_size / cell_size);
+//         float margin = (count * cell_size - space_size) * 0.5f;
+//         grid->cell_counts.arr[i] = count;
+//         grid->cell_sizes.arr[i] = cell_size;
+//         grid->grid_origin.arr[i] = space->box.min.arr[i] - margin;
+//     }
 
-    /* sort agents into bins */
-    {
-        grid->first_bin = 0;
+//     /* sort agents into bins */
+//     {
+//         grid->first_bin = 0;
 
-        for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+//         for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
 
-            TayAgentTag *next = space->first[group_i];
-            while (next) {
-                TayAgentTag *tag = next;
-                next = next->next;
+//             TayAgentTag *next = space->first[group_i];
+//             while (next) {
+//                 TayAgentTag *tag = next;
+//                 next = next->next;
 
-                float4 p = float4_agent_position(tag);
-                ushort4 indices = _agent_position_to_cell_indices(p,
-                                                                  grid->grid_origin,
-                                                                  grid->cell_sizes,
-                                                                  space->dims);
-                unsigned hash = _cell_indices_to_hash(indices, space->dims);
-                Bin *bin = grid->bins + hash;
+//                 float4 p = float4_agent_position(tag);
+//                 ushort4 indices = _agent_position_to_cell_indices(p,
+//                                                                   grid->grid_origin,
+//                                                                   grid->cell_sizes,
+//                                                                   space->dims);
+//                 unsigned hash = _cell_indices_to_hash(indices, space->dims);
+//                 Bin *bin = grid->bins + hash;
 
-                tag->next = bin->first[group_i];
-                bin->first[group_i] = tag;
-                ++bin->counts[group_i];
+//                 tag->next = bin->first[group_i];
+//                 bin->first[group_i] = tag;
+//                 ++bin->counts[group_i];
 
-                if (bin->used == false) {
-                    bin->next = grid->first_bin;
-                    grid->first_bin = bin;
-                    bin->used = true;
-                }
-            }
+//                 if (bin->used == false) {
+//                     bin->next = grid->first_bin;
+//                     grid->first_bin = bin;
+//                     bin->used = true;
+//                 }
+//             }
 
-            space->first[group_i] = 0;
-            space->counts[group_i] = 0;
-        }
-    }
+//             space->first[group_i] = 0;
+//             space->counts[group_i] = 0;
+//         }
+//     }
 
-    /* do passes */
-    for (int i = 0; i < state->passes_count; ++i) {
-        TayPass *pass = state->passes + i;
-        if (pass->type == TAY_PASS_SEE)
-            _see(state, i);
-        else if (pass->type == TAY_PASS_ACT)
-            _act(state, i);
-        else
-            assert(0); /* unhandled pass type */
-    }
+//     /* do passes */
+//     // for (int i = 0; i < state->passes_count; ++i) {
+//     //     TayPass *pass = state->passes + i;
+//     //     if (pass->type == TAY_PASS_SEE)
+//     //         _see(state, i);
+//     //     else if (pass->type == TAY_PASS_ACT)
+//     //         _act(state, i);
+//     //     else
+//     //         assert(0); /* unhandled pass type */
+//     // }
 
-    /* reset the space box before returning agents */
-    box_reset(&space->box, space->dims);
+//     /* reset the space box before returning agents */
+//     box_reset(&space->box, space->dims);
 
-    /* return agents and update space box */
-    for (Bin *bin = grid->first_bin; bin; bin = bin->next) {
-        for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-            space_return_agents(space, group_i, bin->first[group_i]);
-            bin->first[group_i] = 0;
-            bin->counts[group_i] = 0;
-        }
-        bin->used = false;
-    }
-}
+//     /* return agents and update space box */
+//     for (Bin *bin = grid->first_bin; bin; bin = bin->next) {
+//         for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+//             space_return_agents(space, group_i, bin->first[group_i]);
+//             bin->first[group_i] = 0;
+//             bin->counts[group_i] = 0;
+//         }
+//         bin->used = false;
+//     }
+// }

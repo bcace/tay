@@ -7,6 +7,7 @@
 
 void space_init(Space *space, int dims, float4 radii) {
     space->type = ST_NONE;
+    space->requested_type = ST_CPU_SIMPLE;
     space->dims = dims;
     space->radii = radii;
     space->depth_correction = 0;
@@ -14,11 +15,11 @@ void space_init(Space *space, int dims, float4 radii) {
         space->first[i] = 0;
         space->counts[i] = 0;
     }
-    space_gpu_shared_init(&space->gpu_shared);
+    // space_gpu_shared_init(&space->gpu_shared);
 }
 
 void space_release(Space *space) {
-    space_gpu_shared_release(&space->gpu_shared);
+    // space_gpu_shared_release(&space->gpu_shared);
 }
 
 void *space_get_temp_arena(Space *space, int size) {
@@ -50,15 +51,17 @@ void space_add_agent(Space *space, TayAgentTag *agent, int group) {
     ++space->counts[group];
 }
 
-void space_on_simulation_start(TayState *state) {
-    space_gpu_on_simulation_start(state);   /* compose/build program, create all shared kernels and buffers */
-    state->space.type = ST_NONE;
+void space_on_simulation_start(Space *space) {
+    // space_gpu_on_simulation_start(state); /* compose/build program, create all shared kernels and buffers */
+    space->type = ST_NONE;
+    space->requested_type = ST_CPU_SIMPLE;
 }
 
-void space_on_simulation_end(TayState *state) {
-    space_gpu_on_simulation_end(state);     /* release all shared kernels and buffers */
+void space_on_simulation_end(Space *space) {
+    // space_gpu_on_simulation_end(state); /* release all shared kernels and buffers */
 }
 
+#if 0
 void space_run(TayState *state, int steps, SpaceType space_type, int depth_correction) {
     Space *space = &state->space;
     assert(space_type & ST_FINAL);
@@ -98,9 +101,9 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
             if (old_type & ST_GPU)                          /* switching from gpu to cpu */
                 space_gpu_fetch_agents(state);
             if (new_type == ST_CPU_GRID && old_type != ST_CPU_GRID) /* prepare cpu grid */
-                cpu_grid_prepare(state);
+                cpu_grid_on_type_switch(state);
             if (new_type == ST_CPU_TREE && old_type != ST_CPU_TREE) /* prepare cpu tree */
-                cpu_tree_prepare(state);
+                cpu_tree_on_type_switch(state);
         }
 
         if (space->type == ST_CPU_SIMPLE)
@@ -122,6 +125,7 @@ void space_run(TayState *state, int steps, SpaceType space_type, int depth_corre
     if (space->type & ST_GPU)
         space_gpu_fetch_agents(state);
 }
+#endif
 
 void box_update(Box *box, float4 p, int dims) {
     for (int i = 0; i < dims; ++i) {

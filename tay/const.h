@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 
+#define TAY_MAX_SPACES          1
 #define TAY_MAX_GROUPS          8
 #define TAY_MAX_PASSES          32
 #define TAY_MAX_THREADS         64
