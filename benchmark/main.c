@@ -134,7 +134,7 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
 
     float4 see_radii = { see_radius, see_radius, see_radius, 0.0f };
 
-    TayState *tay = tay_create_state(dims, see_radii);
+    TayState *tay = tay_create_state(dims, see_radii, 1);
     tay_set_source(tay, agent_kernels_source);
 
     ActContext act_context;
@@ -150,7 +150,7 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     see_context.radii.y = see_radius;
     see_context.radii.z = see_radius;
 
-    int group = tay_add_group(tay, sizeof(Agent), agents_count, 1);
+    int group = tay_add_group(tay, sizeof(Agent), agents_count, 1, 0);
     tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(tay, group, agent_act, "agent_act", &act_context, sizeof(act_context));
 
@@ -185,7 +185,8 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     printf("    depth_correction: %d\n", depth_correction);
 
     tay_simulation_start(tay);
-    double ms = tay_run(tay, steps, space_type, depth_correction);
+    tay_configure_space(tay, 0, space_type, depth_correction);
+    double ms = tay_run(tay, steps);
     printf("    milliseconds per frame: %g\n", ms);
     tay_threads_get_telemetry_results(telemetry_results);
     tay_threads_report_telemetry(0);
@@ -216,7 +217,7 @@ int main() {
     int beg_depth_correction = 0;
     int end_depth_correction = 3;
 
-    bool run_cpu_simple = true;
+    bool run_cpu_simple = false;
     bool run_cpu_tree = true;
     bool run_cpu_grid = true;
     bool run_gpu_simple_direct = false;
