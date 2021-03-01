@@ -137,7 +137,7 @@ typedef struct TayState {
     const char *source;
 } TayState;
 
-void space_init(Space *space, int dims, float4 radii);
+void space_init(Space *space);
 void space_release(Space *space);
 void space_add_agent(Space *space, TayAgentTag *agent, int group);
 void space_on_simulation_start(Space *space);

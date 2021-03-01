@@ -5,11 +5,11 @@
 #include <assert.h>
 
 
-void space_init(Space *space, int dims, float4 radii) {
+void space_init(Space *space) {
     space->type = ST_NONE;
     space->requested_type = ST_CPU_SIMPLE;
-    space->dims = dims;
-    space->radii = radii;
+    space->dims = 3;
+    space->radii = (float4){ 10.0f, 10.0f, 10.0f, 10.0f };
     space->depth_correction = 0;
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         space->first[i] = 0;

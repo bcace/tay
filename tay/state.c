@@ -8,14 +8,13 @@
 #include <time.h>
 
 
-TayState *tay_create_state(int space_dims, float4 see_radii, int spaces_count) {
+TayState *tay_create_state(int spaces_count) {
     TayState *s = calloc(1, sizeof(TayState));
     s->running = TAY_STATE_STATUS_IDLE;
     s->source = 0;
-    // TODO: check spaces_count
     s->spaces_count = spaces_count;
     for (int i = 0; i < spaces_count; ++i)
-        space_init(s->spaces + i, space_dims, see_radii);
+        space_init(s->spaces + i);
     return s;
 }
 
@@ -131,11 +130,13 @@ static SpaceType _translate_space_type(TaySpaceType type) {
 }
 
 // TODO: check space_index
-void tay_configure_space(TayState *state, int space_index, TaySpaceType space_type, int depth_correction) {
+void tay_configure_space(TayState *state, int space_index, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
     Space *space = state->spaces + space_index;
     space->requested_type = _translate_space_type(space_type);
     space->depth_correction = depth_correction;
+    space->radii = part_radii;
+    space->dims = space_dims;
 }
 
 double tay_run(TayState *state, int steps) {
