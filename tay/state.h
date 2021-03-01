@@ -10,11 +10,7 @@
 
 
 typedef struct {
-    TayAgentTag *first[TAY_MAX_THREADS];
-} SimpleThread;
-
-typedef struct {
-    SimpleThread threads[TAY_MAX_GROUPS];
+    TayAgentTag *first[TAY_MAX_THREADS][TAY_MAX_GROUPS]; /* [thread][group] */
 } CpuSimple;
 
 typedef struct {
@@ -79,9 +75,9 @@ typedef struct Space {
     int depth_correction;
     float4 radii; /* if space is partitioned, these are suggested subdivision radii */
     SpaceType type; /* actual space type */
-    SpaceType requested_type; /* user can request type change between runs */
-    TayAgentTag *first[TAY_MAX_GROUPS]; /* agents about to be activated (inactive live agents, agents currently not sorted in any structure) */
-    int counts[TAY_MAX_GROUPS];
+    SpaceType requested_type; /* space type to change to before the next run */
+    TayAgentTag *first[TAY_MAX_GROUPS]; /* unsorted agents */
+    int counts[TAY_MAX_GROUPS]; /* counts of unsorted agents */
     Box box;
     CpuSimple cpu_simple;
     CpuTree cpu_tree;
