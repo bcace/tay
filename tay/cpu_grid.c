@@ -41,20 +41,20 @@ static inline ushort4 _agent_position_to_cell_indices(float4 pos, float4 orig, f
 #define HASH_FACTOR_Z 2147483647ull
 #define HASH_FACTOR_W 6692367337ull
 
-static inline unsigned _cell_indices_to_hash_1(ushort4 indices, int modulo_mask) {
+static inline unsigned _cell_indices_to_hash_1(ushort4 indices, unsigned modulo_mask) {
     return (
         ((unsigned long long)indices.x * HASH_FACTOR_X)
     ) & modulo_mask; /* this is a % operation, works with & only if done with a number that's (2^n - 1) */
 }
 
-static inline unsigned _cell_indices_to_hash_2(ushort4 indices, int modulo_mask) {
+static inline unsigned _cell_indices_to_hash_2(ushort4 indices, unsigned modulo_mask) {
     return (
         ((unsigned long long)indices.x * HASH_FACTOR_X) ^
         ((unsigned long long)indices.y * HASH_FACTOR_Y)
     ) & modulo_mask; /* this is a % operation, works with & only if done with a number that's (2^n - 1) */
 }
 
-static inline unsigned _cell_indices_to_hash_3(ushort4 indices, int modulo_mask) {
+static inline unsigned _cell_indices_to_hash_3(ushort4 indices, unsigned modulo_mask) {
     return (
         ((unsigned long long)indices.x * HASH_FACTOR_X) ^
         ((unsigned long long)indices.y * HASH_FACTOR_Y) ^
@@ -62,7 +62,7 @@ static inline unsigned _cell_indices_to_hash_3(ushort4 indices, int modulo_mask)
     ) & modulo_mask; /* this is a % operation, works with & only if done with a number that's (2^n - 1) */
 }
 
-static inline unsigned _cell_indices_to_hash_4(ushort4 indices, int modulo_mask) {
+static inline unsigned _cell_indices_to_hash_4(ushort4 indices, unsigned modulo_mask) {
     return (
         ((unsigned long long)indices.x * HASH_FACTOR_X) ^
         ((unsigned long long)indices.y * HASH_FACTOR_Y) ^
@@ -71,7 +71,7 @@ static inline unsigned _cell_indices_to_hash_4(ushort4 indices, int modulo_mask)
     ) & modulo_mask; /* this is a % operation, works with & only if done with a number that's (2^n - 1) */
 }
 
-static inline unsigned _cell_indices_to_hash(ushort4 indices, int dims, int modulo_mask) {
+static inline unsigned _cell_indices_to_hash(ushort4 indices, int dims, unsigned modulo_mask) {
     switch (dims) {
         case 1: return _cell_indices_to_hash_1(indices, modulo_mask);
         case 2: return _cell_indices_to_hash_2(indices, modulo_mask);
@@ -87,7 +87,7 @@ typedef struct {
     unsigned agents_count;
     int thread_i;
     int dims;
-    int modulo_mask;
+    unsigned modulo_mask;
     ushort4 kernel_radii;
     float4 grid_origin;
     float4 cell_sizes;
@@ -113,7 +113,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
     TAY_SEE_FUNC see_func = task->pass->see;
     float4 radii = task->pass->radii;
     int dims = task->dims;
-    int modulo_mask = task->modulo_mask;
+    unsigned modulo_mask = task->modulo_mask;
     ushort4 kernel_radii = task->kernel_radii;
     float4 grid_origin = task->grid_origin;
     float4 cell_sizes = task->cell_sizes;
@@ -337,10 +337,10 @@ void cpu_grid_on_type_switch(Space *space) {
     grid->bins = space->shared;
 }
 
-static int _highest_power_of_2(int size) {
+static unsigned _highest_power_of_two(unsigned size) {
     for (int i = 1; i < 32; ++i)
-        if ((1 << i) > size)
-            return 1 << (i - 1);
+        if ((1ul << i) > size)
+            return 1ul << (i - 1);
     return 0;
 }
 
@@ -374,9 +374,12 @@ void cpu_grid_sort(Space *space, TayGroup *groups, TayPass *passes, int passes_c
             max_kernel_bins = kernel_bins;
     }
 
+    /* calculate memory needed for bins */
     grid->kernel_size = max_kernel_bins * (int)sizeof(Bin *);
-    int bins_size = space->shared_size - grid->kernel_size * runner.count;
-    grid->modulo_mask = _highest_power_of_2(bins_size / (int)sizeof(Bin)) - 1;
+    unsigned bins_mem_size = space->shared_size - grid->kernel_size * runner.count;
+    unsigned max_bins_count = bins_mem_size / (unsigned)sizeof(Bin);
+    unsigned max_bins_count_fast = _highest_power_of_two(max_bins_count);
+    grid->modulo_mask = max_bins_count_fast - 1;
     // ERROR: make sure there's at least one bin available
 
     /* sort agents into bins */

@@ -26,28 +26,6 @@ void space_release(Space *space) {
     // space_gpu_shared_release(&space->gpu_shared);
 }
 
-// void *space_get_temp_arena(Space *space, int size) {
-//     assert(size <= TAY_CPU_SHARED_TEMP_ARENA_SIZE);
-//     return space->cpu_shared.temp_arena;
-// }
-
-// void *space_get_cell_arena(Space *space, int size, int zero) {
-//     assert(size <= TAY_CPU_SHARED_CELL_ARENA_SIZE);
-//     if (zero)
-//         memset(space->cpu_shared.cell_arena, 0, size);
-//     return space->cpu_shared.cell_arena;
-// }
-
-// int space_get_thread_mem_size() {
-//     int rem = TAY_CPU_SHARED_THREAD_ARENA_SIZE % runner.count;
-//     return (TAY_CPU_SHARED_THREAD_ARENA_SIZE - rem) / runner.count;
-// }
-
-// void *space_get_thread_mem(Space *space, int thread_i) {
-//     int size = space_get_thread_mem_size();
-//     return space->cpu_shared.thread_arena + size * thread_i;
-// }
-
 void space_add_agent(Space *space, TayAgentTag *agent, int group) {
     agent->next = space->first[group];
     space->first[group] = agent;

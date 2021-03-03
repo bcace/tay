@@ -130,7 +130,7 @@ static SpaceType _translate_space_type(TaySpaceType type) {
 }
 
 void tay_configure_space(TayState *state, int space_index, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction, int shared_size_in_megabytes) {
-    assert(state->running == TAY_STATE_STATUS_RUNNING);
+    assert(state->running == TAY_STATE_STATUS_RUNNING); // ERROR: this should be an error because on tay_simulation_start spaces get reset
     Space *space = state->spaces + space_index;
     space->requested_type = _translate_space_type(space_type);
     space->depth_correction = depth_correction;
