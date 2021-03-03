@@ -4,7 +4,7 @@
 #include "tay.h"
 #include "const.h"
 
-#define TAY_CPU_SHARED_TEMP_ARENA_SIZE      (TAY_MAX_AGENTS * sizeof(float4) * 2)
+// #define TAY_CPU_SHARED_TEMP_ARENA_SIZE      (TAY_MAX_AGENTS * sizeof(float4) * 2)
 #define TAY_CPU_SHARED_CELL_ARENA_SIZE      (TAY_MAX_CELLS * 200)
 #define TAY_CPU_SHARED_THREAD_ARENA_SIZE    20000000
 
@@ -15,6 +15,7 @@ typedef struct {
 
 typedef struct {
     struct TreeCell *cells; /* cells storage, first cell is always the root cell */
+    int max_cells; /* calculated from the size of available shared memory */
     int cells_count;
     int dims;
     int4 max_depths;
@@ -26,6 +27,8 @@ typedef struct {
     int4 cell_counts;
     float4 cell_sizes;
     float4 grid_origin;
+    int modulo_mask;
+    int kernel_size;
 } CpuGrid;
 
 typedef struct {
@@ -33,23 +36,23 @@ typedef struct {
     void *pass_kernels_indirect[TAY_MAX_PASSES];
 } GpuSimple;
 
-typedef struct {
-    struct GpuContext *gpu;
-    void *agent_io_buffer; // TODO: equivalent to temp_arena
-    void *cells_buffer; // TODO: equivalent to cell arena
-    void *agent_buffers[TAY_MAX_GROUPS];
-    void *pass_context_buffers[TAY_MAX_PASSES];
-    void *resolve_pointers_kernel;
-    void *fetch_new_positions_kernel;
-    char text[TAY_GPU_MAX_TEXT_SIZE];
-    int text_size;
-} GpuShared;
+// typedef struct {
+//     struct GpuContext *gpu;
+//     void *agent_io_buffer; // TODO: equivalent to temp_arena
+//     void *cells_buffer; // TODO: equivalent to cell arena
+//     void *agent_buffers[TAY_MAX_GROUPS];
+//     void *pass_context_buffers[TAY_MAX_PASSES];
+//     void *resolve_pointers_kernel;
+//     void *fetch_new_positions_kernel;
+//     char text[TAY_GPU_MAX_TEXT_SIZE];
+//     int text_size;
+// } GpuShared;
 
-typedef struct {
-    char temp_arena[TAY_CPU_SHARED_TEMP_ARENA_SIZE];
-    char cell_arena[TAY_CPU_SHARED_CELL_ARENA_SIZE];
-    char thread_arena[TAY_CPU_SHARED_THREAD_ARENA_SIZE];
-} CpuShared;
+// typedef struct {
+//     char temp_arena[TAY_CPU_SHARED_TEMP_ARENA_SIZE];
+//     char cell_arena[TAY_CPU_SHARED_CELL_ARENA_SIZE];
+//     char thread_arena[TAY_CPU_SHARED_THREAD_ARENA_SIZE];
+// } CpuShared;
 
 typedef enum SpaceType {
     ST_NONE =                   0x0000,
@@ -82,9 +85,9 @@ typedef struct Space {
     CpuSimple cpu_simple;
     CpuTree cpu_tree;
     CpuGrid cpu_grid;
-    CpuShared cpu_shared;
     GpuSimple gpu_simple;
-    GpuShared gpu_shared;
+    void *shared; /* shared internally by all structures in this space */
+    int shared_size;
 } Space;
 
 typedef struct TayGroup {
@@ -138,9 +141,9 @@ void space_release(Space *space);
 void space_add_agent(Space *space, TayAgentTag *agent, int group);
 void space_on_simulation_start(Space *space);
 void space_on_simulation_end(Space *space);
-void *space_get_temp_arena(Space *space, int size);
-void *space_get_cell_arena(Space *space, int size, int zero);
-int space_get_thread_mem_size();
-void *space_get_thread_mem(Space *space, int thread_i);
+// void *space_get_temp_arena(Space *space, int size);
+// void *space_get_cell_arena(Space *space, int size, int zero);
+// int space_get_thread_mem_size();
+// void *space_get_thread_mem(Space *space, int thread_i);
 
 #endif

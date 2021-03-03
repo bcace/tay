@@ -1,5 +1,6 @@
 #include "space.h"
 #include "thread.h"
+#include <stdlib.h>
 #include <float.h>
 #include <string.h>
 #include <assert.h>
@@ -11,6 +12,8 @@ void space_init(Space *space) {
     space->dims = 3;
     space->radii = (float4){ 10.0f, 10.0f, 10.0f, 10.0f };
     space->depth_correction = 0;
+    space->shared = 0;
+    space->shared_size = 0;
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         space->first[i] = 0;
         space->counts[i] = 0;
@@ -19,30 +22,31 @@ void space_init(Space *space) {
 }
 
 void space_release(Space *space) {
+    free(space->shared);
     // space_gpu_shared_release(&space->gpu_shared);
 }
 
-void *space_get_temp_arena(Space *space, int size) {
-    assert(size <= TAY_CPU_SHARED_TEMP_ARENA_SIZE);
-    return space->cpu_shared.temp_arena;
-}
+// void *space_get_temp_arena(Space *space, int size) {
+//     assert(size <= TAY_CPU_SHARED_TEMP_ARENA_SIZE);
+//     return space->cpu_shared.temp_arena;
+// }
 
-void *space_get_cell_arena(Space *space, int size, int zero) {
-    assert(size <= TAY_CPU_SHARED_CELL_ARENA_SIZE);
-    if (zero)
-        memset(space->cpu_shared.cell_arena, 0, size);
-    return space->cpu_shared.cell_arena;
-}
+// void *space_get_cell_arena(Space *space, int size, int zero) {
+//     assert(size <= TAY_CPU_SHARED_CELL_ARENA_SIZE);
+//     if (zero)
+//         memset(space->cpu_shared.cell_arena, 0, size);
+//     return space->cpu_shared.cell_arena;
+// }
 
-int space_get_thread_mem_size() {
-    int rem = TAY_CPU_SHARED_THREAD_ARENA_SIZE % runner.count;
-    return (TAY_CPU_SHARED_THREAD_ARENA_SIZE - rem) / runner.count;
-}
+// int space_get_thread_mem_size() {
+//     int rem = TAY_CPU_SHARED_THREAD_ARENA_SIZE % runner.count;
+//     return (TAY_CPU_SHARED_THREAD_ARENA_SIZE - rem) / runner.count;
+// }
 
-void *space_get_thread_mem(Space *space, int thread_i) {
-    int size = space_get_thread_mem_size();
-    return space->cpu_shared.thread_arena + size * thread_i;
-}
+// void *space_get_thread_mem(Space *space, int thread_i) {
+//     int size = space_get_thread_mem_size();
+//     return space->cpu_shared.thread_arena + size * thread_i;
+// }
 
 void space_add_agent(Space *space, TayAgentTag *agent, int group) {
     agent->next = space->first[group];

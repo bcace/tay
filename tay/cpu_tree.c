@@ -187,38 +187,53 @@ static inline void _decide_cell_split(TreeCell *cell, int dims, int *max_depths,
 }
 
 static void _sort_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent, int group, Depths cell_depths, float *radii) {
-    if (cell->dim == TREE_CELL_LEAF_DIM) {
+
+    if (cell->dim == TREE_CELL_LEAF_DIM) { /* leaf cell, put the agent here */
         agent->next = cell->first[group];
         cell->first[group] = agent;
         ++cell->counts[group];
+        return;
+    }
+
+    Depths sub_node_depths = cell_depths;
+    ++sub_node_depths.arr[cell->dim];
+
+    float pos = float4_agent_position(agent).arr[cell->dim];
+    if (pos < cell->mid) {
+        if (cell->lo == 0) { /* lo cell needed but doesn't exist yet */
+
+            if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
+                agent->next = cell->first[group];
+                cell->first[group] = agent;
+                ++cell->counts[group];
+                return;
+            }
+
+            cell->lo = tree->cells + tree->cells_count++;
+            _tree_clear_cell(cell->lo);
+            cell->lo->box = cell->box;
+            cell->lo->box.max.arr[cell->dim] = cell->mid;
+            _decide_cell_split(cell->lo, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
+        }
+        _sort_agent(tree, cell->lo, agent, group, sub_node_depths, radii);
     }
     else {
-        Depths sub_node_depths = cell_depths;
-        ++sub_node_depths.arr[cell->dim];
+        if (cell->hi == 0) { /* hi cell needed but doesn't exist yet */
 
-        float pos = float4_agent_position(agent).arr[cell->dim];
-        if (pos < cell->mid) {
-            if (cell->lo == 0) {
-                assert(tree->cells_count * sizeof(TreeCell) < TAY_CPU_SHARED_CELL_ARENA_SIZE);
-                cell->lo = tree->cells + tree->cells_count++;
-                _tree_clear_cell(cell->lo);
-                cell->lo->box = cell->box;
-                cell->lo->box.max.arr[cell->dim] = cell->mid;
-                _decide_cell_split(cell->lo, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
+            if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
+                agent->next = cell->first[group];
+                cell->first[group] = agent;
+                ++cell->counts[group];
+                return;
             }
-            _sort_agent(tree, cell->lo, agent, group, sub_node_depths, radii);
+
+            cell->hi = tree->cells + tree->cells_count++;
+            _tree_clear_cell(cell->hi);
+            cell->hi->box = cell->box;
+            cell->hi->box.min.arr[cell->dim] = cell->mid;
+            _decide_cell_split(cell->hi, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
         }
-        else {
-            if (cell->hi == 0) {
-                assert(tree->cells_count * sizeof(TreeCell) < TAY_CPU_SHARED_CELL_ARENA_SIZE);
-                cell->hi = tree->cells + tree->cells_count++;
-                _tree_clear_cell(cell->hi);
-                cell->hi->box = cell->box;
-                cell->hi->box.min.arr[cell->dim] = cell->mid;
-                _decide_cell_split(cell->hi, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
-            }
-            _sort_agent(tree, cell->hi, agent, group, sub_node_depths, radii);
-        }
+        _sort_agent(tree, cell->hi, agent, group, sub_node_depths, radii);
     }
 }
 
@@ -234,7 +249,9 @@ static int _max_depth(float space_side, float cell_side, int depth_correction) {
 void cpu_tree_on_type_switch(Space *space) {
     CpuTree *tree = &space->cpu_tree;
     tree->dims = space->dims;
-    tree->cells = space_get_cell_arena(space, TAY_MAX_CELLS * sizeof(TreeCell), false);
+    tree->cells = space->shared;
+    tree->max_cells = space->shared_size / (int)sizeof(TreeCell);
+    // ERROR: must be space for at least one cell
 }
 
 void cpu_tree_sort(Space *space, TayGroup *groups) {

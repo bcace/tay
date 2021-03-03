@@ -85,7 +85,7 @@ void tay_commit_available_agent(TayState *state, int group);
 void *tay_get_agent(TayState *state, int group, int index);
 
 void tay_simulation_start(TayState *state);
-void tay_configure_space(TayState *state, int space_index, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction);
+void tay_configure_space(TayState *state, int space_index, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction, int shared_size_in_megabytes);
 double tay_run(TayState *state, int steps);
 void tay_simulation_end(TayState *state);
 

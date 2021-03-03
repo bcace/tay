@@ -25,7 +25,7 @@ void cpu_tree_single_space_see(Space *space, TayPass *pass);
 void cpu_tree_act(Space *space, TayPass *pass);
 
 void cpu_grid_on_type_switch(Space *space);
-void cpu_grid_sort(Space *space, TayGroup *groups);
+void cpu_grid_sort(Space *space, TayGroup *groups, TayPass *passes, int passes_count);
 void cpu_grid_unsort(Space *space, TayGroup *groups);
 void cpu_grid_single_space_see(Space *space, TayPass *pass);
 void cpu_grid_act(Space *space, TayPass *pass);
