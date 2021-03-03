@@ -191,7 +191,6 @@ int main() {
     tay = tay_create_state(1);
     tay_set_source(tay, agent_kernels_source); // TODO: remove this!!!
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, 1, 0);
-    tay_configure_space(tay, 0, TAY_SPACE_CPU_GRID, 3, see_radii, 1, 250);
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context, sizeof(act_context));
 
@@ -224,6 +223,7 @@ int main() {
     }
 
     tay_simulation_start(tay);
+    tay_configure_space(tay, 0, TAY_SPACE_CPU_GRID, 3, see_radii, 1, 250);
 
     while (!window_quit)
         _main_loop_func(window);
