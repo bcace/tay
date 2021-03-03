@@ -63,7 +63,7 @@ static void _main_loop_func(GLFWwindow *window) {
     graphics_clear_depth();
     graphics_enable_depth_test(1);
 
-    double ms = tay_run(tay, 1, TAY_SPACE_CPU_GRID, 1);
+    double ms = tay_run(tay, 1);
     if ((++step % 50) == 0)
         printf("ms: %.4f\n", ms);
     tay_threads_report_telemetry(50);
@@ -188,9 +188,10 @@ int main() {
 
     tay_threads_start(); // TODO: remove this!!!
 
-    tay = tay_create_state(3, see_radii);
+    tay = tay_create_state(1);
     tay_set_source(tay, agent_kernels_source); // TODO: remove this!!!
-    boids_group = tay_add_group(tay, sizeof(Agent), boids_count, 1);
+    boids_group = tay_add_group(tay, sizeof(Agent), boids_count, 1, 0);
+    tay_configure_space(tay, 0, TAY_SPACE_CPU_GRID, 3, see_radii, 1, 250);
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context, sizeof(act_context));
 
