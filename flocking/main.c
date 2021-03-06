@@ -208,9 +208,9 @@ int main() {
         boid->dir.y *= l;
         boid->dir.z *= l;
         boid->speed = 1.0f;
-        boid->separation = float3_null();
-        boid->alignment = float3_null();
-        boid->cohesion = float3_null();
+        boid->separation = (float3){ 0.0f, 0.0f, 0.0f };
+        boid->alignment = (float3){ 0.0f, 0.0f, 0.0f };
+        boid->cohesion = (float3){ 0.0f, 0.0f, 0.0f };
         boid->cohesion_count = 0;
         boid->separation_count = 0;
         tay_commit_available_agent(tay, boids_group);
