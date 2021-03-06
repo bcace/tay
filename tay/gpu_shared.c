@@ -1,7 +1,9 @@
-// #include "space.h"
+#if TAY_GPU
+#include "space.h"
 #include "gpu.h"
-// #include <stdio.h>
-// #include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
 
 
 // TODO: is it OK that DIMS is here? It's supposed to be space-specific
@@ -36,27 +38,16 @@ kernel void fetch_new_positions(global char *agents, global float4 *positions, i
     positions[i] = *(global float4 *)(agents + i * agent_size + sizeof(TayAgentTag));\n\
 }\n";
 
-/* called when the state is initialized */
-GpuContext *gpu_shared_create() {
-    return gpu_create();
-}
-
-/* called when the state is destroyed */
-void gpu_shared_destroy(GpuContext *gpu) {
-    gpu_destroy(gpu);
-}
-
-#if 0
-void space_gpu_on_simulation_start(TayState *state) {
-    Space *space = &state->space;
-    GpuShared *shared = &space->gpu_shared;
+static void _create_model_related_buffers_and_kernels(TayState *state, const char *source) {
+    GpuShared *shared = &state->gpu_shared;
 
     /* compose program source text */
     {
         shared->text_size = 0;
         shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, HEADER,
-                                       space->dims, TAY_GPU_DEAD_ADDR, TAY_GPU_NULL_INDEX, TAY_GPU_DEAD_INDEX);
-        shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, state->source);
+                                       3, TAY_GPU_DEAD_ADDR, TAY_GPU_NULL_INDEX, TAY_GPU_DEAD_INDEX);
+        shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, source);
+
         gpu_simple_add_source(state);
     }
 
@@ -81,24 +72,27 @@ void space_gpu_on_simulation_start(TayState *state) {
 
     /* create other shared buffers and kernels */
     {
-        shared->agent_io_buffer = gpu_create_buffer(shared->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_CPU_SHARED_TEMP_ARENA_SIZE);
-        shared->cells_buffer = gpu_create_buffer(shared->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, TAY_CPU_SHARED_CELL_ARENA_SIZE);
-
         shared->resolve_pointers_kernel = gpu_create_kernel(shared->gpu, "fix_pointers");
-        gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 1, &shared->agent_io_buffer);
-
         shared->fetch_new_positions_kernel = gpu_create_kernel(shared->gpu, "fetch_new_positions");
-        gpu_set_kernel_buffer_argument(shared->fetch_new_positions_kernel, 1, &shared->agent_io_buffer);
     }
 
-    /* create private buffers and kernels */
-    {
-        gpu_simple_on_simulation_start(state);
+    /* create private kernels */
+    for (int i = 0; i < state->spaces_count; ++i) {
+        Space *space = state->spaces + i;
+
+        if ((space->type & ST_GPU) == 0)
+            continue;
+
+        switch (space->type) {
+            case ST_GPU_SIMPLE_DIRECT: gpu_simple_create_kernels(state); break;
+            case ST_GPU_SIMPLE_INDIRECT: gpu_simple_create_kernels(state); break;
+            default: assert(false); /* not implemented */
+        }
     }
 }
 
-void space_gpu_on_simulation_end(TayState *state) {
-    GpuShared *shared = &state->space.gpu_shared;
+static void _destroy_model_related_buffers_and_kernels(TayState *state) {
+    GpuShared *shared = &state->gpu_shared;
 
     /* release agent buffers on GPU */
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
@@ -113,28 +107,55 @@ void space_gpu_on_simulation_end(TayState *state) {
 
     /* release other shared buffers and kernels */
     {
-        gpu_release_buffer(shared->agent_io_buffer);
-        gpu_release_buffer(shared->cells_buffer);
         gpu_release_kernel(shared->resolve_pointers_kernel);
         gpu_release_kernel(shared->fetch_new_positions_kernel);
     }
 
-    /* release private buffers and kernels */
-    {
-        gpu_simple_on_simulation_end(state);
+    /* release space-specific kernels */
+    for (int i = 0; i < state->spaces_count; ++i) {
+        Space *space = state->spaces + i;
+
+        if ((space->type & ST_GPU) == 0)
+            continue;
+
+        switch (space->type) {
+            case ST_GPU_SIMPLE_DIRECT: gpu_simple_destroy_kernels(state); break;
+            case ST_GPU_SIMPLE_INDIRECT: gpu_simple_destroy_kernels(state); break;
+            default: assert(false); /* not implemented */
+        }
+    }
+}
+
+void gpu_shared_create(TayState *state) {
+    GpuShared *shared = &state->gpu_shared;
+    if (shared->gpu == 0)
+        shared->gpu = gpu_create();
+}
+
+void gpu_shared_refresh(TayState *state, const char *source) {
+    _destroy_model_related_buffers_and_kernels(state);
+    _create_model_related_buffers_and_kernels(state, source);
+}
+
+/* called when the state is destroyed */
+void gpu_shared_destroy(TayState *state) {
+    GpuShared *shared = &state->gpu_shared;
+    if (shared->gpu) {
+        _destroy_model_related_buffers_and_kernels(state);
+        gpu_destroy(shared->gpu);
+        shared->gpu = 0;
     }
 }
 
 /* Copies all agents to GPU. Agent "next" pointers should be updated at the
 beginning of each step. */
-void space_gpu_push_agents(TayState *state) {
-    Space *space = &state->space;
-    GpuShared *shared = &space->gpu_shared;
+void gpu_shared_push_agents_and_pass_contexts(TayState *state) {
+    GpuShared *shared = &state->gpu_shared;
 
     /* push agents to GPU */
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         TayGroup *group = state->groups + i;
-        if (group->storage)
+        if ((group->space->type & ST_GPU) && group->storage)
             gpu_enqueue_write_buffer(shared->gpu, shared->agent_buffers[i], GPU_NON_BLOCKING, group->capacity * group->agent_size, group->storage);
     }
 
@@ -190,7 +211,7 @@ void space_gpu_fetch_agents(TayState *state) {
         }
     }
 }
-
+#if 0
 /* Sends indices representing agent "next" pointers to GPU. Assumes the
 "next_indices" was already filled for live agents (only traversable by
 the specific space), and only only specially marks dead agents. */
@@ -204,6 +225,7 @@ void space_gpu_finish_fixing_group_gpu_pointers(GpuShared *shared, TayGroup *gro
 
     gpu_enqueue_write_buffer(shared->gpu, shared->agent_io_buffer, GPU_BLOCKING, group->capacity * sizeof(int), next_indices);
     gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 0, &shared->agent_buffers[group_i]);
+    gpu_set_kernel_buffer_argument(shared->resolve_pointers_kernel, 1, &shared->io_buffer.gpu);
     gpu_set_kernel_value_argument(shared->resolve_pointers_kernel, 2, &group->agent_size, sizeof(group->agent_size));
     gpu_enqueue_kernel(shared->gpu, shared->resolve_pointers_kernel, group->capacity);
 }
@@ -225,6 +247,7 @@ void space_gpu_fetch_agent_positions(TayState *state) {
             int req_size = group->capacity * sizeof(float4) * (group->is_point ? 1 : 2);
 
             gpu_set_kernel_buffer_argument(shared->fetch_new_positions_kernel, 0, &shared->agent_buffers[i]);
+            gpu_set_kernel_buffer_argument(shared->fetch_new_positions_kernel, 1, &shared->io_buffer.gpu);
             gpu_set_kernel_value_argument(shared->fetch_new_positions_kernel, 2, &group->agent_size, sizeof(group->agent_size));
             gpu_enqueue_kernel(shared->gpu, shared->fetch_new_positions_kernel, group->capacity);
             gpu_enqueue_read_buffer(shared->gpu, shared->agent_io_buffer, GPU_BLOCKING, req_size, positions);
@@ -237,4 +260,5 @@ void space_gpu_fetch_agent_positions(TayState *state) {
         }
     }
 }
+#endif
 #endif

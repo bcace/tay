@@ -64,11 +64,11 @@ int gpu_destroy(GpuContext *c) {
     return 0;
 }
 
-int gpu_build_program(GpuContext *c, const char *source) {
+int gpu_build_program(GpuContext *c, const char *gpu_source) {
     assert(c->program == 0); // TODO: release old and create a new program here
 
     cl_int err;
-    c->program = clCreateProgramWithSource(c->context, 1, &source, 0, &err);
+    c->program = clCreateProgramWithSource(c->context, 1, &gpu_source, 0, &err);
     if (_check_errors(err, "Failed to create program with source"))
         return err;
 

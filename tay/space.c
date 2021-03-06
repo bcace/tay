@@ -6,39 +6,11 @@
 #include <assert.h>
 
 
-void space_init(Space *space) {
-    space->type = ST_NONE;
-    space->requested_type = ST_CPU_SIMPLE;
-    space->dims = 3;
-    space->radii = (float4){ 10.0f, 10.0f, 10.0f, 10.0f };
-    space->depth_correction = 0;
-    space->shared = 0;
-    space->shared_size = 0;
-    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-        space->first[i] = 0;
-        space->counts[i] = 0;
-    }
-}
-
-void space_release(Space *space) {
-    free(space->shared);
-}
-
 void space_add_agent(Space *space, TayAgentTag *agent, int group) {
     agent->next = space->first[group];
     space->first[group] = agent;
     box_update(&space->box, float4_agent_position(agent), space->dims);
     ++space->counts[group];
-}
-
-void space_on_simulation_start(Space *space) {
-    // space_gpu_on_simulation_start(state); /* compose/build program, create all shared kernels and buffers */
-    space->type = ST_NONE;
-    space->requested_type = ST_CPU_SIMPLE;
-}
-
-void space_on_simulation_end(Space *space) {
-    // space_gpu_on_simulation_end(state); /* release all shared kernels and buffers */
 }
 
 void box_update(Box *box, float4 p, int dims) {

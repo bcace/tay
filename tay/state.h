@@ -4,6 +4,8 @@
 #include "tay.h"
 #include "config.h"
 
+#define TAY_MB (1 << 20)
+
 typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 
@@ -42,22 +44,24 @@ typedef struct {
 typedef struct {
     void *pass_kernels[TAY_MAX_PASSES];
     void *pass_kernels_indirect[TAY_MAX_PASSES];
+    void *io_buffer;
 } GpuSimple;
 
-// typedef struct {
-//     struct GpuContext *gpu;
-//     void *agent_io_buffer; // TODO: equivalent to temp_arena
-//     void *cells_buffer; // TODO: equivalent to cell arena
-//     void *agent_buffers[TAY_MAX_GROUPS];
-//     void *pass_context_buffers[TAY_MAX_PASSES];
-//     void *resolve_pointers_kernel;
-//     void *fetch_new_positions_kernel;
-//     char text[TAY_GPU_MAX_TEXT_SIZE];
-//     int text_size;
-// } GpuShared;
+#if TAY_GPU
+typedef struct {
+    struct GpuContext *gpu;
+    void *agent_buffers[TAY_MAX_GROUPS];
+    void *pass_context_buffers[TAY_MAX_PASSES];
+    void *resolve_pointers_kernel;
+    void *fetch_new_positions_kernel;
+    char text[TAY_GPU_MAX_TEXT_SIZE];
+    int text_size;
+} GpuShared;
+#endif
 
 typedef enum SpaceType {
     ST_NONE =                   0x0000,
+
     ST_CPU =                    0x0001,
     ST_GPU =                    0x0002,
     ST_ADAPTIVE =               0x0010,
@@ -79,8 +83,7 @@ typedef struct Space {
     int dims;
     int depth_correction;
     float4 radii; /* if space is partitioned, these are suggested subdivision radii */
-    SpaceType type; /* actual space type */
-    SpaceType requested_type; /* space type to change to before the next run */
+    SpaceType type;
     TayAgentTag *first[TAY_MAX_GROUPS]; /* unsorted agents */
     int counts[TAY_MAX_GROUPS]; /* counts of unsorted agents */
     Box box;
@@ -136,20 +139,16 @@ typedef struct TayState {
     int spaces_count;
     TayStateStatus running;
 #if TAY_GPU
-    const char *source;
-    struct GpuContext *gpu;
+    GpuShared gpu_shared;
 #endif
 } TayState;
 
-void space_init(Space *space);
-void space_release(Space *space);
 void space_add_agent(Space *space, TayAgentTag *agent, int group);
-void space_on_simulation_start(Space *space);
-void space_on_simulation_end(Space *space);
 
 #if TAY_GPU
-struct GpuContext *gpu_shared_create();
-void gpu_shared_destroy(struct GpuContext *gpu);
+void gpu_shared_create(TayState *state);
+void gpu_shared_refresh(TayState *state, const char *source);
+void gpu_shared_destroy(TayState *state);
 #endif
 
 #endif

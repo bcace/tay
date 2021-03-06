@@ -8,15 +8,12 @@
 #include <time.h>
 
 
-TayState *tay_create_state(int spaces_count) {
+TayState *tay_create_state() {
     TayState *s = calloc(1, sizeof(TayState));
     s->running = TAY_STATE_STATUS_IDLE;
-    s->source = 0;
-    s->spaces_count = spaces_count;
-    for (int i = 0; i < spaces_count; ++i)
-        space_init(s->spaces + i);
+    s->spaces_count = 0;
 #if TAY_GPU
-    s->gpu = gpu_shared_create();
+    s->gpu_shared.gpu = 0;
 #endif
     return s;
 }
@@ -27,19 +24,67 @@ static void _clear_group(TayGroup *group) {
     group->first = 0;
 }
 
+static void _clear_space(Space *space) {
+#if TAY_GPU
+    if (space->type == ST_GPU_SIMPLE)
+        gpu_simple_destroy_io_buffer(space);
+#endif
+    free(space->shared);
+}
+
 void tay_destroy_state(TayState *state) {
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         _clear_group(state->groups + i);
     for (int i = 0; i < TAY_MAX_SPACES; ++i)
-        space_release(state->spaces + i);
+        _clear_space(state->spaces + i);
 #if TAY_GPU
-    gpu_shared_destroy(state->gpu);
+    gpu_shared_destroy(state);
 #endif
     free(state);
 }
 
-void tay_set_source(TayState *state, const char *source) {
-    state->source = source;
+static SpaceType _translate_space_type(TaySpaceType type) {
+    if (type == TAY_SPACE_CPU_SIMPLE)
+        return ST_CPU_SIMPLE;
+    else if (type == TAY_SPACE_CPU_TREE)
+        return ST_CPU_TREE;
+    else if (type == TAY_SPACE_CPU_GRID)
+        return ST_CPU_GRID;
+    else if (type == TAY_SPACE_GPU_SIMPLE_DIRECT)
+        return ST_GPU_SIMPLE_DIRECT;
+    else if (type == TAY_SPACE_GPU_SIMPLE_INDIRECT)
+        return ST_GPU_SIMPLE_INDIRECT;
+    else if (type == TAY_SPACE_CYCLE_ALL)
+        return ST_CYCLE_ALL;
+    return ST_NONE;
+}
+
+void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction, int shared_size_in_megabytes) {
+    // ERROR: must be outside simulation
+    assert(state->running == TAY_STATE_STATUS_IDLE);
+    // ERROR: no more free spaces left
+    assert(state->spaces_count < TAY_MAX_SPACES);
+
+    Space *space = state->spaces + state->spaces_count++;
+    space->type = _translate_space_type(space_type);
+    space->depth_correction = depth_correction;
+    space->radii = part_radii;
+    space->dims = space_dims;
+    space->shared_size = shared_size_in_megabytes * TAY_MB;
+    space->shared = malloc(space->shared_size);
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        space->first[i] = 0;
+        space->counts[i] = 0;
+    }
+
+    if (space->type & ST_GPU) {
+#if TAY_GPU
+        gpu_shared_create(state); /* initializes gpu support if not initialized already */
+        gpu_simple_create_io_buffer(space, &state->gpu_shared);
+#else
+        // ERROR: gpu not supported
+#endif
+    }
 }
 
 int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_point, int space_index) {
@@ -112,40 +157,31 @@ void *tay_get_agent(TayState *state, int group, int index) {
     return (char *)g->storage + g->agent_size * index;
 }
 
-void tay_simulation_start(TayState *state) {
+void tay_simulation_start(TayState *state, const char *gpu_source) {
+    // ERROR: this assert
     assert(state->running == TAY_STATE_STATUS_IDLE);
+
     state->running = TAY_STATE_STATUS_RUNNING;
-    for (int i = 0; i < state->spaces_count; ++i)
-        space_on_simulation_start(state->spaces + i);
-}
 
-static SpaceType _translate_space_type(TaySpaceType type) {
-    if (type == TAY_SPACE_CPU_SIMPLE)
-        return ST_CPU_SIMPLE;
-    else if (type == TAY_SPACE_CPU_TREE)
-        return ST_CPU_TREE;
-    else if (type == TAY_SPACE_CPU_GRID)
-        return ST_CPU_GRID;
-    else if (type == TAY_SPACE_GPU_SIMPLE_DIRECT)
-        return ST_GPU_SIMPLE_DIRECT;
-    else if (type == TAY_SPACE_GPU_SIMPLE_INDIRECT)
-        return ST_GPU_SIMPLE_INDIRECT;
-    else if (type == TAY_SPACE_CYCLE_ALL)
-        return ST_CYCLE_ALL;
-    return ST_NONE;
-}
+    for (int i = 0; i < state->spaces_count; ++i) {
+        Space *space = state->spaces + i;
 
-void tay_configure_space(TayState *state, int space_index, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction, int shared_size_in_megabytes) {
-    assert(state->running == TAY_STATE_STATUS_RUNNING); // ERROR: this should be an error because on tay_simulation_start spaces get reset
-    Space *space = state->spaces + space_index;
-    space->requested_type = _translate_space_type(space_type);
-    space->depth_correction = depth_correction;
-    space->radii = part_radii;
-    space->dims = space_dims;
-    int shared_size = shared_size_in_megabytes * (1 << 20);
-    if (shared_size != space->shared_size) {
-        space->shared = realloc(space->shared, shared_size);
-        space->shared_size = shared_size;
+        if (space->type == ST_CPU_TREE)
+            cpu_tree_on_type_switch(space);
+        else if (space->type == ST_CPU_GRID)
+            cpu_grid_on_type_switch(space);
+        else if (space->type & ST_GPU) {
+#if TAY_GPU
+            assert(gpu_source != 0); // ERROR: ...
+            gpu_shared_refresh(state, gpu_source);
+            gpu_shared_push_agents_and_pass_contexts(state);
+
+            if (space->type == ST_GPU_SIMPLE)
+                gpu_simple_fix_gpu_pointers(state);
+#else
+            // ERROR: gpu not supported
+#endif
+        }
     }
 }
 
@@ -155,28 +191,6 @@ double tay_run(TayState *state, int steps) {
     /* start measuring run-time */
     struct timespec beg, end;
     timespec_get(&beg, TIME_UTC);
-
-    /* if switching space type, do appropriate cleanup of the old space and initialization of the new */
-    for (int space_i = 0; space_i < state->spaces_count; ++space_i) {
-        Space *space = state->spaces + space_i;
-
-        if (space->requested_type & ST_GPU) {
-            if (space->type & ST_CPU || space->type == ST_NONE) /* switching from cpu to gpu or simulation starts with gpu */
-                ; // space_gpu_push_agents(state);
-            if ((space->requested_type & ST_GPU_SIMPLE) && (space->type & ST_GPU_SIMPLE) == 0)
-                ; // gpu_simple_fix_gpu_pointers(state);
-        }
-        else if (space->requested_type & ST_CPU) {
-            if (space->type & ST_GPU) /* switching from gpu to cpu */
-                ; // space_gpu_fetch_agents(state);
-            if (space->requested_type == ST_CPU_GRID && space->type != ST_CPU_GRID) /* prepare cpu grid */
-                cpu_grid_on_type_switch(space);
-            if (space->requested_type == ST_CPU_TREE && space->type != ST_CPU_TREE) /* prepare cpu tree */
-                cpu_tree_on_type_switch(space);
-        }
-
-        space->type = space->requested_type;
-    }
 
     /* run requested number of simulation steps */
     for (int step_i = 0; step_i < steps; ++step_i) {
@@ -238,7 +252,8 @@ double tay_run(TayState *state, int steps) {
                 case ST_CPU_SIMPLE: cpu_simple_unsort(space, state->groups); break;
                 case ST_CPU_TREE: cpu_tree_unsort(space, state->groups); break;
                 case ST_CPU_GRID: cpu_grid_unsort(space, state->groups); break;
-                default: assert(0);
+                case ST_GPU_SIMPLE: break;
+                default: assert(0); /* not implemented */
             }
         }
 
@@ -248,8 +263,12 @@ double tay_run(TayState *state, int steps) {
     }
 
     /* fetch agents from gpu */
-    // if (space->type & ST_GPU)
-    //     space_gpu_fetch_agents(state);
+#if TAY_GPU
+    for (int space_i = 0; space_i < state->spaces_count; ++space_i) {
+        Space *space = state->spaces + space_i;
+        space_gpu_fetch_agents(state);
+    }
+#endif
 
     /* end measuring run-time */
     timespec_get(&end, TIME_UTC);
@@ -261,6 +280,4 @@ double tay_run(TayState *state, int steps) {
 void tay_simulation_end(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
     state->running = TAY_STATE_STATUS_IDLE;
-    for (int i = 0; i < state->spaces_count; ++i)
-        space_on_simulation_end(state->spaces + i);
 }

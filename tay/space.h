@@ -30,20 +30,24 @@ void cpu_grid_unsort(Space *space, TayGroup *groups);
 void cpu_grid_single_space_see(Space *space, TayPass *pass);
 void cpu_grid_act(Space *space, TayPass *pass);
 
+#if TAY_GPU
 // void space_gpu_on_simulation_start(TayState *state);
 // void space_gpu_on_simulation_end(TayState *state);
-// void space_gpu_push_agents(TayState *state);
-// void space_gpu_fetch_agents(TayState *state);
+void gpu_shared_push_agents_and_pass_contexts(TayState *state);
+void space_gpu_fetch_agents(TayState *state);
 // void space_gpu_finish_fixing_group_gpu_pointers(GpuShared *shared, TayGroup *group, int group_i, int *next_indices);
 // void space_gpu_fetch_agent_positions(TayState *state);
 
-int space_agent_count_to_bucket_index(int count);
-
-// void gpu_simple_add_source(TayState *state);
-// void gpu_simple_on_simulation_start(TayState *state);
-// void gpu_simple_on_simulation_end(TayState *state);
+void gpu_simple_add_source(TayState *state);
+void gpu_simple_create_kernels(TayState *state);
+void gpu_simple_destroy_kernels(TayState *state);
+void gpu_simple_create_io_buffer(Space *space, GpuShared *shared);
+void gpu_simple_destroy_io_buffer(Space *space);
 // void gpu_simple_fix_gpu_pointers(TayState *state);
 // void gpu_simple_step(TayState *state, int direct);
+#endif
+
+int space_agent_count_to_bucket_index(int count);
 
 void box_reset(Box *box, int dims);
 void box_update(Box *box, float4 pos, int dims);

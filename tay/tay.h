@@ -71,11 +71,10 @@ typedef struct TayAgentTag {
 
 typedef struct TayState TayState;
 
-TayState *tay_create_state(int spaces_count);
+TayState *tay_create_state();
 void tay_destroy_state(TayState *state);
 
-// this sets common and model specific OpenCL code
-void tay_set_source(TayState *state, const char *source);
+void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction, int shared_size_in_megabytes);
 
 int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_point, int space_index);
 void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, void *), const char *func_name, float4 radii, void *context, int context_size);
@@ -85,8 +84,7 @@ void *tay_get_available_agent(TayState *state, int group);
 void tay_commit_available_agent(TayState *state, int group);
 void *tay_get_agent(TayState *state, int group, int index);
 
-void tay_simulation_start(TayState *state);
-void tay_configure_space(TayState *state, int space_index, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction, int shared_size_in_megabytes);
+void tay_simulation_start(TayState *state, const char *gpu_source);
 double tay_run(TayState *state, int steps);
 void tay_simulation_end(TayState *state);
 

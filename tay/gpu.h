@@ -21,7 +21,7 @@ typedef void * GpuBuffer;
 
 GpuContext *gpu_create(void);
 int gpu_destroy(GpuContext *context);
-int gpu_build_program(GpuContext *context, const char *source);
+int gpu_build_program(GpuContext *context, const char *gpu_source);
 GpuKernel gpu_create_kernel(GpuContext *context, const char *name);
 int gpu_set_kernel_value_argument(GpuKernel kernel, int index, void *value, int value_size);
 int gpu_set_kernel_buffer_argument(GpuKernel kernel, int index, GpuBuffer *buffer);
