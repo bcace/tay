@@ -30,8 +30,6 @@ void cpu_grid_unsort(Space *space, TayGroup *groups);
 void cpu_grid_single_space_see(Space *space, TayPass *pass);
 void cpu_grid_act(Space *space, TayPass *pass);
 
-// void space_gpu_shared_init(GpuShared *shared);
-// void space_gpu_shared_release(GpuShared *shared);
 // void space_gpu_on_simulation_start(TayState *state);
 // void space_gpu_on_simulation_end(TayState *state);
 // void space_gpu_push_agents(TayState *state);

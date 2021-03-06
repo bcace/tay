@@ -1,7 +1,7 @@
 #ifndef tay_thread_h
 #define tay_thread_h
 
-#include "const.h"
+#include "config.h"
 
 
 typedef void * Handle;

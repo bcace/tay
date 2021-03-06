@@ -18,12 +18,10 @@ void space_init(Space *space) {
         space->first[i] = 0;
         space->counts[i] = 0;
     }
-    // space_gpu_shared_init(&space->gpu_shared);
 }
 
 void space_release(Space *space) {
     free(space->shared);
-    // space_gpu_shared_release(&space->gpu_shared);
 }
 
 void space_add_agent(Space *space, TayAgentTag *agent, int group) {

@@ -15,6 +15,9 @@ TayState *tay_create_state(int spaces_count) {
     s->spaces_count = spaces_count;
     for (int i = 0; i < spaces_count; ++i)
         space_init(s->spaces + i);
+#if TAY_GPU
+    s->gpu = gpu_shared_create();
+#endif
     return s;
 }
 
@@ -29,6 +32,9 @@ void tay_destroy_state(TayState *state) {
         _clear_group(state->groups + i);
     for (int i = 0; i < TAY_MAX_SPACES; ++i)
         space_release(state->spaces + i);
+#if TAY_GPU
+    gpu_shared_destroy(state->gpu);
+#endif
     free(state);
 }
 

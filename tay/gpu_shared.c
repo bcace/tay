@@ -1,10 +1,10 @@
-#if 0
-#include "space.h"
+// #include "space.h"
 #include "gpu.h"
-#include <stdio.h>
-#include <assert.h>
+// #include <stdio.h>
+// #include <assert.h>
 
 
+// TODO: is it OK that DIMS is here? It's supposed to be space-specific
 static const char *HEADER = "\n\
 #define DIMS %d\n\
 #define TAY_GPU_DEAD_ADDR 0x%llx\n\
@@ -36,16 +36,17 @@ kernel void fetch_new_positions(global char *agents, global float4 *positions, i
     positions[i] = *(global float4 *)(agents + i * agent_size + sizeof(TayAgentTag));\n\
 }\n";
 
-/* Called when the state is initialized. */
-void space_gpu_shared_init(GpuShared *shared) {
-    shared->gpu = gpu_create();
+/* called when the state is initialized */
+GpuContext *gpu_shared_create() {
+    return gpu_create();
 }
 
-/* Called when the state is destroyed. */
-void space_gpu_shared_release(GpuShared *shared) {
-    gpu_destroy(shared->gpu);
+/* called when the state is destroyed */
+void gpu_shared_destroy(GpuContext *gpu) {
+    gpu_destroy(gpu);
 }
 
+#if 0
 void space_gpu_on_simulation_start(TayState *state) {
     Space *space = &state->space;
     GpuShared *shared = &space->gpu_shared;

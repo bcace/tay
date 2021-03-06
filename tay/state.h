@@ -2,8 +2,20 @@
 #define tay_state_h
 
 #include "tay.h"
-#include "const.h"
+#include "config.h"
 
+typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
+typedef void (*TAY_ACT_FUNC)(void *, void *);
+
+
+typedef struct {
+    union {
+        struct {
+            int x, y, z, w;
+        };
+        int arr[4];
+    };
+} int4;
 
 typedef struct {
     TayAgentTag *first[TAY_MAX_THREADS][TAY_MAX_GROUPS]; /* [thread][group] */
@@ -123,7 +135,10 @@ typedef struct TayState {
     Space spaces[TAY_MAX_SPACES];
     int spaces_count;
     TayStateStatus running;
+#if TAY_GPU
     const char *source;
+    struct GpuContext *gpu;
+#endif
 } TayState;
 
 void space_init(Space *space);
@@ -131,5 +146,10 @@ void space_release(Space *space);
 void space_add_agent(Space *space, TayAgentTag *agent, int group);
 void space_on_simulation_start(Space *space);
 void space_on_simulation_end(Space *space);
+
+#if TAY_GPU
+struct GpuContext *gpu_shared_create();
+void gpu_shared_destroy(struct GpuContext *gpu);
+#endif
 
 #endif

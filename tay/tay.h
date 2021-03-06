@@ -21,9 +21,9 @@ typedef enum TaySpaceType {
     TAY_SPACE_CYCLE_ALL,
 } TaySpaceType;
 
-/*
-definitions of basic structs that have to work on CPU and GPU
-*/
+//
+// definitions of basic structs that have to work on CPU and GPU
+//
 
 #pragma pack(push, 1)
 
@@ -65,15 +65,16 @@ typedef struct TayAgentTag {
 
 #pragma pack(pop)
 
-/*
-library API
-*/
+//
+// library API
+//
 
 typedef struct TayState TayState;
 
 TayState *tay_create_state(int spaces_count);
 void tay_destroy_state(TayState *state);
 
+// this sets common and model specific OpenCL code
 void tay_set_source(TayState *state, const char *source);
 
 int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_point, int space_index);
