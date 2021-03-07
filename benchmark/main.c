@@ -135,7 +135,9 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     float4 see_radii = { see_radius, see_radius, see_radius, 0.0f };
 
     TayState *tay = tay_create_state(1);
-    tay_set_source(tay, agent_kernels_source);
+    tay_add_space(tay, space_type, dims, see_radii, depth_correction, 250);
+//    tay_init_gpu(tay);
+//    tay_configure_gpu(tay, agent_kernels_source, 100);
 
     ActContext act_context;
     act_context.min.x = 0.0f;
@@ -185,7 +187,6 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     printf("    depth_correction: %d\n", depth_correction);
 
     tay_simulation_start(tay);
-    tay_configure_space(tay, 0, space_type, dims, see_radii, depth_correction, 250);
     double ms = tay_run(tay, steps);
     printf("    milliseconds per frame: %g\n", ms);
     tay_threads_get_telemetry_results(telemetry_results);
@@ -217,12 +218,11 @@ int main() {
     int beg_depth_correction = 0;
     int end_depth_correction = 3;
 
-    bool run_cpu_simple = false;
-    bool run_cpu_tree = false;
+    bool run_cpu_simple = true;
+    bool run_cpu_tree = true;
     bool run_cpu_grid = true;
     bool run_gpu_simple_direct = false;
     bool run_gpu_simple_indirect = false;
-    bool run_cycling = false;
 
     FILE *plot;
     fopen_s(&plot, "plot", "w");
@@ -325,12 +325,6 @@ int main() {
 #else
             fprintf(plot, " %g\n", ms);
 #endif
-        }
-
-        if (run_cycling) {
-            printf("  cycling:\n");
-            for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-                _test(model_case, TAY_SPACE_CYCLE_ALL, see_radius, j, results, steps, &telemetry_results);
         }
 
         _reset_results(results);
