@@ -20,7 +20,7 @@ typedef struct {
 } int4;
 
 typedef struct {
-    TayAgentTag *first[TAY_MAX_THREADS][TAY_MAX_GROUPS]; /* [thread][group] */
+    TayAgentTag **first; /* first_ptrs[thread][group] */
 } CpuSimple;
 
 typedef struct {
@@ -69,19 +69,22 @@ typedef struct Space {
     TayAgentTag *first[TAY_MAX_GROUPS]; /* unsorted agents */
     int counts[TAY_MAX_GROUPS]; /* counts of unsorted agents */
     Box box;
-    CpuSimple cpu_simple;
-    CpuTree cpu_tree;
-    CpuGrid cpu_grid;
-    void *shared; /* shared internally by all structures in this space */
-    int shared_size;
+    union {
+        CpuSimple cpu_simple;
+        CpuTree cpu_tree;
+        CpuGrid cpu_grid;
+    };
+    void *shared; /* buffer shared internally by all structures in this space */
+    int shared_size; /* size of the shared buffer */
+    int point_only; /* space can only contain point groups */
 } Space;
 
 typedef struct TayGroup {
-    void *storage;              /* agents storage */
-    struct TayAgentTag *first;  /* single linked list of available agents from storage */
-    int agent_size;             /* agent size in bytes */
-    int capacity;               /* max. number of agents */
-    int is_point;
+    void *storage; /* agents storage */
+    struct TayAgentTag *first; /* single linked list of available agents from storage */
+    int agent_size; /* agent size in bytes */
+    int capacity; /* max. number of agents */
+    int is_point; /* are all agents of this group points */
     Space *space;
 } TayGroup;
 

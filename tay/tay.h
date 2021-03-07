@@ -18,12 +18,11 @@ typedef enum TaySpaceType {
     TAY_SPACE_CPU_GRID,
     TAY_SPACE_GPU_SIMPLE_DIRECT,
     TAY_SPACE_GPU_SIMPLE_INDIRECT,
-    TAY_SPACE_CYCLE_ALL,
 } TaySpaceType;
 
-//
-// definitions of basic structs that have to work on CPU and GPU
-//
+/*
+** definitions of basic structs that have to work on CPU and GPU
+*/
 
 #pragma pack(push, 1)
 
@@ -65,9 +64,9 @@ typedef struct TayAgentTag {
 
 #pragma pack(pop)
 
-//
-// library API
-//
+/*
+** library API
+*/
 
 typedef struct TayState TayState;
 

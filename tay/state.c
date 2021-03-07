@@ -44,8 +44,6 @@ static SpaceType _translate_space_type(TaySpaceType type) {
         return ST_GPU_SIMPLE_DIRECT;
     else if (type == TAY_SPACE_GPU_SIMPLE_INDIRECT)
         return ST_GPU_SIMPLE_INDIRECT;
-    else if (type == TAY_SPACE_CYCLE_ALL)
-        return ST_CYCLE_ALL;
     return ST_NONE;
 }
 
