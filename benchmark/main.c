@@ -136,8 +136,6 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
 
     TayState *tay = tay_create_state(1);
     tay_add_space(tay, space_type, dims, see_radii, depth_correction, 250);
-//    tay_init_gpu(tay);
-//    tay_configure_gpu(tay, agent_kernels_source, 100);
 
     ActContext act_context;
     act_context.min.x = 0.0f;
