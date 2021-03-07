@@ -8,20 +8,10 @@
 #include <time.h>
 
 
-static void _set_gpu_refresh_flag(TayState *state) {
-#if TAY_GPU
-    state->gpu_shared.refresh_flag = 1;
-#endif
-}
-
 TayState *tay_create_state() {
     TayState *s = calloc(1, sizeof(TayState));
     s->running = TAY_STATE_STATUS_IDLE;
     s->spaces_count = 0;
-#if TAY_GPU
-    s->gpu_shared.gpu = 0;
-    s->gpu_shared.refresh_flag = 1;
-#endif
     return s;
 }
 
@@ -40,9 +30,6 @@ void tay_destroy_state(TayState *state) {
         _clear_group(state->groups + i);
     for (int i = 0; i < TAY_MAX_SPACES; ++i)
         _clear_space(state->spaces + i);
-#if TAY_GPU
-    gpu_shared_destroy_global(state);
-#endif
     free(state);
 }
 
@@ -79,16 +66,6 @@ void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, flo
         space->first[i] = 0;
         space->counts[i] = 0;
     }
-    _set_gpu_refresh_flag(state);
-
-#if TAY_GPU
-    if (space->type & ST_GPU)
-        gpu_shared_create_global(state); /* initializes gpu support if not initialized already */
-#else
-    if (space->type & ST_GPU) {
-        // ERROR: gpu not supported
-    }
-#endif
 }
 
 int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_point, int space_index) {
@@ -112,7 +89,6 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_po
         prev = next;
     }
     prev->next = 0;
-    _set_gpu_refresh_flag(state);
     return index;
 }
 
@@ -127,7 +103,6 @@ void tay_add_see(TayState *state, int seer_group, int seen_group, TAY_SEE_FUNC f
     p->seer_group = seer_group;
     p->seen_group = seen_group;
     p->radii = radii;
-    _set_gpu_refresh_flag(state);
 }
 
 void tay_add_act(TayState *state, int act_group, TAY_ACT_FUNC func, const char *func_name, void *context, int context_size) {
@@ -139,7 +114,6 @@ void tay_add_act(TayState *state, int act_group, TAY_ACT_FUNC func, const char *
     p->act = func;
     p->func_name = func_name;
     p->act_group = act_group;
-    _set_gpu_refresh_flag(state);
 }
 
 void *tay_get_available_agent(TayState *state, int group) {
@@ -156,7 +130,6 @@ void tay_commit_available_agent(TayState *state, int group) {
     TayAgentTag *a = g->first;
     g->first = a->next;
     space_add_agent(g->space, a, group);
-    _set_gpu_refresh_flag(state);
 }
 
 void *tay_get_agent(TayState *state, int group, int index) {
@@ -179,22 +152,8 @@ void tay_simulation_start(TayState *state) {
     }
 }
 
-#if TAY_GPU
-static void _refresh_gpu(TayState *state, const char *source) {
-    gpu_shared_refresh_model_related_kernels_and_buffers(state, source);
-    gpu_shared_push_agents_and_pass_contexts(state);
-    gpu_simple_fix_gpu_pointers(state);
-    state->gpu_shared.refresh_flag = 0;
-}
-#endif
-
 double tay_run(TayState *state, int steps) {
     assert(state->running == TAY_STATE_STATUS_RUNNING); // ERROR: ...
-
-#if TAY_GPU
-    if (state->gpu_shared.refresh_flag)
-        _refresh_gpu(state, gpu_source);
-#endif
 
     /* start measuring run-time */
     struct timespec beg, end;
@@ -260,7 +219,6 @@ double tay_run(TayState *state, int steps) {
                 case ST_CPU_SIMPLE: cpu_simple_unsort(space, state->groups); break;
                 case ST_CPU_TREE: cpu_tree_unsort(space, state->groups); break;
                 case ST_CPU_GRID: cpu_grid_unsort(space, state->groups); break;
-                case ST_GPU_SIMPLE: break;
                 default: assert(0); /* not implemented */
             }
         }
@@ -269,11 +227,6 @@ double tay_run(TayState *state, int steps) {
         tay_threads_update_telemetry();
 #endif
     }
-
-    /* fetch agents from gpu */
-#if TAY_GPU
-    gpu_shared_fetch_agents(state);
-#endif
 
     /* end measuring run-time */
     timespec_get(&end, TIME_UTC);
