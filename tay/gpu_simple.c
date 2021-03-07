@@ -1,8 +1,34 @@
-#if TAY_GPU
 #include "space.h"
 #include "gpu.h"
 #include <stdio.h>
 #include <assert.h>
+
+#if TAY_GPU
+
+
+void gpu_simple_fix_gpu_pointers(TayState *state) {
+
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+
+        if (group->storage == 0) /* not an active group */
+            continue;
+
+        Space *space = group->space;
+        int *next_indices = space->shared;
+
+        if ((space->type & ST_GPU_SIMPLE) == 0) /* group is not in a gpu simple space */
+            continue;
+
+        for (TayAgentTag *tag = space->first[i]; tag; tag = tag->next) {
+            int this_i = group_tag_to_index(group, tag);
+            int next_i = group_tag_to_index(group, tag->next);
+            next_indices[this_i] = next_i;
+        }
+
+        gpu_shared_finish_fixing_group_gpu_pointers(&state->gpu_shared, space, group, i, next_indices);
+    }
+}
 
 // TODO: add dead agent checks for all kernels
 static const char *SEE_KERNEL = "\n\
@@ -88,80 +114,94 @@ kernel void %s_simple_kernel(global char *agents, int agent_size, global void *a
         %s(tag, act_context);\n\
 }\n";
 
-void gpu_simple_add_source(TayState *state) {
+void gpu_simple_contribute_source(TayState *state) {
     GpuShared *shared = &state->gpu_shared;
 
-    // for (int i = 0; i < state->passes_count; ++i) {
-    //     TayPass *pass = state->passes + i;
-    //     if (pass->type == TAY_PASS_SEE)
-    //         shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, SEE_KERNEL,
-    //                                        pass->func_name, pass->func_name, pass->func_name, pass->func_name);
-    //     else if (pass->type == TAY_PASS_ACT)
-    //         shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, ACT_KERNEL,
-    //                                        pass->func_name, pass->func_name);
-    //     else
-    //         assert(0); /* unhandled pass type */
-    // }
+    for (int i = 0; i < state->passes_count; ++i) {
+        TayPass *pass = state->passes + i;
+
+        if (pass->type == TAY_PASS_SEE) {
+            TayGroup *seer_group = state->groups + pass->seer_group;
+            TayGroup *seen_group = state->groups + pass->seen_group;
+
+            if ((seer_group->space->type & ST_GPU_SIMPLE) && (seen_group->space->type & ST_GPU_SIMPLE))
+                shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, SEE_KERNEL,
+                                               pass->func_name, pass->func_name, pass->func_name, pass->func_name);
+        }
+        else if (pass->type == TAY_PASS_ACT) {
+            TayGroup *act_group = state->groups + pass->act_group;
+
+            if (act_group->space->type & ST_GPU_SIMPLE)
+                shared->text_size += sprintf_s(shared->text + shared->text_size, TAY_GPU_MAX_TEXT_SIZE - shared->text_size, ACT_KERNEL,
+                                               pass->func_name, pass->func_name);
+        }
+        else
+            assert(0); /* unhandled pass type */
+    }
 }
 
 void gpu_simple_create_kernels(TayState *state) {
-    // Space *space = &state->space;
-    // GpuShared *shared = &space->gpu_shared;
-    // GpuSimple *simple = &space->gpu_simple;
+    GpuShared *shared = &state->gpu_shared;
 
-    // /* pass kernels */
-    // for (int i = 0; i < state->passes_count; ++i) {
-    //     TayPass *pass = state->passes + i;
+    /* pass kernels */
+    for (int i = 0; i < state->passes_count; ++i) {
+        TayPass *pass = state->passes + i;
 
-    //     static char pass_kernel_name[512];
+        static char pass_kernel_name[512];
 
-    //     if (pass->type == TAY_PASS_SEE) {
-    //         TayGroup *seer_group = state->groups + pass->seer_group;
-    //         TayGroup *seen_group = state->groups + pass->seen_group;
+        if (pass->type == TAY_PASS_SEE) {
+            TayGroup *seer_group = state->groups + pass->seer_group;
+            TayGroup *seen_group = state->groups + pass->seen_group;
+            GpuSimple *simple = &seer_group->space->gpu_simple;
 
-    //         {
-    //             sprintf_s(pass_kernel_name, 512, "%s_simple_kernel", pass->func_name);
-    //             GpuKernel kernel = gpu_create_kernel(shared->gpu, pass_kernel_name);
+            assert(seer_group->space == seen_group->space); // TODO: for now...
 
-    //             gpu_set_kernel_buffer_argument(kernel, 0, &shared->agent_buffers[pass->seer_group]);
-    //             gpu_set_kernel_value_argument(kernel, 1, &seer_group->agent_size, sizeof(seer_group->agent_size));
-    //             gpu_set_kernel_buffer_argument(kernel, 2, &shared->agent_buffers[pass->seen_group]);
-    //             gpu_set_kernel_value_argument(kernel, 3, &seen_group->agent_size, sizeof(seen_group->agent_size));
-    //             gpu_set_kernel_value_argument(kernel, 4, &pass->radii, sizeof(pass->radii));
-    //             gpu_set_kernel_buffer_argument(kernel, 5, &shared->pass_context_buffers[i]);
+            if (seer_group->space->type == ST_GPU_SIMPLE_DIRECT) {
+                sprintf_s(pass_kernel_name, 512, "%s_simple_kernel", pass->func_name);
+                GpuKernel kernel = gpu_create_kernel(shared->gpu, pass_kernel_name);
 
-    //             simple->pass_kernels[i] = kernel;
-    //         }
+                gpu_set_kernel_buffer_argument(kernel, 0, &shared->agent_buffers[pass->seer_group]);
+                gpu_set_kernel_value_argument(kernel, 1, &seer_group->agent_size, sizeof(seer_group->agent_size));
+                gpu_set_kernel_buffer_argument(kernel, 2, &shared->agent_buffers[pass->seen_group]);
+                gpu_set_kernel_value_argument(kernel, 3, &seen_group->agent_size, sizeof(seen_group->agent_size));
+                gpu_set_kernel_value_argument(kernel, 4, &pass->radii, sizeof(pass->radii));
+                gpu_set_kernel_buffer_argument(kernel, 5, &shared->pass_context_buffers[i]);
 
-    //         {
-    //             sprintf_s(pass_kernel_name, 512, "%s_simple_kernel_indirect", pass->func_name);
-    //             GpuKernel kernel = gpu_create_kernel(shared->gpu, pass_kernel_name);
+                simple->pass_kernels[i] = kernel;
+            }
 
-    //             gpu_set_kernel_buffer_argument(kernel, 0, &shared->agent_buffers[pass->seer_group]);
-    //             gpu_set_kernel_value_argument(kernel, 1, &seer_group->agent_size, sizeof(seer_group->agent_size));
-    //             gpu_set_kernel_buffer_argument(kernel, 2, &shared->agent_buffers[pass->seen_group]);
-    //             gpu_set_kernel_value_argument(kernel, 3, &seen_group->agent_size, sizeof(seen_group->agent_size));
-    //             gpu_set_kernel_value_argument(kernel, 5, &pass->radii, sizeof(pass->radii));
-    //             gpu_set_kernel_buffer_argument(kernel, 6, &shared->pass_context_buffers[i]);
+            if (seer_group->space->type == ST_GPU_SIMPLE_INDIRECT) {
+                sprintf_s(pass_kernel_name, 512, "%s_simple_kernel_indirect", pass->func_name);
+                GpuKernel kernel = gpu_create_kernel(shared->gpu, pass_kernel_name);
 
-    //             simple->pass_kernels_indirect[i] = kernel;
-    //         }
-    //     }
-    //     else if (pass->type == TAY_PASS_ACT) {
-    //         TayGroup *act_group = state->groups + pass->act_group;
+                gpu_set_kernel_buffer_argument(kernel, 0, &shared->agent_buffers[pass->seer_group]);
+                gpu_set_kernel_value_argument(kernel, 1, &seer_group->agent_size, sizeof(seer_group->agent_size));
+                gpu_set_kernel_buffer_argument(kernel, 2, &shared->agent_buffers[pass->seen_group]);
+                gpu_set_kernel_value_argument(kernel, 3, &seen_group->agent_size, sizeof(seen_group->agent_size));
+                gpu_set_kernel_value_argument(kernel, 5, &pass->radii, sizeof(pass->radii));
+                gpu_set_kernel_buffer_argument(kernel, 6, &shared->pass_context_buffers[i]);
 
-    //         sprintf_s(pass_kernel_name, 512, "%s_simple_kernel", pass->func_name);
-    //         GpuKernel kernel = gpu_create_kernel(shared->gpu, pass_kernel_name);
+                simple->pass_kernels_indirect[i] = kernel;
+            }
+        }
+        else if (pass->type == TAY_PASS_ACT) {
+            TayGroup *act_group = state->groups + pass->act_group;
+            GpuSimple *simple = &act_group->space->gpu_simple;
 
-    //         gpu_set_kernel_buffer_argument(kernel, 0, &shared->agent_buffers[pass->act_group]);
-    //         gpu_set_kernel_value_argument(kernel, 1, &act_group->agent_size, sizeof(act_group->agent_size));
-    //         gpu_set_kernel_buffer_argument(kernel, 2, &shared->pass_context_buffers[i]);
+            if (act_group->space->type & ST_GPU_SIMPLE) {
+                sprintf_s(pass_kernel_name, 512, "%s_simple_kernel", pass->func_name);
+                GpuKernel kernel = gpu_create_kernel(shared->gpu, pass_kernel_name);
 
-    //         simple->pass_kernels[i] = kernel;
-    //     }
-    //     else
-    //         assert(0); /* unhandled pass type */
-    // }
+                gpu_set_kernel_buffer_argument(kernel, 0, &shared->agent_buffers[pass->act_group]);
+                gpu_set_kernel_value_argument(kernel, 1, &act_group->agent_size, sizeof(act_group->agent_size));
+                gpu_set_kernel_buffer_argument(kernel, 2, &shared->pass_context_buffers[i]);
+
+                simple->pass_kernels[i] = kernel;
+            }
+        }
+        else
+            assert(0); /* unhandled pass type */
+    }
 }
 
 void gpu_simple_destroy_kernels(TayState *state) {
@@ -195,27 +235,6 @@ static void _act(TayState *state, int pass_index) {
     gpu_enqueue_kernel(shared->gpu, simple->pass_kernels[pass_index], act_group->capacity);
 }
 
-void gpu_simple_fix_gpu_pointers(TayState *state) {
-    Space *space = &state->space;
-    GpuShared *shared = &space->gpu_shared;
-
-    int *next_indices = space_get_temp_arena(space, TAY_MAX_AGENTS * sizeof(int));
-
-    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-        TayGroup *group = state->groups + i;
-        if (group->storage) {
-
-            for (TayAgentTag *tag = space->first[i]; tag; tag = tag->next) {
-                int this_i = group_tag_to_index(group, tag);
-                int next_i = group_tag_to_index(group, tag->next);
-                next_indices[this_i] = next_i;
-            }
-
-            space_gpu_finish_fixing_group_gpu_pointers(shared, group, i, next_indices);
-        }
-    }
-}
-
 void gpu_simple_step(TayState *state, int direct) {
     for (int i = 0; i < state->passes_count; ++i) {
         TayPass *pass = state->passes + i;
@@ -229,12 +248,4 @@ void gpu_simple_step(TayState *state, int direct) {
 }
 #endif
 
-void gpu_simple_create_io_buffer(Space *space, GpuShared *shared) {
-    space->gpu_simple.io_buffer = gpu_create_buffer(shared->gpu, GPU_MEM_READ_AND_WRITE, GPU_MEM_NONE, space->shared_size);
-}
-
-void gpu_simple_destroy_io_buffer(Space *space) {
-    gpu_release_buffer(space->gpu_simple.io_buffer);
-    space->gpu_simple.io_buffer = 0;
-}
-#endif
+#endif /* TAY_GPU */

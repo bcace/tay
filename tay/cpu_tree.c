@@ -246,7 +246,7 @@ static int _max_depth(float space_side, float cell_side, int depth_correction) {
     return depth;
 }
 
-void cpu_tree_on_type_switch(Space *space) {
+void cpu_tree_on_simulation_start(Space *space) {
     CpuTree *tree = &space->cpu_tree;
     tree->dims = space->dims;
     tree->cells = space->shared;

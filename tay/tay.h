@@ -84,7 +84,7 @@ void *tay_get_available_agent(TayState *state, int group);
 void tay_commit_available_agent(TayState *state, int group);
 void *tay_get_agent(TayState *state, int group, int index);
 
-void tay_simulation_start(TayState *state, const char *gpu_source);
+void tay_simulation_start(TayState *state);
 double tay_run(TayState *state, int steps);
 void tay_simulation_end(TayState *state);
 

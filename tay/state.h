@@ -50,10 +50,10 @@ typedef struct {
 #if TAY_GPU
 typedef struct {
     struct GpuContext *gpu;
+    int refresh_flag;
     void *agent_buffers[TAY_MAX_GROUPS];
     void *pass_context_buffers[TAY_MAX_PASSES];
     void *resolve_pointers_kernel;
-    void *fetch_new_positions_kernel;
     char text[TAY_GPU_MAX_TEXT_SIZE];
     int text_size;
 } GpuShared;
@@ -93,6 +93,9 @@ typedef struct Space {
     GpuSimple gpu_simple;
     void *shared; /* shared internally by all structures in this space */
     int shared_size;
+#if TAY_GPU
+    void *gpu_shared_buffer; /* corresponding to "shared" buffer and "shared_size" */
+#endif
 } Space;
 
 typedef struct TayGroup {
@@ -146,9 +149,9 @@ typedef struct TayState {
 void space_add_agent(Space *space, TayAgentTag *agent, int group);
 
 #if TAY_GPU
-void gpu_shared_create(TayState *state);
-void gpu_shared_refresh(TayState *state, const char *source);
-void gpu_shared_destroy(TayState *state);
+void gpu_shared_create_global(TayState *state);
+void gpu_shared_refresh_model_related_kernels_and_buffers(TayState *state, const char *source);
+void gpu_shared_destroy_global(TayState *state);
 #endif
 
 #endif

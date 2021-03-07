@@ -332,7 +332,7 @@ void cpu_grid_act(Space *space, TayPass *pass) {
     tay_runner_run();
 }
 
-void cpu_grid_on_type_switch(Space *space) {
+void cpu_grid_on_simulation_start(Space *space) {
     CpuGrid *grid = &space->cpu_grid;
     grid->bins = space->shared;
 }
