@@ -76,7 +76,7 @@ typedef struct Space {
     };
     void *shared; /* buffer shared internally by all structures in this space */
     int shared_size; /* size of the shared buffer */
-    int point_only; /* space can only contain point groups */
+    int is_point_only; /* space can only contain point groups */
 } Space;
 
 typedef struct TayGroup {

@@ -60,14 +60,24 @@ void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, flo
     space->dims = space_dims;
     space->shared_size = shared_size_in_megabytes * TAY_MB;
     space->shared = malloc(space->shared_size);
+
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         space->first[i] = 0;
         space->counts[i] = 0;
     }
+
+    switch (space->type) {
+        case ST_SIMPLE: space->is_point_only = 0; break;
+        case ST_TREE: space->is_point_only = 0; break;
+        case ST_GRID: space->is_point_only = 1; break;
+        default: assert(0); /* not implemented */
+    }
+
+    // TODO: check if all groups currently assigned to this space
 }
 
 int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_point, int space_index) {
-    assert(agent_capacity > 0 && agent_capacity < TAY_MAX_AGENTS);
+    // ERROR: check arguments
     int index = 0;
     for (; index < TAY_MAX_GROUPS; ++index)
         if (state->groups[index].storage == 0)
@@ -79,6 +89,7 @@ int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_po
     g->capacity = agent_capacity;
     g->is_point = is_point;
     g->first = g->storage;
+    // ERROR: check that the space exists
     g->space = state->spaces + space_index;
     TayAgentTag *prev = g->first;
     for (int i = 0; i < agent_capacity - 1; ++i) {
