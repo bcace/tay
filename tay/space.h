@@ -9,7 +9,7 @@
 #define TAY_GPU_DEAD_ADDR   0xffffffffffffffff
 
 
-void space_return_agents(Space *space, int group_i, TayAgentTag *tag);
+void space_return_agents(Space *space, int group_i, TayAgentTag *tag, int is_point);
 void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 void space_single_seer_see(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 
@@ -33,7 +33,7 @@ void cpu_grid_act(Space *space, TayPass *pass);
 int space_agent_count_to_bucket_index(int count);
 
 void box_reset(Box *box, int dims);
-void box_update(Box *box, float4 pos, int dims);
+void box_update_from_agent(Box *box, TayAgentTag *agent, int dims, int is_point);
 
 int group_tag_to_index(TayGroup *group, TayAgentTag *tag);
 

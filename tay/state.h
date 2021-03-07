@@ -124,6 +124,4 @@ typedef struct TayState {
     TayStateStatus running;
 } TayState;
 
-void space_add_agent(Space *space, TayAgentTag *agent, int group);
-
 #endif

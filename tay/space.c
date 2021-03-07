@@ -6,19 +6,24 @@
 #include <assert.h>
 
 
-void space_add_agent(Space *space, TayAgentTag *agent, int group) {
-    agent->next = space->first[group];
-    space->first[group] = agent;
-    box_update(&space->box, float4_agent_position(agent), space->dims);
-    ++space->counts[group];
-}
-
-void box_update(Box *box, float4 p, int dims) {
-    for (int i = 0; i < dims; ++i) {
-        if (p.arr[i] < box->min.arr[i])
-            box->min.arr[i] = p.arr[i];
-        if (p.arr[i] > box->max.arr[i])
-            box->max.arr[i] = p.arr[i];
+void box_update_from_agent(Box *box, TayAgentTag *agent, int dims, int is_point) {
+    float4 min = float4_agent_min(agent);
+    if (is_point) {
+        for (int i = 0; i < dims; ++i) {
+            if (min.arr[i] < box->min.arr[i])
+                box->min.arr[i] = min.arr[i];
+            if (min.arr[i] > box->max.arr[i])
+                box->max.arr[i] = min.arr[i];
+        }
+    }
+    else {
+        float4 max = float4_agent_max(agent);
+        for (int i = 0; i < dims; ++i) {
+            if (min.arr[i] < box->min.arr[i])
+                box->min.arr[i] = min.arr[i];
+            if (max.arr[i] > box->max.arr[i])
+                box->max.arr[i] = max.arr[i];
+        }
     }
 }
 
@@ -29,12 +34,12 @@ void box_reset(Box *box, int dims) {
     }
 }
 
-void space_return_agents(Space *space, int group_i, TayAgentTag *tag) {
+void space_return_agents(Space *space, int group_i, TayAgentTag *tag, int is_point) {
     if (tag == 0)
         return;
     TayAgentTag *last = tag;
     while (1) {
-        box_update(&space->box, float4_agent_position(last), space->dims);
+        box_update_from_agent(&space->box, last, space->dims, is_point);
         ++space->counts[group_i];
         if (last->next)
             last = last->next;

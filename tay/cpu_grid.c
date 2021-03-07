@@ -430,10 +430,12 @@ void cpu_grid_unsort(Space *space, TayGroup *groups) {
 
         for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
             TayGroup *group = groups + group_i;
-            if (group->space != space)
+            
+            if (group->space != space) /* only groups belonging to this space */
                 continue;
 
-            space_return_agents(space, group_i, bin->first[group_i]);
+            space_return_agents(space, group_i, bin->first[group_i], group->is_point);
+
             bin->first[group_i] = 0;
             bin->counts[group_i] = 0;
         }

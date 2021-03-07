@@ -126,23 +126,33 @@ void tay_add_act(TayState *state, int act_group, TAY_ACT_FUNC func, const char *
 }
 
 void *tay_get_available_agent(TayState *state, int group) {
-    assert(group >= 0 && group < TAY_MAX_GROUPS);
+    assert(group >= 0 && group < TAY_MAX_GROUPS); // ERROR: this assert
     TayGroup *g = state->groups + group;
     assert(g->first != 0);
     return g->first;
 }
 
-void tay_commit_available_agent(TayState *state, int group) {
-    assert(group >= 0 && group < TAY_MAX_GROUPS);
-    TayGroup *g = state->groups + group;
-    assert(g->first != 0);
-    TayAgentTag *a = g->first;
-    g->first = a->next;
-    space_add_agent(g->space, a, group);
+void tay_commit_available_agent(TayState *state, int group_i) {
+    assert(group_i >= 0 && group_i < TAY_MAX_GROUPS); // ERROR: this assert
+    TayGroup *group = state->groups + group_i;
+    assert(group->first != 0);
+
+    /* remove agent from storage */
+    TayAgentTag *a = group->first;
+    group->first = a->next;
+
+    /* add agent to space (make it live) */
+    {
+        Space *space = group->space;
+        a->next = space->first[group_i];
+        space->first[group_i] = a;
+        box_update_from_agent(&space->box, a, space->dims, group->is_point);
+        ++space->counts[group_i];
+    }
 }
 
 void *tay_get_agent(TayState *state, int group, int index) {
-    assert(group >= 0 && group < TAY_MAX_GROUPS);
+    assert(group >= 0 && group < TAY_MAX_GROUPS); // ERROR: this assert
     TayGroup *g = state->groups + group;
     return (char *)g->storage + g->agent_size * index;
 }

@@ -108,10 +108,11 @@ void cpu_simple_unsort(Space *space, TayGroup *groups) {
 
     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = groups + group_i;
-        if (group->space != space)
+
+        if (group->space != space) /* only groups belonging to this space */
             continue;
 
         for (int thread_i = 0; thread_i < runner.count; ++thread_i)
-            space_return_agents(space, group_i, space->cpu_simple.first[thread_i * TAY_MAX_GROUPS + group_i]);
+            space_return_agents(space, group_i, space->cpu_simple.first[thread_i * TAY_MAX_GROUPS + group_i], group->is_point);
     }
 }
