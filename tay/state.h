@@ -120,8 +120,11 @@ typedef struct TayState {
     TayPass passes[TAY_MAX_PASSES];
     int passes_count;
     Space spaces[TAY_MAX_SPACES];
-    int spaces_count;
+    unsigned spaces_count;
     TayStateStatus running;
+    TayError error;
 } TayState;
+
+void state_set_error(TayState *state, TayError error);
 
 #endif

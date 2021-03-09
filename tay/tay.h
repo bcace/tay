@@ -64,6 +64,13 @@ typedef struct TayAgentTag {
 
 #pragma pack(pop)
 
+typedef enum TayError {
+    TAY_ERROR_NONE = 0,
+    TAY_ERROR_POINT_NONPOINT_MISMATCH,
+    TAY_ERROR_SPACE_INDEX_OUT_OF_RANGE,
+    TAY_ERROR_GROUP_INDEX_OUT_OF_RANGE,
+} TayError;
+
 /*
 ** library API
 */
@@ -73,9 +80,11 @@ typedef struct TayState TayState;
 TayState *tay_create_state();
 void tay_destroy_state(TayState *state);
 
+TayError tay_get_error(TayState *state);
+
 void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction, int shared_size_in_megabytes);
 
-int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_point, int space_index);
+int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, unsigned space_index);
 void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, void *), const char *func_name, float4 radii, void *context, int context_size);
 void tay_add_act(TayState *state, int act_group, void (*func)(void *, void *), const char *func_name, void *context, int context_size);
 

@@ -12,6 +12,7 @@ TayState *tay_create_state() {
     TayState *s = calloc(1, sizeof(TayState));
     s->running = TAY_STATE_STATUS_IDLE;
     s->spaces_count = 0;
+    s->error = TAY_ERROR_NONE;
     return s;
 }
 
@@ -31,6 +32,14 @@ void tay_destroy_state(TayState *state) {
     for (int i = 0; i < TAY_MAX_SPACES; ++i)
         _clear_space(state->spaces + i);
     free(state);
+}
+
+TayError tay_get_error(TayState *state) {
+    return state->error;
+}
+
+void state_set_error(TayState *state, TayError error) {
+    state->error = error;
 }
 
 static SpaceType _translate_space_type(TaySpaceType type) {
@@ -68,7 +77,7 @@ void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, flo
 
     switch (space->type) {
         case ST_SIMPLE: space->is_point_only = 0; break;
-        case ST_TREE: space->is_point_only = 0; break;
+        case ST_TREE: space->is_point_only = 1; break;
         case ST_GRID: space->is_point_only = 1; break;
         default: assert(0); /* not implemented */
     }
@@ -76,28 +85,47 @@ void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, flo
     // TODO: check if all groups currently assigned to this space
 }
 
-int tay_add_group(TayState *state, int agent_size, int agent_capacity, int is_point, int space_index) {
-    // ERROR: check arguments
+int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, unsigned space_index) {
+
+    if (space_index >= state->spaces_count) {
+        state_set_error(state, TAY_ERROR_SPACE_INDEX_OUT_OF_RANGE);
+        return -1;
+    }
+
+    Space *space = state->spaces + space_index;
+
+    if (space->is_point_only && is_point != 0) {
+        state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
+        return -1;
+    }
+
     int index = 0;
+
     for (; index < TAY_MAX_GROUPS; ++index)
         if (state->groups[index].storage == 0)
             break;
-    assert(index < TAY_MAX_GROUPS);
+
+    if (index == TAY_MAX_GROUPS) {
+        state_set_error(state, TAY_ERROR_GROUP_INDEX_OUT_OF_RANGE);
+        return -1;
+    }
+
     TayGroup *g = state->groups + index;
     g->agent_size = agent_size;
     g->storage = calloc(agent_capacity, agent_size);
     g->capacity = agent_capacity;
     g->is_point = is_point;
     g->first = g->storage;
-    // ERROR: check that the space exists
-    g->space = state->spaces + space_index;
+    g->space = space;
+
     TayAgentTag *prev = g->first;
-    for (int i = 0; i < agent_capacity - 1; ++i) {
+    for (unsigned i = 0; i < agent_capacity - 1; ++i) {
         TayAgentTag *next = (TayAgentTag *)((char *)prev + agent_size);
         prev->next = next;
         prev = next;
     }
     prev->next = 0;
+
     return index;
 }
 
@@ -161,7 +189,7 @@ void tay_simulation_start(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_IDLE); // ERROR: this assert
     state->running = TAY_STATE_STATUS_RUNNING;
 
-    for (int i = 0; i < state->spaces_count; ++i) {
+    for (unsigned i = 0; i < state->spaces_count; ++i) {
         Space *space = state->spaces + i;
 
         if (space->type == ST_CPU_TREE)
@@ -182,7 +210,7 @@ double tay_run(TayState *state, int steps) {
     for (int step_i = 0; step_i < steps; ++step_i) {
 
         /* sort all agents into structures */
-        for (int space_i = 0; space_i < state->spaces_count; ++space_i) {
+        for (unsigned space_i = 0; space_i < state->spaces_count; ++space_i) {
             Space *space = state->spaces + space_i;
 
             switch (space->type) {
@@ -233,7 +261,7 @@ double tay_run(TayState *state, int steps) {
         }
 
         /* return agents from structures */
-        for (int space_i = 0; space_i < state->spaces_count; ++space_i) {
+        for (unsigned space_i = 0; space_i < state->spaces_count; ++space_i) {
             Space *space = state->spaces + space_i;
 
             switch (space->type) {
