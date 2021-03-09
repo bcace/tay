@@ -123,6 +123,7 @@ typedef struct TayState {
     unsigned spaces_count;
     TayStateStatus running;
     TayError error;
+    double ms_per_step; /* for the last run */
 } TayState;
 
 void state_set_error(TayState *state, TayError error);

@@ -13,6 +13,7 @@ TayState *tay_create_state() {
     s->running = TAY_STATE_STATUS_IDLE;
     s->spaces_count = 0;
     s->error = TAY_ERROR_NONE;
+    s->ms_per_step = 0.0;
     return s;
 }
 
@@ -199,7 +200,7 @@ void tay_simulation_start(TayState *state) {
     }
 }
 
-double tay_run(TayState *state, int steps) {
+int tay_run(TayState *state, int steps) {
     assert(state->running == TAY_STATE_STATUS_RUNNING); // ERROR: ...
 
     /* start measuring run-time */
@@ -280,11 +281,16 @@ double tay_run(TayState *state, int steps) {
     /* end measuring run-time */
     timespec_get(&end, TIME_UTC);
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;
-    double ms = (t / (double)steps) * 1000.0;
-    return ms;
+    state->ms_per_step = (t / (double)steps) * 1000.0;
+
+    return steps;
 }
 
 void tay_simulation_end(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
     state->running = TAY_STATE_STATUS_IDLE;
+}
+
+double tay_get_ms_per_step_for_last_run(TayState *state) {
+    return state->ms_per_step;
 }

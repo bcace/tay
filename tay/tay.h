@@ -93,7 +93,9 @@ void tay_commit_available_agent(TayState *state, int group);
 void *tay_get_agent(TayState *state, int group, int index);
 
 void tay_simulation_start(TayState *state);
-double tay_run(TayState *state, int steps);
+int tay_run(TayState *state, int steps);
 void tay_simulation_end(TayState *state);
+
+double tay_get_ms_per_step_for_last_run(TayState *state);
 
 #endif
