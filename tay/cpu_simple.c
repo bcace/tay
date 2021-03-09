@@ -18,11 +18,23 @@ static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, TayAgentTa
     task->dims = dims;
 }
 
-static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
-    space_see(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
+static void _see_func_point_point(SimpleSeeTask *task, TayThreadContext *thread_context) {
+    space_see_point_point(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
 }
 
-void cpu_simple_single_space_see(Space *space, TayPass *pass) {
+static void _see_func_nonpoint_point(SimpleSeeTask *task, TayThreadContext *thread_context) {
+    space_see_nonpoint_point(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
+}
+
+static void _see_func_point_nonpoint(SimpleSeeTask *task, TayThreadContext *thread_context) {
+    space_see_point_nonpoint(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
+}
+
+static void _see_func_nonpoint_nonpoint(SimpleSeeTask *task, TayThreadContext *thread_context) {
+    space_see_nonpoint_nonpoint(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
+}
+
+void cpu_simple_single_space_see(Space *space, TayPass *pass, int seer_group_is_point, int seen_group_is_point) {
     static SimpleSeeTask tasks[TAY_MAX_THREADS];
 
     CpuSimple *simple = &space->cpu_simple;
@@ -35,8 +47,21 @@ void cpu_simple_single_space_see(Space *space, TayPass *pass) {
 
             SimpleSeeTask *task = tasks + j;
             _init_simple_see_task(task, pass, a, b, space->dims);
-            tay_thread_set_task(j, _see_func, task, pass->context);
+
+            if (seer_group_is_point == seen_group_is_point) {
+                if (seer_group_is_point)
+                    tay_thread_set_task(j, _see_func_point_point, task, pass->context);
+                else
+                    tay_thread_set_task(j, _see_func_nonpoint_nonpoint, task, pass->context);
+            }
+            else {
+                if (seer_group_is_point)
+                    tay_thread_set_task(j, _see_func_point_nonpoint, task, pass->context);
+                else
+                    tay_thread_set_task(j, _see_func_nonpoint_point, task, pass->context);
+            }
         }
+
         tay_runner_run();
     }
 }

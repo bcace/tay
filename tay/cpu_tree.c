@@ -32,7 +32,7 @@ static void _thread_traverse_seen(CpuTree *tree, TreeCell *seer_cell, TreeCell *
         if (seer_box.min.arr[i] > seen_cell->box.max.arr[i] || seer_box.max.arr[i] < seen_cell->box.min.arr[i])
             return;
     if (seen_cell->first[pass->seen_group]) /* if there are any "seen" agents */
-        space_see(seer_cell->first[pass->seer_group], seen_cell->first[pass->seen_group], pass->see, pass->radii, tree->dims, thread_context);
+        space_see_point_point(seer_cell->first[pass->seer_group], seen_cell->first[pass->seen_group], pass->see, pass->radii, tree->dims, thread_context);
     if (seen_cell->lo)
         _thread_traverse_seen(tree, seer_cell, seen_cell->lo, pass, seer_box, thread_context);
     if (seen_cell->hi)

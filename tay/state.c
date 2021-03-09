@@ -200,12 +200,14 @@ double tay_run(TayState *state, int steps) {
             if (pass->type == TAY_PASS_SEE) {
                 Space *seer_space = state->groups[pass->seer_group].space;
                 Space *seen_space = state->groups[pass->seen_group].space;
+                int seer_group_is_point = state->groups[pass->seer_group].is_point;
+                int seen_group_is_point = state->groups[pass->seen_group].is_point;
 
                 if (seer_space == seen_space) { /* single space see */
                     Space *space = seer_space;
 
                     switch (space->type) {
-                        case ST_CPU_SIMPLE: cpu_simple_single_space_see(space, pass); break;
+                        case ST_CPU_SIMPLE: cpu_simple_single_space_see(space, pass, seer_group_is_point, seen_group_is_point); break;
                         case ST_CPU_TREE: cpu_tree_single_space_see(space, pass); break;
                         case ST_CPU_GRID: cpu_grid_single_space_see(space, pass); break;
                         default: assert(0); /* not implemented */

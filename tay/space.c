@@ -50,29 +50,146 @@ void space_return_agents(Space *space, int group_i, TayAgentTag *tag, int is_poi
     space->first[group_i] = tag;
 }
 
-void space_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+#if TAY_TELEMETRY
+#define _BROAD_PHASE_COUNT ++thread_context->broad_see_phase;
+#else
+#define _BROAD_PHASE_COUNT ;
+#endif
+
+#if TAY_TELEMETRY
+#define _NARROW_PHASE_COUNT ++thread_context->narrow_see_phase;
+#else
+#define _NARROW_PHASE_COUNT ;
+#endif
+
+#define _POINT_POINT_NARROW_PHASE_TEST { \
+    for (int i = 0; i < dims; ++i) { \
+        float d = seer_p.arr[i] - seen_p.arr[i]; \
+        if (d < -radii.arr[i] || d > radii.arr[i]) \
+            goto SKIP_SEE; \
+    } \
+}
+
+#define _NONPOINT_POINT_NARROW_PHASE_TEST { \
+    for (int i = 0; i < dims; ++i) { \
+        float d; \
+        d = seer_min.arr[i] - seen_p.arr[i]; \
+        if (d > radii.arr[i]) \
+            goto SKIP_SEE; \
+        d = seen_p.arr[i] - seer_max.arr[i]; \
+        if (d > radii.arr[i]) \
+            goto SKIP_SEE; \
+    } \
+}
+
+#define _POINT_NONPOINT_NARROW_PHASE_TEST { \
+    for (int i = 0; i < dims; ++i) { \
+        float d; \
+        d = seer_p.arr[i] - seen_max.arr[i]; \
+        if (d > radii.arr[i]) \
+            goto SKIP_SEE; \
+        d = seen_min.arr[i] - seer_p.arr[i]; \
+        if (d > radii.arr[i]) \
+            goto SKIP_SEE; \
+    } \
+}
+
+#define _NONPOINT_NONPOINT_NARROW_PHASE_TEST { \
+    for (int i = 0; i < dims; ++i) { \
+        float d; \
+        d = seer_min.arr[i] - seen_max.arr[i]; \
+        if (d > radii.arr[i]) \
+            goto SKIP_SEE; \
+        d = seen_min.arr[i] - seer_max.arr[i]; \
+        if (d > radii.arr[i]) \
+            goto SKIP_SEE; \
+    } \
+}
+
+void space_see_point_point(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
         float4 seer_p = float4_agent_position(seer_agent);
 
         for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-            float4 seen_p = float4_agent_position(seen_agent);
 
             if (seer_agent == seen_agent)
                 continue;
 
-#if TAY_TELEMETRY
-            ++thread_context->broad_see_phase;
-#endif
+            float4 seen_p = float4_agent_position(seen_agent);
 
-            for (int i = 0; i < dims; ++i) {
-                float d = seer_p.arr[i] - seen_p.arr[i];
-                if (d < -radii.arr[i] || d > radii.arr[i])
-                    goto SKIP_SEE;
-            }
+            _BROAD_PHASE_COUNT
+            _POINT_POINT_NARROW_PHASE_TEST
+            _NARROW_PHASE_COUNT
 
-#if TAY_TELEMETRY
-            ++thread_context->narrow_see_phase;
-#endif
+            func(seer_agent, seen_agent, thread_context->context);
+
+            SKIP_SEE:;
+        }
+    }
+}
+
+void space_see_nonpoint_point(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+    for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
+        float4 seer_min = float4_agent_min(seer_agent);
+        float4 seer_max = float4_agent_max(seer_agent);
+
+        for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
+
+            if (seer_agent == seen_agent)
+                continue;
+
+            float4 seen_p = float4_agent_position(seen_agent);
+
+            _BROAD_PHASE_COUNT
+            _NONPOINT_POINT_NARROW_PHASE_TEST
+            _NARROW_PHASE_COUNT
+
+            func(seer_agent, seen_agent, thread_context->context);
+
+            SKIP_SEE:;
+        }
+    }
+}
+
+void space_see_point_nonpoint(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+    for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
+        float4 seer_p = float4_agent_position(seer_agent);
+
+        for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
+
+            if (seer_agent == seen_agent)
+                continue;
+
+            float4 seen_min = float4_agent_min(seen_agent);
+            float4 seen_max = float4_agent_max(seen_agent);
+
+            _BROAD_PHASE_COUNT
+            _POINT_NONPOINT_NARROW_PHASE_TEST
+            _NARROW_PHASE_COUNT
+
+            func(seer_agent, seen_agent, thread_context->context);
+
+            SKIP_SEE:;
+        }
+    }
+}
+
+void space_see_nonpoint_nonpoint(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+    for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
+        float4 seer_min = float4_agent_min(seer_agent);
+        float4 seer_max = float4_agent_max(seer_agent);
+
+        for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
+
+            if (seer_agent == seen_agent)
+                continue;
+
+            float4 seen_min = float4_agent_min(seen_agent);
+            float4 seen_max = float4_agent_max(seen_agent);
+
+            _BROAD_PHASE_COUNT
+            _NONPOINT_NONPOINT_NARROW_PHASE_TEST
+            _NARROW_PHASE_COUNT
 
             func(seer_agent, seen_agent, thread_context->context);
 
@@ -90,19 +207,9 @@ void space_single_seer_see(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TA
         if (seer_agent == seen_agent)
             continue;
 
-#if TAY_TELEMETRY
-        ++thread_context->broad_see_phase;
-#endif
-
-        for (int i = 0; i < dims; ++i) {
-            float d = seer_p.arr[i] - seen_p.arr[i];
-            if (d < -radii.arr[i] || d > radii.arr[i])
-                goto SKIP_SEE;
-        }
-
-#if TAY_TELEMETRY
-        ++thread_context->narrow_see_phase;
-#endif
+        _BROAD_PHASE_COUNT
+        _POINT_POINT_NARROW_PHASE_TEST
+        _NARROW_PHASE_COUNT
 
         func(seer_agent, seen_agent, thread_context->context);
 
