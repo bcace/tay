@@ -9,8 +9,6 @@
 #define TAY_GPU_DEAD_ADDR   0xffffffffffffffff
 
 
-typedef void (*SPACE_SEE)(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
-
 void space_return_agents(Space *space, int group_i, TayAgentTag *tag, int is_point);
 
 void space_see_point_point(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
@@ -21,7 +19,7 @@ void space_single_seer_see(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TA
 
 void cpu_simple_sort(Space *space, TayGroup *groups);
 void cpu_simple_unsort(Space *space, TayGroup *groups);
-void cpu_simple_single_space_see(Space *space, TayPass *pass, int seer_group_is_point, int seen_group_is_point);
+void cpu_simple_see(TayPass *pass);
 void cpu_simple_act(Space *space, TayPass *pass);
 
 void cpu_tree_on_simulation_start(Space *space);

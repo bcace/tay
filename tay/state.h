@@ -9,6 +9,8 @@
 typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 
+typedef void (*SEE_PAIRING_FUNC)(TayAgentTag *, TayAgentTag *, TAY_SEE_FUNC, float4, int, struct TayThreadContext *);
+
 
 typedef struct {
     union {
@@ -108,6 +110,11 @@ typedef struct TayPass {
     float4 radii;
     void *context;
     int context_size;
+    /* data prepared by the compile step */
+    Space *seer_space;
+    Space *seen_space;
+    SEE_PAIRING_FUNC pairing_func;
+    void (*exec_func)(struct TayPass *pass);
 } TayPass;
 
 typedef enum TayStateStatus {

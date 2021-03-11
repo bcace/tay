@@ -200,48 +200,53 @@ void tay_simulation_start(TayState *state) {
     }
 }
 
-// static TayError _compile_passes(TayState *state) {
+static TayError _compile_passes(TayState *state) {
 
-//     for (int pass_i = 0; pass_i < state->passes_count; ++pass_i) {
-//         TayPass *pass = state->passes + pass_i;
+    for (int pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+        TayPass *pass = state->passes + pass_i;
 
-//         if (pass->type == TAY_PASS_SEE) {
-//             Space *seer_space = state->groups[pass->seer_group].space;
-//             Space *seen_space = state->groups[pass->seen_group].space;
-//             int seer_group_is_point = state->groups[pass->seer_group].is_point;
-//             int seen_group_is_point = state->groups[pass->seen_group].is_point;
+        if (pass->type == TAY_PASS_SEE) {
+            Space *seer_space = state->groups[pass->seer_group].space;
+            Space *seen_space = state->groups[pass->seen_group].space;
+            int seer_is_point = state->groups[pass->seer_group].is_point;
+            int seen_is_point = state->groups[pass->seen_group].is_point;
 
-//             if (seer_space == seen_space) { /* single space see */
-//                 Space *space = seer_space;
+            if (seer_space == seen_space) {
+                Space *space = seer_space;
 
-//                 switch (space->type) {
-//                     case ST_CPU_SIMPLE: cpu_simple_single_space_see(space, pass, seer_group_is_point, seen_group_is_point); break;
-//                     case ST_CPU_TREE: cpu_tree_single_space_see(space, pass); break;
-//                     case ST_CPU_GRID: cpu_grid_single_space_see(space, pass); break;
-//                     default: assert(0); /* not implemented */
-//                 }
-//             }
-//             else { /* two space see */
-//                 assert(0); /* not implemented */
-//             }
-//         }
-//         else if (pass->type == TAY_PASS_ACT) {
-//             Space *space = state->groups[pass->act_group].space;
+                if (space->type == ST_CPU_SIMPLE) {
+                    pass->seer_space = seer_space;
+                    pass->seen_space = seen_space;
 
-//             /* act */
-//             switch (space->type) {
-//                 case ST_CPU_SIMPLE: cpu_simple_act(space, pass); break;
-//                 case ST_CPU_TREE: cpu_tree_act(space, pass); break;
-//                 case ST_CPU_GRID: cpu_grid_act(space, pass); break;
-//                 default: assert(0); /* not implemented */
-//             }
-//         }
-//         else
-//             assert(0); /* unhandled pass type */
-//     }
+                    if (seer_is_point == seen_is_point) {
+                        if (seer_is_point)
+                            pass->pairing_func = space_see_point_point;
+                        else
+                            pass->pairing_func = space_see_nonpoint_nonpoint;
+                    }
+                    else {
+                        if (seer_is_point)
+                            pass->pairing_func = space_see_point_nonpoint;
+                        else
+                            pass->pairing_func = space_see_nonpoint_point;
+                    }
 
-//     return TAY_ERROR_NONE;
-// }
+                    pass->exec_func = cpu_simple_see;
+                }
+                // else if (space->type == ST_CPU_TREE) {
+                // }
+                // else if (space->type == ST_CPU_GRID) {
+                // }
+                else
+                    return TAY_ERROR_NOT_IMPLEMENTED;
+            }
+            else
+                return TAY_ERROR_NOT_IMPLEMENTED;
+        }
+    }
+
+    return TAY_ERROR_NONE;
+}
 
 /* Returns the number of steps executed */
 int tay_run(TayState *state, int steps) {
@@ -251,9 +256,9 @@ int tay_run(TayState *state, int steps) {
         return 0;
     }
 
-    // TayError error = _compile_passes(state);
-    // if (error)
-    //     return 0;
+    TayError error = _compile_passes(state);
+    if (error)
+        return 0;
 
     /* start measuring run-time */
     struct timespec beg, end;
@@ -278,26 +283,8 @@ int tay_run(TayState *state, int steps) {
         for (int pass_i = 0; pass_i < state->passes_count; ++pass_i) {
             TayPass *pass = state->passes + pass_i;
 
-            if (pass->type == TAY_PASS_SEE) {
-                Space *seer_space = state->groups[pass->seer_group].space;
-                Space *seen_space = state->groups[pass->seen_group].space;
-                int seer_group_is_point = state->groups[pass->seer_group].is_point;
-                int seen_group_is_point = state->groups[pass->seen_group].is_point;
-
-                if (seer_space == seen_space) { /* single space see */
-                    Space *space = seer_space;
-
-                    switch (space->type) {
-                        case ST_CPU_SIMPLE: cpu_simple_single_space_see(space, pass, seer_group_is_point, seen_group_is_point); break;
-                        case ST_CPU_TREE: cpu_tree_single_space_see(space, pass); break;
-                        case ST_CPU_GRID: cpu_grid_single_space_see(space, pass); break;
-                        default: assert(0); /* not implemented */
-                    }
-                }
-                else { /* two space see */
-                    assert(0); /* not implemented */
-                }
-            }
+            if (pass->type == TAY_PASS_SEE)
+                pass->exec_func(pass);
             else if (pass->type == TAY_PASS_ACT) {
                 Space *space = state->groups[pass->act_group].space;
 
