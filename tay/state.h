@@ -43,31 +43,11 @@ typedef struct {
     int kernel_size;
 } CpuGrid;
 
-typedef enum SpaceType {
-    ST_NONE =                   0x0000,
-
-    ST_CPU =                    0x0001,
-    ST_GPU =                    0x0002,
-    ST_ADAPTIVE =               0x0010,
-    ST_SIMPLE =                 0x0020,
-    ST_TREE =                   0x0040,
-    ST_GRID =                   0x0080,
-    ST_FINAL =                  0x1000,
-    ST_GPU_SIMPLE =             (ST_GPU | ST_SIMPLE),
-
-    ST_CPU_SIMPLE =             (ST_FINAL | ST_CPU | ST_SIMPLE),
-    ST_CPU_TREE =               (ST_FINAL | ST_CPU | ST_TREE),
-    ST_CPU_GRID =               (ST_FINAL | ST_CPU | ST_GRID),
-    ST_GPU_SIMPLE_DIRECT =      (ST_FINAL | 0x0100 | ST_GPU_SIMPLE), /* only used when agent populations don't change */
-    ST_GPU_SIMPLE_INDIRECT =    (ST_FINAL | 0x0200 | ST_GPU_SIMPLE),
-    ST_CYCLE_ALL =              (ST_FINAL | 0x0ff0),
-} SpaceType;
-
 typedef struct Space {
     int dims;
     int depth_correction;
     float4 radii; /* if space is partitioned, these are suggested subdivision radii */
-    SpaceType type;
+    TaySpaceType type;
     TayAgentTag *first[TAY_MAX_GROUPS]; /* unsorted agents */
     int counts[TAY_MAX_GROUPS]; /* counts of unsorted agents */
     Box box;

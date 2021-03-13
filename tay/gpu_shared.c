@@ -103,8 +103,8 @@ static void _create_model_related_buffers_and_kernels(TayState *state, const cha
             continue;
 
         switch (space->type) {
-            case ST_GPU_SIMPLE_DIRECT: gpu_simple_create_kernels(state); break;
-            case ST_GPU_SIMPLE_INDIRECT: gpu_simple_create_kernels(state); break;
+            case TAY_GPU_SIMPLE_DIRECT: gpu_simple_create_kernels(state); break;
+            case TAY_GPU_SIMPLE_INDIRECT: gpu_simple_create_kernels(state); break;
             default: assert(false); /* not implemented */
         }
 
@@ -139,8 +139,8 @@ static void _destroy_model_related_buffers_and_kernels(TayState *state) {
             continue;
 
         switch (space->type) {
-            case ST_GPU_SIMPLE_DIRECT: gpu_simple_destroy_kernels(state); break;
-            case ST_GPU_SIMPLE_INDIRECT: gpu_simple_destroy_kernels(state); break;
+            case TAY_GPU_SIMPLE_DIRECT: gpu_simple_destroy_kernels(state); break;
+            case TAY_GPU_SIMPLE_INDIRECT: gpu_simple_destroy_kernels(state); break;
             default: assert(false); /* not implemented */
         }
 

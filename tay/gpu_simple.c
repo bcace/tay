@@ -156,7 +156,7 @@ void gpu_simple_create_kernels(TayState *state) {
 
             assert(seer_group->space == seen_group->space); // TODO: for now...
 
-            if (seer_group->space->type == ST_GPU_SIMPLE_DIRECT) {
+            if (seer_group->space->type == TAY_GPU_SIMPLE_DIRECT) {
                 sprintf_s(pass_kernel_name, 512, "%s_simple_kernel", pass->func_name);
                 GpuKernel kernel = gpu_create_kernel(shared->gpu, pass_kernel_name);
 
@@ -170,7 +170,7 @@ void gpu_simple_create_kernels(TayState *state) {
                 simple->pass_kernels[i] = kernel;
             }
 
-            if (seer_group->space->type == ST_GPU_SIMPLE_INDIRECT) {
+            if (seer_group->space->type == TAY_GPU_SIMPLE_INDIRECT) {
                 sprintf_s(pass_kernel_name, 512, "%s_simple_kernel_indirect", pass->func_name);
                 GpuKernel kernel = gpu_create_kernel(shared->gpu, pass_kernel_name);
 

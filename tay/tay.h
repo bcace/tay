@@ -12,16 +12,30 @@
 #define float3_agent_max(__agent_tag__) (*(float3 *)((char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))
 #define float2_agent_max(__agent_tag__) (*(float2 *)((char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))
 
+/*
+** Enums
+*/
+
 typedef enum TaySpaceType {
-    TAY_SPACE_CPU_SIMPLE,
-    TAY_SPACE_CPU_TREE,
-    TAY_SPACE_CPU_GRID,
-    TAY_SPACE_GPU_SIMPLE_DIRECT,
-    TAY_SPACE_GPU_SIMPLE_INDIRECT,
+    ST_NONE                     = 0x00,
+    TAY_CPU_SIMPLE              = 0x01,
+    TAY_CPU_TREE                = 0x02,
+    TAY_CPU_GRID                = 0x04,
+    TAY_GPU_SIMPLE_DIRECT       = 0x08,
+    TAY_GPU_SIMPLE_INDIRECT     = 0x10,
 } TaySpaceType;
 
+typedef enum TayError {
+    TAY_ERROR_NONE = 0,
+    TAY_ERROR_POINT_NONPOINT_MISMATCH,
+    TAY_ERROR_SPACE_INDEX_OUT_OF_RANGE,
+    TAY_ERROR_GROUP_INDEX_OUT_OF_RANGE,
+    TAY_ERROR_STATE_STATUS,
+    TAY_ERROR_NOT_IMPLEMENTED,
+} TayError;
+
 /*
-** definitions of basic structs that have to work on CPU and GPU
+** basic structs that have to work on both CPU and GPU
 */
 
 #pragma pack(push, 1)
@@ -63,15 +77,6 @@ typedef struct TayAgentTag {
 } TayAgentTag;
 
 #pragma pack(pop)
-
-typedef enum TayError {
-    TAY_ERROR_NONE = 0,
-    TAY_ERROR_POINT_NONPOINT_MISMATCH,
-    TAY_ERROR_SPACE_INDEX_OUT_OF_RANGE,
-    TAY_ERROR_GROUP_INDEX_OUT_OF_RANGE,
-    TAY_ERROR_STATE_STATUS,
-    TAY_ERROR_NOT_IMPLEMENTED,
-} TayError;
 
 /*
 ** library API

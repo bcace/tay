@@ -43,20 +43,6 @@ void state_set_error(TayState *state, TayError error) {
     state->error = error;
 }
 
-static SpaceType _translate_space_type(TaySpaceType type) {
-    if (type == TAY_SPACE_CPU_SIMPLE)
-        return ST_CPU_SIMPLE;
-    else if (type == TAY_SPACE_CPU_TREE)
-        return ST_CPU_TREE;
-    else if (type == TAY_SPACE_CPU_GRID)
-        return ST_CPU_GRID;
-    else if (type == TAY_SPACE_GPU_SIMPLE_DIRECT)
-        return ST_GPU_SIMPLE_DIRECT;
-    else if (type == TAY_SPACE_GPU_SIMPLE_INDIRECT)
-        return ST_GPU_SIMPLE_INDIRECT;
-    return ST_NONE;
-}
-
 void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction, int shared_size_in_megabytes) {
     // ERROR: must be outside simulation
     assert(state->running == TAY_STATE_STATUS_IDLE);
@@ -64,7 +50,7 @@ void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, flo
     assert(state->spaces_count < TAY_MAX_SPACES);
 
     Space *space = state->spaces + state->spaces_count++;
-    space->type = _translate_space_type(space_type);
+    space->type = space_type;
     space->depth_correction = depth_correction;
     space->radii = part_radii;
     space->dims = space_dims;
@@ -178,9 +164,9 @@ void tay_simulation_start(TayState *state) {
     for (unsigned i = 0; i < state->spaces_count; ++i) {
         Space *space = state->spaces + i;
 
-        if (space->type == ST_CPU_TREE)
+        if (space->type == TAY_CPU_TREE)
             cpu_tree_on_simulation_start(space);
-        else if (space->type == ST_CPU_GRID)
+        else if (space->type == TAY_CPU_GRID)
             cpu_grid_on_simulation_start(space);
     }
 }
@@ -211,20 +197,20 @@ static TayError _compile_passes(TayState *state) {
             int seen_is_point = state->groups[pass->seen_group].is_point;
 
             if (seer_space == seen_space) {
-                SpaceType space_type = seer_space->type;
+                TaySpaceType space_type = seer_space->type;
 
                 pass->seer_space = seer_space;
                 pass->seen_space = seen_space;
 
-                if (space_type == ST_CPU_SIMPLE) {
+                if (space_type == TAY_CPU_SIMPLE) {
                     pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_simple_see;
                 }
-                else if (space_type == ST_CPU_TREE) {
+                else if (space_type == TAY_CPU_TREE) {
                     pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_tree_see;
                 }
-                else if (space_type == ST_CPU_GRID) {
+                else if (space_type == TAY_CPU_GRID) {
 
                     if (!seer_is_point || !seen_is_point) /* neither groups can be non-point in grid */
                         return TAY_ERROR_POINT_NONPOINT_MISMATCH;
@@ -269,9 +255,9 @@ int tay_run(TayState *state, int steps) {
             Space *space = state->spaces + space_i;
 
             switch (space->type) {
-                case ST_CPU_SIMPLE: cpu_simple_sort(space, state->groups); break;
-                case ST_CPU_TREE: cpu_tree_sort(space, state->groups); break;
-                case ST_CPU_GRID: cpu_grid_sort(space, state->groups, state->passes, state->passes_count); break;
+                case TAY_CPU_SIMPLE: cpu_simple_sort(space, state->groups); break;
+                case TAY_CPU_TREE: cpu_tree_sort(space, state->groups); break;
+                case TAY_CPU_GRID: cpu_grid_sort(space, state->groups, state->passes, state->passes_count); break;
                 default: assert(0);
             }
         }
@@ -287,9 +273,9 @@ int tay_run(TayState *state, int steps) {
 
                 /* act */
                 switch (space->type) {
-                    case ST_CPU_SIMPLE: cpu_simple_act(space, pass); break;
-                    case ST_CPU_TREE: cpu_tree_act(space, pass); break;
-                    case ST_CPU_GRID: cpu_grid_act(space, pass); break;
+                    case TAY_CPU_SIMPLE: cpu_simple_act(space, pass); break;
+                    case TAY_CPU_TREE: cpu_tree_act(space, pass); break;
+                    case TAY_CPU_GRID: cpu_grid_act(space, pass); break;
                     default: assert(0); /* not implemented */
                 }
             }
@@ -302,9 +288,9 @@ int tay_run(TayState *state, int steps) {
             Space *space = state->spaces + space_i;
 
             switch (space->type) {
-                case ST_CPU_SIMPLE: cpu_simple_unsort(space, state->groups); break;
-                case ST_CPU_TREE: cpu_tree_unsort(space, state->groups); break;
-                case ST_CPU_GRID: cpu_grid_unsort(space, state->groups); break;
+                case TAY_CPU_SIMPLE: cpu_simple_unsort(space, state->groups); break;
+                case TAY_CPU_TREE: cpu_tree_unsort(space, state->groups); break;
+                case TAY_CPU_GRID: cpu_grid_unsort(space, state->groups); break;
                 default: assert(0); /* not implemented */
             }
         }

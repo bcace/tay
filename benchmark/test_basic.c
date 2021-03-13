@@ -114,7 +114,7 @@ void test_basic(Results *results, int steps,
         if (run_cpu_simple) {
             fprintf(plot, "CpuSimple::%d", i);
             printf("  cpu simple:\n");
-            double ms = _test(model_case, TAY_SPACE_CPU_SIMPLE, see_radius, 0, results, steps, &telemetry_results);
+            double ms = _test(model_case, TAY_CPU_SIMPLE, see_radius, 0, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
             fprintf(plot, " %g|%g|%g|%g|%g|%g\n",
                 telemetry_results.mean_relative_deviation_averaged,
@@ -132,7 +132,7 @@ void test_basic(Results *results, int steps,
             fprintf(plot, "CpuTree::%d", i);
             printf("  cpu tree:\n");
             for (int j = beg_depth_correction; j < end_depth_correction; ++j) {
-                double ms = _test(model_case, TAY_SPACE_CPU_TREE, see_radius, j, results, steps, &telemetry_results);
+                double ms = _test(model_case, TAY_CPU_TREE, see_radius, j, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
                 fprintf(plot, " %g|%g|%g|%g|%g|%g",
                     telemetry_results.mean_relative_deviation_averaged,
@@ -152,7 +152,7 @@ void test_basic(Results *results, int steps,
             fprintf(plot, "CpuGrid::%d", i);
             printf("  cpu grid:\n");
             for (int j = beg_depth_correction; j < end_depth_correction; ++j) {
-                double ms = _test(model_case, TAY_SPACE_CPU_GRID, see_radius, j, results, steps, &telemetry_results);
+                double ms = _test(model_case, TAY_CPU_GRID, see_radius, j, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
                 fprintf(plot, " %g|%g|%g|%g|%g|%g",
                     telemetry_results.mean_relative_deviation_averaged,
@@ -171,7 +171,7 @@ void test_basic(Results *results, int steps,
         if (run_gpu_simple_direct) {
             fprintf(plot, "GpuSimple (direct)::%d", i);
             printf("  gpu simple direct:\n");
-            double ms = _test(model_case, TAY_SPACE_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps, &telemetry_results);
+            double ms = _test(model_case, TAY_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
             fprintf(plot, " %g|%g|%g|%g|%g|%g\n",
                 telemetry_results.mean_relative_deviation_averaged,
@@ -188,7 +188,7 @@ void test_basic(Results *results, int steps,
         if (run_gpu_simple_indirect) {
             fprintf(plot, "GpuSimple (indirect)::%d", i);
             printf("  gpu simple indirect:\n");
-            double ms = _test(model_case, TAY_SPACE_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps, &telemetry_results);
+            double ms = _test(model_case, TAY_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
             fprintf(plot, " %g|%g|%g|%g|%g|%g\n",
                 telemetry_results.mean_relative_deviation_averaged,
