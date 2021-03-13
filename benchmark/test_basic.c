@@ -6,11 +6,6 @@
 #include <stdlib.h>
 
 
-typedef enum {
-    MC_UNIFORM,
-    MC_UNIFORM_WITH_ONE_CLUMP,
-} ModelCase;
-
 static double _test(ModelCase model_case, TaySpaceType space_type, float see_radius, int depth_correction, Results *results, int steps,
                     TayTelemetryResults *telemetry_results) {
     srand(1);
@@ -93,15 +88,10 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     return ms;
 }
 
-void test_basic(Results *results) {
-    int steps = 100;
-    int model_case = MC_UNIFORM;
-
-    int beg_see_radius = 0;
-    int end_see_radius = 2;
-
-    int beg_depth_correction = 0;
-    int end_depth_correction = 3;
+void test_basic(Results *results, int steps,
+                int beg_see_radius, int end_see_radius,
+                int beg_depth_correction, int end_depth_correction,
+                ModelCase model_case) {
 
     bool run_cpu_simple = true;
     bool run_cpu_tree = true;

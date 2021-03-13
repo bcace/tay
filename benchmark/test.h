@@ -4,6 +4,11 @@
 #include "tay.h"
 
 
+typedef enum {
+    MC_UNIFORM,
+    MC_UNIFORM_WITH_ONE_CLUMP,
+} ModelCase;
+
 typedef struct {
     float4 data[10000000];
     int first_time;
@@ -17,7 +22,12 @@ void results_write_or_compare(Results *results, TayState *tay, int group, int ag
 void make_randomized_direction_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity);
 void make_uniform_direction_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity);
 
-void test_basic(Results *results);
-void test_nonpoint(Results *results);
+void test_basic(Results *results, int steps,
+                int beg_see_radius, int end_see_radius,
+                int beg_depth_correction, int end_depth_correction,
+                ModelCase model_case);
+void test_nonpoint(Results *results, int steps,
+                   int beg_see_radius, int end_see_radius,
+                   int beg_depth_correction, int end_depth_correction);
 
 #endif

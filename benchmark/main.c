@@ -13,8 +13,8 @@ int main() {
 
     Results *results = results_create();
 
-    // test_basic(results);
-    test_nonpoint(results);
+    test_basic(results, 100, 0, 2, 0, 3, MC_UNIFORM);
+    // test_nonpoint(results, 100, 0, 2, 0, 3);
 
     results_destroy(results);
 
