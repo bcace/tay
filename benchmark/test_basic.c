@@ -91,16 +91,10 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
 void test_basic(Results *results, int steps,
                 int beg_see_radius, int end_see_radius,
                 int beg_depth_correction, int end_depth_correction,
-                ModelCase model_case) {
-
-    bool run_cpu_simple = true;
-    bool run_cpu_tree = true;
-    bool run_cpu_grid = true;
-    bool run_gpu_simple_direct = false;
-    bool run_gpu_simple_indirect = false;
+                ModelCase model_case, int space_type_flags) {
 
     FILE *plot;
-    fopen_s(&plot, "plot", "w");
+    fopen_s(&plot, "plot.log", "w");
 
     fprintf(plot, "%d %d\n", beg_depth_correction, end_depth_correction);
 
@@ -111,7 +105,7 @@ void test_basic(Results *results, int steps,
 
         printf("see radius: %.2f\n", see_radius);
 
-        if (run_cpu_simple) {
+        if (space_type_flags & TAY_CPU_SIMPLE) {
             fprintf(plot, "CpuSimple::%d", i);
             printf("  cpu simple:\n");
             double ms = _test(model_case, TAY_CPU_SIMPLE, see_radius, 0, results, steps, &telemetry_results);
@@ -128,7 +122,7 @@ void test_basic(Results *results, int steps,
 #endif
         }
 
-        if (run_cpu_tree) {
+        if (space_type_flags & TAY_CPU_TREE) {
             fprintf(plot, "CpuTree::%d", i);
             printf("  cpu tree:\n");
             for (int j = beg_depth_correction; j < end_depth_correction; ++j) {
@@ -148,7 +142,7 @@ void test_basic(Results *results, int steps,
             fprintf(plot, "\n");
         }
 
-        if (run_cpu_grid) {
+        if (space_type_flags & TAY_CPU_GRID) {
             fprintf(plot, "CpuGrid::%d", i);
             printf("  cpu grid:\n");
             for (int j = beg_depth_correction; j < end_depth_correction; ++j) {
@@ -168,7 +162,7 @@ void test_basic(Results *results, int steps,
             fprintf(plot, "\n");
         }
 
-        if (run_gpu_simple_direct) {
+        if (space_type_flags & TAY_GPU_SIMPLE_DIRECT) {
             fprintf(plot, "GpuSimple (direct)::%d", i);
             printf("  gpu simple direct:\n");
             double ms = _test(model_case, TAY_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps, &telemetry_results);
@@ -185,7 +179,7 @@ void test_basic(Results *results, int steps,
 #endif
         }
 
-        if (run_gpu_simple_indirect) {
+        if (space_type_flags & TAY_GPU_SIMPLE_INDIRECT) {
             fprintf(plot, "GpuSimple (indirect)::%d", i);
             printf("  gpu simple indirect:\n");
             double ms = _test(model_case, TAY_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps, &telemetry_results);
