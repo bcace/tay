@@ -75,13 +75,6 @@ void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, flo
         space->first[i] = 0;
         space->counts[i] = 0;
     }
-
-    switch (space->type) {
-        case ST_CPU_SIMPLE: space->is_point_only = 0; break;
-        case ST_CPU_TREE: space->is_point_only = 1; break;
-        case ST_CPU_GRID: space->is_point_only = 1; break;
-        default: space->is_point_only = 0;
-    }
 }
 
 int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, unsigned space_index) {
@@ -92,12 +85,6 @@ int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity,
     }
 
     Space *space = state->spaces + space_index;
-
-    if (space->is_point_only && is_point != 0) {
-        state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
-        return -1;
-    }
-
     int index = 0;
 
     for (; index < TAY_MAX_GROUPS; ++index)
@@ -224,20 +211,24 @@ static TayError _compile_passes(TayState *state) {
             int seen_is_point = state->groups[pass->seen_group].is_point;
 
             if (seer_space == seen_space) {
-                Space *space = seer_space;
+                SpaceType space_type = seer_space->type;
 
                 pass->seer_space = seer_space;
                 pass->seen_space = seen_space;
 
-                if (space->type == ST_CPU_SIMPLE) {
+                if (space_type == ST_CPU_SIMPLE) {
                     pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_simple_see;
                 }
-                else if (space->type == ST_CPU_TREE) {
+                else if (space_type == ST_CPU_TREE) {
                     pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_tree_see;
                 }
-                else if (space->type == ST_CPU_GRID) {
+                else if (space_type == ST_CPU_GRID) {
+
+                    if (!seer_is_point || !seen_is_point) /* neither groups can be non-point in grid */
+                        return TAY_ERROR_POINT_NONPOINT_MISMATCH;
+
                     pass->pairing_func = _get_one_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_grid_see;
                 }
