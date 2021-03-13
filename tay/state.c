@@ -77,13 +77,11 @@ void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, flo
     }
 
     switch (space->type) {
-        case ST_SIMPLE: space->is_point_only = 0; break;
-        case ST_TREE: space->is_point_only = 1; break;
-        case ST_GRID: space->is_point_only = 1; break;
-        default: assert(0); /* not implemented */
+        case ST_CPU_SIMPLE: space->is_point_only = 0; break;
+        case ST_CPU_TREE: space->is_point_only = 1; break;
+        case ST_CPU_GRID: space->is_point_only = 1; break;
+        default: space->is_point_only = 0;
     }
-
-    // TODO: check if all groups currently assigned to this space
 }
 
 int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, unsigned space_index) {
@@ -263,8 +261,10 @@ int tay_run(TayState *state, int steps) {
     }
 
     TayError error = _compile_passes(state);
-    if (error)
+    if (error) {
+        state_set_error(state, error);
         return 0;
+    }
 
     /* start measuring run-time */
     struct timespec beg, end;
