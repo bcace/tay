@@ -188,7 +188,7 @@ int main() {
 
     tay_threads_start(); // TODO: remove this!!!
 
-    tay = tay_create_state(1);
+    tay = tay_create_state();
     tay_add_space(tay, TAY_CPU_GRID, 3, see_radii, 1, 250);
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, 1, 0);
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));

@@ -17,7 +17,7 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
 
     float4 see_radii = { see_radius, see_radius, see_radius, 0.0f };
 
-    TayState *tay = tay_create_state(1);
+    TayState *tay = tay_create_state();
     tay_add_space(tay, space_type, dims, see_radii, depth_correction, 250);
 
     ActContext act_context;
@@ -101,7 +101,7 @@ void test_basic(Results *results, int steps,
     TayTelemetryResults telemetry_results;
 
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
-        float see_radius = 50.0f * (1 << i);
+        float see_radius = SMALLEST_SEE_RADIUS * (1 << i);
 
         printf("see radius: %.2f\n", see_radius);
 
@@ -110,7 +110,7 @@ void test_basic(Results *results, int steps,
             printf("  cpu simple:\n");
             double ms = _test(model_case, TAY_CPU_SIMPLE, see_radius, 0, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
-            fprintf(plot, " %g|%g|%g|%g|%g|%g\n",
+            fprintf(plot, " %g|%g|%g|%g|%g|%g",
                 telemetry_results.mean_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation,
@@ -118,8 +118,9 @@ void test_basic(Results *results, int steps,
                 telemetry_results.mean_see_interactions_per_step,
                 telemetry_results.grid_kernel_rebuilds);
 #else
-            fprintf(plot, " %g\n", ms);
+            fprintf(plot, " %g", ms);
 #endif
+            fprintf(plot, "\n");
         }
 
         if (space_type_flags & TAY_CPU_TREE) {
@@ -167,7 +168,7 @@ void test_basic(Results *results, int steps,
             printf("  gpu simple direct:\n");
             double ms = _test(model_case, TAY_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
-            fprintf(plot, " %g|%g|%g|%g|%g|%g\n",
+            fprintf(plot, " %g|%g|%g|%g|%g|%g",
                 telemetry_results.mean_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation,
@@ -175,8 +176,9 @@ void test_basic(Results *results, int steps,
                 telemetry_results.mean_see_interactions_per_step,
                 telemetry_results.grid_kernel_rebuilds);
 #else
-            fprintf(plot, " %g\n", ms);
+            fprintf(plot, " %g", ms);
 #endif
+            fprintf(plot, "\n");
         }
 
         if (space_type_flags & TAY_GPU_SIMPLE_INDIRECT) {
@@ -184,7 +186,7 @@ void test_basic(Results *results, int steps,
             printf("  gpu simple indirect:\n");
             double ms = _test(model_case, TAY_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps, &telemetry_results);
 #if TAY_TELEMETRY
-            fprintf(plot, " %g|%g|%g|%g|%g|%g\n",
+            fprintf(plot, " %g|%g|%g|%g|%g|%g",
                 telemetry_results.mean_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation_averaged,
                 telemetry_results.max_relative_deviation,
@@ -192,8 +194,9 @@ void test_basic(Results *results, int steps,
                 telemetry_results.mean_see_interactions_per_step,
                 telemetry_results.grid_kernel_rebuilds);
 #else
-            fprintf(plot, " %g\n", ms);
+            fprintf(plot, " %g", ms);
 #endif
+            fprintf(plot, "\n");
         }
 
         results_reset(results);

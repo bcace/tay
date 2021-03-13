@@ -3,6 +3,7 @@
 
 #include "tay.h"
 
+#define SMALLEST_SEE_RADIUS 50.0f
 
 typedef enum {
     MC_UNIFORM,
@@ -26,6 +27,7 @@ void test_basic(Results *results, int steps,
                 int beg_see_radius, int end_see_radius,
                 int beg_depth_correction, int end_depth_correction,
                 ModelCase model_case, int space_type_flags);
+
 void test_nonpoint(Results *results, int steps,
                    int beg_see_radius, int end_see_radius,
                    int beg_depth_correction, int end_depth_correction);
