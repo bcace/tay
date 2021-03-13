@@ -200,6 +200,20 @@ void tay_simulation_start(TayState *state) {
     }
 }
 
+static SEE_PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, int seen_is_point) {
+    if (seer_is_point == seen_is_point)
+        return (seer_is_point) ? space_see_point_point : space_see_nonpoint_nonpoint;
+    else
+        return (seer_is_point) ? space_see_point_nonpoint : space_see_nonpoint_point;
+}
+
+static SEE_PAIRING_FUNC _get_one_to_many_pairing_function(int seer_is_point, int seen_is_point) {
+    if (seer_is_point == seen_is_point)
+        return (seer_is_point) ? space_see_one_to_many_point_to_point : space_see_one_to_many_nonpoint_to_nonpoint;
+    else
+        return (seer_is_point) ? space_see_one_to_many_point_to_nonpoint : space_see_one_to_many_nonpoint_to_point;
+}
+
 static TayError _compile_passes(TayState *state) {
 
     for (int pass_i = 0; pass_i < state->passes_count; ++pass_i) {
@@ -214,29 +228,21 @@ static TayError _compile_passes(TayState *state) {
             if (seer_space == seen_space) {
                 Space *space = seer_space;
 
+                pass->seer_space = seer_space;
+                pass->seen_space = seen_space;
+
                 if (space->type == ST_CPU_SIMPLE) {
-                    pass->seer_space = seer_space;
-                    pass->seen_space = seen_space;
-
-                    if (seer_is_point == seen_is_point) {
-                        if (seer_is_point)
-                            pass->pairing_func = space_see_point_point;
-                        else
-                            pass->pairing_func = space_see_nonpoint_nonpoint;
-                    }
-                    else {
-                        if (seer_is_point)
-                            pass->pairing_func = space_see_point_nonpoint;
-                        else
-                            pass->pairing_func = space_see_nonpoint_point;
-                    }
-
+                    pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_simple_see;
                 }
-                // else if (space->type == ST_CPU_TREE) {
-                // }
-                // else if (space->type == ST_CPU_GRID) {
-                // }
+                else if (space->type == ST_CPU_TREE) {
+                    pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
+                    pass->exec_func = cpu_tree_see;
+                }
+                else if (space->type == ST_CPU_GRID) {
+                    pass->pairing_func = _get_one_to_many_pairing_function(seer_is_point, seen_is_point);
+                    pass->exec_func = cpu_grid_see;
+                }
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
             }
