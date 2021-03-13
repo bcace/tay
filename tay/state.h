@@ -45,7 +45,6 @@ typedef struct {
 
 typedef struct Space {
     int dims;
-    int depth_correction;
     float4 radii; /* if space is partitioned, these are suggested subdivision radii */
     TaySpaceType type;
     TayAgentTag *first[TAY_MAX_GROUPS]; /* unsorted agents */

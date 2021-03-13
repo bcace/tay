@@ -359,12 +359,10 @@ static void _sort_non_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *ag
     }
 }
 
-static int _max_depth(float space_side, float cell_side, int depth_correction) {
+static int _max_depth(float space_side, float cell_side) {
     int depth = 0;
     while ((space_side *= 0.5f) > cell_side)
         ++depth;
-    if ((depth += depth_correction) < 0)
-        depth = 0;
     return depth;
 }
 
@@ -382,7 +380,7 @@ void cpu_tree_sort(Space *space, TayGroup *groups) {
     /* calculate max partition depths for each dimension */
     Depths root_cell_depths;
     for (int i = 0; i < tree->dims; ++i) {
-        tree->max_depths.arr[i] = _max_depth(space->box.max.arr[i] - space->box.min.arr[i], space->radii.arr[i] * 2.0f, space->depth_correction);
+        tree->max_depths.arr[i] = _max_depth(space->box.max.arr[i] - space->box.min.arr[i], space->radii.arr[i] * 2.0f);
         root_cell_depths.arr[i] = 0;
     }
 

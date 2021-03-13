@@ -43,7 +43,7 @@ void state_set_error(TayState *state, TayError error) {
     state->error = error;
 }
 
-void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, float4 part_radii, int depth_correction, int shared_size_in_megabytes) {
+void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, float4 part_radii, int shared_size_in_megabytes) {
     // ERROR: must be outside simulation
     assert(state->running == TAY_STATE_STATUS_IDLE);
     // ERROR: no more free spaces left
@@ -51,7 +51,6 @@ void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, flo
 
     Space *space = state->spaces + state->spaces_count++;
     space->type = space_type;
-    space->depth_correction = depth_correction;
     space->radii = part_radii;
     space->dims = space_dims;
     space->shared_size = shared_size_in_megabytes * TAY_MB;

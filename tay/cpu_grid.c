@@ -353,7 +353,7 @@ void cpu_grid_sort(Space *space, TayGroup *groups, TayPass *passes, int passes_c
 
     /* calculate grid parameters */
     for (int i = 0; i < space->dims; ++i) {
-        float cell_size = (space->radii.arr[i] * 2.0f) / (float)(1 << space->depth_correction);
+        float cell_size = space->radii.arr[i] * 2.0f;
         float space_size = space->box.max.arr[i] - space->box.min.arr[i];
         int count = (int)ceilf(space_size / cell_size);
         float margin = (count * cell_size - space_size) * 0.5f;
