@@ -173,6 +173,7 @@ int main() {
     const float radius = 20.0f;
     const int max_boids_count = 100000;
     const float4 see_radii = { radius, radius, radius, radius };
+    const float4 part_radii = { radius * 0.5f, radius * 0.5f, radius * 0.5f, radius * 0.5f };
     const float velocity = 1.0f;
     const float4 min = { -100.0f, -100.0f, -100.0f, -100.0f };
     const float4 max = { 100.0f, 100.0f, 100.0f, 100.0f };
@@ -189,7 +190,7 @@ int main() {
     tay_threads_start(); // TODO: remove this!!!
 
     tay = tay_create_state();
-    tay_add_space(tay, TAY_CPU_GRID, 3, see_radii, 1, 250);
+    tay_add_space(tay, TAY_CPU_GRID, 3, part_radii, 250);
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, 1, 0);
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context, sizeof(act_context));
