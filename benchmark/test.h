@@ -18,5 +18,6 @@ void make_randomized_direction_cluster(TayState *state, int group, int count, fl
 void make_uniform_direction_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity);
 
 void test_basic(Results *results);
+void test_nonpoint(Results *results);
 
 #endif

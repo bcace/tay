@@ -13,7 +13,8 @@ int main() {
 
     Results *results = results_create();
 
-    test_basic(results);
+    // test_basic(results);
+    test_nonpoint(results);
 
     results_destroy(results);
 
