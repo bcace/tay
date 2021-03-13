@@ -185,11 +185,17 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     printf("    depth_correction: %d\n", depth_correction);
 
     tay_simulation_start(tay);
-    tay_run(tay, steps);
+
+    int steps_run = tay_run(tay, steps);
+    if (steps_run == 0)
+        printf("    run error: %d\n", tay_get_error(tay));
+
     double ms = tay_get_ms_per_step_for_last_run(tay);
     printf("    milliseconds per frame: %g\n", ms);
+
     tay_threads_get_telemetry_results(telemetry_results);
     tay_threads_report_telemetry(0);
+
     tay_simulation_end(tay);
 
     _write_or_compare_results(results, tay, group, agents_count);
@@ -208,7 +214,7 @@ int main() {
     Results *results = 0;
 #endif
 
-    int steps = 1000;
+    int steps = 100;
     int model_case = MC_UNIFORM;
 
     int beg_see_radius = 0;
@@ -218,9 +224,9 @@ int main() {
     int end_depth_correction = 3;
 
     bool run_cpu_simple = false;
-    bool run_cpu_tree = true;
-    bool run_cpu_grid = true;
-    bool run_gpu_simple_direct = false;
+    bool run_cpu_tree = false;
+    bool run_cpu_grid = false;
+    bool run_gpu_simple_direct = true;
     bool run_gpu_simple_indirect = false;
 
     FILE *plot;
