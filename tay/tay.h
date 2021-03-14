@@ -16,6 +16,11 @@
 ** Enums
 */
 
+typedef enum TayBool {
+    TAY_FALSE,
+    TAY_TRUE,
+} TayBool;
+
 typedef enum TaySpaceType {
     ST_NONE                     = 0x00,
     TAY_CPU_SIMPLE              = 0x01,
