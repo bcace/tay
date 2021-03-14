@@ -192,9 +192,6 @@ def main(proj_dir):
 #pragma pack(push, 1)
 
 {0}
-void agent_see(Agent *a, Agent *b, SeeContext *context);
-void agent_act(Agent *agent, ActContext *context);
-
 {1}
 extern const char *agent_kernels_source;
 
@@ -204,7 +201,7 @@ extern const char *agent_kernels_source;
 """.format(
     agent_h,
     builtins_h
-    ).replace('__PACK__ ', '')
+    ).replace('__PACK__ ', '').replace('__GLOBAL__ ', '')
 )
 
     #
