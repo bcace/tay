@@ -5,6 +5,11 @@
 #include <math.h>
 
 
+float4 depth_correct(float4 radii, unsigned level) {
+    float c = (float)(1 << level);
+    return (float4) { radii.x / c, radii.y / c, radii.z / c, radii.w / c };
+}
+
 Results *results_create() {
     Results *r = malloc(sizeof(Results));
     r->first_time = 1;
