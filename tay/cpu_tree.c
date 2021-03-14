@@ -294,6 +294,9 @@ static void _sort_non_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *ag
         agent->next = cell->first[group];
         cell->first[group] = agent;
         ++cell->counts[group];
+#if TAY_TELEMETRY
+        ++runner.telemetry.tree_branch_agents;
+#endif
         return;
     }
 }
@@ -340,11 +343,19 @@ void cpu_tree_sort(Space *space, TayGroup *groups) {
 
         TayAgentTag *next = space->first[group_i];
 
+#if TAY_TELEMETRY
+        runner.telemetry.tree_agents = 0;
+        runner.telemetry.tree_branch_agents = 0;
+#endif
+
         if (group->is_point) {
             while (next) {
                 TayAgentTag *tag = next;
                 next = next->next;
                 _sort_point_agent(tree, tree->cells, tag, group_i, root_cell_depths, space->radii.arr);
+#if TAY_TELEMETRY
+                ++runner.telemetry.tree_agents;
+#endif
             }
         }
         else {
@@ -352,6 +363,9 @@ void cpu_tree_sort(Space *space, TayGroup *groups) {
                 TayAgentTag *tag = next;
                 next = next->next;
                 _sort_non_point_agent(tree, tree->cells, tag, group_i, root_cell_depths, space->radii.arr);
+#if TAY_TELEMETRY
+                ++runner.telemetry.tree_agents;
+#endif
             }
         }
 

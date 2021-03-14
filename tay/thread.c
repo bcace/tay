@@ -178,6 +178,7 @@ static void _calculate_telemetry_results(TayTelemetryResults *r) {
     r->see_culling_efficiency = t->n_see_sum * 100.0 / (double)t->b_see_sum;
     r->mean_see_interactions_per_step = t->n_see_sum / (double)t->steps_count;
     r->grid_kernel_rebuilds = t->g_seer_kernel_rebuilds * 100.0 / (double)t->g_seer_bins;
+    r->tree_branch_agents = t->tree_branch_agents * 100.0 / (double)t->tree_agents;
 }
 
 // TODO: make the following funcs into macros that optionally turn into no-ops
@@ -205,6 +206,7 @@ void tay_threads_report_telemetry(unsigned steps_between_reports) {
     printf("        max relative deviation: %.2f%%\n", results.max_relative_deviation);
     printf("      see interaction culling efficiency (actual / potential): %.2f%%\n", results.see_culling_efficiency);
     printf("      mean actual see interactions per step: %.2f\n", results.mean_see_interactions_per_step);
+    printf("      tree branch agents: %.2f%%\n", results.tree_branch_agents);
     printf("      grid kernel rebuilds: %.2f%%\n", results.grid_kernel_rebuilds);
 
     _reset_telemetry();

@@ -12,8 +12,8 @@ typedef struct TayThreadContext {
     // TODO: make names more similar to ones in telemetry structures
     unsigned broad_see_phase;   /* single simulation step only */
     unsigned narrow_see_phase;  /* single simulation step only */
-    unsigned long long grid_seer_bins;                   /* single simulation step only */
-    unsigned long long grid_seer_kernel_rebuilds;    /* single simulation step only */
+    unsigned long long grid_seer_bins;              /* single simulation step only */
+    unsigned long long grid_seer_kernel_rebuilds;   /* single simulation step only */
 #endif
 } TayThreadContext;
 
@@ -41,6 +41,8 @@ typedef struct {
     double rel_dev_max;
     unsigned long long g_seer_bins;
     unsigned long long g_seer_kernel_rebuilds;
+    unsigned long long tree_agents;
+    unsigned long long tree_branch_agents;
     int steps_count;
 } TayTelemetry;
 
@@ -51,6 +53,7 @@ typedef struct {
     double see_culling_efficiency;
     double mean_see_interactions_per_step;
     double grid_kernel_rebuilds;
+    double tree_branch_agents;
 } TayTelemetryResults;
 
 typedef struct TayRunner {
