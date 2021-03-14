@@ -4,6 +4,8 @@
 #include "tay.h"
 
 #define SMALLEST_SEE_RADIUS 50.0f
+#define SPACE_SIZE 1000.0f
+
 
 typedef enum {
     MC_UNIFORM,

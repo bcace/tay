@@ -12,7 +12,6 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
 
     int dims = 3;
     int agents_count = 10000;
-    float space_size = 1000.0f;
     float velocity = 1.0f;
 
     float4 see_radii = { see_radius, see_radius, see_radius, 0.0f };
@@ -24,9 +23,9 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     act_context.min.x = 0.0f;
     act_context.min.y = 0.0f;
     act_context.min.z = 0.0f;
-    act_context.max.x = space_size;
-    act_context.max.y = space_size;
-    act_context.max.z = space_size;
+    act_context.max.x = SPACE_SIZE;
+    act_context.max.y = SPACE_SIZE;
+    act_context.max.z = SPACE_SIZE;
 
     SeeContext see_context;
     see_context.radii.x = see_radius;
@@ -43,7 +42,7 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
                                                group,
                                                agents_count,
                                                float3_make(0.0f, 0.0f, 0.0f),
-                                               float3_make(space_size, space_size, space_size),
+                                               float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
                                                velocity);
         } break;
         case MC_UNIFORM_WITH_ONE_CLUMP: {
@@ -52,13 +51,13 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
                                                group,
                                                agents_count - clump_count,
                                                float3_make(0.0f, 0.0f, 0.0f),
-                                               float3_make(space_size, space_size, space_size),
+                                               float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
                                                velocity);
             make_uniform_direction_cluster(tay,
                                             group,
                                             clump_count,
                                             float3_make(0.0f, 0.0f, 0.0f),
-                                            float3_make(space_size * 0.05f, space_size * 0.05f, space_size * 0.05f),
+                                            float3_make(SPACE_SIZE * 0.05f, SPACE_SIZE * 0.05f, SPACE_SIZE * 0.05f),
                                             velocity);
         } break;
         default:
