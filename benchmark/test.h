@@ -26,7 +26,7 @@ void results_write_or_compare(Results *results, TayState *tay, int group, int ag
 void make_randomized_direction_cluster(TayState *state, int group, int count, float3 min, float3 max);
 void make_uniform_direction_cluster(TayState *state, int group, int count, float3 min, float3 max);
 
-float4 depth_correct(float4 radii, unsigned level);
+float4 depth_correct(float4 radii, int level);
 const char *space_type_name(TaySpaceType space_type);
 
 void test_basic(Results *results, int steps,

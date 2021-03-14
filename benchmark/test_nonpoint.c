@@ -1,4 +1,5 @@
 #include "test.h"
+#include "thread.h"
 #include "agent.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,8 +12,7 @@ static float _rand(float min, float max) {
 
 static float _rand_exponential(float min, float max, float exp) {
     float base = rand() / (float)RAND_MAX;
-    float exp_base = powf(base, exp);
-    return min + (max - min) * exp_base;
+    return min + (max - min) * powf(base, exp);
 }
 
 static void _make_randomized_direction_cluster(TayState *state, int group, int count, float3 min, float3 max, float min_size, float max_size) {
@@ -64,9 +64,9 @@ static void _make_randomized_direction_cluster(TayState *state, int group, int c
 void _test(TaySpaceType space_type, int steps, float see_radius, int depth_correction, float min_size, float max_size, Results *results) {
     srand(1);
 
-    printf("  %s:\n", space_type_name(space_type));
+    printf("  %s (%d):\n", space_type_name(space_type), depth_correction);
 
-    int agents_count = 5000;
+    int agents_count = 10000;
     float4 see_radii = { see_radius, see_radius, see_radius, see_radius };
 
     ActContext act_context;
@@ -100,6 +100,7 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
 
     results_write_or_compare(results, tay, group, agents_count, offsetof(BoxAgent, f_buffer));
 
+    tay_threads_report_telemetry(0);
     tay_simulation_end(tay);
     tay_destroy_state(tay);
 }
