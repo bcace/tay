@@ -10,6 +10,17 @@ float4 depth_correct(float4 radii, unsigned level) {
     return (float4) { radii.x / c, radii.y / c, radii.z / c, radii.w / c };
 }
 
+const char *space_type_name(TaySpaceType space_type) {
+    switch (space_type) {
+        case TAY_CPU_SIMPLE: return "CpuSimple";
+        case TAY_CPU_TREE: return "CpuTree";
+        case TAY_CPU_GRID: return "CpuGrid";
+        case TAY_GPU_SIMPLE_DIRECT: return "GpuSimple (direct)";
+        case TAY_GPU_SIMPLE_INDIRECT: return "GpuSimple (indirect)";
+        default: return "(None)";
+    }
+}
+
 Results *results_create() {
     Results *r = malloc(sizeof(Results));
     r->first_time = 1;
@@ -34,12 +45,12 @@ static inline void _check_error(float a, float b, float *max_error) {
         *max_error = -relative_error;
 }
 
-void results_write_or_compare(Results *results, TayState *tay, int group, int agents_count) {
+void results_write_or_compare(Results *results, TayState *tay, int group, int agents_count, int f_buffer_offset) {
     if (results) {
         if (results->first_time) {
             for (int i = 0; i < agents_count; ++i) {
-                Agent *agent = tay_get_agent(tay, group, i);
-                results->data[i] = agent->f_buffer;
+                char *agent = tay_get_agent(tay, group, i);
+                results->data[i] = *(float4 *)(agent + f_buffer_offset);
             }
             results->first_time = 0;
         }
@@ -47,9 +58,9 @@ void results_write_or_compare(Results *results, TayState *tay, int group, int ag
             float max_error = 0.0f;
 
             for (int i = 0; i < agents_count; ++i) {
-                Agent *agent = tay_get_agent(tay, group, i);
+                char *agent = tay_get_agent(tay, group, i);
                 float4 a = results->data[i];
-                float4 b = agent->f_buffer;
+                float4 b = *(float4 *)(agent + f_buffer_offset);
                 _check_error(a.x, b.x, &max_error);
                 _check_error(a.y, b.y, &max_error);
                 _check_error(a.z, b.z, &max_error);
@@ -64,7 +75,7 @@ void results_write_or_compare(Results *results, TayState *tay, int group, int ag
     }
 }
 
-void make_randomized_direction_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity) {
+void make_randomized_direction_cluster(TayState *state, int group, int count, float3 min, float3 max) {
     for (int i = 0; i < count; ++i) {
         Agent *a = tay_get_available_agent(state, group);
         a->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
@@ -73,7 +84,7 @@ void make_randomized_direction_cluster(TayState *state, int group, int count, fl
         a->v.x = -0.5f + rand() / (float)RAND_MAX;
         a->v.y = -0.5f + rand() / (float)RAND_MAX;
         a->v.z = -0.5f + rand() / (float)RAND_MAX;
-        float l = velocity / sqrtf(a->v.x * a->v.x + a->v.y * a->v.y + a->v.z * a->v.z);
+        float l = AGENT_VELOCITY / sqrtf(a->v.x * a->v.x + a->v.y * a->v.y + a->v.z * a->v.z);
         a->v.x *= l;
         a->v.y *= l;
         a->v.z *= l;
@@ -88,12 +99,12 @@ void make_randomized_direction_cluster(TayState *state, int group, int count, fl
     }
 }
 
-void make_uniform_direction_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity) {
+void make_uniform_direction_cluster(TayState *state, int group, int count, float3 min, float3 max) {
     float3 v;
     v.x = -0.5f + rand() / (float)RAND_MAX;
     v.y = -0.5f + rand() / (float)RAND_MAX;
     v.z = -0.5f + rand() / (float)RAND_MAX;
-    float l = velocity / sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+    float l = AGENT_VELOCITY / sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
     v.x *= l;
     v.y *= l;
     v.z *= l;
@@ -115,4 +126,3 @@ void make_uniform_direction_cluster(TayState *state, int group, int count, float
         tay_commit_available_agent(state, group);
     }
 }
-

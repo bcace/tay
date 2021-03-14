@@ -12,7 +12,6 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
 
     int dims = 3;
     int agents_count = 10000;
-    float velocity = 1.0f;
 
     float4 see_radii = { see_radius, see_radius, see_radius, 0.0f };
 
@@ -39,26 +38,23 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     switch (model_case) {
         case MC_UNIFORM: {
             make_randomized_direction_cluster(tay,
-                                               group,
-                                               agents_count,
-                                               float3_make(0.0f, 0.0f, 0.0f),
-                                               float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
-                                               velocity);
+                                              group,
+                                              agents_count,
+                                              float3_make(0.0f, 0.0f, 0.0f),
+                                              float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE));
         } break;
         case MC_UNIFORM_WITH_ONE_CLUMP: {
             int clump_count = (int)floor(agents_count * 0.2);
             make_randomized_direction_cluster(tay,
-                                               group,
-                                               agents_count - clump_count,
-                                               float3_make(0.0f, 0.0f, 0.0f),
-                                               float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
-                                               velocity);
+                                              group,
+                                              agents_count - clump_count,
+                                              float3_make(0.0f, 0.0f, 0.0f),
+                                              float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE));
             make_uniform_direction_cluster(tay,
-                                            group,
-                                            clump_count,
-                                            float3_make(0.0f, 0.0f, 0.0f),
-                                            float3_make(SPACE_SIZE * 0.05f, SPACE_SIZE * 0.05f, SPACE_SIZE * 0.05f),
-                                            velocity);
+                                           group,
+                                           clump_count,
+                                           float3_make(0.0f, 0.0f, 0.0f),
+                                           float3_make(SPACE_SIZE * 0.05f, SPACE_SIZE * 0.05f, SPACE_SIZE * 0.05f));
         } break;
         default:
             printf("    model case not implemented\n");
@@ -80,7 +76,7 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
 
     tay_simulation_end(tay);
 
-    results_write_or_compare(results, tay, group, agents_count);
+    results_write_or_compare(results, tay, group, agents_count, offsetof(Agent, f_buffer));
 
     tay_destroy_state(tay);
 

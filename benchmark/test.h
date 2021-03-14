@@ -3,8 +3,9 @@
 
 #include "tay.h"
 
-#define SMALLEST_SEE_RADIUS 50.0f
-#define SPACE_SIZE 1000.0f
+#define SMALLEST_SEE_RADIUS     50.0f
+#define SPACE_SIZE              1000.0f
+#define AGENT_VELOCITY          1.0f
 
 
 typedef enum {
@@ -20,12 +21,13 @@ typedef struct {
 Results *results_create();
 void results_reset(Results *r);
 void results_destroy(Results *r);
-void results_write_or_compare(Results *results, TayState *tay, int group, int agents_count);
+void results_write_or_compare(Results *results, TayState *tay, int group, int agents_count, int f_buffer_offset);
 
-void make_randomized_direction_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity);
-void make_uniform_direction_cluster(TayState *state, int group, int count, float3 min, float3 max, float velocity);
+void make_randomized_direction_cluster(TayState *state, int group, int count, float3 min, float3 max);
+void make_uniform_direction_cluster(TayState *state, int group, int count, float3 min, float3 max);
 
 float4 depth_correct(float4 radii, unsigned level);
+const char *space_type_name(TaySpaceType space_type);
 
 void test_basic(Results *results, int steps,
                 int beg_see_radius, int end_see_radius,
@@ -34,6 +36,7 @@ void test_basic(Results *results, int steps,
 
 void test_nonpoint(Results *results, int steps,
                    int beg_see_radius, int end_see_radius,
-                   int beg_depth_correction, int end_depth_correction);
+                   int beg_depth_correction, int end_depth_correction,
+                   int space_type_flags);
 
 #endif
