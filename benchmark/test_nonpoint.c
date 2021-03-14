@@ -20,7 +20,7 @@ static void _make_randomized_direction_cluster(TayState *state, int group, int c
         int major = i % 3;
 
         /* size */
-        float size = _rand_exponential(min_size, max_size, 10);
+        float size = _rand_exponential(min_size, max_size, 1);
 
         /* shape */
         float3 shape;
@@ -116,7 +116,7 @@ void test_nonpoint(Results *results, int steps,
         printf("R: %g\n", see_radius);
 
         float min_size = 10.0f;
-        float max_size = 100.0f;
+        float max_size = 200.0f;
 
         if (space_type_flags & TAY_CPU_SIMPLE)
             _test(TAY_CPU_SIMPLE, steps, see_radius, 0, min_size, max_size, results);
