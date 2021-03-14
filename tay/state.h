@@ -34,6 +34,12 @@ typedef struct {
 } CpuTree;
 
 typedef struct {
+    struct AABBTreeCell *cells;
+    int max_cells;
+    int cells_count;
+} CpuAABBTree;
+
+typedef struct {
     struct Bin *bins; /* bins storage */
     struct Bin *first_bin; /* first bin that contains any agents */
     int4 cell_counts;
@@ -54,6 +60,7 @@ typedef struct Space {
         CpuSimple cpu_simple;
         CpuTree cpu_tree;
         CpuGrid cpu_grid;
+        CpuAABBTree cpu_aabb_tree;
     };
     void *shared; /* buffer shared internally by all structures in this space */
     int shared_size; /* size of the shared buffer */
