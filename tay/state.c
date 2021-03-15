@@ -257,6 +257,7 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_SIMPLE: cpu_simple_sort(space, state->groups); break;
                 case TAY_CPU_TREE: cpu_tree_sort(space, state->groups); break;
                 case TAY_CPU_GRID: cpu_grid_sort(space, state->groups, state->passes, state->passes_count); break;
+                case TAY_CPU_AABB_TREE: cpu_aabb_tree_sort(space, state->groups); break;
                 default: assert(0);
             }
         }

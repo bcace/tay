@@ -26,8 +26,9 @@ typedef enum TaySpaceType {
     TAY_CPU_SIMPLE              = 0x01,
     TAY_CPU_TREE                = 0x02,
     TAY_CPU_GRID                = 0x04,
-    TAY_GPU_SIMPLE_DIRECT       = 0x08,
-    TAY_GPU_SIMPLE_INDIRECT     = 0x10,
+    TAY_CPU_AABB_TREE           = 0x08,
+    TAY_GPU_SIMPLE_DIRECT       = 0x10,
+    TAY_GPU_SIMPLE_INDIRECT     = 0x20,
 } TaySpaceType;
 
 typedef enum TayError {

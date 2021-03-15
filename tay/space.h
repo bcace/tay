@@ -39,6 +39,8 @@ void cpu_grid_unsort(Space *space, TayGroup *groups);
 void cpu_grid_see(TayPass *pass);
 void cpu_grid_act(Space *space, TayPass *pass);
 
+void cpu_aabb_tree_sort(Space *space, TayGroup *groups);
+
 int space_agent_count_to_bucket_index(int count);
 
 void box_reset(Box *box, int dims);

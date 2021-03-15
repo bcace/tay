@@ -34,9 +34,10 @@ typedef struct {
 } CpuTree;
 
 typedef struct {
-    struct AABBTreeCell *cells;
-    int max_cells;
-    int cells_count;
+    struct TreeNode *nodes;
+    struct TreeNode *root;
+    int max_nodes;
+    int nodes_count;
 } CpuAABBTree;
 
 typedef struct {
