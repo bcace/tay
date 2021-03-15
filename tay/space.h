@@ -24,22 +24,23 @@ void space_see_one_to_many_nonpoint_to_nonpoint(TayAgentTag *seer_agent, TayAgen
 void cpu_simple_sort(Space *space, TayGroup *groups);
 void cpu_simple_unsort(Space *space, TayGroup *groups);
 void cpu_simple_see(TayPass *pass);
-void cpu_simple_act(Space *space, TayPass *pass);
+void cpu_simple_act(TayPass *pass);
 
 void cpu_tree_on_simulation_start(Space *space);
 void cpu_tree_sort(Space *space, TayGroup *groups);
 void cpu_tree_unsort(Space *space, TayGroup *groups);
 void cpu_tree_single_space_see(Space *space, TayPass *pass);
 void cpu_tree_see(TayPass *pass);
-void cpu_tree_act(Space *space, TayPass *pass);
+void cpu_tree_act(TayPass *pass);
 
 void cpu_grid_on_simulation_start(Space *space);
 void cpu_grid_sort(Space *space, TayGroup *groups, TayPass *passes, int passes_count);
 void cpu_grid_unsort(Space *space, TayGroup *groups);
 void cpu_grid_see(TayPass *pass);
-void cpu_grid_act(Space *space, TayPass *pass);
+void cpu_grid_act(TayPass *pass);
 
 void cpu_aabb_tree_sort(Space *space, TayGroup *groups);
+void cpu_aabb_tree_act(TayPass *pass);
 
 int space_agent_count_to_bucket_index(int count);
 

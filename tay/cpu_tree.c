@@ -146,10 +146,10 @@ static void _thread_act_traverse(ActTask *task, TayThreadContext *thread_context
     _thread_traverse_actors(task, task->tree->cells, thread_context);
 }
 
-void cpu_tree_act(Space *space, TayPass *pass) {
+void cpu_tree_act(TayPass *pass) {
     static ActTask tasks[TAY_MAX_THREADS];
 
-    CpuTree *tree = &space->cpu_tree;
+    CpuTree *tree = &pass->act_space->cpu_tree;
 
     for (int i = 0; i < runner.count; ++i) {
         ActTask *task = tasks + i;

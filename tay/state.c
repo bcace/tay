@@ -223,6 +223,28 @@ static TayError _compile_passes(TayState *state) {
             else
                 return TAY_ERROR_NOT_IMPLEMENTED;
         }
+        else if (pass->type == TAY_PASS_ACT) {
+            Space *act_space = state->groups[pass->act_group].space;
+            int act_is_point = state->groups[pass->act_group].is_point;
+
+            pass->act_space = act_space;
+
+            if (act_space->type == TAY_CPU_SIMPLE)
+                pass->exec_func = cpu_simple_act;
+            else if (act_space->type == TAY_CPU_TREE)
+                pass->exec_func = cpu_tree_act;
+            else if (act_space->type == TAY_CPU_GRID) {
+
+                if (!act_is_point) /* group cannot be non-point in grid */
+                    TAY_ERROR_POINT_NONPOINT_MISMATCH;
+
+                pass->exec_func = cpu_grid_act;
+            }
+            else if (act_space->type == TAY_CPU_AABB_TREE)
+                pass->exec_func = cpu_aabb_tree_act;
+            else
+                return TAY_ERROR_NOT_IMPLEMENTED;
+        }
     }
 
     return TAY_ERROR_NONE;
@@ -265,22 +287,7 @@ int tay_run(TayState *state, int steps) {
         /* do passes */
         for (int pass_i = 0; pass_i < state->passes_count; ++pass_i) {
             TayPass *pass = state->passes + pass_i;
-
-            if (pass->type == TAY_PASS_SEE)
-                pass->exec_func(pass);
-            else if (pass->type == TAY_PASS_ACT) {
-                Space *space = state->groups[pass->act_group].space;
-
-                /* act */
-                switch (space->type) {
-                    case TAY_CPU_SIMPLE: cpu_simple_act(space, pass); break;
-                    case TAY_CPU_TREE: cpu_tree_act(space, pass); break;
-                    case TAY_CPU_GRID: cpu_grid_act(space, pass); break;
-                    default: assert(0); /* not implemented */
-                }
-            }
-            else
-                assert(0); /* unhandled pass type */
+            pass->exec_func(pass);
         }
 
         /* return agents from structures */

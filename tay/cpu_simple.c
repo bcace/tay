@@ -60,10 +60,10 @@ static void _act_func(ActTask *task, TayThreadContext *thread_context) {
         task->pass->act(tag, thread_context->context);
 }
 
-void cpu_simple_act(Space *space, TayPass *pass) {
+void cpu_simple_act(TayPass *pass) {
     static ActTask act_contexts[TAY_MAX_THREADS];
 
-    CpuSimple *simple = &space->cpu_simple;
+    CpuSimple *simple = &pass->act_space->cpu_simple;
 
     for (int i = 0; i < runner.count; ++i) {
         ActTask *task = act_contexts + i;

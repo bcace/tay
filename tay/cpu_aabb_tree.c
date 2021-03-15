@@ -45,8 +45,8 @@ static void _init_leaf_node(TreeNode *node, TayAgentTag *agent) {
 static void _init_branch_node(TreeNode *node, TreeNode *a, TreeNode *b) {
     node->l = a;
     node->r = b;
-    node->box.min = _float4_min(a.min, b.min);
-    node->box.max = _float4_max(a.max, b.max);
+    node->box.min = _float4_min(a->box.min, b->box.min);
+    node->box.max = _float4_max(a->box.max, b->box.max);
 }
 
 static float _increase_in_volume(Box box, Box target_box, int dims) {
@@ -74,8 +74,8 @@ void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
 
     tree->nodes = space->shared;
     tree->nodes_count = 0;
-    tree->max_cells = space->shared_size / (int)sizeof(TreeNode);
-    tree->root_node = 0;
+    tree->max_nodes = space->shared_size / (int)sizeof(TreeNode);
+    tree->root = 0;
 
     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = groups + group_i;
@@ -88,23 +88,24 @@ void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
             TayAgentTag *agent = next;
             next = next->next;
 
-            if (tree->nodes_count == 0) { /* first node */
+            if (tree->root == 0) {
                 TreeNode *node = tree->nodes + tree->nodes_count++;
                 _init_leaf_node(node, agent);
-                tree->root_node = node;
+                tree->root = node;
             }
             else {
-                TreeNode *parent = 0;
-                TreeNode *sibling = _find_best_sibling(tree->root_node, box, space->dims, &parent);
-
                 TreeNode *new_node = tree->nodes + tree->nodes_count++;
                 TreeNode *new_parent = tree->nodes + tree->nodes_count++;
 
                 _init_leaf_node(new_node, agent);
+
+                TreeNode *parent = 0;
+                TreeNode *sibling = _find_best_sibling(tree->root, new_node->box, space->dims, &parent);
+
                 _init_branch_node(new_parent, sibling, new_node);
 
                 if (parent == 0)
-                    tree->root_node = new_parent;
+                    tree->root = new_parent;
                 else {
                     if (sibling == parent->l)
                         parent->l = new_parent;
@@ -117,4 +118,7 @@ void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
         space->first[group_i] = 0;
         space->counts[group_i] = 0;
     }
+}
+
+void cpu_aabb_tree_act(TayPass *pass) {
 }

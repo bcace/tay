@@ -322,10 +322,10 @@ static void _act_func(ActTask *task, TayThreadContext *thread_context) {
     }
 }
 
-void cpu_grid_act(Space *space, TayPass *pass) {
+void cpu_grid_act(TayPass *pass) {
     static ActTask tasks[TAY_MAX_THREADS];
 
-    CpuGrid *grid = &space->cpu_grid;
+    CpuGrid *grid = &pass->act_space->cpu_grid;
 
     for (int i = 0; i < runner.count; ++i) {
         ActTask *task = tasks + i;

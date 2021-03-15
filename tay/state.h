@@ -97,7 +97,10 @@ typedef struct TayPass {
     void *context;
     int context_size;
     /* data prepared by the compile step */
-    Space *seer_space;
+    union {
+        Space *act_space;
+        Space *seer_space;
+    };
     Space *seen_space;
     SEE_PAIRING_FUNC pairing_func;
     void (*exec_func)(struct TayPass *pass);
