@@ -40,7 +40,9 @@ void cpu_grid_see(TayPass *pass);
 void cpu_grid_act(TayPass *pass);
 
 void cpu_aabb_tree_sort(Space *space, TayGroup *groups);
+void cpu_aabb_tree_unsort(Space *space, TayGroup *groups);
 void cpu_aabb_tree_act(TayPass *pass);
+void cpu_aabb_tree_see(TayPass *pass);
 
 int space_agent_count_to_bucket_index(int count);
 

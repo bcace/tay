@@ -211,11 +211,19 @@ static TayError _compile_passes(TayState *state) {
                 }
                 else if (space_type == TAY_CPU_GRID) {
 
-                    if (!seer_is_point || !seen_is_point) /* neither groups can be non-point in grid */
+                    if (!seer_is_point || !seen_is_point) /* grid cannot handle non-point agents */
                         return TAY_ERROR_POINT_NONPOINT_MISMATCH;
 
                     pass->pairing_func = _get_one_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_grid_see;
+                }
+                else if (space_type == TAY_CPU_AABB_TREE) {
+
+                    if (seer_is_point || seen_is_point) /* aabb tree cannot handle point agents */
+                        return TAY_ERROR_POINT_NONPOINT_MISMATCH;
+
+                    pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
+                    pass->exec_func = cpu_aabb_tree_see;
                 }
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
@@ -235,13 +243,18 @@ static TayError _compile_passes(TayState *state) {
                 pass->exec_func = cpu_tree_act;
             else if (act_space->type == TAY_CPU_GRID) {
 
-                if (!act_is_point) /* group cannot be non-point in grid */
-                    TAY_ERROR_POINT_NONPOINT_MISMATCH;
+                if (!act_is_point) /* grid cannot handle non-point agents */
+                    return TAY_ERROR_POINT_NONPOINT_MISMATCH;
 
                 pass->exec_func = cpu_grid_act;
             }
-            else if (act_space->type == TAY_CPU_AABB_TREE)
+            else if (act_space->type == TAY_CPU_AABB_TREE) {
+
+                if (act_is_point) /* aabb tree cannot handle point agents */
+                    return TAY_ERROR_POINT_NONPOINT_MISMATCH;
+
                 pass->exec_func = cpu_aabb_tree_act;
+            }
             else
                 return TAY_ERROR_NOT_IMPLEMENTED;
         }
@@ -298,6 +311,7 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_SIMPLE: cpu_simple_unsort(space, state->groups); break;
                 case TAY_CPU_TREE: cpu_tree_unsort(space, state->groups); break;
                 case TAY_CPU_GRID: cpu_grid_unsort(space, state->groups); break;
+                case TAY_CPU_AABB_TREE: cpu_aabb_tree_unsort(space, state->groups); break;
                 default: assert(0); /* not implemented */
             }
         }
