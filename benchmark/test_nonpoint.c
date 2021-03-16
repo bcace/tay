@@ -20,7 +20,7 @@ static void _make_randomized_direction_cluster(TayState *state, int group, int c
         int major = i % 3;
 
         /* size */
-        float size = _rand_exponential(min_size, max_size, 1);
+        float size = _rand_exponential(min_size, max_size, 10);
 
         /* shape */
         float3 shape;
@@ -124,6 +124,10 @@ void test_nonpoint(Results *results, int steps,
         if (space_type_flags & TAY_CPU_TREE)
             for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
                 _test(TAY_CPU_TREE, steps, see_radius, depth_correction, min_size, max_size, results);
+
+        if (space_type_flags & TAY_CPU_AABB_TREE)
+            for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
+                _test(TAY_CPU_AABB_TREE, steps, see_radius, depth_correction, min_size, max_size, results);
 
         results_reset(results);
     }

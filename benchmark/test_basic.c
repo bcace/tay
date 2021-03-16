@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <math.h>
 
 
 static double _test(ModelCase model_case, TaySpaceType space_type, float see_radius, int depth_correction, Results *results, int steps,

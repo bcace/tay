@@ -21,6 +21,7 @@ const char *space_type_name(TaySpaceType space_type) {
         case TAY_CPU_SIMPLE: return "CpuSimple";
         case TAY_CPU_TREE: return "CpuTree";
         case TAY_CPU_GRID: return "CpuGrid";
+        case TAY_CPU_AABB_TREE: return "CpuAabbTree";
         case TAY_GPU_SIMPLE_DIRECT: return "GpuSimple (direct)";
         case TAY_GPU_SIMPLE_INDIRECT: return "GpuSimple (indirect)";
         default: return "(None)";
