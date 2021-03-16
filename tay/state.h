@@ -38,7 +38,7 @@ typedef struct {
     struct TreeNode *root;
     int max_nodes;
     int nodes_count;
-} CpuAABBTree;
+} CpuAabbTree;
 
 typedef struct {
     struct Bin *bins; /* bins storage */
@@ -61,7 +61,7 @@ typedef struct Space {
         CpuSimple cpu_simple;
         CpuTree cpu_tree;
         CpuGrid cpu_grid;
-        CpuAABBTree cpu_aabb_tree;
+        CpuAabbTree cpu_aabb_tree;
     };
     void *shared; /* buffer shared internally by all structures in this space */
     int shared_size; /* size of the shared buffer */

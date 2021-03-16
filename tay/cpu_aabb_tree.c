@@ -25,19 +25,15 @@ static inline float _max(float a, float b) {
 }
 
 static inline float4 _float4_min(float4 a, float4 b) {
-    return (float4) { _min(a.x, b.x), _min(a.y, b.y), _min(a.z, b.z), _min(a.z, b.z) };
+    return (float4){ _min(a.x, b.x), _min(a.y, b.y), _min(a.z, b.z), _min(a.z, b.z) };
 }
 
 static inline float4 _float4_max(float4 a, float4 b) {
-    return (float4) { _max(a.x, b.x), _max(a.y, b.y), _max(a.z, b.z), _max(a.z, b.z) };
+    return (float4){ _max(a.x, b.x), _max(a.y, b.y), _max(a.z, b.z), _max(a.z, b.z) };
 }
 
 static inline Box _box_union(Box a, Box b) {
-    return (Box) { _float4_min(a.min, b.min), _float4_max(a.max, b.max) };
-}
-
-static inline Box _box_from_agent(TayAgentTag *agent) {
-    return (Box) { float4_agent_min(agent), float4_agent_max(agent) };
+    return (Box){ _float4_min(a.min, b.min), _float4_max(a.max, b.max) };
 }
 
 static void _init_leaf_node(TreeNode *node, TayAgentTag *agent) {
@@ -90,7 +86,7 @@ static int _leaf_node_should_expand(Box agent_box, Box leaf_box, float4 part_siz
 }
 
 void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
-    CpuAABBTree *tree = &space->cpu_aabb_tree;
+    CpuAabbTree *tree = &space->cpu_aabb_tree;
 
     tree->nodes = space->shared;
     tree->nodes_count = 0;
@@ -116,7 +112,7 @@ void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
                 tree->root = node;
             }
             else { /* first node already exists */
-                Box agent_box = _box_from_agent(agent);
+                Box agent_box = (Box){ float4_agent_min(agent), float4_agent_max(agent) };
 
                 TreeNode *leaf = _find_best_leaf_node(tree->root, agent_box, space->dims);
                 TreeNode *old_parent = leaf->parent;
@@ -159,7 +155,7 @@ void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
 }
 
 void cpu_aabb_tree_unsort(Space *space, TayGroup *groups) {
-    CpuAABBTree *tree = &space->cpu_aabb_tree;
+    CpuAabbTree *tree = &space->cpu_aabb_tree;
 
     box_reset(&space->box, space->dims);
 
@@ -189,7 +185,7 @@ static void _init_act_task(ActTask *task, TayPass *pass, int thread_i) {
 }
 
 static void _act_func(ActTask *task, TayThreadContext *thread_context) {
-    CpuAABBTree *tree = &task->pass->act_space->cpu_aabb_tree;
+    CpuAabbTree *tree = &task->pass->act_space->cpu_aabb_tree;
 
     for (int node_i = 0; node_i < tree->nodes_count; ++node_i) {
         TreeNode *node = tree->nodes + node_i;
@@ -206,7 +202,7 @@ static void _act_func(ActTask *task, TayThreadContext *thread_context) {
 void cpu_aabb_tree_act(TayPass *pass) {
     static ActTask tasks[TAY_MAX_THREADS];
 
-    CpuAABBTree *tree = &pass->act_space->cpu_aabb_tree;
+    CpuAabbTree *tree = &pass->act_space->cpu_aabb_tree;
 
     for (int thread_i = 0; thread_i < runner.count; ++thread_i) {
         ActTask *task = tasks + thread_i;
@@ -244,7 +240,7 @@ static void _node_see_func(TayPass *pass, TreeNode *seer_node, Box seer_box, Tre
 static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
     Space *space = pass->seer_space;
-    CpuAABBTree *tree = &space->cpu_aabb_tree;
+    CpuAabbTree *tree = &space->cpu_aabb_tree;
 
     for (int seer_node_i = 0; seer_node_i < tree->nodes_count; ++seer_node_i) {
         TreeNode *seer_node = tree->nodes + seer_node_i;
@@ -268,7 +264,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
 void cpu_aabb_tree_see(TayPass *pass) {
     static SeeTask tasks[TAY_MAX_THREADS];
 
-    CpuAABBTree *tree = &pass->act_space->cpu_aabb_tree;
+    CpuAabbTree *tree = &pass->act_space->cpu_aabb_tree;
 
     if (pass->seer_space == pass->seen_space) {
 
