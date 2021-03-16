@@ -8,6 +8,7 @@ typedef struct TreeNode {
         TayAgentTag *agent;
     };
     struct TreeNode *r;
+    struct TreeNode *parent;
     Box box;
 } TreeNode;
 
@@ -40,10 +41,12 @@ static inline Box _box_from_agent(TayAgentTag *agent) {
 }
 
 static void _init_leaf_node(TreeNode *node, TayAgentTag *agent) {
+    agent->next = 0;
     node->agent = agent;
     node->r = 0;
     node->box.min = float4_agent_min(agent);
     node->box.max = float4_agent_max(agent);
+    node->parent = 0;
 }
 
 static void _init_branch_node(TreeNode *node, TreeNode *a, TreeNode *b) {
@@ -51,6 +54,13 @@ static void _init_branch_node(TreeNode *node, TreeNode *a, TreeNode *b) {
     node->r = b;
     node->box.min = _float4_min(a->box.min, b->box.min);
     node->box.max = _float4_max(a->box.max, b->box.max);
+    node->parent = 0;
+    a->parent = node;
+    b->parent = node;
+}
+
+static void _update_node_box(TreeNode *node) {
+    node->box = _box_union(node->l->box, node->r->box);
 }
 
 static float _increase_in_volume(Box box, Box target_box, int dims) {
@@ -63,21 +73,20 @@ static float _increase_in_volume(Box box, Box target_box, int dims) {
     return union_vol - target_vol;
 }
 
-static TreeNode *_find_best_leaf_node(TreeNode *node, Box box, int dims, TreeNode **parent) {
+static TreeNode *_find_best_leaf_node(TreeNode *node, Box box, int dims) {
     if (_is_leaf_node(node))
         return node;
-    *parent = node;
     if (_increase_in_volume(box, node->l->box, dims) < _increase_in_volume(box, node->r->box, dims))
-        return _find_best_leaf_node(node->l, box, dims, parent);
+        return _find_best_leaf_node(node->l, box, dims);
     else
-        return _find_best_leaf_node(node->r, box, dims, parent);
+        return _find_best_leaf_node(node->r, box, dims);
 }
 
-static int _leaf_node_should_grow(Box box, float4 radii, int dims) {
+static int _leaf_node_should_expand(Box agent_box, Box leaf_box, float4 part_sizes, int dims) {
     for (int i = 0; i < dims; ++i)
-        if (box.max.arr[i] - box.min.arr[i] < radii.arr[i])
-            return 1;
-    return 0;
+        if (_max(leaf_box.max.arr[i], agent_box.max.arr[i]) - _min(leaf_box.min.arr[i], agent_box.min.arr[i]) > part_sizes.arr[i])
+            return 0;
+    return 1;
 }
 
 void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
@@ -87,6 +96,8 @@ void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
     tree->nodes_count = 0;
     tree->max_nodes = space->shared_size / (int)sizeof(TreeNode);
     tree->root = 0;
+
+    float4 part_sizes = { space->radii.x * 2.0f, space->radii.y * 2.0f, space->radii.z * 2.0f, space->radii.w * 2.0f };
 
     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = groups + group_i;
@@ -107,12 +118,12 @@ void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
             else { /* first node already exists */
                 Box agent_box = _box_from_agent(agent);
 
-                TreeNode *parent = 0;
-                TreeNode *leaf = _find_best_leaf_node(tree->root, agent_box, space->dims, &parent);
+                TreeNode *leaf = _find_best_leaf_node(tree->root, agent_box, space->dims);
+                TreeNode *old_parent = leaf->parent;
 
-                /* if leaf node's box is smaller than suggested partition size (space->radii) or there's
+                /* if leaf node's box is smaller than suggested partition size (part_sizes) or there's
                 no more space for new nodes just add agent to the leaf node and expand the leaf node's box */
-                if (tree->nodes_count == tree->max_nodes || _leaf_node_should_grow(leaf->box, space->radii, space->dims)) {
+                if (tree->nodes_count == tree->max_nodes || _leaf_node_should_expand(agent_box, leaf->box, part_sizes, space->dims)) {
                     agent->next = leaf->agent;
                     leaf->agent = agent;
                     leaf->box = _box_union(leaf->box, agent_box);
@@ -126,15 +137,19 @@ void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
                     _init_leaf_node(new_node, agent);
                     _init_branch_node(new_parent, leaf, new_node);
 
-                    if (parent == 0) /* only root node found */
+                    if (old_parent == 0) /* only root node found */
                         tree->root = new_parent;
-                    else {
-                        if (leaf == parent->l)
-                            parent->l = new_parent;
+                    else { /* substitute new_parent for leaf in old_parent */
+                        if (leaf == old_parent->l)
+                            old_parent->l = new_parent;
                         else
-                            parent->r = new_parent;
+                            old_parent->r = new_parent;
+                        new_parent->parent = old_parent;
                     }
                 }
+
+                for (TreeNode *node = old_parent; node; node = node->parent)
+                    _update_node_box(node);
             }
         }
 
@@ -212,6 +227,19 @@ static void _init_see_task(SeeTask *task, TayPass *pass, int thread_i) {
     task->counter = thread_i;
 }
 
+static void _node_see_func(TayPass *pass, TreeNode *seer_node, Box seer_box, TreeNode *seen_node, int dims, TayThreadContext *thread_context) {
+    for (int i = 0; i < dims; ++i)
+        if (seer_box.max.arr[i] < seen_node->box.min.arr[i] || seer_box.min.arr[i] > seen_node->box.max.arr[i])
+            return;
+
+    if (_is_leaf_node(seen_node))
+        pass->pairing_func(seer_node->agent, seen_node->agent, pass->see, pass->radii, dims, thread_context);
+    else {
+        _node_see_func(pass, seer_node, seer_box, seen_node->l, dims, thread_context);
+        _node_see_func(pass, seer_node, seer_box, seen_node->r, dims, thread_context);
+    }
+}
+
 // TODO: this one is only for single space passes!!!
 static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
@@ -224,11 +252,13 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
         if (_is_leaf_node(seer_node)) {
             if (task->counter % runner.count == 0) {
 
-                for (int seen_node_i = 0; seen_node_i < tree->nodes_count; ++seen_node_i) {
-                    TreeNode *seen_node = tree->nodes + seen_node_i;
-
-                    pass->pairing_func(seer_node->agent, seen_node->agent, pass->see, pass->radii, space->dims, thread_context);
+                Box seer_box = seer_node->box;
+                for (int i = 0; i < space->dims; ++i) {
+                    seer_box.min.arr[i] -= pass->radii.arr[i];
+                    seer_box.max.arr[i] += pass->radii.arr[i];
                 }
+
+                _node_see_func(pass, seer_node, seer_box, tree->root, space->dims, thread_context);
             }
             ++task->counter;
         }
