@@ -25,7 +25,6 @@ typedef struct Bin {
     struct Bin *thread_next;
     TayAgentTag *first;
     unsigned count;
-    int used;
     unsigned char visited[TAY_MAX_THREADS];
 } Bin;
 
@@ -349,7 +348,7 @@ static unsigned _highest_power_of_two(unsigned size) {
 }
 
 void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
-    Space *space = &group->new_space;
+    Space *space = &group->space;
     CpuGrid *grid = &space->cpu_grid;
 
     /* calculate grid parameters */
@@ -404,15 +403,15 @@ void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
             unsigned hash = _cell_indices_to_hash(indices, space->dims, grid->modulo_mask);
             Bin *bin = grid->bins + hash;
 
+            /* if this is the first time the bin was used */
+            if (bin->count == 0) {
+                bin->next = grid->first_bin;
+                grid->first_bin = bin;
+            }
+
             tag->next = bin->first;
             bin->first = tag;
             ++bin->count;
-
-            if (bin->used == false) {
-                bin->next = grid->first_bin;
-                grid->first_bin = bin;
-                bin->used = true;
-            }
         }
 
         space->first = 0;
@@ -421,7 +420,7 @@ void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
 }
 
 void cpu_grid_unsort(TayGroup *group) {
-    Space *space = &group->new_space;
+    Space *space = &group->space;
     CpuGrid *grid = &space->cpu_grid;
 
     box_reset(&space->box, space->dims);
@@ -432,6 +431,5 @@ void cpu_grid_unsort(TayGroup *group) {
 
         bin->first = 0;
         bin->count = 0;
-        bin->used = false; // TODO: this can definitely now rely on count
     }
 }

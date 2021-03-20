@@ -315,7 +315,7 @@ void cpu_tree_on_simulation_start(Space *space) {
 }
 
 void cpu_tree_sort(TayGroup *group) {
-    Space *space = &group->new_space;
+    Space *space = &group->space;
     CpuTree *tree = &space->cpu_tree;
 
     /* calculate max partition depths for each dimension */
@@ -366,7 +366,7 @@ void cpu_tree_sort(TayGroup *group) {
 }
 
 void cpu_tree_unsort(TayGroup *group) {
-    Space *space = &group->new_space;
+    Space *space = &group->space;
     CpuTree *tree = &space->cpu_tree;
 
     box_reset(&space->box, space->dims);

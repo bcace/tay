@@ -86,7 +86,7 @@ static int _leaf_node_should_expand(Box agent_box, Box leaf_box, float4 part_siz
 }
 
 void cpu_aabb_tree_sort(TayGroup *group) {
-    Space *space = &group->new_space;
+    Space *space = &group->space;
     CpuAabbTree *tree = &space->cpu_aabb_tree;
 
     tree->nodes = space->shared;
@@ -149,7 +149,7 @@ void cpu_aabb_tree_sort(TayGroup *group) {
 }
 
 void cpu_aabb_tree_unsort(TayGroup *group) {
-    Space *space = &group->new_space;
+    Space *space = &group->space;
     CpuAabbTree *tree = &space->cpu_aabb_tree;
 
     box_reset(&space->box, space->dims);

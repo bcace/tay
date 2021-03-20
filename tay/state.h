@@ -73,7 +73,7 @@ typedef struct TayGroup {
     int agent_size; /* agent size in bytes */
     int capacity; /* max. number of agents */
     int is_point; /* are all agents of this group points */
-    Space new_space; // TODO: rename to space once I finish the transition
+    Space space; // TODO: rename to space once I finish the transition
 } TayGroup;
 
 typedef enum TayPassType {
@@ -120,8 +120,6 @@ typedef struct TayState {
     TayGroup groups[TAY_MAX_GROUPS];
     TayPass passes[TAY_MAX_PASSES];
     int passes_count;
-    // Space spaces[TAY_MAX_SPACES];
-    // unsigned spaces_count;
     TayStateStatus running;
     TayError error;
     double ms_per_step; /* for the last run */

@@ -74,7 +74,7 @@ void cpu_simple_act(TayPass *pass) {
 }
 
 void cpu_simple_sort(TayGroup *group) {
-    Space *space = &group->new_space;
+    Space *space = &group->space;
     space->cpu_simple.first = space->shared;
 
     int rem = space->count % runner.count;
@@ -103,7 +103,7 @@ void cpu_simple_sort(TayGroup *group) {
 }
 
 void cpu_simple_unsort(TayGroup *group) {
-    Space *space = &group->new_space;
+    Space *space = &group->space;
     box_reset(&space->box, space->dims);
 
     for (int thread_i = 0; thread_i < runner.count; ++thread_i)

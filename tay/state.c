@@ -26,7 +26,7 @@ static void _clear_group(TayGroup *group) {
     free(group->storage);
     group->storage = 0;
     group->first = 0;
-    _clear_space(&group->new_space);
+    _clear_space(&group->space);
 }
 
 void tay_destroy_state(TayState *state) {
@@ -110,7 +110,7 @@ int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity,
     }
     prev->next = 0;
 
-    _init_space(&g->new_space, space_desc);
+    _init_space(&g->space, space_desc);
 
     return group_i;
 }
@@ -162,7 +162,7 @@ void tay_commit_available_agent(TayState *state, int group_i) {
 
     /* add agent to space (make it live) */
     {
-        Space *space = &group->new_space;
+        Space *space = &group->space;
         a->next = space->first;
         space->first = a;
         box_update_from_agent(&space->box, a, space->dims, group->is_point);
@@ -186,7 +186,7 @@ void tay_simulation_start(TayState *state) {
         if (group->storage == 0)
             continue;
 
-        Space *space = &group->new_space;
+        Space *space = &group->space;
         if (space->type == TAY_CPU_TREE)
             cpu_tree_on_simulation_start(space);
         else if (space->type == TAY_CPU_GRID)
@@ -214,8 +214,8 @@ static TayError _compile_passes(TayState *state) {
         TayPass *pass = state->passes + pass_i;
 
         if (pass->type == TAY_PASS_SEE) {
-            Space *seer_space = &state->groups[pass->seer_group].new_space;
-            Space *seen_space = &state->groups[pass->seen_group].new_space;
+            Space *seer_space = &state->groups[pass->seer_group].space;
+            Space *seen_space = &state->groups[pass->seen_group].space;
             int seer_is_point = state->groups[pass->seer_group].is_point;
             int seen_is_point = state->groups[pass->seen_group].is_point;
 
@@ -256,7 +256,7 @@ static TayError _compile_passes(TayState *state) {
                 return TAY_ERROR_NOT_IMPLEMENTED;
         }
         else if (pass->type == TAY_PASS_ACT) {
-            Space *act_space = &state->groups[pass->act_group].new_space;
+            Space *act_space = &state->groups[pass->act_group].space;
             int act_is_point = state->groups[pass->act_group].is_point;
 
             pass->act_space = act_space;
@@ -315,7 +315,7 @@ int tay_run(TayState *state, int steps) {
             if (group->storage == 0)
                 continue;
 
-            switch (group->new_space.type) {
+            switch (group->space.type) {
                 case TAY_CPU_SIMPLE: cpu_simple_sort(group); break;
                 case TAY_CPU_TREE: cpu_tree_sort(group); break;
                 case TAY_CPU_GRID: cpu_grid_sort(group, state->passes, state->passes_count); break;
@@ -337,7 +337,7 @@ int tay_run(TayState *state, int steps) {
             if (group->storage == 0)
                 continue;
 
-            switch (group->new_space.type) {
+            switch (group->space.type) {
                 case TAY_CPU_SIMPLE: cpu_simple_unsort(group); break;
                 case TAY_CPU_TREE: cpu_tree_unsort(group); break;
                 case TAY_CPU_GRID: cpu_grid_unsort(group); break;
