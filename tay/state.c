@@ -66,7 +66,7 @@ int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity,
     int group_i = 0;
 
     for (; group_i < TAY_MAX_GROUPS; ++group_i)
-        if (state->groups[group_i].storage == 0)
+        if (group_is_inactive(state->groups + group_i))
             break;
 
     if (group_i == TAY_MAX_GROUPS) {
@@ -92,6 +92,14 @@ int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity,
     _init_space(&g->space, space_desc);
 
     return group_i;
+}
+
+int group_is_active(TayGroup *group) {
+    return group->storage != 0;
+}
+
+int group_is_inactive(TayGroup *group) {
+    return group->storage == 0;
 }
 
 void tay_add_see(TayState *state, int seer_group, int seen_group, TAY_SEE_FUNC func, const char *func_name, float4 radii, void *context, int context_size) {
@@ -162,7 +170,7 @@ void tay_simulation_start(TayState *state) {
     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group->storage == 0)
+        if (group_is_inactive(group))
             continue;
 
         Space *space = &group->space;
@@ -291,7 +299,7 @@ int tay_run(TayState *state, int steps) {
         for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
             TayGroup *group = state->groups + i;
 
-            if (group->storage == 0)
+            if (group_is_inactive(group))
                 continue;
 
             switch (group->space.type) {
@@ -313,7 +321,7 @@ int tay_run(TayState *state, int steps) {
         for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
             TayGroup *group = state->groups + i;
 
-            if (group->storage == 0)
+            if (group_is_inactive(group))
                 continue;
 
             switch (group->space.type) {

@@ -127,4 +127,7 @@ typedef struct TayState {
 
 void state_set_error(TayState *state, TayError error);
 
+int group_is_active(TayGroup *group);
+int group_is_inactive(TayGroup *group);
+
 #endif
