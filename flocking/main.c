@@ -18,7 +18,7 @@ static bool window_quit = false;
 static Program program;
 
 static TayState *tay;
-static int boids_group;
+static TayGroup *boids_group;
 static float pyramid[] = {
     -1.0f, -1.0f, 0.0f,
     1.0f, -1.0f, 0.0f,
