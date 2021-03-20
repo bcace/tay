@@ -62,27 +62,6 @@ static void _init_space(Space *space, TaySpaceDesc desc) {
     space->count = 0;
 }
 
-// void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, float4 part_radii, int shared_size_in_megabytes) {
-//     // ERROR: must be outside simulation
-//     assert(state->running == TAY_STATE_STATUS_IDLE);
-//     // ERROR: no more free spaces left
-//     assert(state->spaces_count < TAY_MAX_SPACES);
-
-//     _init_space(state->spaces + state->spaces_count++, tay_space_desc(space_type, space_dims, part_radii, shared_size_in_megabytes));
-
-//     // Space *space = state->spaces + state->spaces_count++;
-//     // space->type = space_type;
-//     // space->radii = part_radii;
-//     // space->dims = space_dims;
-//     // space->shared_size = shared_size_in_megabytes * TAY_MB;
-//     // space->shared = malloc(space->shared_size);
-
-//     // for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-//     //     space->first[i] = 0;
-//     //     space->counts[i] = 0;
-//     // }
-// }
-
 int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, TaySpaceDesc space_desc) {
     int group_i = 0;
 
