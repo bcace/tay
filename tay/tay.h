@@ -102,20 +102,21 @@ TaySpaceDesc tay_space_desc(TaySpaceType space_type, int space_dims, float4 part
 */
 
 typedef struct TayState TayState;
+typedef struct TayGroup TayGroup;
 
 TayState *tay_create_state();
 void tay_destroy_state(TayState *state);
 
 TayError tay_get_error(TayState *state);
 
-int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, TaySpaceDesc space_desc);
+TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, TaySpaceDesc space_desc);
 
-void tay_add_see(TayState *state, int seer_group, int seen_group, void (*func)(void *, void *, void *), const char *func_name, float4 radii, void *context, int context_size);
-void tay_add_act(TayState *state, int act_group, void (*func)(void *, void *), const char *func_name, void *context, int context_size);
+void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), const char *func_name, float4 radii, void *context, int context_size);
+void tay_add_act(TayState *state, TayGroup *act_group, void (*func)(void *, void *), const char *func_name, void *context, int context_size);
 
-void *tay_get_available_agent(TayState *state, int group);
-void tay_commit_available_agent(TayState *state, int group);
-void *tay_get_agent(TayState *state, int group, int index);
+void *tay_get_available_agent(TayState *state, TayGroup *group);
+void tay_commit_available_agent(TayState *state, TayGroup *group);
+void *tay_get_agent(TayState *state, TayGroup *group, int index);
 
 void tay_simulation_start(TayState *state);
 int tay_run(TayState *state, int steps);

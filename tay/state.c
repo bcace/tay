@@ -62,7 +62,7 @@ static void _init_space(Space *space, TaySpaceDesc desc) {
     space->count = 0;
 }
 
-int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, TaySpaceDesc space_desc) {
+TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, TaySpaceDesc space_desc) {
     int group_i = 0;
 
     for (; group_i < TAY_MAX_GROUPS; ++group_i)
@@ -71,17 +71,17 @@ int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity,
 
     if (group_i == TAY_MAX_GROUPS) {
         state_set_error(state, TAY_ERROR_GROUP_INDEX_OUT_OF_RANGE);
-        return -1;
+        return 0;
     }
 
-    TayGroup *g = state->groups + group_i;
-    g->agent_size = agent_size;
-    g->storage = calloc(agent_capacity, agent_size);
-    g->capacity = agent_capacity;
-    g->is_point = is_point;
-    g->first = g->storage;
+    TayGroup *group = state->groups + group_i;
+    group->agent_size = agent_size;
+    group->storage = calloc(agent_capacity, agent_size);
+    group->capacity = agent_capacity;
+    group->is_point = is_point;
+    group->first = group->storage;
 
-    TayAgentTag *prev = g->first;
+    TayAgentTag *prev = group->first;
     for (unsigned i = 0; i < agent_capacity - 1; ++i) {
         TayAgentTag *next = (TayAgentTag *)((char *)prev + agent_size);
         prev->next = next;
@@ -89,9 +89,9 @@ int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity,
     }
     prev->next = 0;
 
-    _init_space(&g->space, space_desc);
+    _init_space(&group->space, space_desc);
 
-    return group_i;
+    return group;
 }
 
 int group_is_active(TayGroup *group) {
@@ -102,7 +102,7 @@ int group_is_inactive(TayGroup *group) {
     return group->storage == 0;
 }
 
-void tay_add_see(TayState *state, int seer_group, int seen_group, TAY_SEE_FUNC func, const char *func_name, float4 radii, void *context, int context_size) {
+void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, const char *func_name, float4 radii, void *context, int context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
@@ -110,15 +110,12 @@ void tay_add_see(TayState *state, int seer_group, int seen_group, TAY_SEE_FUNC f
     p->context_size = context_size;
     p->see = func;
     p->func_name = func_name;
+    p->radii = radii;
     p->seer_group = seer_group;
     p->seen_group = seen_group;
-    p->radii = radii;
-
-    p->seer_group_ptr = state->groups + seer_group;
-    p->seen_group_ptr = state->groups + seen_group;
 }
 
-void tay_add_act(TayState *state, int act_group, TAY_ACT_FUNC func, const char *func_name, void *context, int context_size) {
+void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, const char *func_name, void *context, int context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
@@ -127,20 +124,16 @@ void tay_add_act(TayState *state, int act_group, TAY_ACT_FUNC func, const char *
     p->act = func;
     p->func_name = func_name;
     p->act_group = act_group;
-
-    p->act_group_ptr = state->groups + act_group;
 }
 
-void *tay_get_available_agent(TayState *state, int group) {
-    assert(group >= 0 && group < TAY_MAX_GROUPS); // ERROR: this assert
-    TayGroup *g = state->groups + group;
-    assert(g->first != 0);
-    return g->first;
+void *tay_get_available_agent(TayState *state, TayGroup *group) {
+    // ERROR: check group
+    assert(group->first != 0);
+    return group->first;
 }
 
-void tay_commit_available_agent(TayState *state, int group_i) {
-    assert(group_i >= 0 && group_i < TAY_MAX_GROUPS); // ERROR: this assert
-    TayGroup *group = state->groups + group_i;
+void tay_commit_available_agent(TayState *state, TayGroup *group) {
+    // ERROR: check group
     assert(group->first != 0);
 
     /* remove agent from storage */
@@ -157,10 +150,9 @@ void tay_commit_available_agent(TayState *state, int group_i) {
     }
 }
 
-void *tay_get_agent(TayState *state, int group, int index) {
-    assert(group >= 0 && group < TAY_MAX_GROUPS); // ERROR: this assert
-    TayGroup *g = state->groups + group;
-    return (char *)g->storage + g->agent_size * index;
+void *tay_get_agent(TayState *state, TayGroup *group, int index) {
+    // ERROR: check group
+    return (char *)group->storage + group->agent_size * index;
 }
 
 void tay_simulation_start(TayState *state) {
@@ -201,10 +193,10 @@ static TayError _compile_passes(TayState *state) {
         TayPass *pass = state->passes + pass_i;
 
         if (pass->type == TAY_PASS_SEE) {
-            Space *seer_space = &state->groups[pass->seer_group].space;
-            Space *seen_space = &state->groups[pass->seen_group].space;
-            int seer_is_point = state->groups[pass->seer_group].is_point;
-            int seen_is_point = state->groups[pass->seen_group].is_point;
+            Space *seer_space = &pass->seer_group->space;
+            Space *seen_space = &pass->seen_group->space;
+            int seer_is_point = pass->seer_group->is_point;
+            int seen_is_point = pass->seen_group->is_point;
 
             if (seer_space == seen_space) {
                 TaySpaceType space_type = seer_space->type;
@@ -221,18 +213,10 @@ static TayError _compile_passes(TayState *state) {
                     pass->exec_func = cpu_tree_see;
                 }
                 else if (space_type == TAY_CPU_GRID) {
-
-                    if (!seer_is_point || !seen_is_point) /* grid cannot handle non-point agents */
-                        return TAY_ERROR_POINT_NONPOINT_MISMATCH;
-
                     pass->pairing_func = _get_one_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_grid_see;
                 }
                 else if (space_type == TAY_CPU_AABB_TREE) {
-
-                    if (seer_is_point || seen_is_point) /* aabb tree cannot handle point agents */
-                        return TAY_ERROR_POINT_NONPOINT_MISMATCH;
-
                     pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_aabb_tree_see;
                 }
@@ -243,8 +227,8 @@ static TayError _compile_passes(TayState *state) {
                 return TAY_ERROR_NOT_IMPLEMENTED;
         }
         else if (pass->type == TAY_PASS_ACT) {
-            Space *act_space = &state->groups[pass->act_group].space;
-            int act_is_point = state->groups[pass->act_group].is_point;
+            Space *act_space = &pass->act_group->space;
+            int act_is_point = pass->act_group->is_point;
 
             pass->act_space = act_space;
 
@@ -252,20 +236,10 @@ static TayError _compile_passes(TayState *state) {
                 pass->exec_func = cpu_simple_act;
             else if (act_space->type == TAY_CPU_TREE)
                 pass->exec_func = cpu_tree_act;
-            else if (act_space->type == TAY_CPU_GRID) {
-
-                if (!act_is_point) /* grid cannot handle non-point agents */
-                    return TAY_ERROR_POINT_NONPOINT_MISMATCH;
-
+            else if (act_space->type == TAY_CPU_GRID)
                 pass->exec_func = cpu_grid_act;
-            }
-            else if (act_space->type == TAY_CPU_AABB_TREE) {
-
-                if (act_is_point) /* aabb tree cannot handle point agents */
-                    return TAY_ERROR_POINT_NONPOINT_MISMATCH;
-
+            else if (act_space->type == TAY_CPU_AABB_TREE)
                 pass->exec_func = cpu_aabb_tree_act;
-            }
             else
                 return TAY_ERROR_NOT_IMPLEMENTED;
         }

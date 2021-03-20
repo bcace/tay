@@ -107,8 +107,6 @@ static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thr
 }
 
 static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
-    int seer_group = task->pass->seer_group;
-    int seen_group = task->pass->seen_group;
     TAY_SEE_FUNC see_func = task->pass->see;
     SEE_PAIRING_FUNC pairing_func = task->pass->pairing_func;
     float4 radii = task->pass->radii;
@@ -367,7 +365,7 @@ void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
     for (int i = 0; i < passes_count; ++i) {
         TayPass *pass = passes + i;
 
-        if (pass->type != TAY_PASS_SEE || pass->seer_group_ptr != group && pass->seen_group_ptr != group)
+        if (pass->type != TAY_PASS_SEE || pass->seer_group != group && pass->seen_group != group)
             continue;
 
         int kernel_bins = 1;

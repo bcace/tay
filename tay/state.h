@@ -84,19 +84,14 @@ typedef enum TayPassType {
 typedef struct TayPass {
     TayPassType type;
     union {
-        int act_group;
-        int seer_group;
+        TayGroup *act_group;
+        TayGroup *seer_group;
     };
-    int seen_group;
+    TayGroup *seen_group;
     union {
         TAY_SEE_FUNC see;
         TAY_ACT_FUNC act;
     };
-    union {
-        TayGroup *act_group_ptr;
-        TayGroup *seer_group_ptr;
-    };
-    TayGroup *seen_group_ptr;
     const char *func_name;
     float4 radii;
     void *context;
