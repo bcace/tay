@@ -74,6 +74,7 @@ typedef struct TayGroup {
     int capacity; /* max. number of agents */
     int is_point; /* are all agents of this group points */
     Space *space;
+    Space new_space; // TODO: rename to space once I finish the transition
 } TayGroup;
 
 typedef enum TayPassType {

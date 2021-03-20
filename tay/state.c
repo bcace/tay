@@ -43,26 +43,49 @@ void state_set_error(TayState *state, TayError error) {
     state->error = error;
 }
 
-void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, float4 part_radii, int shared_size_in_megabytes) {
-    // ERROR: must be outside simulation
-    assert(state->running == TAY_STATE_STATUS_IDLE);
-    // ERROR: no more free spaces left
-    assert(state->spaces_count < TAY_MAX_SPACES);
+TaySpaceDesc tay_space_desc(TaySpaceType space_type, int space_dims, float4 part_radii, int shared_size_in_megabytes) {
+    TaySpaceDesc desc;
+    desc.space_type = space_type;
+    desc.space_dims = space_dims;
+    desc.part_radii = part_radii;
+    desc.shared_size_in_megabytes = shared_size_in_megabytes;
+    return desc;
+}
 
-    Space *space = state->spaces + state->spaces_count++;
-    space->type = space_type;
-    space->radii = part_radii;
-    space->dims = space_dims;
-    space->shared_size = shared_size_in_megabytes * TAY_MB;
+static void _init_space(Space *space, TaySpaceDesc desc) {
+    space->type = desc.space_type;
+    space->radii = desc.part_radii;
+    space->dims = desc.space_dims;
+    space->shared_size = desc.shared_size_in_megabytes * TAY_MB;
     space->shared = malloc(space->shared_size);
-
     for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
         space->first[i] = 0;
         space->counts[i] = 0;
     }
 }
 
-int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, unsigned space_index) {
+void tay_add_space(TayState *state, TaySpaceType space_type, int space_dims, float4 part_radii, int shared_size_in_megabytes) {
+    // ERROR: must be outside simulation
+    assert(state->running == TAY_STATE_STATUS_IDLE);
+    // ERROR: no more free spaces left
+    assert(state->spaces_count < TAY_MAX_SPACES);
+
+    _init_space(state->spaces + state->spaces_count++, tay_space_desc(space_type, space_dims, part_radii, shared_size_in_megabytes));
+
+    // Space *space = state->spaces + state->spaces_count++;
+    // space->type = space_type;
+    // space->radii = part_radii;
+    // space->dims = space_dims;
+    // space->shared_size = shared_size_in_megabytes * TAY_MB;
+    // space->shared = malloc(space->shared_size);
+
+    // for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+    //     space->first[i] = 0;
+    //     space->counts[i] = 0;
+    // }
+}
+
+int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, unsigned space_index, TaySpaceDesc space_desc) {
 
     if (space_index >= state->spaces_count) {
         state_set_error(state, TAY_ERROR_SPACE_INDEX_OUT_OF_RANGE);
@@ -96,6 +119,8 @@ int tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity,
         prev = next;
     }
     prev->next = 0;
+
+    _init_space(&g->new_space, space_desc);
 
     return index;
 }
