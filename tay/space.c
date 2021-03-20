@@ -34,20 +34,20 @@ void box_reset(Box *box, int dims) {
     }
 }
 
-void space_return_agents(Space *space, int group_i, TayAgentTag *tag, int is_point) {
+void space_return_agents(Space *space, TayAgentTag *tag, int is_point) {
     if (tag == 0)
         return;
     TayAgentTag *last = tag;
     while (1) {
         box_update_from_agent(&space->box, last, space->dims, is_point);
-        ++space->counts[group_i];
+        ++space->count;
         if (last->next)
             last = last->next;
         else
             break;
     }
-    last->next = space->first[group_i];
-    space->first[group_i] = tag;
+    last->next = space->first;
+    space->first = tag;
 }
 
 #if TAY_TELEMETRY

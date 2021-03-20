@@ -85,7 +85,8 @@ static int _leaf_node_should_expand(Box agent_box, Box leaf_box, float4 part_siz
     return 1;
 }
 
-void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
+void cpu_aabb_tree_sort(TayGroup *group) {
+    Space *space = &group->new_space;
     CpuAabbTree *tree = &space->cpu_aabb_tree;
 
     tree->nodes = space->shared;
@@ -95,82 +96,69 @@ void cpu_aabb_tree_sort(Space *space, TayGroup *groups) {
 
     float4 part_sizes = { space->radii.x * 2.0f, space->radii.y * 2.0f, space->radii.z * 2.0f, space->radii.w * 2.0f };
 
-    for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-        TayGroup *group = groups + group_i;
+    TayAgentTag *next = space->first;
+    while (next) {
+        TayAgentTag *agent = next;
+        next = next->next;
 
-        if (group->space != space) /* sort only agents belonging to this space */
-            continue;
-
-        TayAgentTag *next = space->first[group_i];
-        while (next) {
-            TayAgentTag *agent = next;
-            next = next->next;
-
-            if (tree->root == 0) { /* first node */
-                TreeNode *node = tree->nodes + tree->nodes_count++;
-                _init_leaf_node(node, agent);
-                tree->root = node;
-            }
-            else { /* first node already exists */
-                Box agent_box = (Box){ float4_agent_min(agent), float4_agent_max(agent) };
-
-                TreeNode *leaf = _find_best_leaf_node(tree->root, agent_box, space->dims);
-                TreeNode *old_parent = leaf->parent;
-
-                /* if leaf node's box is smaller than suggested partition size (part_sizes) or there's
-                no more space for new nodes just add agent to the leaf node and expand the leaf node's box */
-                if (tree->nodes_count == tree->max_nodes || _leaf_node_should_expand(agent_box, leaf->box, part_sizes, space->dims)) {
-                    agent->next = leaf->agent;
-                    leaf->agent = agent;
-                    leaf->box = _box_union(leaf->box, agent_box);
-                }
-                /* create new node for agent, put both new node and leaf into a new parent node and
-                replace the leaf node with the new parent node in the old parent node */
-                else {
-                    TreeNode *new_node = tree->nodes + tree->nodes_count++;
-                    TreeNode *new_parent = tree->nodes + tree->nodes_count++;
-
-                    _init_leaf_node(new_node, agent);
-                    _init_branch_node(new_parent, leaf, new_node);
-
-                    if (old_parent == 0) /* only root node found */
-                        tree->root = new_parent;
-                    else { /* substitute new_parent for leaf in old_parent */
-                        if (leaf == old_parent->l)
-                            old_parent->l = new_parent;
-                        else
-                            old_parent->r = new_parent;
-                        new_parent->parent = old_parent;
-                    }
-                }
-
-                for (TreeNode *node = old_parent; node; node = node->parent)
-                    _update_node_box(node);
-            }
+        if (tree->root == 0) { /* first node */
+            TreeNode *node = tree->nodes + tree->nodes_count++;
+            _init_leaf_node(node, agent);
+            tree->root = node;
         }
+        else { /* first node already exists */
+            Box agent_box = (Box){ float4_agent_min(agent), float4_agent_max(agent) };
 
-        space->first[group_i] = 0;
-        space->counts[group_i] = 0;
+            TreeNode *leaf = _find_best_leaf_node(tree->root, agent_box, space->dims);
+            TreeNode *old_parent = leaf->parent;
+
+            /* if leaf node's box is smaller than suggested partition size (part_sizes) or there's
+            no more space for new nodes just add agent to the leaf node and expand the leaf node's box */
+            if (tree->nodes_count == tree->max_nodes || _leaf_node_should_expand(agent_box, leaf->box, part_sizes, space->dims)) {
+                agent->next = leaf->agent;
+                leaf->agent = agent;
+                leaf->box = _box_union(leaf->box, agent_box);
+            }
+            /* create new node for agent, put both new node and leaf into a new parent node and
+            replace the leaf node with the new parent node in the old parent node */
+            else {
+                TreeNode *new_node = tree->nodes + tree->nodes_count++;
+                TreeNode *new_parent = tree->nodes + tree->nodes_count++;
+
+                _init_leaf_node(new_node, agent);
+                _init_branch_node(new_parent, leaf, new_node);
+
+                if (old_parent == 0) /* only root node found */
+                    tree->root = new_parent;
+                else { /* substitute new_parent for leaf in old_parent */
+                    if (leaf == old_parent->l)
+                        old_parent->l = new_parent;
+                    else
+                        old_parent->r = new_parent;
+                    new_parent->parent = old_parent;
+                }
+            }
+
+            for (TreeNode *node = old_parent; node; node = node->parent)
+                _update_node_box(node);
+        }
     }
+
+    space->first = 0;
+    space->count = 0;
 }
 
-void cpu_aabb_tree_unsort(Space *space, TayGroup *groups) {
+void cpu_aabb_tree_unsort(TayGroup *group) {
+    Space *space = &group->new_space;
     CpuAabbTree *tree = &space->cpu_aabb_tree;
 
     box_reset(&space->box, space->dims);
 
-    for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-        TayGroup *group = groups + group_i;
+    for (int node_i = 0; node_i < tree->nodes_count; ++node_i) {
+        TreeNode *node = tree->nodes + node_i;
 
-        if (group->space != space) /* only groups belonging to this space */
-            continue;
-
-        for (int node_i = 0; node_i < tree->nodes_count; ++node_i) {
-            TreeNode *node = tree->nodes + node_i;
-
-            if (_is_leaf_node(node))
-                space_return_agents(space, group_i, node->agent, group->is_point);
-        }
+        if (_is_leaf_node(node))
+            space_return_agents(space, node->agent, group->is_point);
     }
 }
 

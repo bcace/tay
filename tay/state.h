@@ -54,8 +54,8 @@ typedef struct Space {
     int dims;
     float4 radii; /* if space is partitioned, these are suggested subdivision radii */
     TaySpaceType type;
-    TayAgentTag *first[TAY_MAX_GROUPS]; /* unsorted agents */
-    int counts[TAY_MAX_GROUPS]; /* counts of unsorted agents */
+    TayAgentTag *first; /* unsorted agents */
+    int count; /* counts of unsorted agents */
     Box box;
     union {
         CpuSimple cpu_simple;
@@ -73,7 +73,6 @@ typedef struct TayGroup {
     int agent_size; /* agent size in bytes */
     int capacity; /* max. number of agents */
     int is_point; /* are all agents of this group points */
-    Space *space;
     Space new_space; // TODO: rename to space once I finish the transition
 } TayGroup;
 
@@ -93,6 +92,11 @@ typedef struct TayPass {
         TAY_SEE_FUNC see;
         TAY_ACT_FUNC act;
     };
+    union {
+        TayGroup *act_group_ptr;
+        TayGroup *seer_group_ptr;
+    };
+    TayGroup *seen_group_ptr;
     const char *func_name;
     float4 radii;
     void *context;
@@ -116,8 +120,8 @@ typedef struct TayState {
     TayGroup groups[TAY_MAX_GROUPS];
     TayPass passes[TAY_MAX_PASSES];
     int passes_count;
-    Space spaces[TAY_MAX_SPACES];
-    unsigned spaces_count;
+    // Space spaces[TAY_MAX_SPACES];
+    // unsigned spaces_count;
     TayStateStatus running;
     TayError error;
     double ms_per_step; /* for the last run */

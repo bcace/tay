@@ -30,10 +30,10 @@ void cpu_simple_see(TayPass *pass) {
         Space *space = pass->seer_space;
 
         for (int i = 0; i < runner.count; ++i) {
-            TayAgentTag *b = space->cpu_simple.first[i * TAY_MAX_GROUPS + pass->seen_group];
+            TayAgentTag *b = space->cpu_simple.first[i];
 
             for (int j = 0; j < runner.count; ++j) {
-                TayAgentTag *a = space->cpu_simple.first[j * TAY_MAX_GROUPS + pass->seer_group];
+                TayAgentTag *a = space->cpu_simple.first[j];
 
                 SimpleSeeTask *task = tasks + j;
                 _init_simple_see_task(task, pass, a, b, pass->pairing_func, space->dims);
@@ -67,56 +67,45 @@ void cpu_simple_act(TayPass *pass) {
 
     for (int i = 0; i < runner.count; ++i) {
         ActTask *task = act_contexts + i;
-        _init_act_task(task, pass, simple->first[i * TAY_MAX_GROUPS + pass->act_group]);
+        _init_act_task(task, pass, simple->first[i]);
         tay_thread_set_task(i, _act_func, task, pass->context);
     }
     tay_runner_run();
 }
 
-void cpu_simple_sort(Space *space, TayGroup *groups) {
+void cpu_simple_sort(TayGroup *group) {
+    Space *space = &group->new_space;
     space->cpu_simple.first = space->shared;
 
-    for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-        TayGroup *group = groups + group_i;
-        if (group->space != space) /* only sort agents of groups belonging to this space */
-            continue;
+    int rem = space->count % runner.count;
+    int per_thread = (space->count - rem) / runner.count;
 
-        int rem = space->counts[group_i] % runner.count;
-        int per_thread = (space->counts[group_i] - rem) / runner.count;
+    space->cpu_simple.first[0] = space->first;
 
-        space->cpu_simple.first[0 * TAY_MAX_GROUPS + group_i] = space->first[group_i];
+    for (int thread_i = 1; thread_i < runner.count; ++thread_i) {
+        int count = per_thread + (((thread_i - 1) < rem) ? 1 : 0);
 
-        for (int thread_i = 1; thread_i < runner.count; ++thread_i) {
-            int count = per_thread + (((thread_i - 1) < rem) ? 1 : 0);
+        if (count == 0)
+            space->cpu_simple.first[thread_i] = 0;
+        else {
+            TayAgentTag *last = space->cpu_simple.first[thread_i - 1];
 
-            if (count == 0)
-                space->cpu_simple.first[thread_i * TAY_MAX_GROUPS + group_i] = 0;
-            else {
-                TayAgentTag *last = space->cpu_simple.first[(thread_i - 1) * TAY_MAX_GROUPS + group_i];
+            for (int i = 1; i < count; ++i) /* find the last tag of the previous thread */
+                last = last->next;
 
-                for (int i = 1; i < count; ++i) /* find the last tag of the previous thread */
-                    last = last->next;
-
-                space->cpu_simple.first[thread_i * TAY_MAX_GROUPS + group_i] = last->next;
-                last->next = 0;
-            }
+            space->cpu_simple.first[thread_i] = last->next;
+            last->next = 0;
         }
-
-        space->first[group_i] = 0;
-        space->counts[group_i] = 0;
     }
+
+    space->first = 0;
+    space->count = 0;
 }
 
-void cpu_simple_unsort(Space *space, TayGroup *groups) {
+void cpu_simple_unsort(TayGroup *group) {
+    Space *space = &group->new_space;
     box_reset(&space->box, space->dims);
 
-    for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-        TayGroup *group = groups + group_i;
-
-        if (group->space != space) /* only groups belonging to this space */
-            continue;
-
-        for (int thread_i = 0; thread_i < runner.count; ++thread_i)
-            space_return_agents(space, group_i, space->cpu_simple.first[thread_i * TAY_MAX_GROUPS + group_i], group->is_point);
-    }
+    for (int thread_i = 0; thread_i < runner.count; ++thread_i)
+        space_return_agents(space, space->cpu_simple.first[thread_i], group->is_point);
 }

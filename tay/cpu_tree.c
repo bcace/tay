@@ -6,11 +6,11 @@
 
 
 typedef struct TreeCell {
-    struct TreeCell *lo, *hi;           /* child partitions */
+    struct TreeCell *lo, *hi;       /* child partitions */
     struct TreeCell *thread_next;
-    TayAgentTag *first[TAY_MAX_GROUPS]; /* agents contained in this cell */
-    unsigned counts[TAY_MAX_GROUPS];    /* agent counts for this cell */
-    int dim;                            /* dimension along which the cell's partition is divided into child partitions */
+    TayAgentTag *first;             /* agents contained in this cell */
+    unsigned count;                 /* agent counts for this cell */
+    int dim;                        /* dimension along which the cell's partition is divided into child partitions */
     Box box;
     float mid;
 } TreeCell;
@@ -31,8 +31,8 @@ static void _thread_traverse_seen(CpuTree *tree, TreeCell *seer_cell, TreeCell *
     for (int i = 0; i < tree->dims; ++i)
         if (seer_box.min.arr[i] > seen_cell->box.max.arr[i] || seer_box.max.arr[i] < seen_cell->box.min.arr[i])
             return;
-    if (seen_cell->first[pass->seen_group]) /* if there are any "seen" agents */
-        pass->pairing_func(seer_cell->first[pass->seer_group], seen_cell->first[pass->seen_group], pass->see, pass->radii, tree->dims, thread_context);
+    if (seen_cell->first) /* if there are any "seen" agents */
+        pass->pairing_func(seer_cell->first, seen_cell->first, pass->see, pass->radii, tree->dims, thread_context);
     if (seen_cell->lo)
         _thread_traverse_seen(tree, seer_cell, seen_cell->lo, pass, seer_box, thread_context);
     if (seen_cell->hi)
@@ -41,7 +41,7 @@ static void _thread_traverse_seen(CpuTree *tree, TreeCell *seer_cell, TreeCell *
 
 static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
     for (TreeCell *cell = task->first_cell; cell; cell = cell->thread_next) { /* seer cells */
-        if (cell->first[task->pass->seer_group]) {
+        if (cell->first) {
             Box seer_box = cell->box;
             for (int i = 0; i < task->tree->dims; ++i) {
                 seer_box.min.arr[i] -= task->pass->radii.arr[i];
@@ -72,7 +72,7 @@ void cpu_tree_see(TayPass *pass) {
         /* sort cells into buckets wrt number of contained agents */
         for (int i = 0; i < tree->cells_count; ++i) {
             TreeCell *cell = tree->cells + i;
-            unsigned count = cell->counts[pass->seer_group];
+            unsigned count = cell->count;
             if (count) {
                 int bucket_i = space_agent_count_to_bucket_index(count);
                 cell->thread_next = buckets[bucket_i];
@@ -90,7 +90,7 @@ void cpu_tree_see(TayPass *pass) {
                 SeeTask *task = sorted_tasks[0]; /* always take the task with fewest agents */
                 cell->thread_next = task->first_cell;
                 task->first_cell = cell;
-                task->agents_count += cell->counts[pass->seer_group];
+                task->agents_count += cell->count;
 
                 /* sort the task wrt its number of agents */
                 {
@@ -130,8 +130,8 @@ static void _init_tree_act_task(ActTask *task, CpuTree *tree, TayPass *pass, int
 
 static void _thread_traverse_actors(ActTask *task, TreeCell *cell, TayThreadContext *thread_context) {
     if (task->counter % runner.count == 0) {
-        if (cell->first[task->pass->seer_group]) { /* if there are any "seeing" agents */
-            for (TayAgentTag *tag = cell->first[task->pass->seer_group]; tag; tag = tag->next)
+        if (cell->first) { /* if there are any "seeing" agents */
+            for (TayAgentTag *tag = cell->first; tag; tag = tag->next)
                 task->pass->act(tag, thread_context->context);
         }
     }
@@ -167,10 +167,8 @@ typedef struct {
 void _tree_clear_cell(TreeCell *cell) {
     cell->lo = 0;
     cell->hi = 0;
-    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-        cell->first[i] = 0;
-        cell->counts[i] = 0;
-    }
+    cell->first = 0;
+    cell->count = 0;
 }
 
 static inline void _decide_cell_split(TreeCell *cell, int dims, int *max_depths, float *radii, Depths cell_depths) {
@@ -189,12 +187,12 @@ static inline void _decide_cell_split(TreeCell *cell, int dims, int *max_depths,
         cell->mid = (cell->box.max.arr[cell->dim] + cell->box.min.arr[cell->dim]) * 0.5f;
 }
 
-static void _sort_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent, int group, Depths cell_depths, float *radii) {
+static void _sort_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
 
     if (cell->dim == TREE_CELL_LEAF_DIM) { /* leaf cell, put the agent here */
-        agent->next = cell->first[group];
-        cell->first[group] = agent;
-        ++cell->counts[group];
+        agent->next = cell->first;
+        cell->first = agent;
+        ++cell->count;
         return;
     }
 
@@ -206,9 +204,9 @@ static void _sort_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent,
         if (cell->lo == 0) { /* lo cell needed but doesn't exist yet */
 
             if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
-                agent->next = cell->first[group];
-                cell->first[group] = agent;
-                ++cell->counts[group];
+                agent->next = cell->first;
+                cell->first = agent;
+                ++cell->count;
                 return;
             }
 
@@ -218,15 +216,15 @@ static void _sort_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent,
             cell->lo->box.max.arr[cell->dim] = cell->mid;
             _decide_cell_split(cell->lo, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
         }
-        _sort_point_agent(tree, cell->lo, agent, group, sub_node_depths, radii);
+        _sort_point_agent(tree, cell->lo, agent, sub_node_depths, radii);
     }
     else {
         if (cell->hi == 0) { /* hi cell needed but doesn't exist yet */
 
             if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
-                agent->next = cell->first[group];
-                cell->first[group] = agent;
-                ++cell->counts[group];
+                agent->next = cell->first;
+                cell->first = agent;
+                ++cell->count;
                 return;
             }
 
@@ -236,16 +234,16 @@ static void _sort_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent,
             cell->hi->box.min.arr[cell->dim] = cell->mid;
             _decide_cell_split(cell->hi, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
         }
-        _sort_point_agent(tree, cell->hi, agent, group, sub_node_depths, radii);
+        _sort_point_agent(tree, cell->hi, agent, sub_node_depths, radii);
     }
 }
 
-static void _sort_non_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent, int group, Depths cell_depths, float *radii) {
+static void _sort_non_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
 
     if (cell->dim == TREE_CELL_LEAF_DIM) { /* leaf cell, put the agent here */
-        agent->next = cell->first[group];
-        cell->first[group] = agent;
-        ++cell->counts[group];
+        agent->next = cell->first;
+        cell->first = agent;
+        ++cell->count;
         return;
     }
 
@@ -258,9 +256,9 @@ static void _sort_non_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *ag
         if (cell->lo == 0) { /* lo cell needed but doesn't exist yet */
 
             if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
-                agent->next = cell->first[group];
-                cell->first[group] = agent;
-                ++cell->counts[group];
+                agent->next = cell->first;
+                cell->first = agent;
+                ++cell->count;
                 return;
             }
 
@@ -270,15 +268,15 @@ static void _sort_non_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *ag
             cell->lo->box.max.arr[cell->dim] = cell->mid;
             _decide_cell_split(cell->lo, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
         }
-        _sort_non_point_agent(tree, cell->lo, agent, group, sub_node_depths, radii);
+        _sort_non_point_agent(tree, cell->lo, agent, sub_node_depths, radii);
     }
     else if (min >= cell->mid) {
         if (cell->hi == 0) { /* hi cell needed but doesn't exist yet */
 
             if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
-                agent->next = cell->first[group];
-                cell->first[group] = agent;
-                ++cell->counts[group];
+                agent->next = cell->first;
+                cell->first = agent;
+                ++cell->count;
                 return;
             }
 
@@ -288,12 +286,12 @@ static void _sort_non_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *ag
             cell->hi->box.min.arr[cell->dim] = cell->mid;
             _decide_cell_split(cell->hi, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
         }
-        _sort_non_point_agent(tree, cell->hi, agent, group, sub_node_depths, radii);
+        _sort_non_point_agent(tree, cell->hi, agent, sub_node_depths, radii);
     }
     else { /* agent extends to both sides of the mid plane, leave it in the current cell */
-        agent->next = cell->first[group];
-        cell->first[group] = agent;
-        ++cell->counts[group];
+        agent->next = cell->first;
+        cell->first = agent;
+        ++cell->count;
 #if TAY_TELEMETRY
         ++runner.telemetry.tree_branch_agents;
 #endif
@@ -316,7 +314,8 @@ void cpu_tree_on_simulation_start(Space *space) {
     // ERROR: must be space for at least one cell
 }
 
-void cpu_tree_sort(Space *space, TayGroup *groups) {
+void cpu_tree_sort(TayGroup *group) {
+    Space *space = &group->new_space;
     CpuTree *tree = &space->cpu_tree;
 
     /* calculate max partition depths for each dimension */
@@ -334,61 +333,46 @@ void cpu_tree_sort(Space *space, TayGroup *groups) {
         _decide_cell_split(tree->cells, tree->dims, tree->max_depths.arr, space->radii.arr, root_cell_depths);
     }
 
-    /* sort all agents from tree into nodes */
-    for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-        TayGroup *group = groups + group_i;
-
-        if (group->space != space) /* sort only agents belonging to this space */
-            continue;
-
-        TayAgentTag *next = space->first[group_i];
+    TayAgentTag *next = space->first;
 
 #if TAY_TELEMETRY
-        runner.telemetry.tree_agents = 0;
-        runner.telemetry.tree_branch_agents = 0;
+    runner.telemetry.tree_agents = 0;
+    runner.telemetry.tree_branch_agents = 0;
 #endif
 
-        if (group->is_point) {
-            while (next) {
-                TayAgentTag *tag = next;
-                next = next->next;
-                _sort_point_agent(tree, tree->cells, tag, group_i, root_cell_depths, space->radii.arr);
+    if (group->is_point) {
+        while (next) {
+            TayAgentTag *tag = next;
+            next = next->next;
+            _sort_point_agent(tree, tree->cells, tag, root_cell_depths, space->radii.arr);
 #if TAY_TELEMETRY
-                ++runner.telemetry.tree_agents;
+            ++runner.telemetry.tree_agents;
 #endif
-            }
         }
-        else {
-            while (next) {
-                TayAgentTag *tag = next;
-                next = next->next;
-                _sort_non_point_agent(tree, tree->cells, tag, group_i, root_cell_depths, space->radii.arr);
-#if TAY_TELEMETRY
-                ++runner.telemetry.tree_agents;
-#endif
-            }
-        }
-
-        space->first[group_i] = 0;
-        space->counts[group_i] = 0;
     }
+    else {
+        while (next) {
+            TayAgentTag *tag = next;
+            next = next->next;
+            _sort_non_point_agent(tree, tree->cells, tag, root_cell_depths, space->radii.arr);
+#if TAY_TELEMETRY
+            ++runner.telemetry.tree_agents;
+#endif
+        }
+    }
+
+    space->first = 0;
+    space->count = 0;
 }
 
-void cpu_tree_unsort(Space *space, TayGroup *groups) {
+void cpu_tree_unsort(TayGroup *group) {
+    Space *space = &group->new_space;
     CpuTree *tree = &space->cpu_tree;
 
     box_reset(&space->box, space->dims);
 
     for (int cell_i = 0; cell_i < tree->cells_count; ++cell_i) {
         TreeCell *cell = tree->cells + cell_i;
-
-        for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-            TayGroup *group = groups + group_i;
-
-            if (group->space != space) /* only groups belonging to this space */
-                continue;
-
-            space_return_agents(space, group_i, cell->first[group_i], group->is_point);
-        }
+        space_return_agents(space, cell->first, group->is_point);
     }
 }
