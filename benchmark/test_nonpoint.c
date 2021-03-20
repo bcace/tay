@@ -78,9 +78,8 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
     act_context.max.z = SPACE_SIZE;
 
     TayState *tay = tay_create_state();
-    tay_add_space(tay, space_type, 3, depth_correct(see_radii, depth_correction), 250);
 
-    int group = tay_add_group(tay, sizeof(BoxAgent), agents_count, TAY_FALSE, 0);
+    int group = tay_add_group(tay, sizeof(BoxAgent), agents_count, TAY_FALSE, tay_space_desc(space_type, 3, depth_correct(see_radii, depth_correction), 250));
     tay_add_see(tay, group, group, box_agent_see, "box_agent_see", see_radii, 0, 0);
     tay_add_act(tay, group, box_agent_act, "box_agent_act", &act_context, sizeof(ActContext));
 
