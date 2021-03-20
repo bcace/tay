@@ -52,7 +52,7 @@ static inline void _check_error(float a, float b, float *max_error) {
         *max_error = -relative_error;
 }
 
-void results_write_or_compare(Results *results, TayState *tay, int group, int agents_count, int f_buffer_offset) {
+void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, int agents_count, int f_buffer_offset) {
     if (results) {
         if (results->first_time) {
             for (int i = 0; i < agents_count; ++i) {
@@ -82,7 +82,7 @@ void results_write_or_compare(Results *results, TayState *tay, int group, int ag
     }
 }
 
-void make_randomized_direction_cluster(TayState *state, int group, int count, float3 min, float3 max) {
+void make_randomized_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max) {
     for (int i = 0; i < count; ++i) {
         Agent *a = tay_get_available_agent(state, group);
         a->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
@@ -106,7 +106,7 @@ void make_randomized_direction_cluster(TayState *state, int group, int count, fl
     }
 }
 
-void make_uniform_direction_cluster(TayState *state, int group, int count, float3 min, float3 max) {
+void make_uniform_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max) {
     float3 v;
     v.x = -0.5f + rand() / (float)RAND_MAX;
     v.y = -0.5f + rand() / (float)RAND_MAX;

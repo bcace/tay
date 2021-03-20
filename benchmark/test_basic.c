@@ -31,7 +31,7 @@ static double _test(ModelCase model_case, TaySpaceType space_type, float see_rad
     see_context.radii.y = see_radius;
     see_context.radii.z = see_radius;
 
-    int group = tay_add_group(tay, sizeof(Agent), agents_count, TAY_TRUE, tay_space_desc(space_type, dims, depth_correct(see_radii, depth_correction), 250));
+    TayGroup *group = tay_add_group(tay, sizeof(Agent), agents_count, TAY_TRUE, tay_space_desc(space_type, dims, depth_correct(see_radii, depth_correction), 250));
     tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(tay, group, agent_act, "agent_act", &act_context, sizeof(act_context));
 

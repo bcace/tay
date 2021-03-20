@@ -15,7 +15,7 @@ static float _rand_exponential(float min, float max, float exp) {
     return min + (max - min) * powf(base, exp);
 }
 
-static void _make_randomized_direction_cluster(TayState *state, int group, int count, float3 min, float3 max, float min_size, float max_size) {
+static void _make_randomized_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max, float min_size, float max_size) {
     for (int i = 0; i < count; ++i) {
         int major = i % 3;
 
@@ -79,7 +79,7 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
 
     TayState *tay = tay_create_state();
 
-    int group = tay_add_group(tay, sizeof(BoxAgent), agents_count, TAY_FALSE, tay_space_desc(space_type, 3, depth_correct(see_radii, depth_correction), 250));
+    TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), agents_count, TAY_FALSE, tay_space_desc(space_type, 3, depth_correct(see_radii, depth_correction), 250));
     tay_add_see(tay, group, group, box_agent_see, "box_agent_see", see_radii, 0, 0);
     tay_add_act(tay, group, box_agent_act, "box_agent_act", &act_context, sizeof(ActContext));
 
