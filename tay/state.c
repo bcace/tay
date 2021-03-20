@@ -52,16 +52,6 @@ TaySpaceDesc tay_space_desc(TaySpaceType space_type, int space_dims, float4 part
     return desc;
 }
 
-static void _init_space(Space *space, TaySpaceDesc desc) {
-    space->type = desc.space_type;
-    space->radii = desc.part_radii;
-    space->dims = desc.space_dims;
-    space->shared_size = desc.shared_size_in_megabytes * TAY_MB;
-    space->shared = malloc(space->shared_size);
-    space->first = 0;
-    space->count = 0;
-}
-
 TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, TaySpaceDesc space_desc) {
     int group_i = 0;
 
@@ -74,6 +64,20 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
         return 0;
     }
 
+    if (is_point) {
+        if (space_desc.space_type == TAY_CPU_AABB_TREE) {
+            state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
+            return 0;
+        }
+    }
+    else {
+        if (space_desc.space_type == TAY_CPU_GRID) {
+            state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
+            return 0;
+        }
+    }
+
+    /* initialize group */
     TayGroup *group = state->groups + group_i;
     group->agent_size = agent_size;
     group->storage = calloc(agent_capacity, agent_size);
@@ -81,6 +85,7 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     group->is_point = is_point;
     group->first = group->storage;
 
+    /* connect all dead agents in storage into a list */
     TayAgentTag *prev = group->first;
     for (unsigned i = 0; i < agent_capacity - 1; ++i) {
         TayAgentTag *next = (TayAgentTag *)((char *)prev + agent_size);
@@ -89,7 +94,15 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     }
     prev->next = 0;
 
-    _init_space(&group->space, space_desc);
+    /* initialize the group's space */
+    Space *space = &group->space;
+    space->type = space_desc.space_type;
+    space->radii = space_desc.part_radii;
+    space->dims = space_desc.space_dims;
+    space->shared_size = space_desc.shared_size_in_megabytes * TAY_MB;
+    space->shared = malloc(space->shared_size);
+    space->first = 0;
+    space->count = 0;
 
     return group;
 }
