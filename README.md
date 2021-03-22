@@ -1,12 +1,12 @@
 # Tay
 
-Tay is a library that provides an embeddable framework for building agent-based models and running efficient simulations.
+Tay is an embeddable framework for fast agent-based simulations.
 
-Simulation speed depends to a high degree on various details of the model *(are agents points or do they vary in size, do they interact at certain range or through fixed references or through a grid, do all agents move or are some of them stationary, are agents evenly distributed in space or are they tightly grouped in some locations, etc.)* and the framework that runs the simulation to fit the model while .
+Agent-based models can differ drastically, not just in how agents act and interact once they come into contact, but also in agent size, velocity and position distributions, how the agents move, and which channels they use to interact (e.g. proximity, particle mesh, or direct references). Other than optimizing agent behavior and multi-threading the simulation execution, the most significant optimization in agent-based simulations comes from choosing the best method for quick neighbor-finding, and which method is most appropriate depends heavily on all the model characteristics mentioned above.
 
-To that end, Tay provides a set of *interchangeable* and *composable* space partitioning structures. *Interchangeable* means that it's easy to experiment which structure best suits the model, throughout model development. *Composable* means that agents can be divided into several different structures, each chosen to be optimal for its agents while not interfering with their ability to interact.
+Tay provides a set of *interchangeable* and *composable* space partitioning structures. *Interchangeable* means that it's easy to experiment which structure best suits the model, throughout model development. *Composable* means that agents can be divided into several different structures, each chosen to be optimal for its agents while not interfering with their ability to interact.
 
-> Note that Tay is still in its experimental stage, there's still a lot of features to add, but progress can be seen [here](https://bcace.github.io/tay.html), where I use a series of tests to compare how different structures work in different scenarios (*benchmark* directory), and [here](https://www.youtube.com/watch?v=DD93xIQqz5s), where I try to showcase some of Tay's features (*flocking* directory).
+This repo contains the Tay source in the `tay/tay` directory, tests to compare structures' performance in different test simulations and verify their correctness in the `tay/benchmark` directory, and a showcase application in the `tay/flocking` directory. Development progess is documented in a series of posts [here](https://bcace.github.io), and you can also see  [here](https://www.youtube.com/watch?v=DD93xIQqz5s), where I try to showcase some of Tay's features (*flocking* directory).
 
 ## Tay basics
 
