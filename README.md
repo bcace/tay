@@ -8,45 +8,21 @@ Which space partitioning structure is best suited to a given model depends heavi
 
 This repo contains Tay source (`tay/tay` directory), tests to compare structures' performance in different test cases and verify their correctness (`tay/benchmark` directory), and a showcase application (`tay/flocking` directory). Development progess is documented in a series of posts [here](https://bcace.github.io), and you can also watch [videos](https://www.youtube.com/watch?v=DD93xIQqz5s) where I try to showcase some of Tay's features.
 
-## Tay basics
+## Overview
 
-As a library written in C Tay is meant to be used from host code with which it can share data and code directly (simple C structs and function pointers). Host program can create and use any number of independent Tay states at the same time. `TayState` object always contains a single model and runs simulations based on that model.
+Tay is a C library that enables embedding agent-based simulations in host programs. Host program defines agent types as simple C structs and agent behavior in form of C functions, and it has to create a Tay state that contains actual agent instances based on those types and run simulations that call those functions.
 
-```C
-TayState *tay = tay_create_state();
+Inside the Tay state agents are divided into agent groups and their behavior is divided into passes.
 
-/* define the model and run simulations */
+Each agent group contains storage for a single type of agent (agent pool), and manages "live" agents inside the chosen space partitioning structure during simulations.
 
-tay_destroy_state(tay);
-```
-
-#### Agents and agent groups
-
-Agent types are defined in host code as regular C structs. For internal use by Tay first member of each struct must be a `TayAgentTag` tag (8 bytes). For essential communication between the host program and Tay, the tag member must be followed immediately by a single `float4` structure representing the agent's position in space if agents are point agents, or two `float4` structures (bounding box extents, minimum and maximum) if agents are non-point agents.
-
-```C
-/* one of our agent types */
-struct MyAgent {
-    TayAgentTag tag;    /* space reserved for Tay */
-    float4 p;           /* agent position */
-    int a;
-    float b;
-    MyStruct c;
-};
-```
+Host program can create and use as many independent Tay states as necessary.
 
 Agent groups act primarily as storage for agents of a single type (agent pools), and additionally contain the space partitioning structure which contains "live" agents from that storage.
 
 ```C
-/* description of the initial space structure for the agent group */
-TaySpaceDesc space_desc;
-space_desc.space_type = TAY_CPU_AABB_TREE;
-space_desc.space_dims = 3;
-space_desc.part_radii = (float4){10.0f, 10.0f, 10.0f, 10.0f};
-space_desc.shared_size_in_megabytes = 200;
-
 /* create new agent group and reserve storage for 100000 agents */
-TayGroup *group = tay_add_group(tay, sizeof(MyAgent), 100000, TAY_TRUE, space_desc);
+TayGroup *group = tay_add_group(tay, sizeof(MyAgent), 100000, TAY_TRUE);
 ```
 
 #### Agent behavior
