@@ -1,12 +1,12 @@
 # Tay
 
-Tay is an embeddable framework for fast agent-based simulations.
+Tay is an embeddable framework for fast spatial agent-based simulations.
 
-Other than optimizing agent behavior and multi-threading simulation execution, choosing an appropriate method for quick neighbor-finding has the biggest effect on simulation speed. Which neighbor-finding method is most appropriate depends heavily on the model itself: not just on how agents act and interact once they come into contact, but also agent size, velocity and position distributions, how the agents move, and which channels they use to interact (e.g. proximity, particle mesh, or direct references).
+Agent-based simulations, just like all simulations in my experience, tend to be slow and scale badly. Generally, there are three main areas for optimization: model code, neighbor-finding and parallelization. Model code is up to the model developer, therefore outside of Tay's scope. Neighbor-finding can be optimized using different space partitioning structures, and the resulting workload can be distributed evenly among different processors (CPU or GPU).
 
-Since it's difficult to tell in advance which neighbor-finding method is going to suit a complex model best (especially considering the model can change drastically during development), Tay decouples agents and their behavior from the framework that runs the simulation and provides a set of *interchangeable* and *composable* space partitioning structures. *Interchangeable* means that it's easy to change which structures are used in the simulation. *Composable* means that agents can be divided into several different structures, each chosen to be optimal for its agents while not interfering with their ability to interact.
+Which space partitioning structure is best suited to a given model depends heavily on the nature of agents in the model: are they point or non-point, do they move or are they static, do they tend to gather into groups or are they uniformly distributed in space, etc. The goal of Tay is to provide a comprehensive set of parallelized space partitioning structures that you can easily swap and test on your models, and even keep different parts of the model in different structures for optimal performance.
 
-This repo contains the Tay source in the `tay/tay` directory, tests to compare structures' performance in different test simulations and verify their correctness in the `tay/benchmark` directory, and a showcase application in the `tay/flocking` directory. Development progess is documented in a series of posts [here](https://bcace.github.io), and you can also see  [here](https://www.youtube.com/watch?v=DD93xIQqz5s), where I try to showcase some of Tay's features (*flocking* directory).
+This repo contains Tay source (`tay/tay` directory), tests to compare structures' performance in different test cases and verify their correctness (`tay/benchmark` directory), and a showcase application (`tay/flocking` directory). Development progess is documented in a series of posts [here](https://bcace.github.io), and you can also watch [videos](https://www.youtube.com/watch?v=DD93xIQqz5s) where I try to showcase some of Tay's features.
 
 ## Tay basics
 
