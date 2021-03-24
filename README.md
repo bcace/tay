@@ -10,48 +10,68 @@ This repo contains Tay source (`tay/tay` directory), tests to compare structures
 
 ## Tay basics
 
-As a library written in C Tay is meant to used from other C code with which it can share data and code directly (agents as simple C structs and agent behavior through function pointers). `TayState` object is the environment that contains model definition and runs simulations based on that model.
+As a library written in C Tay is meant to be used from host code with which it can share data and code directly (simple C structs and function pointers). Host program can create and use any number of independent Tay states at the same time. `TayState` object always contains a single model and runs simulations based on that model.
 
 ```C
 TayState *tay = tay_create_state();
 
-/* define the model and run simulations between these two calls */
+/* define the model and run simulations */
 
 tay_destroy_state(tay);
 ```
 
 #### Agents and agent groups
 
-Agents are simply C structs with some special members meant for internal use by the Tay library. First member must be a `TayAgentTag` structure (8 bytes) followed immediately by a single `float4` structure representing the agent's position in space if agent is a point agent, or two `float4` structures (min and max) if agent is a non-point agent.
+Agent types are defined in host code as regular C structs. For internal use by Tay first member of each struct must be a `TayAgentTag` tag (8 bytes). For essential communication between the host program and Tay, the tag member must be followed immediately by a single `float4` structure representing the agent's position in space if agents are point agents, or two `float4` structures (bounding box extents, minimum and maximum) if agents are non-point agents.
 
 ```C
-/* our agent type, defined in host code */
-struct Agent {
-    TayAgentTag tag;    /* space reserved for Tay, must be first member */
-    float4 p;           /* agent position, must be float4 and immediately follow tag */
-    int a;              /* some agent variable */
+/* one of our agent types */
+struct MyAgent {
+    TayAgentTag tag;    /* space reserved for Tay */
+    float4 p;           /* agent position */
+    int a;
+    float b;
+    MyStruct c;
 };
 ```
 
-Agent group is basically an agent pool for agents of a single type, and it also ...
+Agent groups act primarily as storage for agents of a single type (agent pools), and additionally contain the space partitioning structure which contains "live" agents from that storage.
 
 ```C
-/* before we define the agent group we describe the initial space structure it will use for simulation */
+/* description of the initial space structure for the agent group */
 TaySpaceDesc space_desc;
-space_desc.space_type = TAY_CPU_AABB_TREE;  /* using the AABB tree structure */
-space_desc.space_dims = 3;                  /* 3D space */
-space_desc.part_radii = (float4){10.0f, 10.0f, 10.0f, 10.0f}; /* minimum partition sizes */
-space_desc.shared_size_in_megabytes = 200; /* memory used internally by the structure */
+space_desc.space_type = TAY_CPU_AABB_TREE;
+space_desc.space_dims = 3;
+space_desc.part_radii = (float4){10.0f, 10.0f, 10.0f, 10.0f};
+space_desc.shared_size_in_megabytes = 200;
 
-/* create the new agent group and reserve storage for 100000 agents of that type */
-TayGroup *group = tay_add_group(tay, sizeof(Agent), 100000, TAY_TRUE, space_desc);
+/* create new agent group and reserve storage for 100000 agents */
+TayGroup *group = tay_add_group(tay, sizeof(MyAgent), 100000, TAY_TRUE, space_desc);
 ```
 
 #### Agent behavior
 
-Agent behavior is just a set of C functions with predefined arguments that describe either what a single agent does or how two agents interact. These functions are simply passed to Tay as function pointers. In case of GPU simulations, agent behavior code is passed as a C string containing OpenCL C code similar to that of regular C functions.
+Agent behavior is defined in host as a set of functions that describe how agents act and interact. These functions have predefined signatures and are passed to Tay as function pointers to be executed at the appropriate time.
 
-As described in [this](https://bcace.github.io/ochre.html) post, if agents use shared memory to communicate directly, in order to avoid data races and race conditions
+As described in [this](https://bcace.github.io/ochre.html) post, to achieve lock-free parallel execution of agent actions and interactions when agents essentially exist in and communicate trough shared memory, actions and interactions are separated into multiple passes.
+
+Currently there are two types of passes: *see* and *act*. *See* passes are used so agents can perceive their surroundings and neighbors (accumulation phase), and *act* passes are used for agents to act on the information they each gathered from their environment (swap phase).
+
+Host function that describes how agents gather information during a *see* pass receives three arguments from Tay: `seer_agent` is the one gathering or accumulating information from the environment, `seen_agent` is the "perceived" agent and should not change its state within this function, and `see_context` is a custom struct defined in host that provides global, read-only data relevant for the pass.
+
+Host function that describes how agents act individually during a *act* pass receives two arguments: `agent` is obviously the acting agent, and `act_context` is global read-only data relevant for that *act* pass.
+
+```C
+void agent_see(MyAgent *seer_agent, MyAgent *seen_agent, void *see_context) {
+    /* ...  */
+}
+
+void agent_act(MyAgent *agent, void *act_context) {
+    /* ... */
+}
+```
+
+Now passes can be defined. *See* passes define for which groups of agents it defines interaction, and with ...
 
 ```C
 tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, 0, 0);
