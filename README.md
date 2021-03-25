@@ -27,83 +27,49 @@ typedef struct {
     /* agent data */
 } MyAgent;
 
-TayGroup *group = tay_add_group(tay, sizeof(MyAgent), 100000, TAY_POINT);
-MyAgent *agent = tay_get_available_agent(tay, group);
+TayGroup *my_group = tay_add_group(tay, sizeof(MyAgent), 100000, TAY_POINT);
+MyAgent *agent = tay_get_available_agent(tay, my_group);
 /* initialize agent's data */
-tay_commit_available_agent(tay, group);
+tay_commit_available_agent(tay, my_group);
 ```
 
 #### Agent behavior
 
-Agent behavior is defined in host as a set of functions that describe how agents act and interact. These functions have predefined signatures and are passed to Tay as function pointers to be executed at the appropriate time.
+As described in [this](https://bcace.github.io/ochre.html) post, to achieve lock-free parallel execution of agent actions and their shared memory communication, Tay requires that agent behavior is separated into multiple passes.
 
-As described in [this](https://bcace.github.io/ochre.html) post, to achieve lock-free parallel execution of agent actions and interactions when agents essentially exist in and communicate trough shared memory, actions and interactions are separated into multiple passes.
+A pass can either be a *see* pass or an *act* pass. During *see* passes agents gather information from the environment (accumulation phase), and during *act* passes agents act individually on the information gathered during previous *see* passes (swap phase).
 
-Currently there are two types of passes: *see* and *act*. *See* passes are used so agents can perceive their surroundings and neighbors (accumulation phase), and *act* passes are used for agents to act on the information they each gathered from their environment (swap phase).
-
-Host function that describes how agents gather information during a *see* pass receives three arguments from Tay: `seer_agent` is the one gathering or accumulating information from the environment, `seen_agent` is the "perceived" agent and should not change its state within this function, and `see_context` is a custom struct defined in host that provides global, read-only data relevant for the pass.
-
-Host function that describes how agents act individually during a *act* pass receives two arguments: `agent` is obviously the acting agent, and `act_context` is global read-only data relevant for that *act* pass.
+Host defines pass functions that describe how individual agents act during *act* passes and how pairs of agents interact during *see* passes:
 
 ```C
 void agent_see(MyAgent *seer_agent, MyAgent *seen_agent, void *see_context) {
-    /* ...  */
+    /* change "seer_agent" state based on the "seen_agent" state */
 }
 
 void agent_act(MyAgent *agent, void *act_context) {
-    /* ... */
+    /* change "agent" state */
 }
+
+/* see pass between agents of the same group */
+tay_add_see(tay, my_group, my_group, agent_see, "agent_see", see_radii, 0, 0);
+
+/* act pass for agents of my_group */
+tay_add_act(tay, my_group, agent_act, "agent_act", 0, 0);
 ```
 
-Now passes can be defined. *See* passes define for which groups of agents it defines interaction, and with ...
+and has to make sure that when in the above example in the `agent_see` function `seer_agent` changes its state (gathers information about its environment - in this case the `seen_agent`) the member variables it writes to are not read in that same function. Also `seen_agent` state must be read-only in that function.
 
-```C
-tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, 0, 0);
-tay_add_act(tay, group, agent_act, "agent_act", 0, 0);
-```
+During simulation Tay state executes passes, using space partitioning structures to find neighbors (`see_radii` argument), and calls pass functions on agents in such a way that there are no data races or race conditions, that threads are never blocking each other, and workload is balanced evenly.
 
-### Simulation setup and running
+## Implemented space partitioning structures
 
-Then we allocate agents, initialize their data and add them to the space (storage is in the TayGroup object, adding to a space just makes the agent "live"):
+- All partitioning structures have a suggested minimum partition sizes
+- all structures have a predefined amount of memory available for internal use. Will not error if they run out of memory, but performance will be decreased.
 
-```C
-Agent *agent = tay_get_available_agent(tay, group); /* gets first available "dead" agent from storage */
+`CpuSimple` Simple non-structure used when all agents have to interact (there's no limit to the distance at which agents can interact). Can contain both point and non-point agents.
 
-/* initialize agent data here... */
+`CpuTree` K-d tree structure. Can contain both point and non-point agents. If it runs out of memory it sorts agents into best nodes it can find.
 
-tay_commit_available_agent(tay, group); /* makes the agent "live" */
-```
+`CpuAabbTree` AABB tree structure. Can only contain non-point agents. If it runs out of memory it stores multiple agents into same nodes.
 
-Then we can run the simulation:
-
-```C
-double average_milliseconds_per_step = tay_run(tay, 100, TAY_SPACE_CPU_GRID, 1);
-```
-
-and get new agent data:
-
-```C
-Agent *agent = tay_get_agent(tay, group, agent_index);
-```
-
-## Space partitioning structures
-
-(list with short descriptions)
-
-## What's next?
-
-Currently I use Tay as a vehicle to better understand what's necessary for efficient agent-based simulation, in future it should become
-
-(In future, through its application in more complex simulations, it should become a library for use in any agent-based simulation and, more importantly, easily configured for optimal simulation running.)
-
-These are some of the more significant things to do in that direction:
-
-* Support for non-point agents in the `CpuTree` structure
-* Combining multiple structures in a single simulation
-* More control over when structures get updated
-* Efficient communication through references or connections
-* Efficient communication through particle grids
-* Implement and benchmark the new `CpuAABBTree` structure
-* Implement thread balancing for the `CpuTree` structure
-* Add a simple sampling profiler to measure time spent updating and using structures
-* Automatic adjustment of `depth_correction`
+`CpuGrid` Hash grid structure. Can only contain point agents. Less available memory only means more hash collisions, which leads to decreased performance.
