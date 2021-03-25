@@ -27,9 +27,7 @@ typedef struct {
     /* agent data */
 } MyAgent;
 
-TayState *tay = tay_create_state();
 TayGroup *group = tay_add_group(tay, sizeof(MyAgent), 100000, TAY_POINT);
-
 MyAgent *agent = tay_get_available_agent(tay, group);
 /* initialize agent's data */
 tay_commit_available_agent(tay, group);
