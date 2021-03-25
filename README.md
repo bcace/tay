@@ -10,19 +10,29 @@ This repo contains Tay source (`tay/tay` directory), tests to compare structures
 
 ## Overview
 
-Tay is a C library that enables embedding agent-based simulations in host programs. Host program defines agent types as simple C structs and agent behavior in form of C functions, and it has to create a Tay state that contains actual agent instances based on those types and run simulations that call those functions.
-
-Inside the Tay state agents are divided into agent groups and their behavior is divided into passes.
-
-Each agent group contains storage for a single type of agent (agent pool), and manages "live" agents inside the chosen space partitioning structure during simulations.
-
-Host program can create and use as many independent Tay states as necessary.
-
-Agent groups act primarily as storage for agents of a single type (agent pools), and additionally contain the space partitioning structure which contains "live" agents from that storage.
+Tay is a C library that enables embedding agent-based simulations in host programs. Each simulation is run in its separate Tay state, and host can create as many Tay states as it needs.
 
 ```C
-/* create new agent group and reserve storage for 100000 agents */
-TayGroup *group = tay_add_group(tay, sizeof(MyAgent), 100000, TAY_TRUE);
+TayState *tay = tay_create_state();
+/* define model and run simulations */
+tay_destroy_state(tay);
+```
+
+#### Agents and agent groups
+
+Host defines agent types as regular C structs, and creates an agent group for each of those types. Agent group reserves storage for its agents (agent pool) and maintains the selected space partitioning structure during simulation. When host wants to create an agent it requests an agent from storage, initializes its data, and adds it to the structure.
+
+```C
+typedef struct {
+    /* agent data */
+} MyAgent;
+
+TayState *tay = tay_create_state();
+TayGroup *group = tay_add_group(tay, sizeof(MyAgent), 100000, TAY_POINT);
+
+MyAgent *agent = tay_get_available_agent(tay, group);
+/* initialize agent's data */
+tay_commit_available_agent(tay, group);
 ```
 
 #### Agent behavior
