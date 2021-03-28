@@ -11,7 +11,7 @@
 #define TAY_GPU_MAX_TEXT_SIZE   20000
 
 /* switches */
-#define TAY_TELEMETRY   0
+#define TAY_TELEMETRY   1
 #define TAY_GPU         0
 
 #endif

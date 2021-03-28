@@ -125,7 +125,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
         ushort4 prev_seer_indices = { 0xffff, 0xffff, 0xffff, 0xffff };
 
 #if TAY_TELEMETRY
-        if (seer_bin->first[seer_group])
+        if (seer_bin->first)
             ++thread_context->grid_seer_bins;
 #endif
 
