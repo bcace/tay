@@ -35,7 +35,7 @@ tay_commit_available_agent(tay, my_group);
 
 #### Agent behavior
 
-As described in [this](https://bcace.github.io/ochre.html) post, to achieve lock-free parallel execution of agent actions and their shared memory communication, Tay requires that agent behavior is separated into multiple passes.
+As described in the [Exploring parallelism in agent-based simulations](https://bcace.github.io/ochre.html) post, to achieve lock-free parallel execution of agent actions and their shared memory communication, Tay requires that agent behavior is separated into multiple passes.
 
 A pass can either be a *see* pass or an *act* pass. During *see* passes agents gather information from the environment (accumulation phase), and during *act* passes agents act individually on the information gathered during previous *see* passes (swap phase).
 
@@ -57,19 +57,22 @@ tay_add_see(tay, my_group, my_group, agent_see, "agent_see", see_radii, 0, 0);
 tay_add_act(tay, my_group, agent_act, "agent_act", 0, 0);
 ```
 
-and has to make sure that when in the above example in the `agent_see` function `seer_agent` changes its state (gathers information about its environment - in this case the `seen_agent`) the member variables it writes to are not read in that same function. Also `seen_agent` state must be read-only in that function.
+and has to make sure that when in the above example in the `agent_see` function `seer_agent` changes its state (gathers information about its environment - in this case the `seen_agent`) the member variables it writes to are not read in that same function. Also, `seen_agent` state must be read-only in that function.
 
-During simulation Tay state executes passes, using space partitioning structures to find neighbors (`see_radii` argument), and calls pass functions on agents in such a way that there are no data races or race conditions, that threads are never blocking each other, and workload is balanced evenly.
+During simulation Tay state executes passes, using space partitioning structures to find neighbors (`see_radii` argument), and calls given pass functions on agents making sure there are no data races or race conditions, that threads are never blocking each other, and workload is balanced evenly.
 
-## Implemented space partitioning structures
+## Available space partitioning structures
 
-- All partitioning structures have a suggested minimum partition sizes
-- all structures have a predefined amount of memory available for internal use. Will not error if they run out of memory, but performance will be decreased.
+When specifying the agent group's structure (`CpuSimple` is the default) host suggests approximate minimum partition sizes and defines the amount of memory the structure will have available for its internal use. If a structure runs out of memory during a simulation it will continue working correctly, but its performance will decrease.
 
-`CpuSimple` Simple non-structure used when all agents have to interact (there's no limit to the distance at which agents can interact). Can contain both point and non-point agents.
+```C
+tay_define_structure(tay, my_group, TAY_CPU_AABB_TREE, 3, min_part_radii, internal_memory_in_megabytes);
+```
 
-`CpuTree` K-d tree structure. Can contain both point and non-point agents. If it runs out of memory it sorts agents into best nodes it can find.
+`CpuSimple` Simple non-structure used when all agents have to interact (there's no limit to the distance at which agents interact). This structure can contain both point and non-point agents.
 
-`CpuAabbTree` AABB tree structure. Can only contain non-point agents. If it runs out of memory it stores multiple agents into same nodes.
+`CpuTree` [K-d tree](https://en.wikipedia.org/wiki/K-d_tree) structure. If it runs out of memory it sorts agents into most appropriate available nodes it can find. Can contain both point and non-point agents.
 
-`CpuGrid` Hash grid structure. Can only contain point agents. Less available memory only means more hash collisions, which leads to decreased performance.
+`CpuAabbTree` AABB tree structure. If it runs out of memory it stores multiple agents into same nodes. Can only contain non-point agents.
+
+`CpuGrid` Hash grid structure. Less available memory will result in more hash collisions, which leads to decreased performance. Can only contain point agents.
