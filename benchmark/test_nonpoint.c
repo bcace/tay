@@ -61,13 +61,18 @@ static void _make_randomized_direction_cluster(TayState *state, TayGroup *group,
     }
 }
 
-void _test(TaySpaceType space_type, int steps, float see_radius, int depth_correction, float min_size, float max_size, Results *results) {
+void _test(TaySpaceType space_type, int steps, float see_radius, int depth_correction, float min_size, float max_size, Results *results, FILE *file) {
     srand(1);
 
     printf("  %s (%d):\n", space_type_name(space_type), depth_correction);
 
     int agents_count = 10000;
     float4 see_radii = { see_radius, see_radius, see_radius, see_radius };
+    float4 part_radii = depth_correct(see_radii, depth_correction);
+    TayTelemetryResults telemetry_results;
+
+    fprintf(file, "      {\n");
+    fprintf(file, "        \"part_radii\": (%g, %g, %g),\n", part_radii.x, part_radii.y, part_radii.z);
 
     ActContext act_context;
     act_context.min.x = 0.0f;
@@ -79,7 +84,7 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
 
     TayState *tay = tay_create_state();
 
-    TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), agents_count, TAY_FALSE, tay_space_desc(space_type, 3, depth_correct(see_radii, depth_correction), 250));
+    TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), agents_count, TAY_FALSE, tay_space_desc(space_type, 3, part_radii, 250));
     tay_add_see(tay, group, group, box_agent_see, "box_agent_see", see_radii, 0, 0);
     tay_add_act(tay, group, box_agent_act, "box_agent_act", &act_context, sizeof(ActContext));
 
@@ -97,6 +102,18 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
     double ms = tay_get_ms_per_step_for_last_run(tay);
     printf("    %g ms\n", ms);
 
+    fprintf(file, "        \"ms per step\": %g,\n", ms);
+    #if TAY_TELEMETRY
+    tay_threads_get_telemetry_results(&telemetry_results);
+    fprintf(file, "        \"mean_relative_deviation_averaged\": %g,\n", telemetry_results.mean_relative_deviation_averaged);
+    fprintf(file, "        \"max_relative_deviation_averaged\": %g,\n", telemetry_results.max_relative_deviation_averaged);
+    fprintf(file, "        \"max_relative_deviation\": %g,\n", telemetry_results.max_relative_deviation);
+    fprintf(file, "        \"see_culling_efficiency\": %g,\n", telemetry_results.see_culling_efficiency);
+    fprintf(file, "        \"mean_see_interactions_per_step\": %g,\n", telemetry_results.mean_see_interactions_per_step);
+    fprintf(file, "        \"grid_kernel_rebuilds\": %g,\n", isnan(telemetry_results.grid_kernel_rebuilds) ? 0.0f : telemetry_results.grid_kernel_rebuilds);
+    #endif
+    fprintf(file, "      },\n");
+
     results_write_or_compare(results, tay, group, agents_count, offsetof(BoxAgent, f_buffer));
 
     tay_threads_report_telemetry(0);
@@ -109,25 +126,51 @@ void test_nonpoint(Results *results, int steps,
                    int beg_depth_correction, int end_depth_correction,
                    int space_type_flags) {
 
+    #if TAY_TELEMETRY
+    const char file_name[] = "test_nonpoint_telemetry.py";
+    #else
+    const char file_name[] = "test_nonpoint_runtimes.py";
+    #endif
+
+    FILE *file;
+    fopen_s(&file, file_name, "w");
+    fprintf(file, "data = {\n");
+
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float see_radius = SMALLEST_SEE_RADIUS * (1 << i);
 
         printf("R: %g\n", see_radius);
+        fprintf(file, "  %g: {\n", see_radius);
 
         float min_size = 10.0f;
         float max_size = 200.0f;
 
-        if (space_type_flags & TAY_CPU_SIMPLE)
-            _test(TAY_CPU_SIMPLE, steps, see_radius, 0, min_size, max_size, results);
 
-        if (space_type_flags & TAY_CPU_TREE)
-            for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
-                _test(TAY_CPU_TREE, steps, see_radius, depth_correction, min_size, max_size, results);
+        if (space_type_flags & TAY_CPU_SIMPLE) {
+            fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_SIMPLE));
+            _test(TAY_CPU_SIMPLE, steps, see_radius, 0, min_size, max_size, results, file);
+            fprintf(file, "    ],\n");
+        }
 
-        if (space_type_flags & TAY_CPU_AABB_TREE)
+        if (space_type_flags & TAY_CPU_TREE) {
+            fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_TREE));
             for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
-                _test(TAY_CPU_AABB_TREE, steps, see_radius, depth_correction, min_size, max_size, results);
+                _test(TAY_CPU_TREE, steps, see_radius, depth_correction, min_size, max_size, results, file);
+            fprintf(file, "    ],\n");
+        }
+
+        if (space_type_flags & TAY_CPU_AABB_TREE) {
+            fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_AABB_TREE));
+            for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
+                _test(TAY_CPU_AABB_TREE, steps, see_radius, depth_correction, min_size, max_size, results, file);
+            fprintf(file, "    ],\n");
+        }
 
         results_reset(results);
+
+        fprintf(file, "  },\n");
     }
+
+    fprintf(file, "}\n");
+    fclose(file);
 }
