@@ -9,11 +9,8 @@
 float4 depth_correct(float4 radii, int level) {
     if (level == 0)
         return radii;
-    float c = (float)(1 << abs(level));
-    if (level < 0)
-        return (float4) { radii.x * c, radii.y * c, radii.z * c, radii.w * c };
-    else
-        return (float4) { radii.x / c, radii.y / c, radii.z / c, radii.w / c };
+    float c = 1.0f - level * 0.1f;
+    return (float4){ radii.x * c, radii.y * c, radii.z * c, radii.w * c };
 }
 
 const char *space_type_name(TaySpaceType space_type) {
@@ -76,7 +73,7 @@ void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, 
             if (max_error > 0.0f); {
                 printf("    max error: %g\n", max_error);
                 if (max_error > 0.01f)
-                    printf("    !!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                    printf("    !!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
             }
         }
     }

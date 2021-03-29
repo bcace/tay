@@ -15,12 +15,12 @@ static float _rand_exponential(float min, float max, float exp) {
     return min + (max - min) * powf(base, exp);
 }
 
-static void _make_randomized_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max, float min_size, float max_size) {
+static void _make_randomized_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max, float min_size, float max_size, float distr_exp) {
     for (int i = 0; i < count; ++i) {
         int major = i % 3;
 
         /* size */
-        float size = _rand_exponential(min_size, max_size, 10);
+        float size = _rand_exponential(min_size, max_size, distr_exp);
 
         /* shape */
         float3 shape;
@@ -61,7 +61,7 @@ static void _make_randomized_direction_cluster(TayState *state, TayGroup *group,
     }
 }
 
-void _test(TaySpaceType space_type, int steps, float see_radius, int depth_correction, float min_size, float max_size, Results *results, FILE *file) {
+void _test(TaySpaceType space_type, int steps, float see_radius, int depth_correction, float min_size, float max_size, float distr_exp, Results *results, FILE *file) {
     srand(1);
 
     printf("  %s (%d):\n", space_type_name(space_type), depth_correction);
@@ -91,7 +91,7 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
     _make_randomized_direction_cluster(tay, group, agents_count,
                                        float3_make(0, 0, 0),
                                        float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
-                                       min_size, max_size);
+                                       min_size, max_size, distr_exp);
 
     tay_simulation_start(tay);
 
@@ -105,12 +105,13 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
     fprintf(file, "        \"ms per step\": %g,\n", ms);
     #if TAY_TELEMETRY
     tay_threads_get_telemetry_results(&telemetry_results);
-    fprintf(file, "        \"mean_relative_deviation_averaged\": %g,\n", telemetry_results.mean_relative_deviation_averaged);
-    fprintf(file, "        \"max_relative_deviation_averaged\": %g,\n", telemetry_results.max_relative_deviation_averaged);
-    fprintf(file, "        \"max_relative_deviation\": %g,\n", telemetry_results.max_relative_deviation);
-    fprintf(file, "        \"see_culling_efficiency\": %g,\n", telemetry_results.see_culling_efficiency);
-    fprintf(file, "        \"mean_see_interactions_per_step\": %g,\n", telemetry_results.mean_see_interactions_per_step);
-    fprintf(file, "        \"grid_kernel_rebuilds\": %g,\n", isnan(telemetry_results.grid_kernel_rebuilds) ? 0.0f : telemetry_results.grid_kernel_rebuilds);
+    fprintf(file, "        \"thread balancing (%%)\": %g,\n", 100.0f - telemetry_results.mean_relative_deviation_averaged);
+    fprintf(file, "        \"mean relative deviation averaged\": %g,\n", telemetry_results.mean_relative_deviation_averaged);
+    fprintf(file, "        \"max relative deviation averaged\": %g,\n", telemetry_results.max_relative_deviation_averaged);
+    fprintf(file, "        \"max relative deviation\": %g,\n", telemetry_results.max_relative_deviation);
+    fprintf(file, "        \"neighbor-finding efficiency (%%)\": %g,\n", telemetry_results.see_culling_efficiency);
+    fprintf(file, "        \"mean see interactions per step\": %g,\n", telemetry_results.mean_see_interactions_per_step);
+    fprintf(file, "        \"grid kernel rebuilds\": %g,\n", isnan(telemetry_results.grid_kernel_rebuilds) ? 0.0f : telemetry_results.grid_kernel_rebuilds);
     #endif
     fprintf(file, "      },\n");
 
@@ -142,27 +143,27 @@ void test_nonpoint(Results *results, int steps,
         printf("R: %g\n", see_radius);
         fprintf(file, "  %g: {\n", see_radius);
 
-        float min_size = 10.0f;
-        float max_size = 200.0f;
-
+        float min_size = 1.0f;
+        float max_size = 50.0f;
+        float distr_exp = 0.0f;
 
         if (space_type_flags & TAY_CPU_SIMPLE) {
             fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_SIMPLE));
-            _test(TAY_CPU_SIMPLE, steps, see_radius, 0, min_size, max_size, results, file);
+            _test(TAY_CPU_SIMPLE, steps, see_radius, 0, min_size, max_size, distr_exp, results, file);
             fprintf(file, "    ],\n");
         }
 
         if (space_type_flags & TAY_CPU_TREE) {
             fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_TREE));
             for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
-                _test(TAY_CPU_TREE, steps, see_radius, depth_correction, min_size, max_size, results, file);
+                _test(TAY_CPU_TREE, steps, see_radius, depth_correction, min_size, max_size, distr_exp, results, file);
             fprintf(file, "    ],\n");
         }
 
         if (space_type_flags & TAY_CPU_AABB_TREE) {
             fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_AABB_TREE));
             for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
-                _test(TAY_CPU_AABB_TREE, steps, see_radius, depth_correction, min_size, max_size, results, file);
+                _test(TAY_CPU_AABB_TREE, steps, see_radius, depth_correction, min_size, max_size, distr_exp, results, file);
             fprintf(file, "    ],\n");
         }
 
