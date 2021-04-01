@@ -68,8 +68,8 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
     float4 see_radii = { see_radius, see_radius, see_radius, see_radius };
     float4 part_radii = depth_correct(see_radii, depth_correction);
 
-    fprintf(file, "      {\n");
-    fprintf(file, "        \"part_radii\": (%g, %g, %g),\n", part_radii.x, part_radii.y, part_radii.z);
+    tay_log(file, "      {\n");
+    tay_log(file, "        \"part_radii\": (%g, %g, %g),\n", part_radii.x, part_radii.y, part_radii.z);
 
     ActContext act_context;
     act_context.min.x = 0.0f;
@@ -96,10 +96,10 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
     if (steps_run == 0)
         fprintf(stderr, "error %d", tay_get_error(tay));
 
-    fprintf(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
+    tay_log(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
     tay_threads_report_telemetry(0, file);
     results_write_or_compare(results, tay, group, agents_count, offsetof(BoxAgent, f_buffer), file);
-    fprintf(file, "      },\n");
+    tay_log(file, "      },\n");
 
     tay_simulation_end(tay);
     tay_destroy_state(tay);
@@ -110,63 +110,50 @@ void test_nonpoint(Results *results, int steps,
                    int beg_depth_correction, int end_depth_correction,
                    int space_type_flags) {
 
-    #if TAY_TELEMETRY
-    const char file_name[] = "test_nonpoint_telemetry.py";
-    #else
-    const char file_name[] = "test_nonpoint_runtimes.py";
-    #endif
-
     FILE *file;
-
-    #if OUTPUT_TO_FILE
     #if TAY_TELEMETRY
     fopen_s(&file, "test_nonpoint_telemetry.py", "w");
     #else
     fopen_s(&file, "test_nonpoint_runtimes.py", "w");
     #endif
-    #else
-    file = stdout;
-    #endif
 
-    fprintf(file, "data = {\n");
+    tay_log(file, "data = {\n");
 
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float see_radius = SMALLEST_SEE_RADIUS * (1 << i);
 
-        fprintf(file, "  %g: {\n", see_radius);
+        tay_log(file, "  %g: {\n", see_radius);
 
         float min_size = 1.0f;
         float max_size = 50.0f;
         float distr_exp = 0.0f;
 
         if (space_type_flags & TAY_CPU_SIMPLE) {
-            fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_SIMPLE));
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_SIMPLE));
             _test(TAY_CPU_SIMPLE, steps, see_radius, 0, min_size, max_size, distr_exp, results, file);
-            fprintf(file, "    ],\n");
+            tay_log(file, "    ],\n");
         }
 
         if (space_type_flags & TAY_CPU_TREE) {
-            fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_TREE));
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_TREE));
             for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
                 _test(TAY_CPU_TREE, steps, see_radius, depth_correction, min_size, max_size, distr_exp, results, file);
-            fprintf(file, "    ],\n");
+            tay_log(file, "    ],\n");
         }
 
         if (space_type_flags & TAY_CPU_AABB_TREE) {
-            fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_AABB_TREE));
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_AABB_TREE));
             for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
                 _test(TAY_CPU_AABB_TREE, steps, see_radius, depth_correction, min_size, max_size, distr_exp, results, file);
-            fprintf(file, "    ],\n");
+            tay_log(file, "    ],\n");
         }
 
         results_reset(results);
-        fprintf(file, "  },\n");
+        tay_log(file, "  },\n");
     }
 
-    fprintf(file, "}\n");
-    #if OUTPUT_TO_FILE
+    tay_log(file, "}\n");
     fclose(file);
-    #endif
 }
 
 void test_point_nonpoint_combo(Results *results, int steps,
@@ -174,18 +161,15 @@ void test_point_nonpoint_combo(Results *results, int steps,
                                int beg_depth_correction, int end_depth_correction,
                                int point_space_type_flags, int nonpoint_space_type_flags) {
 
-    #if TAY_TELEMETRY
-    const char file_name[] = "test_nonpoint_telemetry.py";
-    #else
-    const char file_name[] = "test_nonpoint_runtimes.py";
-    #endif
-
     FILE *file;
-    fopen_s(&file, file_name, "w");
-    fprintf(file, "data = {\n");
+    #if TAY_TELEMETRY
+    fopen_s(&file, "test_nonpoint_telemetry.py", "w");
+    #else
+    fopen_s(&file, "test_nonpoint_runtimes.py", "w");
+    #endif
 
     // ...
 
-    fprintf(file, "}\n");
+    tay_log(file, "}\n");
     fclose(file);
 }

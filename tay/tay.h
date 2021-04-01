@@ -123,5 +123,6 @@ int tay_run(TayState *state, int steps);
 void tay_simulation_end(TayState *state);
 
 double tay_get_ms_per_step_for_last_run(TayState *state);
+void tay_log(void *file, char *fmt, ...);
 
 #endif

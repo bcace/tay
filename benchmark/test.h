@@ -7,8 +7,6 @@
 #define SPACE_SIZE              1000.0f
 #define AGENT_VELOCITY          1.0f
 
-#define OUTPUT_TO_FILE          0
-
 
 typedef enum {
     MC_UNIFORM,

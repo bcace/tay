@@ -14,8 +14,8 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
     float4 see_radii = { see_radius, see_radius, see_radius, 0.0f };
     float4 part_radii = depth_correct(see_radii, depth_correction);
 
-    fprintf(file, "      {\n");
-    fprintf(file, "        \"part_radii\": (%g, %g, %g),\n", part_radii.x, part_radii.y, part_radii.z);
+    tay_log(file, "      {\n");
+    tay_log(file, "        \"part_radii\": (%g, %g, %g),\n", part_radii.x, part_radii.y, part_radii.z);
 
     ActContext act_context;
     act_context.min.x = 0.0f;
@@ -67,10 +67,10 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
     if (steps_run == 0)
         fprintf(stderr, "error %d", tay_get_error(tay));
 
-    fprintf(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
+    tay_log(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
     tay_threads_report_telemetry(0, file);
     results_write_or_compare(results, tay, group, agents_count, offsetof(Agent, f_buffer), file);
-    fprintf(file, "      },\n");
+    tay_log(file, "      },\n");
 
     tay_simulation_end(tay);
     tay_destroy_state(tay);
@@ -82,42 +82,37 @@ void test_basic(Results *results, ModelCase model_case, int steps,
                 int space_type_flags) {
 
     FILE *file;
-
-    #if OUTPUT_TO_FILE
     #if TAY_TELEMETRY
     fopen_s(&file, "test_basic_telemetry.py", "w");
     #else
     fopen_s(&file, "test_basic_runtimes.py", "w");
     #endif
-    #else
-    file = stdout;
-    #endif
 
-    fprintf(file, "data = {\n");
+    tay_log(file, "data = {\n");
 
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float see_radius = SMALLEST_SEE_RADIUS * (1 << i);
 
-        fprintf(file, "  %g: {\n", see_radius);
+        tay_log(file, "  %g: {\n", see_radius);
 
         if (space_type_flags & TAY_CPU_SIMPLE) {
-            fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_SIMPLE));
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_SIMPLE));
             _test(model_case, TAY_CPU_SIMPLE, see_radius, 0, results, steps, file);
-            fprintf(file, "    ],\n");
+            tay_log(file, "    ],\n");
         }
 
         if (space_type_flags & TAY_CPU_TREE) {
-            fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_TREE));
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_TREE));
             for (int j = beg_depth_correction; j < end_depth_correction; ++j)
                 _test(model_case, TAY_CPU_TREE, see_radius, j, results, steps, file);
-            fprintf(file, "    ],\n");
+            tay_log(file, "    ],\n");
         }
 
         if (space_type_flags & TAY_CPU_GRID) {
-            fprintf(file, "    \"%s\": [\n", space_type_name(TAY_CPU_GRID));
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_GRID));
             for (int j = beg_depth_correction; j < end_depth_correction; ++j)
                 _test(model_case, TAY_CPU_GRID, see_radius, j, results, steps, file);
-            fprintf(file, "    ],\n");
+            tay_log(file, "    ],\n");
         }
 
 #if TAY_GPU
@@ -131,11 +126,9 @@ void test_basic(Results *results, ModelCase model_case, int steps,
 #endif
 
         results_reset(results);
-        fprintf(file, "  },\n");
+        tay_log(file, "  },\n");
     }
 
-    fprintf(file, "}\n");
-    #if OUTPUT_TO_FILE
+    tay_log(file, "}\n");
     fclose(file);
-    #endif
 }

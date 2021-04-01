@@ -2,6 +2,7 @@
 #include "agent.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <math.h>
 
 
@@ -71,7 +72,7 @@ void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, 
             }
 
             if (max_error > 0.0f); {
-                fprintf(file, "        \"max error\": %g\n", max_error);
+                tay_log(file, "        \"max error\": %g\n", max_error);
                 if (max_error > 0.01f)
                     fprintf(stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
             }
