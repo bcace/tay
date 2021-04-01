@@ -71,7 +71,7 @@ void tay_runner_run();
 void tay_runner_run_no_threads();
 
 void tay_threads_update_telemetry();
-void tay_threads_report_telemetry(unsigned steps_between_reports);
+void tay_threads_report_telemetry(unsigned steps_between_reports, void *file);
 void tay_threads_get_telemetry_results(TayTelemetryResults *telemetry_results);
 
 extern TayRunner runner;

@@ -189,25 +189,25 @@ void tay_threads_get_telemetry_results(TayTelemetryResults *results) {
 #endif
 }
 
-void tay_threads_report_telemetry(unsigned steps_between_reports) {
+void tay_threads_report_telemetry(unsigned steps_between_reports, void *file) {
 #if TAY_TELEMETRY
     TayTelemetry *t = &runner.telemetry;
 
     if ((steps_between_reports != 0) && (t->steps_count % steps_between_reports))
         return;
 
-    TayTelemetryResults results;
-    tay_threads_get_telemetry_results(&results);
+    TayTelemetryResults res;
+    tay_threads_get_telemetry_results(&res);
 
-    printf("    telemetry:\n");
-    printf("      thread see phase balancing (potential see interactions per thread per step):\n");
-    printf("        mean relative deviation (averaged over steps): %.2f%%\n", results.mean_relative_deviation_averaged);
-    printf("        max relative deviation (averaged over steps): %.2f%%\n", results.max_relative_deviation_averaged);
-    printf("        max relative deviation: %.2f%%\n", results.max_relative_deviation);
-    printf("      see interaction culling efficiency (actual / potential): %.2f%%\n", results.see_culling_efficiency);
-    printf("      mean actual see interactions per step: %.2f\n", results.mean_see_interactions_per_step);
-    printf("      tree branch agents: %.2f%%\n", results.tree_branch_agents);
-    printf("      grid kernel rebuilds: %.2f%%\n", results.grid_kernel_rebuilds);
+    if (file) {
+        fprintf(file, "        \"thread balancing (%%)\": %g,\n", 100.0f - res.mean_relative_deviation_averaged);
+        fprintf(file, "        \"mean relative deviation averaged\": %g,\n", res.mean_relative_deviation_averaged);
+        fprintf(file, "        \"max relative deviation averaged\": %g,\n", res.max_relative_deviation_averaged);
+        fprintf(file, "        \"max relative deviation\": %g,\n", res.max_relative_deviation);
+        fprintf(file, "        \"neighbor-finding efficiency (%%)\": %g,\n", res.see_culling_efficiency);
+        fprintf(file, "        \"mean see interactions per step\": %g,\n", res.mean_see_interactions_per_step);
+        fprintf(file, "        \"grid kernel rebuilds\": %g,\n", isnan(res.grid_kernel_rebuilds) ? 0.0f : res.grid_kernel_rebuilds);
+    }
 
     _reset_telemetry();
 #endif

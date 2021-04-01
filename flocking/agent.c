@@ -248,6 +248,15 @@ typedef struct __attribute__((packed)) SeeContext {\n\
     float separation_r;\n\
 } SeeContext;\n\
 \n\
+void agent_see(global Agent *a, global Agent *b, global SeeContext *context);\n\
+void agent_act(global Agent *agent, global ActContext *context);\n\
+\n\
+typedef struct __attribute__((packed)) Obstacle {\n\
+    TayAgentTag tag;\n\
+    float4 min;\n\
+    float4 max;\n\
+} Obstacle;\n\
+\n\
 \n\
 float3 float3_null() {\n\
     float3 r;\n\

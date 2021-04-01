@@ -19,6 +19,7 @@ static Program program;
 
 static TayState *tay;
 static TayGroup *boids_group;
+static TayGroup *obstacles_group;
 static float pyramid[] = {
     -1.0f, -1.0f, 0.0f,
     1.0f, -1.0f, 0.0f,
@@ -48,6 +49,7 @@ static vec3 *inst_pos;
 static vec3 *inst_dir;
 static float *inst_shd;
 static int boids_count = 30000;
+static int obstacles_count = 1000;
 static int camera = -1;
 static float3 camera_dir;
 
@@ -67,7 +69,7 @@ static void _main_loop_func(GLFWwindow *window) {
     double ms = tay_get_ms_per_step_for_last_run(tay);
     if ((++step % 50) == 0)
         printf("ms: %.4f\n", ms);
-    tay_threads_report_telemetry(50);
+    tay_threads_report_telemetry(50, 0);
 
     for (int i = 0; i < boids_count; ++i) {
         Agent *boid = tay_get_agent(tay, boids_group, i);
@@ -175,6 +177,7 @@ int main() {
     const int max_boids_count = 100000;
     const float4 see_radii = { radius, radius, radius, radius };
     const float4 part_radii = { radius * 0.5f, radius * 0.5f, radius * 0.5f, radius * 0.5f };
+    const float4 obstacle_part_radii = { 10.0f, 10.0f, 10.0f, 10.0f };
     const float velocity = 1.0f;
     const float4 min = { -100.0f, -100.0f, -100.0f, -100.0f };
     const float4 max = { 100.0f, 100.0f, 100.0f, 100.0f };
@@ -191,7 +194,13 @@ int main() {
     tay_threads_start(); // TODO: remove this!!!
 
     tay = tay_create_state();
-    boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE, tay_space_desc(TAY_CPU_GRID, 3, part_radii, 250));
+
+    TaySpaceDesc boids_space_desc = tay_space_desc(TAY_CPU_GRID, 3, part_radii, 250);
+    TaySpaceDesc obstacle_space_desc = tay_space_desc(TAY_CPU_SIMPLE, 3, obstacle_part_radii, 100);
+
+    boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE, boids_space_desc);
+    obstacles_group = tay_add_group(tay, sizeof(Obstacle), obstacles_count, TAY_FALSE, obstacle_space_desc);
+
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context, sizeof(act_context));
 

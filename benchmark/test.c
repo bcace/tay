@@ -49,7 +49,7 @@ static inline void _check_error(float a, float b, float *max_error) {
         *max_error = -relative_error;
 }
 
-void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, int agents_count, int f_buffer_offset) {
+void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, int agents_count, int f_buffer_offset, void *file) {
     if (results) {
         if (results->first_time) {
             for (int i = 0; i < agents_count; ++i) {
@@ -71,9 +71,9 @@ void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, 
             }
 
             if (max_error > 0.0f); {
-                printf("    max error: %g\n", max_error);
+                fprintf(file, "        \"max error\": %g\n", max_error);
                 if (max_error > 0.01f)
-                    printf("    !!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+                    fprintf(stderr, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
             }
         }
     }

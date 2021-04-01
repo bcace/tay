@@ -30,6 +30,12 @@ typedef struct SeeContext {
 void agent_see(Agent *a, Agent *b, SeeContext *context);
 void agent_act(Agent *agent, ActContext *context);
 
+typedef struct Obstacle {
+    TayAgentTag tag;
+    float4 min;
+    float4 max;
+} Obstacle;
+
 
 float3 float3_null();
 float3 float3_make(float x, float y, float z);

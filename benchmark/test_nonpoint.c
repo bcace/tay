@@ -64,12 +64,9 @@ static void _make_randomized_direction_cluster(TayState *state, TayGroup *group,
 void _test(TaySpaceType space_type, int steps, float see_radius, int depth_correction, float min_size, float max_size, float distr_exp, Results *results, FILE *file) {
     srand(1);
 
-    printf("  %s (%d):\n", space_type_name(space_type), depth_correction);
-
     int agents_count = 10000;
     float4 see_radii = { see_radius, see_radius, see_radius, see_radius };
     float4 part_radii = depth_correct(see_radii, depth_correction);
-    TayTelemetryResults telemetry_results;
 
     fprintf(file, "      {\n");
     fprintf(file, "        \"part_radii\": (%g, %g, %g),\n", part_radii.x, part_radii.y, part_radii.z);
@@ -97,27 +94,13 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
 
     int steps_run = tay_run(tay, steps);
     if (steps_run == 0)
-        printf("    error %d", tay_get_error(tay));
+        fprintf(stderr, "error %d", tay_get_error(tay));
 
-    double ms = tay_get_ms_per_step_for_last_run(tay);
-    printf("    %g ms\n", ms);
-
-    fprintf(file, "        \"ms per step\": %g,\n", ms);
-    #if TAY_TELEMETRY
-    tay_threads_get_telemetry_results(&telemetry_results);
-    fprintf(file, "        \"thread balancing (%%)\": %g,\n", 100.0f - telemetry_results.mean_relative_deviation_averaged);
-    fprintf(file, "        \"mean relative deviation averaged\": %g,\n", telemetry_results.mean_relative_deviation_averaged);
-    fprintf(file, "        \"max relative deviation averaged\": %g,\n", telemetry_results.max_relative_deviation_averaged);
-    fprintf(file, "        \"max relative deviation\": %g,\n", telemetry_results.max_relative_deviation);
-    fprintf(file, "        \"neighbor-finding efficiency (%%)\": %g,\n", telemetry_results.see_culling_efficiency);
-    fprintf(file, "        \"mean see interactions per step\": %g,\n", telemetry_results.mean_see_interactions_per_step);
-    fprintf(file, "        \"grid kernel rebuilds\": %g,\n", isnan(telemetry_results.grid_kernel_rebuilds) ? 0.0f : telemetry_results.grid_kernel_rebuilds);
-    #endif
+    fprintf(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
+    tay_threads_report_telemetry(0, file);
+    results_write_or_compare(results, tay, group, agents_count, offsetof(BoxAgent, f_buffer), file);
     fprintf(file, "      },\n");
 
-    results_write_or_compare(results, tay, group, agents_count, offsetof(BoxAgent, f_buffer));
-
-    tay_threads_report_telemetry(0);
     tay_simulation_end(tay);
     tay_destroy_state(tay);
 }
@@ -134,13 +117,22 @@ void test_nonpoint(Results *results, int steps,
     #endif
 
     FILE *file;
-    fopen_s(&file, file_name, "w");
+
+    #if OUTPUT_TO_FILE
+    #if TAY_TELEMETRY
+    fopen_s(&file, "test_nonpoint_telemetry.py", "w");
+    #else
+    fopen_s(&file, "test_nonpoint_runtimes.py", "w");
+    #endif
+    #else
+    file = stdout;
+    #endif
+
     fprintf(file, "data = {\n");
 
     for (int i = beg_see_radius; i < end_see_radius; ++i) {
         float see_radius = SMALLEST_SEE_RADIUS * (1 << i);
 
-        printf("R: %g\n", see_radius);
         fprintf(file, "  %g: {\n", see_radius);
 
         float min_size = 1.0f;
@@ -168,9 +160,31 @@ void test_nonpoint(Results *results, int steps,
         }
 
         results_reset(results);
-
         fprintf(file, "  },\n");
     }
+
+    fprintf(file, "}\n");
+    #if OUTPUT_TO_FILE
+    fclose(file);
+    #endif
+}
+
+void test_point_nonpoint_combo(Results *results, int steps,
+                               int beg_see_radius, int end_see_radius,
+                               int beg_depth_correction, int end_depth_correction,
+                               int point_space_type_flags, int nonpoint_space_type_flags) {
+
+    #if TAY_TELEMETRY
+    const char file_name[] = "test_nonpoint_telemetry.py";
+    #else
+    const char file_name[] = "test_nonpoint_runtimes.py";
+    #endif
+
+    FILE *file;
+    fopen_s(&file, file_name, "w");
+    fprintf(file, "data = {\n");
+
+    // ...
 
     fprintf(file, "}\n");
     fclose(file);
