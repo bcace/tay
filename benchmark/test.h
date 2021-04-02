@@ -6,6 +6,7 @@
 #define SMALLEST_SEE_RADIUS     50.0f
 #define SPACE_SIZE              1000.0f
 #define AGENT_VELOCITY          1.0f
+#define AGENTS_COUNT            10000
 
 
 typedef enum {
@@ -39,7 +40,7 @@ void test_nonpoint(Results *results, int steps,
                    int beg_depth_correction, int end_depth_correction,
                    int space_type_flags);
 
-void test_combos(Results *results, int steps,
+void test_combo(Results *results, int steps,
                  int beg_see_radius, int end_see_radius,
                  int beg_depth_correction, int end_depth_correction);
 

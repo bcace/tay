@@ -64,7 +64,6 @@ static void _make_randomized_direction_cluster(TayState *state, TayGroup *group,
 void _test(TaySpaceType space_type, int steps, float see_radius, int depth_correction, float min_size, float max_size, float distr_exp, Results *results, FILE *file) {
     srand(1);
 
-    int agents_count = 10000;
     float4 see_radii = { see_radius, see_radius, see_radius, see_radius };
     float4 part_radii = depth_correct(see_radii, depth_correction);
 
@@ -81,11 +80,11 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
 
     TayState *tay = tay_create_state();
 
-    TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), agents_count, TAY_FALSE, tay_space_desc(space_type, 3, part_radii, 250));
+    TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT, TAY_FALSE, tay_space_desc(space_type, 3, part_radii, 250));
     tay_add_see(tay, group, group, box_agent_see, "box_agent_see", see_radii, 0, 0);
     tay_add_act(tay, group, box_agent_act, "box_agent_act", &act_context, sizeof(ActContext));
 
-    _make_randomized_direction_cluster(tay, group, agents_count,
+    _make_randomized_direction_cluster(tay, group, AGENTS_COUNT,
                                        float3_make(0, 0, 0),
                                        float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
                                        min_size, max_size, distr_exp);
@@ -98,7 +97,7 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
 
     tay_log(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
     tay_threads_report_telemetry(0, file);
-    results_write_or_compare(results, tay, group, agents_count, offsetof(BoxAgent, f_buffer), file);
+    results_write_or_compare(results, tay, group, AGENTS_COUNT, offsetof(BoxAgent, f_buffer), file);
     tay_log(file, "      },\n");
 
     tay_simulation_end(tay);

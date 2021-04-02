@@ -10,7 +10,6 @@
 static void _test(ModelCase model_case, TaySpaceType space_type, float see_radius, int depth_correction, Results *results, int steps, FILE *file) {
     srand(1);
 
-    int agents_count = 10000;
     float4 see_radii = { see_radius, see_radius, see_radius, 0.0f };
     float4 part_radii = depth_correct(see_radii, depth_correction);
 
@@ -32,7 +31,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
 
     TayState *tay = tay_create_state();
 
-    TayGroup *group = tay_add_group(tay, sizeof(Agent), agents_count, TAY_TRUE, tay_space_desc(space_type, 3, part_radii, 250));
+    TayGroup *group = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT, TAY_TRUE, tay_space_desc(space_type, 3, part_radii, 250));
     tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(tay, group, agent_act, "agent_act", &act_context, sizeof(act_context));
 
@@ -40,15 +39,15 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
         case MC_UNIFORM: {
             make_randomized_direction_cluster(tay,
                                               group,
-                                              agents_count,
+                                              AGENTS_COUNT,
                                               float3_make(0.0f, 0.0f, 0.0f),
                                               float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE));
         } break;
         case MC_UNIFORM_WITH_ONE_CLUMP: {
-            int clump_count = (int)floor(agents_count * 0.2);
+            int clump_count = (int)floor(AGENTS_COUNT * 0.2);
             make_randomized_direction_cluster(tay,
                                               group,
-                                              agents_count - clump_count,
+                                              AGENTS_COUNT - clump_count,
                                               float3_make(0.0f, 0.0f, 0.0f),
                                               float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE));
             make_uniform_direction_cluster(tay,
@@ -69,7 +68,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
 
     tay_log(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
     tay_threads_report_telemetry(0, file);
-    results_write_or_compare(results, tay, group, agents_count, offsetof(Agent, f_buffer), file);
+    results_write_or_compare(results, tay, group, AGENTS_COUNT, offsetof(Agent, f_buffer), file);
     tay_log(file, "      },\n");
 
     tay_simulation_end(tay);
