@@ -39,9 +39,8 @@ void test_nonpoint(Results *results, int steps,
                    int beg_depth_correction, int end_depth_correction,
                    int space_type_flags);
 
-void test_point_nonpoint_combo(Results *results, int steps,
-                               int beg_see_radius, int end_see_radius,
-                               int beg_depth_correction, int end_depth_correction,
-                               int point_space_type_flags, int nonpoint_space_type_flags);
+void test_combos(Results *results, int steps,
+                 int beg_see_radius, int end_see_radius,
+                 int beg_depth_correction, int end_depth_correction);
 
 #endif

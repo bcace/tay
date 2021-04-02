@@ -110,6 +110,10 @@ void test_nonpoint(Results *results, int steps,
                    int beg_depth_correction, int end_depth_correction,
                    int space_type_flags) {
 
+    float min_size = 1.0f;
+    float max_size = 50.0f;
+    float distr_exp = 0.0f;
+
     FILE *file;
     #if TAY_TELEMETRY
     fopen_s(&file, "test_nonpoint_telemetry.py", "w");
@@ -123,10 +127,6 @@ void test_nonpoint(Results *results, int steps,
         float see_radius = SMALLEST_SEE_RADIUS * (1 << i);
 
         tay_log(file, "  %g: {\n", see_radius);
-
-        float min_size = 1.0f;
-        float max_size = 50.0f;
-        float distr_exp = 0.0f;
 
         if (space_type_flags & TAY_CPU_SIMPLE) {
             tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_SIMPLE));
@@ -151,24 +151,6 @@ void test_nonpoint(Results *results, int steps,
         results_reset(results);
         tay_log(file, "  },\n");
     }
-
-    tay_log(file, "}\n");
-    fclose(file);
-}
-
-void test_point_nonpoint_combo(Results *results, int steps,
-                               int beg_see_radius, int end_see_radius,
-                               int beg_depth_correction, int end_depth_correction,
-                               int point_space_type_flags, int nonpoint_space_type_flags) {
-
-    FILE *file;
-    #if TAY_TELEMETRY
-    fopen_s(&file, "test_nonpoint_telemetry.py", "w");
-    #else
-    fopen_s(&file, "test_nonpoint_runtimes.py", "w");
-    #endif
-
-    // ...
 
     tay_log(file, "}\n");
     fclose(file);
