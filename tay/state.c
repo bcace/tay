@@ -211,27 +211,40 @@ static TayError _compile_passes(TayState *state) {
             int seer_is_point = pass->seer_group->is_point;
             int seen_is_point = pass->seen_group->is_point;
 
+            pass->seer_space = seer_space;
+            pass->seen_space = seen_space;
+
             if (seer_space == seen_space) {
-                TaySpaceType space_type = seer_space->type;
 
-                pass->seer_space = seer_space;
-                pass->seen_space = seen_space;
-
-                if (space_type == TAY_CPU_SIMPLE) {
+                if (seer_space->type == TAY_CPU_SIMPLE) {
                     pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_simple_see;
                 }
-                else if (space_type == TAY_CPU_TREE) {
+                else if (seer_space->type == TAY_CPU_TREE) {
                     pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_tree_see;
                 }
-                else if (space_type == TAY_CPU_GRID) {
+                else if (seer_space->type == TAY_CPU_GRID) {
                     pass->pairing_func = _get_one_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_grid_see;
                 }
-                else if (space_type == TAY_CPU_AABB_TREE) {
+                else if (seer_space->type == TAY_CPU_AABB_TREE) {
                     pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_aabb_tree_see;
+                }
+                else
+                    return TAY_ERROR_NOT_IMPLEMENTED;
+            }
+            else if (seer_space->dims == seen_space->dims) {
+
+                if (seer_space->type == seen_space->type) {
+
+                    if (seer_space->type == TAY_CPU_SIMPLE) {
+                        pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
+                        pass->exec_func = cpu_simple_see;
+                    }
+                    else
+                        return TAY_ERROR_NOT_IMPLEMENTED;
                 }
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;

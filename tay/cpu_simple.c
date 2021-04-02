@@ -26,22 +26,20 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
 void cpu_simple_see(TayPass *pass) {
     static SimpleSeeTask tasks[TAY_MAX_THREADS];
 
-    if (pass->seer_space == pass->seen_space) {
-        Space *space = pass->seer_space;
+    int dims = pass->seer_space->dims;
 
-        for (int i = 0; i < runner.count; ++i) {
-            TayAgentTag *b = space->cpu_simple.first[i];
+    for (int i = 0; i < runner.count; ++i) {
+        TayAgentTag *seen_agents = pass->seen_space->cpu_simple.first[i];
 
-            for (int j = 0; j < runner.count; ++j) {
-                TayAgentTag *a = space->cpu_simple.first[j];
+        for (int j = 0; j < runner.count; ++j) {
+            TayAgentTag *seer_agents = pass->seer_space->cpu_simple.first[j];
 
-                SimpleSeeTask *task = tasks + j;
-                _init_simple_see_task(task, pass, a, b, pass->pairing_func, space->dims);
-                tay_thread_set_task(j, _see_func, task, pass->context);
-            }
-
-            tay_runner_run();
+            SimpleSeeTask *task = tasks + j;
+            _init_simple_see_task(task, pass, seer_agents, seen_agents, pass->pairing_func, dims);
+            tay_thread_set_task(j, _see_func, task, pass->context);
         }
+
+        tay_runner_run();
     }
 }
 
