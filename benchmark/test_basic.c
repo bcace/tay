@@ -30,7 +30,6 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
     see_context.radii.z = see_radius;
 
     TayState *tay = tay_create_state();
-
     TayGroup *group = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT, TAY_TRUE, tay_space_desc(space_type, 3, part_radii, 250));
     tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, &see_context, sizeof(see_context));
     tay_add_act(tay, group, agent_act, "agent_act", &act_context, sizeof(act_context));
@@ -61,17 +60,15 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
     }
 
     tay_simulation_start(tay);
-
     int steps_run = tay_run(tay, steps);
     if (steps_run == 0)
-        fprintf(stderr, "error %d", tay_get_error(tay));
-
+        fprintf(stderr, "error %d\n", tay_get_error(tay));
     tay_log(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
     tay_threads_report_telemetry(0, file);
     results_write_or_compare(results, tay, group, AGENTS_COUNT, offsetof(Agent, f_buffer), file);
     tay_log(file, "      },\n");
-
     tay_simulation_end(tay);
+
     tay_destroy_state(tay);
 }
 

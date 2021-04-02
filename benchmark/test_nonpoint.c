@@ -90,17 +90,15 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
                                        min_size, max_size, distr_exp);
 
     tay_simulation_start(tay);
-
     int steps_run = tay_run(tay, steps);
     if (steps_run == 0)
-        fprintf(stderr, "error %d", tay_get_error(tay));
-
+        fprintf(stderr, "error %d\n", tay_get_error(tay));
     tay_log(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
     tay_threads_report_telemetry(0, file);
     results_write_or_compare(results, tay, group, AGENTS_COUNT, offsetof(BoxAgent, f_buffer), file);
     tay_log(file, "      },\n");
-
     tay_simulation_end(tay);
+
     tay_destroy_state(tay);
 }
 
