@@ -22,7 +22,7 @@ typedef enum TayBool {
 } TayBool;
 
 typedef enum TaySpaceType {
-    ST_NONE                     = 0x00,
+    TAY_SPACE_NONE              = 0x00,
     TAY_CPU_SIMPLE              = 0x01,
     TAY_CPU_TREE                = 0x02,
     TAY_CPU_GRID                = 0x04,
