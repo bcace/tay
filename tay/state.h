@@ -47,7 +47,6 @@ typedef struct {
     float4 cell_sizes;
     float4 grid_origin;
     unsigned modulo_mask;
-    int kernel_size;
 } CpuGrid;
 
 typedef struct Space {

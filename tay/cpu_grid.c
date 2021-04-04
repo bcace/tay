@@ -90,11 +90,9 @@ typedef struct {
     ushort4 kernel_radii;
     float4 grid_origin;
     float4 cell_sizes;
-    int kernel_size;
 } _SeeTask;
 
-static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thread_i, int dims,
-                           ushort4 kernel_radii) {
+static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thread_i, int dims) {
     task->pass = pass;
     task->bins = grid->bins;
     task->thread_i = thread_i;
@@ -102,8 +100,6 @@ static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thr
     task->modulo_mask = grid->modulo_mask;
     task->grid_origin = grid->grid_origin;
     task->cell_sizes = grid->cell_sizes;
-    task->kernel_radii = kernel_radii;
-    task->kernel_size = grid->kernel_size;
 }
 
 static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
@@ -112,13 +108,8 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
     float4 radii = task->pass->radii;
     int dims = task->dims;
     unsigned modulo_mask = task->modulo_mask;
-    ushort4 kernel_radii = task->kernel_radii;
     float4 grid_origin = task->grid_origin;
     float4 cell_sizes = task->cell_sizes;
-
-    int4 kernel_sizes;
-    for (int i = 0; i < dims; ++i)
-        kernel_sizes.arr[i] = kernel_radii.arr[i] * 2 + 1;
 
     for (Bin *seer_bin = task->first_bin; seer_bin; seer_bin = seer_bin->thread_next) {
 
@@ -146,19 +137,34 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                 ++thread_context->grid_seer_kernel_rebuilds;
 #endif
 
-                kernel = tay_threads_refresh_thread_storage(thread_context, task->kernel_size);
+                unsigned max_kernel_count = 0;
+                ushort4 min_seen_indices;
+                ushort4 max_seen_indices;
+                for (int i = 0; i < dims; ++i) {
 
-                ushort4 origin;
-                for (int i = 0; i < dims; ++i)
-                    origin.arr[i] = seer_indices.arr[i] - kernel_radii.arr[i];
+                    // seer!!!
+                    float min = grid_origin.arr[i] + seer_indices.arr[i] * cell_sizes.arr[i];
+                    float seer_box_min = min - radii.arr[i];
+                    float seer_box_max = min + cell_sizes.arr[i] + radii.arr[i];
+
+                    // seen!!!
+                    int min_ = (int)floorf((seer_box_min - grid_origin.arr[i]) / cell_sizes.arr[i]);
+                    int max_ = (int)ceilf((seer_box_max - grid_origin.arr[i]) / cell_sizes.arr[i]);
+
+                    min_seen_indices.arr[i] = (unsigned short)((min_ < 0) ? 0 : min_);
+                    max_seen_indices.arr[i] = (unsigned short)((max_ < 0) ? 0 : max_);
+
+                    ++max_kernel_count;
+                }
+
+                kernel = tay_threads_refresh_thread_storage(thread_context, max_kernel_count * sizeof(Bin *));
 
                 ushort4 seen_indices;
                 Bin *seen_bin;
 
                 switch (dims) {
                     case 1: {
-                        for (int x = 0; x < kernel_sizes.x; ++x) {
-                            seen_indices.x = origin.x + x;
+                        for (seen_indices.x = min_seen_indices.x; seen_indices.x < max_seen_indices.x; ++seen_indices.x) {
                             seen_bin = task->bins + _cell_indices_to_hash_1(seen_indices, modulo_mask);
                             if (seen_bin->count) {
                                 kernel[kernel_bins_count++] = seen_bin;
@@ -167,10 +173,8 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                         }
                     } break;
                     case 2: {
-                        for (int x = 0; x < kernel_sizes.x; ++x) {
-                            seen_indices.x = origin.x + x;
-                            for (int y = 0; y < kernel_sizes.y; ++y) {
-                                seen_indices.y = origin.y + y;
+                        for (seen_indices.x = min_seen_indices.x; seen_indices.x < max_seen_indices.x; ++seen_indices.x) {
+                            for (seen_indices.y = min_seen_indices.y; seen_indices.y < max_seen_indices.y; ++seen_indices.y) {
                                 seen_bin = task->bins + _cell_indices_to_hash_2(seen_indices, modulo_mask);
                                 if (seen_bin->count) {
                                     kernel[kernel_bins_count++] = seen_bin;
@@ -180,12 +184,9 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                         }
                     } break;
                     case 3: {
-                        for (int x = 0; x < kernel_sizes.x; ++x) {
-                            seen_indices.x = origin.x + x;
-                            for (int y = 0; y < kernel_sizes.y; ++y) {
-                                seen_indices.y = origin.y + y;
-                                for (int z = 0; z < kernel_sizes.z; ++z) {
-                                    seen_indices.z = origin.z + z;
+                        for (seen_indices.x = min_seen_indices.x; seen_indices.x < max_seen_indices.x; ++seen_indices.x) {
+                            for (seen_indices.y = min_seen_indices.y; seen_indices.y < max_seen_indices.y; ++seen_indices.y) {
+                                for (seen_indices.z = min_seen_indices.z; seen_indices.z < max_seen_indices.z; ++seen_indices.z) {
                                     seen_bin = task->bins + _cell_indices_to_hash_3(seen_indices, modulo_mask);
                                     if (seen_bin->count) {
                                         kernel[kernel_bins_count++] = seen_bin;
@@ -196,14 +197,10 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                         }
                     } break;
                     default: {
-                        for (int x = 0; x < kernel_sizes.x; ++x) {
-                            seen_indices.x = origin.x + x;
-                            for (int y = 0; y < kernel_sizes.y; ++y) {
-                                seen_indices.y = origin.y + y;
-                                for (int z = 0; z < kernel_sizes.z; ++z) {
-                                    seen_indices.z = origin.z + z;
-                                    for (int w = 0; w < kernel_sizes.w; ++w) {
-                                        seen_indices.w = origin.w + w;
+                        for (seen_indices.x = min_seen_indices.x; seen_indices.x < max_seen_indices.x; ++seen_indices.x) {
+                            for (seen_indices.y = min_seen_indices.y; seen_indices.y < max_seen_indices.y; ++seen_indices.y) {
+                                for (seen_indices.z = min_seen_indices.z; seen_indices.z < max_seen_indices.z; ++seen_indices.z) {
+                                    for (seen_indices.w = min_seen_indices.w; seen_indices.w < max_seen_indices.w; ++seen_indices.w) {
                                         seen_bin = task->bins + _cell_indices_to_hash_4(seen_indices, modulo_mask);
                                         if (seen_bin->count) {
                                             kernel[kernel_bins_count++] = seen_bin;
@@ -289,7 +286,7 @@ void cpu_grid_see(TayPass *pass) {
         /* set tasks */
         for (int i = 0; i < runner.count; ++i) {
             _SeeTask *task = tasks + i;
-            _init_see_task(task, pass, grid, i, space->dims, kernel_radii);
+            _init_see_task(task, pass, grid, i, space->dims);
             tay_thread_set_task(i, _see_func, task, pass->context);
         }
     }
@@ -363,27 +360,7 @@ void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
         grid->grid_origin.arr[i] = space->box.min.arr[i] - margin;
     }
 
-    /* calculate memory needed for kernels */
-    int max_kernel_bins = 0;
-    for (int i = 0; i < passes_count; ++i) {
-        TayPass *pass = passes + i;
-
-        if (pass->type != TAY_PASS_SEE || pass->seer_group != group && pass->seen_group != group)
-            continue;
-
-        int kernel_bins = 1;
-        for (int i = 0; i < space->dims; ++i)
-            kernel_bins *= (int)ceilf(pass->radii.arr[i] / grid->cell_sizes.arr[i]) * 2 + 1;
-
-        if (kernel_bins > max_kernel_bins)
-            max_kernel_bins = kernel_bins;
-    }
-
-    /* calculate memory needed for bins */
-    grid->kernel_size = max_kernel_bins * (int)sizeof(Bin *);
-
-    unsigned max_bins_count = space->shared_size / (unsigned)sizeof(Bin);
-    unsigned max_bins_count_fast = _highest_power_of_two(max_bins_count);
+    unsigned max_bins_count_fast = _highest_power_of_two(space->shared_size / (unsigned)sizeof(Bin));
     grid->modulo_mask = max_bins_count_fast - 1;
     // ERROR: make sure there's at least one bin available
 
