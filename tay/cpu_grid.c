@@ -146,7 +146,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                 ++thread_context->grid_seer_kernel_rebuilds;
 #endif
 
-                kernel = tay_threads_refresh_thread_storage(thread_context, task->kernel_size * sizeof(Bin *));
+                kernel = tay_threads_refresh_thread_storage(thread_context, task->kernel_size);
 
                 ushort4 origin;
                 for (int i = 0; i < dims; ++i)
@@ -381,8 +381,8 @@ void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
 
     /* calculate memory needed for bins */
     grid->kernel_size = max_kernel_bins * (int)sizeof(Bin *);
-    unsigned bins_mem_size = space->shared_size - grid->kernel_size * runner.count;
-    unsigned max_bins_count = bins_mem_size / (unsigned)sizeof(Bin);
+
+    unsigned max_bins_count = space->shared_size / (unsigned)sizeof(Bin);
     unsigned max_bins_count_fast = _highest_power_of_two(max_bins_count);
     grid->modulo_mask = max_bins_count_fast - 1;
     // ERROR: make sure there's at least one bin available
