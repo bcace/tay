@@ -22,11 +22,16 @@ static int ushort4_eq(ushort4 a, ushort4 b, int dims) {
 
 typedef struct Bin {
     struct Bin *next;
-    struct Bin *thread_next;
+    struct Bin *thread_next_seer_bin;
     TayAgentTag *first;
     unsigned count;
     unsigned char visited[TAY_MAX_THREADS];
 } Bin;
+
+static inline void _clear_bin(Bin *bin) {
+    bin->first = 0;
+    bin->count = 0;
+}
 
 static inline ushort4 _agent_position_to_cell_indices(float4 pos, float4 orig, float4 size, int dims) {
     ushort4 indices;
@@ -81,78 +86,68 @@ static inline unsigned _cell_indices_to_hash(ushort4 indices, int dims, unsigned
 
 typedef struct {
     TayPass *pass;
-    Bin *bins; /* for finding kernel bins */
-    Bin *first_bin; /* bins are balanced into separate lists for each task */
-    unsigned agents_count;
+    Bin *first_thread_seer_bin; /* bins are balanced into separate lists for each task */
     int thread_i;
-    int dims;
-    unsigned modulo_mask;
-    ushort4 kernel_radii;
-    float4 grid_origin;
-    float4 cell_sizes;
 } _SeeTask;
 
-static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thread_i, int dims) {
+static void _init_see_task(_SeeTask *task, TayPass *pass, Bin *first_thread_seer_bin, int thread_i) {
     task->pass = pass;
-    task->bins = grid->bins;
+    task->first_thread_seer_bin = first_thread_seer_bin;
     task->thread_i = thread_i;
-    task->dims = dims;
-    task->modulo_mask = grid->modulo_mask;
-    task->grid_origin = grid->grid_origin;
-    task->cell_sizes = grid->cell_sizes;
 }
 
 static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
-    TAY_SEE_FUNC see_func = task->pass->see;
-    SEE_PAIRING_FUNC pairing_func = task->pass->pairing_func;
-    float4 radii = task->pass->radii;
-    int dims = task->dims;
-    unsigned modulo_mask = task->modulo_mask;
-    float4 grid_origin = task->grid_origin;
-    float4 cell_sizes = task->cell_sizes;
+    TayPass *pass = task->pass;
+    Space *seer_space = pass->seer_space;
+    Space *seen_space = pass->seen_space;
+    CpuGrid *seer_grid = &seer_space->cpu_grid;
+    CpuGrid *seen_grid = &seen_space->cpu_grid;
 
-    for (Bin *seer_bin = task->first_bin; seer_bin; seer_bin = seer_bin->thread_next) {
+    unsigned seen_modulo_mask = seen_grid->modulo_mask;
+    int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
+
+    for (Bin *seer_bin = task->first_thread_seer_bin; seer_bin; seer_bin = seer_bin->thread_next_seer_bin) {
 
         Bin **kernel = 0;
         int kernel_bins_count = 0;
         ushort4 prev_seer_indices = { 0xffff, 0xffff, 0xffff, 0xffff };
 
-#if TAY_TELEMETRY
+        #if TAY_TELEMETRY
         if (seer_bin->first)
             ++thread_context->grid_seer_bins;
-#endif
+        #endif
 
         for (TayAgentTag *seer_agent = seer_bin->first; seer_agent; seer_agent = seer_agent->next) {
             float4 seer_p = float4_agent_position(seer_agent);
-            ushort4 seer_indices = _agent_position_to_cell_indices(seer_p, grid_origin, cell_sizes, dims);
+            ushort4 seer_indices = _agent_position_to_cell_indices(seer_p, seer_grid->grid_origin, seer_grid->cell_sizes, min_dims);
 
-            if (ushort4_eq(prev_seer_indices, seer_indices, dims)) {
+            if (ushort4_eq(prev_seer_indices, seer_indices, min_dims)) {
                 for (int i = 0; i < kernel_bins_count; ++i)
                     kernel[i]->visited[task->thread_i] = false;
             }
             else {
                 kernel_bins_count = 0;
 
-#if TAY_TELEMETRY
+                #if TAY_TELEMETRY
                 ++thread_context->grid_seer_kernel_rebuilds;
-#endif
+                #endif
 
                 unsigned max_kernel_count = 0;
                 ushort4 min_seen_indices;
                 ushort4 max_seen_indices;
-                for (int i = 0; i < dims; ++i) {
+                for (int i = 0; i < min_dims; ++i) {
+                    float seer_cell_size = seer_grid->cell_sizes.arr[i];
+                    float seen_cell_size = seen_grid->cell_sizes.arr[i];
 
-                    // seer!!!
-                    float min = grid_origin.arr[i] + seer_indices.arr[i] * cell_sizes.arr[i];
-                    float seer_box_min = min - radii.arr[i];
-                    float seer_box_max = min + cell_sizes.arr[i] + radii.arr[i];
+                    float min = seer_grid->grid_origin.arr[i] + seer_indices.arr[i] * seer_cell_size;
+                    float seer_box_min = min - pass->radii.arr[i];
+                    float seer_box_max = min + seer_cell_size + pass->radii.arr[i];
 
-                    // seen!!!
-                    int min_ = (int)floorf((seer_box_min - grid_origin.arr[i]) / cell_sizes.arr[i]);
-                    int max_ = (int)ceilf((seer_box_max - grid_origin.arr[i]) / cell_sizes.arr[i]);
+                    int seen_cell_min = (int)floorf((seer_box_min - seen_grid->grid_origin.arr[i]) / seen_cell_size);
+                    int seen_cell_max = (int)ceilf((seer_box_max - seen_grid->grid_origin.arr[i]) / seen_cell_size);
 
-                    min_seen_indices.arr[i] = (unsigned short)((min_ < 0) ? 0 : min_);
-                    max_seen_indices.arr[i] = (unsigned short)((max_ < 0) ? 0 : max_);
+                    min_seen_indices.arr[i] = (unsigned short)((seen_cell_min < 0) ? 0 : seen_cell_min);
+                    max_seen_indices.arr[i] = (unsigned short)((seen_cell_max < 0) ? 0 : seen_cell_max);
 
                     ++max_kernel_count;
                 }
@@ -162,10 +157,10 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                 ushort4 seen_indices;
                 Bin *seen_bin;
 
-                switch (dims) {
+                switch (min_dims) {
                     case 1: {
                         for (seen_indices.x = min_seen_indices.x; seen_indices.x < max_seen_indices.x; ++seen_indices.x) {
-                            seen_bin = task->bins + _cell_indices_to_hash_1(seen_indices, modulo_mask);
+                            seen_bin = seen_grid->bins + _cell_indices_to_hash_1(seen_indices, seen_modulo_mask);
                             if (seen_bin->count) {
                                 kernel[kernel_bins_count++] = seen_bin;
                                 seen_bin->visited[task->thread_i] = false;
@@ -175,7 +170,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                     case 2: {
                         for (seen_indices.x = min_seen_indices.x; seen_indices.x < max_seen_indices.x; ++seen_indices.x) {
                             for (seen_indices.y = min_seen_indices.y; seen_indices.y < max_seen_indices.y; ++seen_indices.y) {
-                                seen_bin = task->bins + _cell_indices_to_hash_2(seen_indices, modulo_mask);
+                                seen_bin = seen_grid->bins + _cell_indices_to_hash_2(seen_indices, seen_modulo_mask);
                                 if (seen_bin->count) {
                                     kernel[kernel_bins_count++] = seen_bin;
                                     seen_bin->visited[task->thread_i] = false;
@@ -187,7 +182,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                         for (seen_indices.x = min_seen_indices.x; seen_indices.x < max_seen_indices.x; ++seen_indices.x) {
                             for (seen_indices.y = min_seen_indices.y; seen_indices.y < max_seen_indices.y; ++seen_indices.y) {
                                 for (seen_indices.z = min_seen_indices.z; seen_indices.z < max_seen_indices.z; ++seen_indices.z) {
-                                    seen_bin = task->bins + _cell_indices_to_hash_3(seen_indices, modulo_mask);
+                                    seen_bin = seen_grid->bins + _cell_indices_to_hash_3(seen_indices, seen_modulo_mask);
                                     if (seen_bin->count) {
                                         kernel[kernel_bins_count++] = seen_bin;
                                         seen_bin->visited[task->thread_i] = false;
@@ -201,7 +196,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                             for (seen_indices.y = min_seen_indices.y; seen_indices.y < max_seen_indices.y; ++seen_indices.y) {
                                 for (seen_indices.z = min_seen_indices.z; seen_indices.z < max_seen_indices.z; ++seen_indices.z) {
                                     for (seen_indices.w = min_seen_indices.w; seen_indices.w < max_seen_indices.w; ++seen_indices.w) {
-                                        seen_bin = task->bins + _cell_indices_to_hash_4(seen_indices, modulo_mask);
+                                        seen_bin = seen_grid->bins + _cell_indices_to_hash_4(seen_indices, seen_modulo_mask);
                                         if (seen_bin->count) {
                                             kernel[kernel_bins_count++] = seen_bin;
                                             seen_bin->visited[task->thread_i] = false;
@@ -219,7 +214,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                 Bin *seen_bin = kernel[i];
                 if (!seen_bin->visited[task->thread_i]) {
                     seen_bin->visited[task->thread_i] = true;
-                    pairing_func(seer_agent, seen_bin->first, see_func, radii, dims, thread_context);
+                    pass->pairing_func(seer_agent, seen_bin->first, pass->see, pass->radii, min_dims, thread_context);
                 }
             }
         }
@@ -228,67 +223,65 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
 
 void cpu_grid_see(TayPass *pass) {
     static _SeeTask tasks[TAY_MAX_THREADS];
-    static _SeeTask *sorted_tasks[TAY_MAX_THREADS];
 
-    if (pass->seer_space == pass->seen_space) {
-        Space *space = pass->seer_space;
-        CpuGrid *grid = &space->cpu_grid;
+    typedef struct {
+        Bin *first_thread_seer_bin;
+        int agents_count;
+    } SortTask;
 
-        /* calculate kernel size */
-        ushort4 kernel_radii;
-        for (int i = 0; i < space->dims; ++i)
-            kernel_radii.arr[i] = (int)ceilf(pass->radii.arr[i] / grid->cell_sizes.arr[i]);
+    static SortTask sort_tasks[TAY_MAX_THREADS];
 
-        /* reset tasks */
-        for (int i = 0; i < runner.count; ++i) {
-            tasks[i].first_bin = 0;
-            tasks[i].agents_count = 0;
-            sorted_tasks[i] = tasks + i;
+    // reset sort tasks
+    for (int i = 0; i < runner.count; ++i) {
+        SortTask *sort_task = sort_tasks + i;
+        sort_task->first_thread_seer_bin = 0;
+        sort_task->agents_count = 0;
+    }
+
+    Bin *buckets[TAY_MAX_BUCKETS] = {0};
+    CpuGrid *seer_grid = &pass->seer_space->cpu_grid;
+
+    /* sort bins into buckets wrt number of contained agents */
+    for (Bin *bin = seer_grid->first_bin; bin; bin = bin->next) {
+        unsigned count = bin->count;
+        if (count) {
+            int bucket_i = space_agent_count_to_bucket_index(count);
+            bin->thread_next_seer_bin = buckets[bucket_i];
+            buckets[bucket_i] = bin;
         }
+    }
 
-        Bin *buckets[TAY_MAX_BUCKETS] = { 0 };
+    /* distribute bins among threads */
+    for (int bucket_i = 0; bucket_i < TAY_MAX_BUCKETS; ++bucket_i) {
+        Bin *bin = buckets[bucket_i];
 
-        /* sort bins into buckets wrt number of contained agents */
-        for (Bin *bin = grid->first_bin; bin; bin = bin->next) {
-            unsigned count = bin->count;
-            if (count) {
-                int bucket_i = space_agent_count_to_bucket_index(count);
-                bin->thread_next = buckets[bucket_i];
-                buckets[bucket_i] = bin;
+        while (bin) {
+            Bin *next_bin = bin->thread_next_seer_bin;
+
+            SortTask sort_task = sort_tasks[0]; /* always take the task with fewest agents */
+            bin->thread_next_seer_bin = sort_task.first_thread_seer_bin;
+            sort_task.first_thread_seer_bin = bin;
+            sort_task.agents_count += bin->count;
+
+            /* sort the task wrt its number of agents */
+            {
+                int index = 1;
+                for (; index < runner.count && sort_task.agents_count > sort_tasks[index].agents_count; ++index);
+                for (int i = 1; i < index; ++i)
+                    sort_tasks[i - 1] = sort_tasks[i];
+                sort_tasks[index - 1] = sort_task;
             }
+
+            bin = next_bin;
         }
+    }
 
-        /* distribute bins among threads */
-        for (int bucket_i = 0; bucket_i < TAY_MAX_BUCKETS; ++bucket_i) {
-            Bin *bin = buckets[bucket_i];
-
-            while (bin) {
-                Bin *next_bin = bin->thread_next;
-
-                _SeeTask *task = sorted_tasks[0]; /* always take the task with fewest agents */
-                bin->thread_next = task->first_bin;
-                task->first_bin = bin;
-                task->agents_count += bin->count;
-
-                /* sort the task wrt its number of agents */
-                {
-                    int index = 1;
-                    for (; index < runner.count && task->agents_count > sorted_tasks[index]->agents_count; ++index);
-                    for (int i = 1; i < index; ++i)
-                        sorted_tasks[i - 1] = sorted_tasks[i];
-                    sorted_tasks[index - 1] = task;
-                }
-
-                bin = next_bin;
-            }
-        }
-
-        /* set tasks */
-        for (int i = 0; i < runner.count; ++i) {
-            _SeeTask *task = tasks + i;
-            _init_see_task(task, pass, grid, i, space->dims);
-            tay_thread_set_task(i, _see_func, task, pass->context);
-        }
+    /* set tasks */
+    for (int i = 0; i < runner.count; ++i) {
+        SortTask *sort_task = sort_tasks + i;
+        _SeeTask *task = tasks + i;
+        _init_see_task(task, pass, sort_task->first_thread_seer_bin, i);
+        tay_thread_set_task(i, _see_func, task, pass->context);
     }
 
     tay_runner_run();
@@ -330,19 +323,20 @@ void cpu_grid_act(TayPass *pass) {
     tay_runner_run();
 }
 
-#include <string.h>
-
-void cpu_grid_on_simulation_start(Space *space) {
-    CpuGrid *grid = &space->cpu_grid;
-    grid->bins = space->shared;
-    memset(grid->bins, 0, space->shared_size);
-}
-
 static unsigned _highest_power_of_two(unsigned size) {
     for (int i = 1; i < 32; ++i)
         if ((1ul << i) > size)
             return 1ul << (i - 1);
     return 0;
+}
+
+void cpu_grid_on_simulation_start(Space *space) {
+    CpuGrid *grid = &space->cpu_grid;
+    grid->bins = space->shared;
+    unsigned max_bins_count_fast = _highest_power_of_two(space->shared_size / (unsigned)sizeof(Bin)); // ERROR: make sure there's at least one bin available
+    grid->modulo_mask = max_bins_count_fast - 1;
+    for (unsigned i = 0; i < max_bins_count_fast; ++i)
+        _clear_bin(grid->bins + i);
 }
 
 void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
@@ -359,10 +353,6 @@ void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
         grid->cell_sizes.arr[i] = cell_size;
         grid->grid_origin.arr[i] = space->box.min.arr[i] - margin;
     }
-
-    unsigned max_bins_count_fast = _highest_power_of_two(space->shared_size / (unsigned)sizeof(Bin));
-    grid->modulo_mask = max_bins_count_fast - 1;
-    // ERROR: make sure there's at least one bin available
 
     /* sort agents into bins */
     {
@@ -404,10 +394,7 @@ void cpu_grid_unsort(TayGroup *group) {
     box_reset(&space->box, space->dims);
 
     for (Bin *bin = grid->first_bin; bin; bin = bin->next) {
-
         space_return_agents(space, bin->first, group->is_point);
-
-        bin->first = 0;
-        bin->count = 0;
+        _clear_bin(bin);
     }
 }
