@@ -90,11 +90,11 @@ typedef struct {
     ushort4 kernel_radii;
     float4 grid_origin;
     float4 cell_sizes;
-    Bin **kernel;
+    int kernel_size;
 } _SeeTask;
 
 static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thread_i, int dims,
-                           ushort4 kernel_radii, void *thread_mem) {
+                           ushort4 kernel_radii) {
     task->pass = pass;
     task->bins = grid->bins;
     task->thread_i = thread_i;
@@ -103,7 +103,7 @@ static void _init_see_task(_SeeTask *task, TayPass *pass, CpuGrid *grid, int thr
     task->grid_origin = grid->grid_origin;
     task->cell_sizes = grid->cell_sizes;
     task->kernel_radii = kernel_radii;
-    task->kernel = thread_mem;
+    task->kernel_size = grid->kernel_size;
 }
 
 static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
@@ -121,6 +121,8 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
         kernel_sizes.arr[i] = kernel_radii.arr[i] * 2 + 1;
 
     for (Bin *seer_bin = task->first_bin; seer_bin; seer_bin = seer_bin->thread_next) {
+
+        Bin **kernel = 0;
         int kernel_bins_count = 0;
         ushort4 prev_seer_indices = { 0xffff, 0xffff, 0xffff, 0xffff };
 
@@ -135,7 +137,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
 
             if (ushort4_eq(prev_seer_indices, seer_indices, dims)) {
                 for (int i = 0; i < kernel_bins_count; ++i)
-                    task->kernel[i]->visited[task->thread_i] = false;
+                    kernel[i]->visited[task->thread_i] = false;
             }
             else {
                 kernel_bins_count = 0;
@@ -143,6 +145,8 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
 #if TAY_TELEMETRY
                 ++thread_context->grid_seer_kernel_rebuilds;
 #endif
+
+                kernel = tay_threads_refresh_thread_storage(thread_context, task->kernel_size * sizeof(Bin *));
 
                 ushort4 origin;
                 for (int i = 0; i < dims; ++i)
@@ -157,7 +161,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                             seen_indices.x = origin.x + x;
                             seen_bin = task->bins + _cell_indices_to_hash_1(seen_indices, modulo_mask);
                             if (seen_bin->count) {
-                                task->kernel[kernel_bins_count++] = seen_bin;
+                                kernel[kernel_bins_count++] = seen_bin;
                                 seen_bin->visited[task->thread_i] = false;
                             }
                         }
@@ -169,7 +173,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                                 seen_indices.y = origin.y + y;
                                 seen_bin = task->bins + _cell_indices_to_hash_2(seen_indices, modulo_mask);
                                 if (seen_bin->count) {
-                                    task->kernel[kernel_bins_count++] = seen_bin;
+                                    kernel[kernel_bins_count++] = seen_bin;
                                     seen_bin->visited[task->thread_i] = false;
                                 }
                             }
@@ -184,7 +188,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                                     seen_indices.z = origin.z + z;
                                     seen_bin = task->bins + _cell_indices_to_hash_3(seen_indices, modulo_mask);
                                     if (seen_bin->count) {
-                                        task->kernel[kernel_bins_count++] = seen_bin;
+                                        kernel[kernel_bins_count++] = seen_bin;
                                         seen_bin->visited[task->thread_i] = false;
                                     }
                                 }
@@ -202,7 +206,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
                                         seen_indices.w = origin.w + w;
                                         seen_bin = task->bins + _cell_indices_to_hash_4(seen_indices, modulo_mask);
                                         if (seen_bin->count) {
-                                            task->kernel[kernel_bins_count++] = seen_bin;
+                                            kernel[kernel_bins_count++] = seen_bin;
                                             seen_bin->visited[task->thread_i] = false;
                                         }
                                     }
@@ -215,7 +219,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
             }
 
             for (int i = 0; i < kernel_bins_count; ++i) {
-                Bin *seen_bin = task->kernel[i];
+                Bin *seen_bin = kernel[i];
                 if (!seen_bin->visited[task->thread_i]) {
                     seen_bin->visited[task->thread_i] = true;
                     pairing_func(seer_agent, seen_bin->first, see_func, radii, dims, thread_context);
@@ -223,10 +227,6 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
             }
         }
     }
-}
-
-static void *_get_thread_mem(Space *space, int thread_i) {
-    return (char *)space->shared + space->shared_size - (thread_i + 1) * space->cpu_grid.kernel_size;
 }
 
 void cpu_grid_see(TayPass *pass) {
@@ -289,7 +289,7 @@ void cpu_grid_see(TayPass *pass) {
         /* set tasks */
         for (int i = 0; i < runner.count; ++i) {
             _SeeTask *task = tasks + i;
-            _init_see_task(task, pass, grid, i, space->dims, kernel_radii, _get_thread_mem(space, i));
+            _init_see_task(task, pass, grid, i, space->dims, kernel_radii);
             tay_thread_set_task(i, _see_func, task, pass->context);
         }
     }
@@ -333,9 +333,12 @@ void cpu_grid_act(TayPass *pass) {
     tay_runner_run();
 }
 
+#include <string.h>
+
 void cpu_grid_on_simulation_start(Space *space) {
     CpuGrid *grid = &space->cpu_grid;
     grid->bins = space->shared;
+    memset(grid->bins, 0, space->shared_size);
 }
 
 static unsigned _highest_power_of_two(unsigned size) {

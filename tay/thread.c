@@ -56,6 +56,8 @@ void _start_threads(int threads_count) {
         t->beg_semaphore = CreateSemaphore(0, 0, 1, 0);
         t->end_semaphore = CreateSemaphore(0, 0, 1, 0);
         t->thread = CreateThread(0, 0, _thread_func, t, 0, 0);
+        t->context.storage = 0;
+        t->context.storage_size = 0;
     }
     runner.count = threads_count;
     runner.state = TAY_RUNNER_WAITING;
@@ -99,12 +101,23 @@ void _stop_threads() {
         CloseHandle(t->thread);
         CloseHandle(t->beg_semaphore);
         CloseHandle(t->end_semaphore);
+        free(t->context.storage);
+        t->context.storage = 0;
+        t->context.storage_size = 0;
     }
     runner.state = TAY_RUNNER_IDLE;
 }
 
 void tay_threads_stop() {
     _stop_threads();
+}
+
+void *tay_threads_refresh_thread_storage(TayThreadContext *context, unsigned size) {
+    if (size > context->storage_size) {
+        context->storage_size = (size / TAY_MB + 1) * TAY_MB;
+        context->storage = realloc(context->storage, context->storage_size);
+    }
+    return context->storage;
 }
 
 static void _init_thread(TayThread *thread) {
