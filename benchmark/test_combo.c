@@ -62,7 +62,8 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int step
 
 void test_combo(Results *results, int steps,
                  int beg_see_radius, int end_see_radius,
-                 int beg_depth_correction, int end_depth_correction) {
+                 int beg_depth_correction, int end_depth_correction,
+                 TaySpaceType *space_type_pairs) {
 
     FILE *file;
     #if TAY_TELEMETRY
@@ -78,9 +79,14 @@ void test_combo(Results *results, int steps,
 
         tay_log(file, "  %g: {\n", see_radius);
 
-        tay_log(file, "    \"%s-%s\": [\n", space_type_name(TAY_CPU_SIMPLE), space_type_name(TAY_CPU_SIMPLE));
-        _test(TAY_CPU_SIMPLE, TAY_CPU_SIMPLE, steps, see_radius, 0, 0, results, file);
-        tay_log(file, "    ],\n");
+        for (int j = 0; space_type_pairs[j * 2] != TAY_SPACE_NONE; ++j) {
+            TaySpaceType space_type_a = space_type_pairs[j * 2];
+            TaySpaceType space_type_b = space_type_pairs[j * 2 + 1];
+
+            tay_log(file, "    \"%s-%s\": [\n", space_type_name(space_type_a), space_type_name(space_type_b));
+            _test(space_type_a, space_type_b, steps, see_radius, 0, 0, results, file);
+            tay_log(file, "    ],\n");
+        }
 
         results_reset(results);
         tay_log(file, "  },\n");
