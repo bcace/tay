@@ -91,10 +91,8 @@ typedef struct TayPass {
         TAY_SEE_FUNC see;
         TAY_ACT_FUNC act;
     };
-    const char *func_name;
     float4 radii;
     void *context;
-    int context_size;
     /* data prepared by the compile step */
     union {
         Space *act_space;

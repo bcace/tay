@@ -111,8 +111,8 @@ TayError tay_get_error(TayState *state);
 
 TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, TaySpaceDesc space_desc);
 
-void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), const char *func_name, float4 radii, void *context, int context_size);
-void tay_add_act(TayState *state, TayGroup *act_group, void (*func)(void *, void *), const char *func_name, void *context, int context_size);
+void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), float4 radii, void *context);
+void tay_add_act(TayState *state, TayGroup *act_group, void (*func)(void *, void *), void *context);
 
 void *tay_get_available_agent(TayState *state, TayGroup *group);
 void tay_commit_available_agent(TayState *state, TayGroup *group);

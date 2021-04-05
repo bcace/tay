@@ -115,27 +115,23 @@ int group_is_inactive(TayGroup *group) {
     return group->storage == 0;
 }
 
-void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, const char *func_name, float4 radii, void *context, int context_size) {
+void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, float4 radii, void *context) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
     p->context = context;
-    p->context_size = context_size;
     p->see = func;
-    p->func_name = func_name;
     p->radii = radii;
     p->seer_group = seer_group;
     p->seen_group = seen_group;
 }
 
-void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, const char *func_name, void *context, int context_size) {
+void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, void *context) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
     p->context = context;
-    p->context_size = context_size;
     p->act = func;
-    p->func_name = func_name;
     p->act_group = act_group;
 }
 
