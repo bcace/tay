@@ -13,13 +13,13 @@ int main() {
 
     Results *results = results_create();
 
-    test_basic(results, MC_UNIFORM, 400,
-               0, 2, // see radius
-               0, 2, // depth correction
-               TAY_CPU_SIMPLE |
-               TAY_CPU_TREE |
-               TAY_CPU_GRID
-    );
+    // test_basic(results, MC_UNIFORM, 400,
+    //            0, 2, // see radius
+    //            0, 2, // depth correction
+    //            TAY_CPU_SIMPLE |
+    //            TAY_CPU_TREE |
+    //            TAY_CPU_GRID
+    // );
 
     // test_nonpoint(results, 100,
     //               0, 2, // see radius
@@ -29,17 +29,16 @@ int main() {
     //               TAY_CPU_AABB_TREE
     // );
 
-    TaySpaceType type_pairs[] = {
-        // TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,
-        TAY_CPU_TREE, TAY_CPU_TREE,
-        TAY_CPU_GRID, TAY_CPU_GRID,
-        TAY_SPACE_NONE
+    SpecPair spec_pairs[] = {
+        { {TAY_CPU_SIMPLE, TAY_TRUE}, {TAY_CPU_SIMPLE, TAY_TRUE} },
+        { {TAY_CPU_TREE, TAY_TRUE}, {TAY_CPU_TREE, TAY_TRUE} },
+        { {TAY_CPU_GRID, TAY_TRUE}, {TAY_CPU_GRID, TAY_TRUE} },
     };
 
-    test_combo(results, 400,
+    test_combo(results, 100,
                 0, 1, // see radius
                 0, 1, // depth correction
-                type_pairs
+                spec_pairs, sizeof(spec_pairs) / sizeof(SpecPair)
     );
 
     results_destroy(results);

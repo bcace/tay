@@ -5,8 +5,13 @@
 #include <stdio.h>
 
 
-static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int steps, float see_radius, int part_res_a, int part_res_b, Results *results, FILE *file) {
+static void _test(SpecPair spec_pair, int steps, float see_radius, int part_res_a, int part_res_b, Results *results, FILE *file) {
     srand(1);
+
+    TaySpaceType space_type_a = spec_pair.spec_a.type;
+    TaySpaceType space_type_b = spec_pair.spec_b.type;
+    int is_point_a = spec_pair.spec_a.is_point;
+    int is_point_b = spec_pair.spec_b.is_point;
 
     float4 see_radii = { see_radius, see_radius, see_radius, see_radius };
     float4 part_radii_a = depth_correct(see_radii, part_res_a);
@@ -25,8 +30,8 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int step
     tay_log(file, "        \"part radii b\": (%g, %g, %g),\n", part_radii_b.x, part_radii_b.y, part_radii_b.z);
 
     TayState *tay = tay_create_state();
-    TayGroup *group_a = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, TAY_TRUE, tay_space_desc(space_type_a, 3, part_radii_a, 250));
-    TayGroup *group_b = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, TAY_TRUE, tay_space_desc(space_type_b, 3, part_radii_b, 250));
+    TayGroup *group_a = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_a, tay_space_desc(space_type_a, 3, part_radii_a, 250));
+    TayGroup *group_b = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_b, tay_space_desc(space_type_b, 3, part_radii_b, 250));
 
     make_randomized_direction_cluster(tay,
                                       group_a,
@@ -61,9 +66,9 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int step
 }
 
 void test_combo(Results *results, int steps,
-                 int beg_see_radius, int end_see_radius,
-                 int beg_depth_correction, int end_depth_correction,
-                 TaySpaceType *space_type_pairs) {
+                int beg_see_radius, int end_see_radius,
+                int beg_depth_correction, int end_depth_correction,
+                SpecPair *spec_pairs, int spec_pairs_count) {
 
     FILE *file;
     #if TAY_TELEMETRY
@@ -79,12 +84,9 @@ void test_combo(Results *results, int steps,
 
         tay_log(file, "  %g: {\n", see_radius);
 
-        for (int j = 0; space_type_pairs[j * 2] != TAY_SPACE_NONE; ++j) {
-            TaySpaceType space_type_a = space_type_pairs[j * 2];
-            TaySpaceType space_type_b = space_type_pairs[j * 2 + 1];
-
-            tay_log(file, "    \"%s-%s\": [\n", space_type_name(space_type_a), space_type_name(space_type_b));
-            _test(space_type_a, space_type_b, steps, see_radius, 0, 0, results, file);
+        for (int j = 0; j < spec_pairs_count; ++j) {
+            tay_log(file, "    \"%s-%s\": [\n", space_type_name(spec_pairs[j].spec_a.type), space_type_name(spec_pairs[j].spec_b.type));
+            _test(spec_pairs[j], steps, see_radius, 0, 0, results, file);
             tay_log(file, "    ],\n");
         }
 
@@ -94,11 +96,4 @@ void test_combo(Results *results, int steps,
 
     tay_log(file, "}\n");
     fclose(file);
-}
-
-void test_combo_nonpoint(Results *results, int steps,
-                         int beg_see_radius, int end_see_radius,
-                         int beg_depth_correction, int end_depth_correction,
-                         TaySpaceType *space_type_pairs) {
-
 }
