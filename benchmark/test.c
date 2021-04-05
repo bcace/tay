@@ -17,8 +17,8 @@ float4 depth_correct(float4 radii, int level) {
 const char *space_type_name(TaySpaceType space_type) {
     switch (space_type) {
         case TAY_CPU_SIMPLE: return "CpuSimple";
-        case TAY_CPU_TREE: return "CpuTree";
-        case TAY_CPU_GRID: return "CpuGrid";
+        case TAY_CPU_KD_TREE: return "CpuKdTree";
+        case TAY_CPU_HASH_GRID: return "CpuHashGrid";
         case TAY_CPU_AABB_TREE: return "CpuAabbTree";
         case TAY_GPU_SIMPLE_DIRECT: return "GpuSimple (direct)";
         case TAY_GPU_SIMPLE_INDIRECT: return "GpuSimple (indirect)";

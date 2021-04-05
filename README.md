@@ -71,8 +71,8 @@ tay_define_structure(tay, my_group, TAY_CPU_AABB_TREE, 3, min_part_radii, intern
 
 `CpuSimple` Simple non-structure used when all agents have to interact (there's no limit to the distance at which agents interact). This structure can contain both point and non-point agents.
 
-`CpuTree` [K-d tree](https://en.wikipedia.org/wiki/K-d_tree) structure. If it runs out of memory it sorts agents into most appropriate available nodes it can find. Can contain both point and non-point agents.
+`CpuKdTree` [K-d tree](https://en.wikipedia.org/wiki/K-d_tree) structure. If it runs out of memory it sorts agents into most appropriate available nodes it can find. Can contain both point and non-point agents.
 
 `CpuAabbTree` AABB tree structure. If it runs out of memory it stores multiple agents into same nodes. Can only contain non-point agents.
 
-`CpuGrid` Hash grid structure. Less available memory will result in more hash collisions, which leads to decreased performance. Can only contain point agents.
+`CpuHashGrid` Hash grid structure. Less available memory will result in more hash collisions, which leads to decreased performance. Can only contain point agents.

@@ -76,10 +76,10 @@ void test_nonpoint(Results *results, int steps,
             tay_log(file, "    ],\n");
         }
 
-        if (space_type_flags & TAY_CPU_TREE) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_TREE));
+        if (space_type_flags & TAY_CPU_KD_TREE) {
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_KD_TREE));
             for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
-                _test(TAY_CPU_TREE, steps, see_radius, depth_correction, min_size, max_size, distr_exp, results, file);
+                _test(TAY_CPU_KD_TREE, steps, see_radius, depth_correction, min_size, max_size, distr_exp, results, file);
             tay_log(file, "    ],\n");
         }
 

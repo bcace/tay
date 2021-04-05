@@ -195,7 +195,7 @@ int main() {
 
     tay = tay_create_state();
 
-    TaySpaceDesc boids_space_desc = tay_space_desc(TAY_CPU_GRID, 3, part_radii, 250);
+    TaySpaceDesc boids_space_desc = tay_space_desc(TAY_CPU_HASH_GRID, 3, part_radii, 250);
     TaySpaceDesc obstacle_space_desc = tay_space_desc(TAY_CPU_SIMPLE, 3, obstacle_part_radii, 100);
 
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE, boids_space_desc);

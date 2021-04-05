@@ -17,22 +17,22 @@ int main() {
     //            0, 1, // see radius
     //            0, 1, // depth correction
     //            TAY_CPU_SIMPLE |
-    //            TAY_CPU_TREE// |
-    //            // TAY_CPU_GRID
+    //            TAY_CPU_KD_TREE// |
+    //            // TAY_CPU_HASH_GRID
     // );
 
     test_nonpoint(results, 100,
                   0, 1, // see radius
                   0, 1, // depth correction
-                  TAY_CPU_SIMPLE |
-                  TAY_CPU_TREE// |
-                  // TAY_CPU_AABB_TREE
+                  // TAY_CPU_SIMPLE |
+                  TAY_CPU_KD_TREE |
+                  TAY_CPU_AABB_TREE
     );
 
     TaySpaceType spec_pairs[] = {
         TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,
-        TAY_CPU_TREE, TAY_CPU_TREE,
-        TAY_CPU_GRID, TAY_CPU_GRID,
+        TAY_CPU_KD_TREE, TAY_CPU_KD_TREE,
+        TAY_CPU_HASH_GRID, TAY_CPU_HASH_GRID,
         TAY_SPACE_NONE,
     };
 
@@ -43,8 +43,9 @@ int main() {
     // );
 
     TaySpaceType spec_pairs_nonpoint[] = {
-        TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,
-        TAY_CPU_TREE, TAY_CPU_TREE,
+        // TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,
+        TAY_CPU_KD_TREE, TAY_CPU_KD_TREE,
+        TAY_CPU_AABB_TREE, TAY_CPU_AABB_TREE,
         TAY_SPACE_NONE,
     };
 

@@ -31,7 +31,7 @@ typedef struct {
     int cells_count;
     int dims;
     int4 max_depths;
-} CpuTree;
+} CpuKdTree;
 
 typedef struct {
     struct TreeNode *nodes;
@@ -47,7 +47,7 @@ typedef struct {
     float4 cell_sizes;
     float4 grid_origin;
     unsigned modulo_mask;
-} CpuGrid;
+} CpuHashGrid;
 
 typedef struct Space {
     int dims;
@@ -58,8 +58,8 @@ typedef struct Space {
     Box box;
     union {
         CpuSimple cpu_simple;
-        CpuTree cpu_tree;
-        CpuGrid cpu_grid;
+        CpuKdTree cpu_tree;
+        CpuHashGrid cpu_grid;
         CpuAabbTree cpu_aabb_tree;
     };
     void *shared; /* buffer shared internally by all structures in this space */

@@ -100,8 +100,8 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
     Space *seer_space = pass->seer_space;
     Space *seen_space = pass->seen_space;
-    CpuGrid *seer_grid = &seer_space->cpu_grid;
-    CpuGrid *seen_grid = &seen_space->cpu_grid;
+    CpuHashGrid *seer_grid = &seer_space->cpu_grid;
+    CpuHashGrid *seen_grid = &seen_space->cpu_grid;
 
     unsigned seen_modulo_mask = seen_grid->modulo_mask;
     int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
@@ -239,7 +239,7 @@ void cpu_grid_see(TayPass *pass) {
     }
 
     Bin *buckets[TAY_MAX_BUCKETS] = {0};
-    CpuGrid *seer_grid = &pass->seer_space->cpu_grid;
+    CpuHashGrid *seer_grid = &pass->seer_space->cpu_grid;
 
     /* sort bins into buckets wrt number of contained agents */
     for (Bin *bin = seer_grid->first_bin; bin; bin = bin->next) {
@@ -312,7 +312,7 @@ static void _act_func(ActTask *task, TayThreadContext *thread_context) {
 void cpu_grid_act(TayPass *pass) {
     static ActTask tasks[TAY_MAX_THREADS];
 
-    CpuGrid *grid = &pass->act_space->cpu_grid;
+    CpuHashGrid *grid = &pass->act_space->cpu_grid;
 
     for (int i = 0; i < runner.count; ++i) {
         ActTask *task = tasks + i;
@@ -331,7 +331,7 @@ static unsigned _highest_power_of_two(unsigned size) {
 }
 
 void cpu_grid_on_simulation_start(Space *space) {
-    CpuGrid *grid = &space->cpu_grid;
+    CpuHashGrid *grid = &space->cpu_grid;
     grid->bins = space->shared;
     unsigned max_bins_count_fast = _highest_power_of_two(space->shared_size / (unsigned)sizeof(Bin)); // ERROR: make sure there's at least one bin available
     grid->modulo_mask = max_bins_count_fast - 1;
@@ -341,7 +341,7 @@ void cpu_grid_on_simulation_start(Space *space) {
 
 void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
     Space *space = &group->space;
-    CpuGrid *grid = &space->cpu_grid;
+    CpuHashGrid *grid = &space->cpu_grid;
 
     /* calculate grid parameters */
     for (int i = 0; i < space->dims; ++i) {
@@ -389,7 +389,7 @@ void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
 
 void cpu_grid_unsort(TayGroup *group) {
     Space *space = &group->space;
-    CpuGrid *grid = &space->cpu_grid;
+    CpuHashGrid *grid = &space->cpu_grid;
 
     box_reset(&space->box, space->dims);
 

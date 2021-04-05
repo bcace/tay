@@ -25,7 +25,7 @@ static void _init_tree_see_task(SeeTask *task, TayPass *pass, TreeCell *first_th
     task->first_thread_seer_cell = first_thread_seer_cell;
 }
 
-static void _thread_traverse_seen(CpuTree *tree, TreeCell *seer_cell, TreeCell *seen_cell, TayPass *pass, Box seer_box, TayThreadContext *thread_context) {
+static void _thread_traverse_seen(CpuKdTree *tree, TreeCell *seer_cell, TreeCell *seen_cell, TayPass *pass, Box seer_box, TayThreadContext *thread_context) {
     for (int i = 0; i < tree->dims; ++i)
         if (seer_box.min.arr[i] > seen_cell->box.max.arr[i] || seer_box.max.arr[i] < seen_cell->box.min.arr[i])
             return;
@@ -38,8 +38,8 @@ static void _thread_traverse_seen(CpuTree *tree, TreeCell *seer_cell, TreeCell *
 }
 
 static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
-    CpuTree *seer_tree = &task->pass->seer_space->cpu_tree;
-    CpuTree *seen_tree = &task->pass->seen_space->cpu_tree;
+    CpuKdTree *seer_tree = &task->pass->seer_space->cpu_tree;
+    CpuKdTree *seen_tree = &task->pass->seen_space->cpu_tree;
     for (TreeCell *seer_cell = task->first_thread_seer_cell; seer_cell; seer_cell = seer_cell->thread_next_seer_cell) {
         if (seer_cell->first) {
             Box seer_box = seer_cell->box;
@@ -70,7 +70,7 @@ void cpu_tree_see(TayPass *pass) {
     }
 
     TreeCell *buckets[TAY_MAX_BUCKETS] = {0};
-    CpuTree *seer_tree = &pass->seer_space->cpu_tree;
+    CpuKdTree *seer_tree = &pass->seer_space->cpu_tree;
 
     // sort cells into buckets wrt number of contained agents
     for (int i = 0; i < seer_tree->cells_count; ++i) {
@@ -120,12 +120,12 @@ void cpu_tree_see(TayPass *pass) {
 }
 
 typedef struct {
-    CpuTree *tree;
+    CpuKdTree *tree;
     TayPass *pass;
     int counter; // tree cell skipping counter so each thread processes different seer nodes
 } ActTask;
 
-static void _init_tree_act_task(ActTask *task, CpuTree *tree, TayPass *pass, int thread_index) {
+static void _init_tree_act_task(ActTask *task, CpuKdTree *tree, TayPass *pass, int thread_index) {
     task->tree = tree;
     task->pass = pass;
     task->counter = thread_index;
@@ -152,7 +152,7 @@ static void _thread_act_traverse(ActTask *task, TayThreadContext *thread_context
 void cpu_tree_act(TayPass *pass) {
     static ActTask tasks[TAY_MAX_THREADS];
 
-    CpuTree *tree = &pass->act_space->cpu_tree;
+    CpuKdTree *tree = &pass->act_space->cpu_tree;
 
     for (int i = 0; i < runner.count; ++i) {
         ActTask *task = tasks + i;
@@ -190,7 +190,7 @@ static inline void _decide_cell_split(TreeCell *cell, int dims, int *max_depths,
         cell->mid = (cell->box.max.arr[cell->dim] + cell->box.min.arr[cell->dim]) * 0.5f;
 }
 
-static void _sort_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
+static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
 
     if (cell->dim == TREE_CELL_LEAF_DIM) { // leaf cell, put the agent here
         agent->next = cell->first;
@@ -241,7 +241,7 @@ static void _sort_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent,
     }
 }
 
-static void _sort_non_point_agent(CpuTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
+static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
 
     if (cell->dim == TREE_CELL_LEAF_DIM) { // leaf cell, put the agent here
         agent->next = cell->first;
@@ -310,7 +310,7 @@ static int _max_depth(float space_side, float cell_side) {
 }
 
 void cpu_tree_on_simulation_start(Space *space) {
-    CpuTree *tree = &space->cpu_tree;
+    CpuKdTree *tree = &space->cpu_tree;
     tree->dims = space->dims;
     tree->cells = space->shared;
     tree->max_cells = space->shared_size / (int)sizeof(TreeCell);
@@ -319,7 +319,7 @@ void cpu_tree_on_simulation_start(Space *space) {
 
 void cpu_tree_sort(TayGroup *group) {
     Space *space = &group->space;
-    CpuTree *tree = &space->cpu_tree;
+    CpuKdTree *tree = &space->cpu_tree;
 
     // calculate max partition depths for each dimension
     Depths root_cell_depths;
@@ -370,7 +370,7 @@ void cpu_tree_sort(TayGroup *group) {
 
 void cpu_tree_unsort(TayGroup *group) {
     Space *space = &group->space;
-    CpuTree *tree = &space->cpu_tree;
+    CpuKdTree *tree = &space->cpu_tree;
 
     box_reset(&space->box, space->dims);
 
