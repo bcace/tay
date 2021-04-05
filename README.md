@@ -51,10 +51,10 @@ void agent_act(MyAgent *agent, void *act_context) {
 }
 
 /* see pass between agents of the same group */
-tay_add_see(tay, my_group, my_group, agent_see, "agent_see", see_radii, 0, 0);
+tay_add_see(tay, my_group, my_group, agent_see, see_radii, 0);
 
 /* act pass for agents of my_group */
-tay_add_act(tay, my_group, agent_act, "agent_act", 0, 0);
+tay_add_act(tay, my_group, agent_act, 0);
 ```
 
 and has to make sure that when in the above example in the `agent_see` function `seer_agent` changes its state (gathers information about its environment - in this case the `seen_agent`) the member variables it writes to are not read in that same function. Also, `seen_agent` state must be read-only in that function.
