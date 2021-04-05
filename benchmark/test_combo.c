@@ -95,3 +95,10 @@ void test_combo(Results *results, int steps,
     tay_log(file, "}\n");
     fclose(file);
 }
+
+void test_combo_nonpoint(Results *results, int steps,
+                         int beg_see_radius, int end_see_radius,
+                         int beg_depth_correction, int end_depth_correction,
+                         TaySpaceType *space_type_pairs) {
+
+}

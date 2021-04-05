@@ -26,6 +26,7 @@ void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, 
 
 void make_randomized_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max);
 void make_uniform_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max);
+void make_randomized_direction_cluster_nonpoint(TayState *state, TayGroup *group, int count, float3 min, float3 max, float min_size, float max_size, float distr_exp);
 
 float4 depth_correct(float4 radii, int level);
 const char *space_type_name(TaySpaceType space_type);
@@ -44,5 +45,10 @@ void test_combo(Results *results, int steps,
                 int beg_see_radius, int end_see_radius,
                 int beg_depth_correction, int end_depth_correction,
                 TaySpaceType *space_type_pairs);
+
+void test_combo_nonpoint(Results *results, int steps,
+                         int beg_see_radius, int end_see_radius,
+                         int beg_depth_correction, int end_depth_correction,
+                         TaySpaceType *space_type_pairs);
 
 #endif

@@ -6,61 +6,6 @@
 #include <math.h>
 
 
-static float _rand(float min, float max) {
-    return min + rand() * (max - min) / (float)RAND_MAX;
-}
-
-static float _rand_exponential(float min, float max, float exp) {
-    float base = rand() / (float)RAND_MAX;
-    return min + (max - min) * powf(base, exp);
-}
-
-static void _make_randomized_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max, float min_size, float max_size, float distr_exp) {
-    for (int i = 0; i < count; ++i) {
-        int major = i % 3;
-
-        /* size */
-        float size = _rand_exponential(min_size, max_size, distr_exp);
-
-        /* shape */
-        float3 shape;
-        for (int j = 0; j < 3; ++j) {
-            if (j == major)
-                shape.arr[j] = size;
-            else
-                shape.arr[j] = size * _rand(0.1f, 1.0f);
-        }
-
-        /* position */
-        BoxAgent *a = tay_get_available_agent(state, group);
-        a->min.x = _rand(min.x, max.x - shape.x);
-        a->min.y = _rand(min.y, max.y - shape.y);
-        a->min.z = _rand(min.z, max.z - shape.z);
-        a->max.x = a->min.x + shape.x;
-        a->max.y = a->min.y + shape.y;
-        a->max.z = a->min.z + shape.z;
-
-        /* velocity */
-        a->v.x = _rand(-1.0f, 1.0f);
-        a->v.y = _rand(-1.0f, 1.0f);
-        a->v.z = _rand(-1.0f, 1.0f);
-        float l = AGENT_VELOCITY / sqrtf(a->v.x * a->v.x + a->v.y * a->v.y + a->v.z * a->v.z);
-        a->v.x *= l;
-        a->v.y *= l;
-        a->v.z *= l;
-
-        /* buffers */
-        a->b_buffer.x = 0.0f;
-        a->b_buffer.y = 0.0f;
-        a->b_buffer.z = 0.0f;
-        a->b_buffer_count = 0;
-        a->f_buffer.x = 0.0f;
-        a->f_buffer.y = 0.0f;
-        a->f_buffer.z = 0.0f;
-        tay_commit_available_agent(state, group);
-    }
-}
-
 void _test(TaySpaceType space_type, int steps, float see_radius, int depth_correction, float min_size, float max_size, float distr_exp, Results *results, FILE *file) {
     srand(1);
 
@@ -84,10 +29,10 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
     tay_add_see(tay, group, group, box_agent_see, "box_agent_see", see_radii, 0, 0);
     tay_add_act(tay, group, box_agent_act, "box_agent_act", &act_context, sizeof(ActContext));
 
-    _make_randomized_direction_cluster(tay, group, AGENTS_COUNT,
-                                       float3_make(0, 0, 0),
-                                       float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
-                                       min_size, max_size, distr_exp);
+    make_randomized_direction_cluster_nonpoint(tay, group, AGENTS_COUNT,
+                                               float3_make(0, 0, 0),
+                                               float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
+                                               min_size, max_size, distr_exp);
 
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);

@@ -80,19 +80,51 @@ void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, 
     }
 }
 
-void make_randomized_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max) {
+static float _rand(float min, float max) {
+    return min + rand() * (max - min) / (float)RAND_MAX;
+}
+
+static float _rand_exponential(float min, float max, float exp) {
+    float base = rand() / (float)RAND_MAX;
+    return min + (max - min) * powf(base, exp);
+}
+
+void make_randomized_direction_cluster_nonpoint(TayState *state, TayGroup *group, int count, float3 min, float3 max, float min_size, float max_size, float distr_exp) {
     for (int i = 0; i < count; ++i) {
-        Agent *a = tay_get_available_agent(state, group);
-        a->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
-        a->p.y = min.y + rand() * (max.y - min.y) / (float)RAND_MAX;
-        a->p.z = min.z + rand() * (max.z - min.z) / (float)RAND_MAX;
-        a->v.x = -0.5f + rand() / (float)RAND_MAX;
-        a->v.y = -0.5f + rand() / (float)RAND_MAX;
-        a->v.z = -0.5f + rand() / (float)RAND_MAX;
+        int major = i % 3;
+
+        /* size */
+        float size = _rand_exponential(min_size, max_size, distr_exp);
+
+        /* shape */
+        float3 shape;
+        for (int j = 0; j < 3; ++j) {
+            if (j == major)
+                shape.arr[j] = size;
+            else
+                shape.arr[j] = size * _rand(0.1f, 1.0f);
+        }
+
+        BoxAgent *a = tay_get_available_agent(state, group);
+
+        /* position */
+        a->min.x = _rand(min.x, max.x - shape.x);
+        a->min.y = _rand(min.y, max.y - shape.y);
+        a->min.z = _rand(min.z, max.z - shape.z);
+        a->max.x = a->min.x + shape.x;
+        a->max.y = a->min.y + shape.y;
+        a->max.z = a->min.z + shape.z;
+
+        /* velocity */
+        a->v.x = _rand(-1.0f, 1.0f);
+        a->v.y = _rand(-1.0f, 1.0f);
+        a->v.z = _rand(-1.0f, 1.0f);
         float l = AGENT_VELOCITY / sqrtf(a->v.x * a->v.x + a->v.y * a->v.y + a->v.z * a->v.z);
         a->v.x *= l;
         a->v.y *= l;
         a->v.z *= l;
+
+        /* buffers */
         a->b_buffer.x = 0.0f;
         a->b_buffer.y = 0.0f;
         a->b_buffer.z = 0.0f;
@@ -100,27 +132,69 @@ void make_randomized_direction_cluster(TayState *state, TayGroup *group, int cou
         a->f_buffer.x = 0.0f;
         a->f_buffer.y = 0.0f;
         a->f_buffer.z = 0.0f;
+
+        tay_commit_available_agent(state, group);
+    }
+}
+
+void make_randomized_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max) {
+    for (int i = 0; i < count; ++i) {
+
+        Agent *a = tay_get_available_agent(state, group);
+
+        /* position */
+        a->p.x = _rand(min.x, max.x);
+        a->p.y = _rand(min.y, max.y);
+        a->p.z = _rand(min.z, max.z);
+
+        /* velocity */
+        a->v.x = _rand(-1.0f, 1.0f);
+        a->v.y = _rand(-1.0f, 1.0f);
+        a->v.z = _rand(-1.0f, 1.0f);
+        float l = AGENT_VELOCITY / sqrtf(a->v.x * a->v.x + a->v.y * a->v.y + a->v.z * a->v.z);
+        a->v.x *= l;
+        a->v.y *= l;
+        a->v.z *= l;
+
+        /* buffers */
+        a->b_buffer.x = 0.0f;
+        a->b_buffer.y = 0.0f;
+        a->b_buffer.z = 0.0f;
+        a->b_buffer_count = 0;
+        a->f_buffer.x = 0.0f;
+        a->f_buffer.y = 0.0f;
+        a->f_buffer.z = 0.0f;
+
         tay_commit_available_agent(state, group);
     }
 }
 
 void make_uniform_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max) {
     float3 v;
-    v.x = -0.5f + rand() / (float)RAND_MAX;
-    v.y = -0.5f + rand() / (float)RAND_MAX;
-    v.z = -0.5f + rand() / (float)RAND_MAX;
+
+    /* uniform velocity */
+    v.x = _rand(-1.0f, 1.0f);
+    v.y = _rand(-1.0f, 1.0f);
+    v.z = _rand(-1.0f, 1.0f);
     float l = AGENT_VELOCITY / sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
     v.x *= l;
     v.y *= l;
     v.z *= l;
+
     for (int i = 0; i < count; ++i) {
         Agent *a = tay_get_available_agent(state, group);
-        a->p.x = min.x + rand() * (max.x - min.x) / (float)RAND_MAX;
-        a->p.y = min.y + rand() * (max.y - min.y) / (float)RAND_MAX;
-        a->p.z = min.z + rand() * (max.z - min.z) / (float)RAND_MAX;
+
+        /* position */
+        a->p.x = _rand(min.x, max.x);
+        a->p.y = _rand(min.y, max.y);
+        a->p.z = _rand(min.z, max.z);
+
+        /* velocity */
         a->v.x = v.x;
         a->v.y = v.y;
         a->v.z = v.z;
+
+        /* buffers */
         a->b_buffer.x = 0.0f;
         a->b_buffer.y = 0.0f;
         a->b_buffer.z = 0.0f;
@@ -128,6 +202,7 @@ void make_uniform_direction_cluster(TayState *state, TayGroup *group, int count,
         a->f_buffer.x = 0.0f;
         a->f_buffer.y = 0.0f;
         a->f_buffer.z = 0.0f;
+
         tay_commit_available_agent(state, group);
     }
 }
