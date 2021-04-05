@@ -349,7 +349,6 @@ void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
         float space_size = space->box.max.arr[i] - space->box.min.arr[i];
         int count = (int)ceilf(space_size / cell_size);
         float margin = (count * cell_size - space_size) * 0.5f;
-        grid->cell_counts.arr[i] = count;
         grid->cell_sizes.arr[i] = cell_size;
         grid->grid_origin.arr[i] = space->box.min.arr[i] - margin;
     }

@@ -43,7 +43,6 @@ typedef struct {
 typedef struct {
     struct Bin *bins; /* bins storage */
     struct Bin *first_bin; /* first bin that contains any agents */
-    int4 cell_counts;
     float4 cell_sizes;
     float4 grid_origin;
     unsigned modulo_mask;
