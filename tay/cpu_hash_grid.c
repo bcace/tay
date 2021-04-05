@@ -221,7 +221,7 @@ static void _see_func(_SeeTask *task, TayThreadContext *thread_context) {
     }
 }
 
-void cpu_grid_see(TayPass *pass) {
+void cpu_hash_grid_see(TayPass *pass) {
     static _SeeTask tasks[TAY_MAX_THREADS];
 
     typedef struct {
@@ -309,7 +309,7 @@ static void _act_func(ActTask *task, TayThreadContext *thread_context) {
     }
 }
 
-void cpu_grid_act(TayPass *pass) {
+void cpu_hash_grid_act(TayPass *pass) {
     static ActTask tasks[TAY_MAX_THREADS];
 
     CpuHashGrid *grid = &pass->act_space->cpu_grid;
@@ -330,7 +330,7 @@ static unsigned _highest_power_of_two(unsigned size) {
     return 0;
 }
 
-void cpu_grid_on_simulation_start(Space *space) {
+void cpu_hash_grid_on_simulation_start(Space *space) {
     CpuHashGrid *grid = &space->cpu_grid;
     grid->bins = space->shared;
     unsigned max_bins_count_fast = _highest_power_of_two(space->shared_size / (unsigned)sizeof(Bin)); // ERROR: make sure there's at least one bin available
@@ -339,7 +339,7 @@ void cpu_grid_on_simulation_start(Space *space) {
         _clear_bin(grid->bins + i);
 }
 
-void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
+void cpu_hash_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
     Space *space = &group->space;
     CpuHashGrid *grid = &space->cpu_grid;
 
@@ -386,7 +386,7 @@ void cpu_grid_sort(TayGroup *group, TayPass *passes, int passes_count) {
     }
 }
 
-void cpu_grid_unsort(TayGroup *group) {
+void cpu_hash_grid_unsort(TayGroup *group) {
     Space *space = &group->space;
     CpuHashGrid *grid = &space->cpu_grid;
 
