@@ -224,25 +224,28 @@ static void _node_see_func(TayPass *pass, TreeNode *seer_node, Box seer_box, Tre
     }
 }
 
-// TODO: this one is only for single space passes!!!
 static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
-    Space *space = pass->seer_space;
-    CpuAabbTree *tree = &space->cpu_aabb_tree;
+    Space *seer_space = pass->seer_space;
+    Space *seen_space = pass->seen_space;
+    CpuAabbTree *seer_tree = &seer_space->cpu_aabb_tree;
+    CpuAabbTree *seen_tree = &seen_space->cpu_aabb_tree;
 
-    for (int seer_node_i = 0; seer_node_i < tree->nodes_count; ++seer_node_i) {
-        TreeNode *seer_node = tree->nodes + seer_node_i;
+    int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
+
+    for (int seer_node_i = 0; seer_node_i < seer_tree->nodes_count; ++seer_node_i) {
+        TreeNode *seer_node = seer_tree->nodes + seer_node_i;
 
         if (_is_leaf_node(seer_node)) {
             if (task->counter % runner.count == 0) {
 
                 Box seer_box = seer_node->box;
-                for (int i = 0; i < space->dims; ++i) {
+                for (int i = 0; i < min_dims; ++i) {
                     seer_box.min.arr[i] -= pass->radii.arr[i];
                     seer_box.max.arr[i] += pass->radii.arr[i];
                 }
 
-                _node_see_func(pass, seer_node, seer_box, tree->root, space->dims, thread_context);
+                _node_see_func(pass, seer_node, seer_box, seen_tree->root, min_dims, thread_context);
             }
             ++task->counter;
         }
@@ -252,15 +255,10 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
 void cpu_aabb_tree_see(TayPass *pass) {
     static SeeTask tasks[TAY_MAX_THREADS];
 
-    CpuAabbTree *tree = &pass->act_space->cpu_aabb_tree;
-
-    if (pass->seer_space == pass->seen_space) {
-
-        for (int thread_i = 0; thread_i < runner.count; ++thread_i) {
-            SeeTask *task = tasks + thread_i;
-            _init_see_task(task, pass, thread_i);
-            tay_thread_set_task(thread_i, _see_func, task, pass->context);
-        }
+    for (int thread_i = 0; thread_i < runner.count; ++thread_i) {
+        SeeTask *task = tasks + thread_i;
+        _init_see_task(task, pass, thread_i);
+        tay_thread_set_task(thread_i, _see_func, task, pass->context);
     }
 
     tay_runner_run();
