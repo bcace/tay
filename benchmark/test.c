@@ -91,29 +91,18 @@ static float _rand_exponential(float min, float max, float exp) {
 
 void make_randomized_direction_cluster_nonpoint(TayState *state, TayGroup *group, int count, float3 min, float3 max, float min_size, float max_size, float distr_exp) {
     for (int i = 0; i < count; ++i) {
-        int major = i % 3;
+        BoxAgent *a = tay_get_available_agent(state, group);
 
         /* size */
         float size = _rand_exponential(min_size, max_size, distr_exp);
 
-        /* shape */
-        float3 shape;
-        for (int j = 0; j < 3; ++j) {
-            if (j == major)
-                shape.arr[j] = size;
-            else
-                shape.arr[j] = size * _rand(0.1f, 1.0f);
-        }
-
-        BoxAgent *a = tay_get_available_agent(state, group);
-
         /* position */
-        a->min.x = _rand(min.x, max.x - shape.x);
-        a->min.y = _rand(min.y, max.y - shape.y);
-        a->min.z = _rand(min.z, max.z - shape.z);
-        a->max.x = a->min.x + shape.x;
-        a->max.y = a->min.y + shape.y;
-        a->max.z = a->min.z + shape.z;
+        a->min.x = _rand(min.x, max.x - size);
+        a->min.y = _rand(min.y, max.y - size);
+        a->min.z = _rand(min.z, max.z - size);
+        a->max.x = a->min.x + size;
+        a->max.y = a->min.y + size;
+        a->max.z = a->min.z + size;
 
         /* velocity */
         a->v.x = _rand(-1.0f, 1.0f);
@@ -139,7 +128,6 @@ void make_randomized_direction_cluster_nonpoint(TayState *state, TayGroup *group
 
 void make_randomized_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max) {
     for (int i = 0; i < count; ++i) {
-
         Agent *a = tay_get_available_agent(state, group);
 
         /* position */
