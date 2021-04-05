@@ -21,13 +21,8 @@ static TAY_ACT_FUNC _get_act_func(int is_point) {
         return box_agent_act;
 }
 
-static void _test(SpecPair spec_pair, int steps, float see_radius, int part_res_a, int part_res_b, Results *results, FILE *file) {
+static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_point_a, int is_point_b, int steps, float see_radius, int part_res_a, int part_res_b, Results *results, FILE *file) {
     srand(1);
-
-    TaySpaceType space_type_a = spec_pair.spec_a.type;
-    TaySpaceType space_type_b = spec_pair.spec_b.type;
-    int is_point_a = spec_pair.spec_a.is_point;
-    int is_point_b = spec_pair.spec_b.is_point;
 
     float4 see_radii = { see_radius, see_radius, see_radius, see_radius };
     float4 part_radii_a = depth_correct(see_radii, part_res_a);
@@ -107,10 +102,10 @@ static void _test(SpecPair spec_pair, int steps, float see_radius, int part_res_
     tay_destroy_state(tay);
 }
 
-void test_combo(Results *results, int steps,
+void test_combo(Results *results, int steps, int is_point_a, int is_point_b,
                 int beg_see_radius, int end_see_radius,
                 int beg_depth_correction, int end_depth_correction,
-                SpecPair *spec_pairs, int spec_pairs_count) {
+                TaySpaceType *spec_pairs) {
 
     FILE *file;
     #if TAY_TELEMETRY
@@ -126,9 +121,12 @@ void test_combo(Results *results, int steps,
 
         tay_log(file, "  %g: {\n", see_radius);
 
-        for (int j = 0; j < spec_pairs_count; ++j) {
-            tay_log(file, "    \"%s-%s\": [\n", space_type_name(spec_pairs[j].spec_a.type), space_type_name(spec_pairs[j].spec_b.type));
-            _test(spec_pairs[j], steps, see_radius, 0, 0, results, file);
+        for (int j = 0; spec_pairs[j * 2] != TAY_SPACE_NONE; ++j) {
+            TaySpaceType space_type_a = spec_pairs[j * 2];
+            TaySpaceType space_type_b = spec_pairs[j * 2 + 1];
+
+            tay_log(file, "    \"%s-%s\": [\n", space_type_name(space_type_a), space_type_name(space_type_b));
+            _test(space_type_a, space_type_b, is_point_a, is_point_b, steps, see_radius, 0, 0, results, file);
             tay_log(file, "    ],\n");
         }
 

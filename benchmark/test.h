@@ -19,16 +19,6 @@ typedef struct {
     int first_time;
 } Results;
 
-typedef struct {
-    TaySpaceType type;
-    int is_point;
-} Spec;
-
-typedef struct {
-    Spec spec_a;
-    Spec spec_b;
-} SpecPair;
-
 Results *results_create();
 void results_reset(Results *r);
 void results_destroy(Results *r);
@@ -51,9 +41,9 @@ void test_nonpoint(Results *results, int steps,
                    int beg_depth_correction, int end_depth_correction,
                    int space_type_flags);
 
-void test_combo(Results *results, int steps,
+void test_combo(Results *results, int steps, int is_point_a, int is_point_b,
                 int beg_see_radius, int end_see_radius,
                 int beg_depth_correction, int end_depth_correction,
-                SpecPair *spec_pairs, int spec_pairs_count);
+                TaySpaceType *spec_pairs);
 
 #endif
