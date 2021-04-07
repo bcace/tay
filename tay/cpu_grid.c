@@ -13,29 +13,6 @@ static inline void _clear_cell(GridCell *cell) {
     cell->first = 0;
 }
 
-// static inline unsigned _agent_position_to_cell_index(float4 pos, float4 orig, float4 sizes, int4 counts, int dims) {
-//     switch (dims) {
-//         case 1: {
-//             return (int)floorf((pos.x - orig.x) / sizes.x);
-//         } break;
-//         case 2: {
-//             return (int)floorf((pos.y - orig.y) / sizes.y) * counts.x +
-//                    (int)floorf((pos.x - orig.x) / sizes.x);
-//         } break;
-//         case 3: {
-//             return (int)floorf((pos.z - orig.z) / sizes.z) * counts.x * counts.y +
-//                    (int)floorf((pos.y - orig.y) / sizes.y) * counts.x +
-//                    (int)floorf((pos.x - orig.x) / sizes.x);
-//         } break;
-//         default: {
-//             return (int)floorf((pos.w - orig.w) / sizes.w) * counts.x * counts.y * counts.z +
-//                    (int)floorf((pos.z - orig.z) / sizes.z) * counts.x * counts.y +
-//                    (int)floorf((pos.y - orig.y) / sizes.y) * counts.x +
-//                    (int)floorf((pos.x - orig.x) / sizes.x);
-//         };
-//     }
-// }
-
 static inline int4 _agent_position_to_cell_indices(float4 pos, float4 orig, float4 sizes, int dims) {
     int4 indices;
     switch (dims) {
@@ -223,8 +200,20 @@ static void _cell_see_func(TayPass *pass, TayAgentTag *seer_agents, Box seer_box
     int4 indices;
     switch (dims) {
         case 1: {
+            for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
+                unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
+                GridCell *seen_cell = seen_grid->cells + seen_cell_i;
+                pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
+            }
         } break;
         case 2: {
+            for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
+                for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
+                    unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
+                    GridCell *seen_cell = seen_grid->cells + seen_cell_i;
+                    pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
+                }
+            }
         } break;
         case 3: {
             for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
@@ -238,6 +227,17 @@ static void _cell_see_func(TayPass *pass, TayAgentTag *seer_agents, Box seer_box
             }
         } break;
         default: {
+            for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
+                for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
+                    for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {
+                        for (indices.w = min_indices.w; indices.w <= max_indices.w; ++indices.w) {
+                            unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
+                            GridCell *seen_cell = seen_grid->cells + seen_cell_i;
+                            pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
+                        }
+                    }
+                }
+            }
         };
     }
 }
