@@ -249,13 +249,17 @@ static TayError _compile_passes(TayState *state) {
                         pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                         pass->exec_func = cpu_tree_see;
                     }
-                    else if (seer_space->type == TAY_CPU_HASH_GRID) {
-                        pass->pairing_func = _get_one_to_many_pairing_function(seer_is_point, seen_is_point);
-                        pass->exec_func = cpu_hash_grid_see;
-                    }
                     else if (seer_space->type == TAY_CPU_AABB_TREE) {
                         pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                         pass->exec_func = cpu_aabb_tree_see;
+                    }
+                    else if (seer_space->type == TAY_CPU_GRID) {
+                        pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
+                        pass->exec_func = cpu_grid_see;
+                    }
+                    else if (seer_space->type == TAY_CPU_HASH_GRID) {
+                        pass->pairing_func = _get_one_to_many_pairing_function(seer_is_point, seen_is_point);
+                        pass->exec_func = cpu_hash_grid_see;
                     }
                     else
                         return TAY_ERROR_NOT_IMPLEMENTED;
