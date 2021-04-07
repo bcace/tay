@@ -41,7 +41,16 @@ typedef struct {
 } CpuAabbTree;
 
 typedef struct {
-    struct Bin *bins; /* bins storage */
+    struct GridCell *cells;
+    struct GridCell *first_cell;
+    int max_cells;
+    float4 origin;
+    float4 cell_sizes;
+    int4 cell_counts;
+} CpuGrid;
+
+typedef struct {
+    struct Bin *bins;
     struct Bin *first_bin; /* first bin that contains any agents */
     float4 cell_sizes;
     float4 grid_origin;
@@ -58,8 +67,9 @@ typedef struct Space {
     union {
         CpuSimple cpu_simple;
         CpuKdTree cpu_tree;
-        CpuHashGrid cpu_grid;
         CpuAabbTree cpu_aabb_tree;
+        CpuGrid cpu_grid;
+        CpuHashGrid cpu_hash_grid;
     };
     void *shared; /* buffer shared internally by all structures in this space */
     int shared_size; /* size of the shared buffer */

@@ -71,7 +71,7 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
         }
     }
     else {
-        if (space_desc.space_type == TAY_CPU_HASH_GRID) {
+        if (space_desc.space_type == TAY_CPU_GRID || space_desc.space_type == TAY_CPU_HASH_GRID) {
             state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
             return 0;
         }
@@ -177,6 +177,8 @@ void tay_simulation_start(TayState *state) {
         Space *space = &group->space;
         if (space->type == TAY_CPU_KD_TREE)
             cpu_tree_on_simulation_start(space);
+        else if (space->type == TAY_CPU_GRID)
+            cpu_grid_on_simulation_start(space);
         else if (space->type == TAY_CPU_HASH_GRID)
             cpu_hash_grid_on_simulation_start(space);
     }
@@ -220,13 +222,17 @@ static TayError _compile_passes(TayState *state) {
                     pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_tree_see;
                 }
-                else if (seer_space->type == TAY_CPU_HASH_GRID) {
-                    pass->pairing_func = _get_one_to_many_pairing_function(seer_is_point, seen_is_point);
-                    pass->exec_func = cpu_hash_grid_see;
-                }
                 else if (seer_space->type == TAY_CPU_AABB_TREE) {
                     pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
                     pass->exec_func = cpu_aabb_tree_see;
+                }
+                else if (seer_space->type == TAY_CPU_GRID) {
+                    pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
+                    pass->exec_func = cpu_grid_see;
+                }
+                else if (seer_space->type == TAY_CPU_HASH_GRID) {
+                    pass->pairing_func = _get_one_to_many_pairing_function(seer_is_point, seen_is_point);
+                    pass->exec_func = cpu_hash_grid_see;
                 }
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
@@ -270,10 +276,12 @@ static TayError _compile_passes(TayState *state) {
                 pass->exec_func = cpu_simple_act;
             else if (act_space->type == TAY_CPU_KD_TREE)
                 pass->exec_func = cpu_tree_act;
-            else if (act_space->type == TAY_CPU_HASH_GRID)
-                pass->exec_func = cpu_hash_grid_act;
             else if (act_space->type == TAY_CPU_AABB_TREE)
                 pass->exec_func = cpu_aabb_tree_act;
+            else if (act_space->type == TAY_CPU_GRID)
+                pass->exec_func = cpu_grid_act;
+            else if (act_space->type == TAY_CPU_HASH_GRID)
+                pass->exec_func = cpu_hash_grid_act;
             else
                 return TAY_ERROR_NOT_IMPLEMENTED;
         }
@@ -313,8 +321,9 @@ int tay_run(TayState *state, int steps) {
             switch (group->space.type) {
                 case TAY_CPU_SIMPLE: cpu_simple_sort(group); break;
                 case TAY_CPU_KD_TREE: cpu_tree_sort(group); break;
-                case TAY_CPU_HASH_GRID: cpu_hash_grid_sort(group, state->passes, state->passes_count); break;
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_sort(group); break;
+                case TAY_CPU_GRID: cpu_grid_sort(group); break;
+                case TAY_CPU_HASH_GRID: cpu_hash_grid_sort(group, state->passes, state->passes_count); break;
                 default: assert(0);
             }
         }
@@ -335,8 +344,9 @@ int tay_run(TayState *state, int steps) {
             switch (group->space.type) {
                 case TAY_CPU_SIMPLE: cpu_simple_unsort(group); break;
                 case TAY_CPU_KD_TREE: cpu_tree_unsort(group); break;
-                case TAY_CPU_HASH_GRID: cpu_hash_grid_unsort(group); break;
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_unsort(group); break;
+                case TAY_CPU_GRID: cpu_grid_unsort(group); break;
+                case TAY_CPU_HASH_GRID: cpu_hash_grid_unsort(group); break;
                 default: assert(0); /* not implemented */
             }
         }

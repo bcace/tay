@@ -190,8 +190,6 @@ static void _act_func(ActTask *task, TayThreadContext *thread_context) {
 void cpu_aabb_tree_act(TayPass *pass) {
     static ActTask tasks[TAY_MAX_THREADS];
 
-    CpuAabbTree *tree = &pass->act_space->cpu_aabb_tree;
-
     for (int thread_i = 0; thread_i < runner.count; ++thread_i) {
         ActTask *task = tasks + thread_i;
         _init_act_task(task, pass, thread_i);
