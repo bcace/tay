@@ -5,7 +5,7 @@
 typedef struct TreeNode {
     union {
         struct TreeNode *l;
-        TayAgentTag *agent;
+        TayAgentTag *agent; // TODO: rename to first
     };
     struct TreeNode *r;
     struct TreeNode *parent;
@@ -209,17 +209,21 @@ static void _init_see_task(SeeTask *task, TayPass *pass, int thread_i) {
     task->counter = thread_i;
 }
 
-static void _node_see_func(TayPass *pass, TreeNode *seer_node, Box seer_box, TreeNode *seen_node, int dims, TayThreadContext *thread_context) {
+static void _node_see_func(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, TreeNode *seen_node, int dims, TayThreadContext *thread_context) {
     for (int i = 0; i < dims; ++i)
         if (seer_box.max.arr[i] < seen_node->box.min.arr[i] || seer_box.min.arr[i] > seen_node->box.max.arr[i])
             return;
 
     if (_is_leaf_node(seen_node))
-        pass->pairing_func(seer_node->agent, seen_node->agent, pass->see, pass->radii, dims, thread_context);
+        pass->pairing_func(seer_agents, seen_node->agent, pass->see, pass->radii, dims, thread_context);
     else {
-        _node_see_func(pass, seer_node, seer_box, seen_node->l, dims, thread_context);
-        _node_see_func(pass, seer_node, seer_box, seen_node->r, dims, thread_context);
+        _node_see_func(pass, seer_agents, seer_box, seen_node->l, dims, thread_context);
+        _node_see_func(pass, seer_agents, seer_box, seen_node->r, dims, thread_context);
     }
+}
+
+void cpu_aabb_tree_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, TayThreadContext *thread_context) {
+    _node_see_func(pass, seer_agents, seer_box, pass->seen_space->cpu_aabb_tree.root, dims, thread_context);
 }
 
 static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
@@ -227,7 +231,6 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
     Space *seer_space = pass->seer_space;
     Space *seen_space = pass->seen_space;
     CpuAabbTree *seer_tree = &seer_space->cpu_aabb_tree;
-    CpuAabbTree *seen_tree = &seen_space->cpu_aabb_tree;
 
     int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
 
@@ -243,7 +246,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
                     seer_box.max.arr[i] += pass->radii.arr[i];
                 }
 
-                _node_see_func(pass, seer_node, seer_box, seen_tree->root, min_dims, thread_context);
+                cpu_aabb_tree_see_seen(pass, seer_node->agent, seer_box, min_dims, thread_context);
             }
             ++task->counter;
         }

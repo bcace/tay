@@ -5,42 +5,40 @@
 
 typedef struct {
     TayPass *pass;
-    TayAgentTag *seer_agents;
-    TayAgentTag *seen_agents;
-    SEE_PAIRING_FUNC pairing_func;
-    int dims;
+    int thread_i;
 } SimpleSeeTask;
 
-static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, TayAgentTag *seer_agents, TayAgentTag *seen_agents, SEE_PAIRING_FUNC pairing_func, int dims) {
+static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, int thread_i) {
     task->pass = pass;
-    task->seer_agents = seer_agents;
-    task->seen_agents = seen_agents;
-    task->pairing_func = pairing_func;
-    task->dims = dims;
+    task->thread_i = thread_i;
+}
+
+void cpu_simple_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, TayThreadContext *thread_context) {
+    for (int i = 0; i < runner.count; ++i)
+        pass->pairing_func(seer_agents, pass->seen_space->cpu_simple.first[i], pass->see, pass->radii, dims, thread_context);
 }
 
 static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
-    task->pairing_func(task->seer_agents, task->seen_agents, task->pass->see, task->pass->radii, task->dims, thread_context);
+    TayPass *pass = task->pass;
+    Space *seer_space = pass->seer_space;
+    Space *seen_space = pass->seen_space;
+    CpuSimple *seer_simple = &seer_space->cpu_simple;
+
+    int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
+
+    cpu_simple_see_seen(task->pass, seer_simple->first[task->thread_i], (Box){0}, min_dims, thread_context);
 }
 
 void cpu_simple_see(TayPass *pass) {
     static SimpleSeeTask tasks[TAY_MAX_THREADS];
 
-    int dims = pass->seer_space->dims;
-
     for (int i = 0; i < runner.count; ++i) {
-        TayAgentTag *seen_agents = pass->seen_space->cpu_simple.first[i];
-
-        for (int j = 0; j < runner.count; ++j) {
-            TayAgentTag *seer_agents = pass->seer_space->cpu_simple.first[j];
-
-            SimpleSeeTask *task = tasks + j;
-            _init_simple_see_task(task, pass, seer_agents, seen_agents, pass->pairing_func, dims);
-            tay_thread_set_task(j, _see_func, task, pass->context);
-        }
-
-        tay_runner_run();
+        SimpleSeeTask *task = tasks + i;
+        _init_simple_see_task(task, pass, i);
+        tay_thread_set_task(i, _see_func, task, pass->context);
     }
+
+    tay_runner_run();
 }
 
 typedef struct {

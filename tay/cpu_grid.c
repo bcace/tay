@@ -182,7 +182,9 @@ static void _init_see_task(GridSeeTask *task, TayPass *pass, int thread_i) {
     task->counter = thread_i;
 }
 
-static void _cell_see_func(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, CpuGrid *seen_grid, int dims, TayThreadContext *thread_context) {
+void cpu_grid_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, TayThreadContext *thread_context) {
+    CpuGrid *seen_grid = &pass->seen_space->cpu_grid;
+
     int4 min_indices = _agent_position_to_cell_indices(seer_box.min, seen_grid->origin, seen_grid->cell_sizes, dims);
     int4 max_indices = _agent_position_to_cell_indices(seer_box.max, seen_grid->origin, seen_grid->cell_sizes, dims);
 
@@ -247,7 +249,6 @@ static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
     Space *seer_space = pass->seer_space;
     Space *seen_space = pass->seen_space;
     CpuGrid *seer_grid = &seer_space->cpu_grid;
-    CpuGrid *seen_grid = &seen_space->cpu_grid;
 
     int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
 
@@ -261,7 +262,7 @@ static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
                 seer_box.max.arr[i] = min + seer_grid->cell_sizes.arr[i] + pass->radii.arr[i];
             }
 
-            _cell_see_func(pass, seer_cell->first, seer_box, seen_grid, min_dims, thread_context);
+            cpu_grid_see_seen(pass, seer_cell->first, seer_box, min_dims, thread_context);
         }
         ++task->counter;
     }

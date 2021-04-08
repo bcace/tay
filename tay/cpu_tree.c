@@ -25,29 +25,42 @@ static void _init_tree_see_task(SeeTask *task, TayPass *pass, TreeCell *first_th
     task->first_thread_seer_cell = first_thread_seer_cell;
 }
 
-static void _thread_traverse_seen(CpuKdTree *tree, TreeCell *seer_cell, TreeCell *seen_cell, TayPass *pass, Box seer_box, TayThreadContext *thread_context) {
-    for (int i = 0; i < tree->dims; ++i)
+static void _thread_traverse_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, TreeCell *seen_cell, int dims, TayThreadContext *thread_context) {
+    for (int i = 0; i < dims; ++i)
         if (seer_box.min.arr[i] > seen_cell->box.max.arr[i] || seer_box.max.arr[i] < seen_cell->box.min.arr[i])
             return;
+
     if (seen_cell->first)
-        pass->pairing_func(seer_cell->first, seen_cell->first, pass->see, pass->radii, tree->dims, thread_context);
+        pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
     if (seen_cell->lo)
-        _thread_traverse_seen(tree, seer_cell, seen_cell->lo, pass, seer_box, thread_context);
+        _thread_traverse_seen(pass, seer_agents, seer_box, seen_cell->lo, dims, thread_context);
     if (seen_cell->hi)
-        _thread_traverse_seen(tree, seer_cell, seen_cell->hi, pass, seer_box, thread_context);
+        _thread_traverse_seen(pass, seer_agents, seer_box, seen_cell->hi, dims, thread_context);
+}
+
+void cpu_kd_tree_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, TayThreadContext *thread_context) {
+    _thread_traverse_seen(pass, seer_agents, seer_box, pass->seen_space->cpu_tree.cells, dims, thread_context);
 }
 
 static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
-    CpuKdTree *seer_tree = &task->pass->seer_space->cpu_tree;
-    CpuKdTree *seen_tree = &task->pass->seen_space->cpu_tree;
+    TayPass *pass = task->pass;
+    Space *seer_space = pass->seer_space;
+    Space *seen_space = pass->seen_space;
+    CpuKdTree *seer_tree = &seer_space->cpu_tree;
+
+    int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
+
     for (TreeCell *seer_cell = task->first_thread_seer_cell; seer_cell; seer_cell = seer_cell->thread_next_seer_cell) {
+
         if (seer_cell->first) {
+
             Box seer_box = seer_cell->box;
             for (int i = 0; i < seer_tree->dims; ++i) {
-                seer_box.min.arr[i] -= task->pass->radii.arr[i];
-                seer_box.max.arr[i] += task->pass->radii.arr[i];
+                seer_box.min.arr[i] -= pass->radii.arr[i];
+                seer_box.max.arr[i] += pass->radii.arr[i];
             }
-            _thread_traverse_seen(seer_tree, seer_cell, seen_tree->cells, task->pass, seer_box, thread_context);
+
+            cpu_kd_tree_see_seen(pass, seer_cell->first, seer_box, min_dims, thread_context);
         }
     }
 }
