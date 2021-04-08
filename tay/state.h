@@ -110,6 +110,7 @@ typedef struct TayPass {
     Space *seen_space;
     SEE_PAIRING_FUNC pairing_func;
     void (*exec_func)(struct TayPass *pass);
+    void (*see_seen_func)(struct TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, struct TayThreadContext *thread_context);
 } TayPass;
 
 typedef enum TayStateStatus {

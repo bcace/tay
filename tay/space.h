@@ -25,24 +25,27 @@ void cpu_simple_sort(TayGroup *group);
 void cpu_simple_unsort(TayGroup *group);
 void cpu_simple_see(TayPass *pass);
 void cpu_simple_act(TayPass *pass);
+void cpu_simple_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, struct TayThreadContext *thread_context);
 
 void cpu_tree_on_simulation_start(Space *space);
 void cpu_tree_sort(TayGroup *group);
 void cpu_tree_unsort(TayGroup *group);
-void cpu_tree_single_space_see(Space *space, TayPass *pass);
 void cpu_tree_see(TayPass *pass);
 void cpu_tree_act(TayPass *pass);
+void cpu_kd_tree_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, struct TayThreadContext *thread_context);
 
 void cpu_aabb_tree_sort(TayGroup *group);
 void cpu_aabb_tree_unsort(TayGroup *group);
 void cpu_aabb_tree_see(TayPass *pass);
 void cpu_aabb_tree_act(TayPass *pass);
+void cpu_aabb_tree_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, struct TayThreadContext *thread_context);
 
 void cpu_grid_on_simulation_start(Space *space);
 void cpu_grid_sort(TayGroup *group);
 void cpu_grid_unsort(TayGroup *group);
 void cpu_grid_see(TayPass *pass);
 void cpu_grid_act(TayPass *pass);
+void cpu_grid_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, struct TayThreadContext *thread_context);
 
 void cpu_hash_grid_on_simulation_start(Space *space);
 void cpu_hash_grid_sort(TayGroup *group, TayPass *passes, int passes_count);

@@ -246,7 +246,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
                     seer_box.max.arr[i] += pass->radii.arr[i];
                 }
 
-                cpu_aabb_tree_see_seen(pass, seer_node->agent, seer_box, min_dims, thread_context);
+                pass->see_seen_func(pass, seer_node->agent, seer_box, min_dims, thread_context);
             }
             ++task->counter;
         }

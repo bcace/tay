@@ -26,7 +26,7 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
 
     int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
 
-    cpu_simple_see_seen(task->pass, seer_simple->first[task->thread_i], (Box){0}, min_dims, thread_context);
+    pass->see_seen_func(task->pass, seer_simple->first[task->thread_i], (Box){0}, min_dims, thread_context);
 }
 
 void cpu_simple_see(TayPass *pass) {
