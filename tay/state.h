@@ -10,6 +10,8 @@ typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 
 typedef void (*SEE_PAIRING_FUNC)(TayAgentTag *, TayAgentTag *, TAY_SEE_FUNC, float4, int, struct TayThreadContext *);
+typedef void (*PASS_FUNC)(struct TayPass *);
+typedef void (*SEE_SEEN_FUNC)(struct TayPass *, TayAgentTag *, Box, int, struct TayThreadContext *);
 
 
 typedef struct {
@@ -109,8 +111,8 @@ typedef struct TayPass {
     };
     Space *seen_space;
     SEE_PAIRING_FUNC pairing_func;
-    void (*exec_func)(struct TayPass *pass);
-    void (*see_seen_func)(struct TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, struct TayThreadContext *thread_context);
+    PASS_FUNC exec_func;
+    SEE_SEEN_FUNC see_seen_func;
 } TayPass;
 
 typedef enum TayStateStatus {

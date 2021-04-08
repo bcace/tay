@@ -198,85 +198,85 @@ void space_see_nonpoint_nonpoint(TayAgentTag *seer_agents, TayAgentTag *seen_age
     }
 }
 
-void space_see_one_to_many_point_to_point(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    float4 seer_p = float4_agent_position(seer_agent);
+// void space_see_one_to_many_point_to_point(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+//     float4 seer_p = float4_agent_position(seer_agent);
 
-    for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-        float4 seen_p = float4_agent_position(seen_agent);
+//     for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
+//         float4 seen_p = float4_agent_position(seen_agent);
 
-        if (seer_agent == seen_agent)
-            continue;
+//         if (seer_agent == seen_agent)
+//             continue;
 
-        _BROAD_PHASE_COUNT
-        _POINT_POINT_NARROW_PHASE_TEST
-        _NARROW_PHASE_COUNT
+//         _BROAD_PHASE_COUNT
+//         _POINT_POINT_NARROW_PHASE_TEST
+//         _NARROW_PHASE_COUNT
 
-        func(seer_agent, seen_agent, thread_context->context);
+//         func(seer_agent, seen_agent, thread_context->context);
 
-        SKIP_SEE:;
-    }
-}
+//         SKIP_SEE:;
+//     }
+// }
 
-void space_see_one_to_many_nonpoint_to_point(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    float4 seer_min = float4_agent_min(seer_agent);
-    float4 seer_max = float4_agent_max(seer_agent);
+// void space_see_one_to_many_nonpoint_to_point(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+//     float4 seer_min = float4_agent_min(seer_agent);
+//     float4 seer_max = float4_agent_max(seer_agent);
 
-    for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-        float4 seen_p = float4_agent_position(seen_agent);
+//     for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
+//         float4 seen_p = float4_agent_position(seen_agent);
 
-        if (seer_agent == seen_agent)
-            continue;
+//         if (seer_agent == seen_agent)
+//             continue;
 
-        _BROAD_PHASE_COUNT
-        _NONPOINT_POINT_NARROW_PHASE_TEST
-        _NARROW_PHASE_COUNT
+//         _BROAD_PHASE_COUNT
+//         _NONPOINT_POINT_NARROW_PHASE_TEST
+//         _NARROW_PHASE_COUNT
 
-        func(seer_agent, seen_agent, thread_context->context);
+//         func(seer_agent, seen_agent, thread_context->context);
 
-        SKIP_SEE:;
-    }
-}
+//         SKIP_SEE:;
+//     }
+// }
 
-void space_see_one_to_many_point_to_nonpoint(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    float4 seer_p = float4_agent_position(seer_agent);
+// void space_see_one_to_many_point_to_nonpoint(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+//     float4 seer_p = float4_agent_position(seer_agent);
 
-    for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-        float4 seen_min = float4_agent_min(seen_agent);
-        float4 seen_max = float4_agent_max(seen_agent);
+//     for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
+//         float4 seen_min = float4_agent_min(seen_agent);
+//         float4 seen_max = float4_agent_max(seen_agent);
 
-        if (seer_agent == seen_agent)
-            continue;
+//         if (seer_agent == seen_agent)
+//             continue;
 
-        _BROAD_PHASE_COUNT
-        _POINT_NONPOINT_NARROW_PHASE_TEST
-        _NARROW_PHASE_COUNT
+//         _BROAD_PHASE_COUNT
+//         _POINT_NONPOINT_NARROW_PHASE_TEST
+//         _NARROW_PHASE_COUNT
 
-        func(seer_agent, seen_agent, thread_context->context);
+//         func(seer_agent, seen_agent, thread_context->context);
 
-        SKIP_SEE:;
-    }
-}
+//         SKIP_SEE:;
+//     }
+// }
 
-void space_see_one_to_many_nonpoint_to_nonpoint(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    float4 seer_min = float4_agent_min(seer_agent);
-    float4 seer_max = float4_agent_max(seer_agent);
+// void space_see_one_to_many_nonpoint_to_nonpoint(TayAgentTag *seer_agent, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+//     float4 seer_min = float4_agent_min(seer_agent);
+//     float4 seer_max = float4_agent_max(seer_agent);
 
-    for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-        float4 seen_min = float4_agent_min(seen_agent);
-        float4 seen_max = float4_agent_max(seen_agent);
+//     for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
+//         float4 seen_min = float4_agent_min(seen_agent);
+//         float4 seen_max = float4_agent_max(seen_agent);
 
-        if (seer_agent == seen_agent)
-            continue;
+//         if (seer_agent == seen_agent)
+//             continue;
 
-        _BROAD_PHASE_COUNT
-        _NONPOINT_NONPOINT_NARROW_PHASE_TEST
-        _NARROW_PHASE_COUNT
+//         _BROAD_PHASE_COUNT
+//         _NONPOINT_NONPOINT_NARROW_PHASE_TEST
+//         _NARROW_PHASE_COUNT
 
-        func(seer_agent, seen_agent, thread_context->context);
+//         func(seer_agent, seen_agent, thread_context->context);
 
-        SKIP_SEE:;
-    }
-}
+//         SKIP_SEE:;
+//     }
+// }
 
 int group_tag_to_index(TayGroup *group, TayAgentTag *tag) {
     return (tag != 0) ? (int)((char *)tag - (char *)group->storage) / group->agent_size : TAY_GPU_NULL_INDEX;
