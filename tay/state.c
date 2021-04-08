@@ -212,32 +212,7 @@ static TayError _compile_passes(TayState *state) {
             pass->seer_space = seer_space;
             pass->seen_space = seen_space;
 
-            if (seer_space == seen_space) {
-
-                if (seer_space->type == TAY_CPU_SIMPLE) {
-                    pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
-                    pass->exec_func = cpu_simple_see;
-                }
-                else if (seer_space->type == TAY_CPU_KD_TREE) {
-                    pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
-                    pass->exec_func = cpu_tree_see;
-                }
-                else if (seer_space->type == TAY_CPU_AABB_TREE) {
-                    pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
-                    pass->exec_func = cpu_aabb_tree_see;
-                }
-                else if (seer_space->type == TAY_CPU_GRID) {
-                    pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
-                    pass->exec_func = cpu_grid_see;
-                }
-                else if (seer_space->type == TAY_CPU_HASH_GRID) {
-                    pass->pairing_func = _get_one_to_many_pairing_function(seer_is_point, seen_is_point);
-                    pass->exec_func = cpu_hash_grid_see;
-                }
-                else
-                    return TAY_ERROR_NOT_IMPLEMENTED;
-            }
-            else if (seer_space->dims == seen_space->dims) {
+            if (seer_space->dims == seen_space->dims) {
 
                 if (seer_space->type == seen_space->type) {
 
