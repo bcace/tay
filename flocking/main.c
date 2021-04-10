@@ -176,7 +176,8 @@ int main() {
     const float radius = 20.0f;
     const int max_boids_count = 100000;
     const float4 see_radii = { radius, radius, radius, radius };
-    const float4 part_radii = { radius * 0.5f, radius * 0.5f, radius * 0.5f, radius * 0.5f };
+    const float part_radius = radius * 0.5f;
+    const float4 part_radii = { part_radius, part_radius, part_radius, part_radius };
     const float4 obstacle_part_radii = { 10.0f, 10.0f, 10.0f, 10.0f };
     const float velocity = 1.0f;
     const float4 min = { -100.0f, -100.0f, -100.0f, -100.0f };
