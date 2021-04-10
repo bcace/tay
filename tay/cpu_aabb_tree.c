@@ -4,16 +4,16 @@
 
 typedef struct TreeNode {
     union {
-        struct TreeNode *l;
-        TayAgentTag *first; // TODO: rename to first
+        struct TreeNode *a;
+        TayAgentTag *first;
     };
-    struct TreeNode *r;
+    struct TreeNode *b;
     struct TreeNode *parent;
     Box box;
 } TreeNode;
 
 static inline int _is_leaf_node(TreeNode *node) {
-    return node->r == 0;
+    return node->b == 0;
 }
 
 static inline float _min(float a, float b) {
@@ -39,15 +39,15 @@ static inline Box _box_union(Box a, Box b) {
 static void _init_leaf_node(TreeNode *node, TayAgentTag *agent) {
     agent->next = 0;
     node->first = agent;
-    node->r = 0;
+    node->b = 0;
     node->box.min = float4_agent_min(agent);
     node->box.max = float4_agent_max(agent);
     node->parent = 0;
 }
 
 static void _init_branch_node(TreeNode *node, TreeNode *a, TreeNode *b) {
-    node->l = a;
-    node->r = b;
+    node->a = a;
+    node->b = b;
     node->box.min = _float4_min(a->box.min, b->box.min);
     node->box.max = _float4_max(a->box.max, b->box.max);
     node->parent = 0;
@@ -56,7 +56,7 @@ static void _init_branch_node(TreeNode *node, TreeNode *a, TreeNode *b) {
 }
 
 static void _update_node_box(TreeNode *node) {
-    node->box = _box_union(node->l->box, node->r->box);
+    node->box = _box_union(node->a->box, node->b->box);
 }
 
 static float _increase_in_volume(Box box, Box target_box, int dims) {
@@ -72,10 +72,10 @@ static float _increase_in_volume(Box box, Box target_box, int dims) {
 static TreeNode *_find_best_leaf_node(TreeNode *node, Box box, int dims) {
     if (_is_leaf_node(node))
         return node;
-    if (_increase_in_volume(box, node->l->box, dims) < _increase_in_volume(box, node->r->box, dims))
-        return _find_best_leaf_node(node->l, box, dims);
+    if (_increase_in_volume(box, node->a->box, dims) < _increase_in_volume(box, node->b->box, dims))
+        return _find_best_leaf_node(node->a, box, dims);
     else
-        return _find_best_leaf_node(node->r, box, dims);
+        return _find_best_leaf_node(node->b, box, dims);
 }
 
 static int _leaf_node_should_expand(Box agent_box, Box leaf_box, float4 part_sizes, int dims) {
@@ -131,10 +131,10 @@ void cpu_aabb_tree_sort(TayGroup *group) {
                 if (old_parent == 0) /* only root node found */
                     tree->root = new_parent;
                 else { /* substitute new_parent for leaf in old_parent */
-                    if (leaf == old_parent->l)
-                        old_parent->l = new_parent;
+                    if (leaf == old_parent->a)
+                        old_parent->a = new_parent;
                     else
-                        old_parent->r = new_parent;
+                        old_parent->b = new_parent;
                     new_parent->parent = old_parent;
                 }
             }
@@ -217,8 +217,8 @@ static void _node_see_func(TayPass *pass, TayAgentTag *seer_agents, Box seer_box
     if (_is_leaf_node(seen_node))
         pass->pairing_func(seer_agents, seen_node->first, pass->see, pass->radii, dims, thread_context);
     else {
-        _node_see_func(pass, seer_agents, seer_box, seen_node->l, dims, thread_context);
-        _node_see_func(pass, seer_agents, seer_box, seen_node->r, dims, thread_context);
+        _node_see_func(pass, seer_agents, seer_box, seen_node->a, dims, thread_context);
+        _node_see_func(pass, seer_agents, seer_box, seen_node->b, dims, thread_context);
     }
 }
 
