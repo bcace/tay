@@ -217,24 +217,24 @@ static TayError _compile_passes(TayState *state) {
                 pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
 
                 if (seer_space->type == TAY_CPU_SIMPLE)
-                    pass->exec_func = cpu_simple_see;
+                    pass->struct_pass_func = cpu_simple_see;
                 else if (seer_space->type == TAY_CPU_KD_TREE)
-                    pass->exec_func = cpu_tree_see;
+                    pass->struct_pass_func = cpu_tree_see;
                 else if (seer_space->type == TAY_CPU_AABB_TREE)
-                    pass->exec_func = cpu_aabb_tree_see;
+                    pass->struct_pass_func = cpu_aabb_tree_see;
                 else if (seer_space->type == TAY_CPU_GRID)
-                    pass->exec_func = cpu_grid_see;
+                    pass->struct_pass_func = cpu_grid_see;
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
 
                 if (seen_space->type == TAY_CPU_SIMPLE)
-                    pass->see_seen_func = cpu_simple_see_seen;
+                    pass->struct_seen_func = cpu_simple_see_seen;
                 else if (seen_space->type == TAY_CPU_KD_TREE)
-                    pass->see_seen_func = cpu_kd_tree_see_seen;
+                    pass->struct_seen_func = cpu_kd_tree_see_seen;
                 else if (seen_space->type == TAY_CPU_AABB_TREE)
-                    pass->see_seen_func = cpu_aabb_tree_see_seen;
+                    pass->struct_seen_func = cpu_aabb_tree_see_seen;
                 else if (seen_space->type == TAY_CPU_GRID)
-                    pass->see_seen_func = cpu_grid_see_seen;
+                    pass->struct_seen_func = cpu_grid_see_seen;
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
             }
@@ -248,15 +248,15 @@ static TayError _compile_passes(TayState *state) {
             pass->act_space = act_space;
 
             if (act_space->type == TAY_CPU_SIMPLE)
-                pass->exec_func = cpu_simple_act;
+                pass->struct_pass_func = cpu_simple_act;
             else if (act_space->type == TAY_CPU_KD_TREE)
-                pass->exec_func = cpu_tree_act;
+                pass->struct_pass_func = cpu_tree_act;
             else if (act_space->type == TAY_CPU_AABB_TREE)
-                pass->exec_func = cpu_aabb_tree_act;
+                pass->struct_pass_func = cpu_aabb_tree_act;
             else if (act_space->type == TAY_CPU_GRID)
-                pass->exec_func = cpu_grid_act;
+                pass->struct_pass_func = cpu_grid_act;
             else if (act_space->type == TAY_CPU_HASH_GRID)
-                pass->exec_func = cpu_hash_grid_act;
+                pass->struct_pass_func = cpu_hash_grid_act;
             else
                 return TAY_ERROR_NOT_IMPLEMENTED;
         }
@@ -306,7 +306,7 @@ int tay_run(TayState *state, int steps) {
         /* do passes */
         for (int pass_i = 0; pass_i < state->passes_count; ++pass_i) {
             TayPass *pass = state->passes + pass_i;
-            pass->exec_func(pass);
+            pass->struct_pass_func(pass);
         }
 
         /* return agents from structures */

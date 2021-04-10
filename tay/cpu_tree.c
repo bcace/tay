@@ -60,7 +60,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
                 seer_box.max.arr[i] += pass->radii.arr[i];
             }
 
-            pass->see_seen_func(pass, seer_cell->first, seer_box, min_dims, thread_context);
+            pass->struct_seen_func(pass, seer_cell->first, seer_box, min_dims, thread_context);
         }
     }
 }
