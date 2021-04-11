@@ -24,8 +24,9 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
     act_context.max.z = SPACE_SIZE;
 
     TayState *tay = tay_create_state();
+    TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT, TAY_FALSE);
+    tay_configure_space(tay, group, space_type, 3, part_radii, 250);
 
-    TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT, TAY_FALSE, tay_space_desc(space_type, 3, part_radii, 250));
     tay_add_see(tay, group, group, box_agent_see, see_radii, 0);
     tay_add_act(tay, group, box_agent_act, &act_context);
 

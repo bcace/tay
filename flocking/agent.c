@@ -36,6 +36,25 @@ void agent_see(Agent *a, Agent *b, SeeContext *c) {
     }
 }
 
+void agent_obstacle_see(Agent *a, Obstacle *b, SeeContext *c) {
+    float3 a_p = float3_agent_position(a);
+    float3 b_min = float3_agent_min(b);
+    float3 b_max = float3_agent_max(b);
+
+    float3 b_p;
+    b_p.x = (b_min.x + b_max.x) * 0.5f;
+    b_p.y = (b_min.y + b_max.y) * 0.5f;
+    b_p.z = (b_min.z + b_max.z) * 0.5f;
+
+    float3 d = float3_sub(a_p, b_p);
+    float dl = float3_length(d) - b->radius;
+
+    if (dl < c->avoidance_r) {
+        float f = c->avoidance_c * (c->avoidance_r - dl);
+        a->avoidance = float3_add(a->avoidance, float3_normalize_to(d, f));
+    }
+}
+
 void agent_act(Agent *a, ActContext *c) {
     float3 p = float3_agent_position(a);
     float3 acc = float3_null();
@@ -70,6 +89,10 @@ void agent_act(Agent *a, ActContext *c) {
     if (a->cohesion_count)
         acc = float3_add(acc, float3_mul_scalar(a->cohesion, cohesion_a / (float)a->cohesion_count));
 
+    /* obstacle avoidance */
+
+    acc = float3_add(acc, a->avoidance);
+
     /* update */
 
     // const float min_speed = 0.2f;
@@ -87,6 +110,7 @@ void agent_act(Agent *a, ActContext *c) {
     a->separation = float3_null();
     a->alignment = float3_null();
     a->cohesion = float3_null();
+    a->avoidance = float3_null();
     a->cohesion_count = 0;
     a->separation_count = 0;
 }
@@ -235,6 +259,7 @@ typedef struct __attribute__((packed)) Agent {\n\
     float3 separation;\n\
     float3 alignment;\n\
     float3 cohesion;\n\
+    float3 avoidance;\n\
     int cohesion_count;\n\
     int separation_count;\n\
 } Agent;\n\
@@ -246,16 +271,21 @@ typedef struct __attribute__((packed)) ActContext {\n\
 typedef struct __attribute__((packed)) SeeContext {\n\
     float r;\n\
     float separation_r;\n\
+    float avoidance_r;\n\
+    float avoidance_c;\n\
 } SeeContext;\n\
 \n\
 void agent_see(global Agent *a, global Agent *b, global SeeContext *context);\n\
-void agent_act(global Agent *agent, global ActContext *context);\n\
+void agent_act(global Agent *a, global ActContext *context);\n\
 \n\
 typedef struct __attribute__((packed)) Obstacle {\n\
     TayAgentTag tag;\n\
     float4 min;\n\
     float4 max;\n\
+    float radius;\n\
 } Obstacle;\n\
+\n\
+void agent_obstacle_see(global Agent *a, global Obstacle *b, global SeeContext *context);\n\
 \n\
 \n\
 float3 float3_null() {\n\
@@ -425,6 +455,25 @@ void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {\n\
     }\n\
 }\n\
 \n\
+void agent_obstacle_see(global Agent *a, global Obstacle *b, global SeeContext *c) {\n\
+    float3 a_p = float3_agent_position(a);\n\
+    float3 b_min = float3_agent_min(b);\n\
+    float3 b_max = float3_agent_max(b);\n\
+\n\
+    float3 b_p;\n\
+    b_p.x = (b_min.x + b_max.x) * 0.5f;\n\
+    b_p.y = (b_min.y + b_max.y) * 0.5f;\n\
+    b_p.z = (b_min.z + b_max.z) * 0.5f;\n\
+\n\
+    float3 d = float3_sub(a_p, b_p);\n\
+    float dl = float3_length(d) - b->radius;\n\
+\n\
+    if (dl < c->avoidance_r) {\n\
+        float f = c->avoidance_c * (c->avoidance_r - dl);\n\
+        a->avoidance = float3_add(a->avoidance, float3_normalize_to(d, f));\n\
+    }\n\
+}\n\
+\n\
 void agent_act(global Agent *a, global ActContext *c) {\n\
     float3 p = float3_agent_position(a);\n\
     float3 acc = float3_null();\n\
@@ -459,6 +508,10 @@ void agent_act(global Agent *a, global ActContext *c) {\n\
     if (a->cohesion_count)\n\
         acc = float3_add(acc, float3_mul_scalar(a->cohesion, cohesion_a / (float)a->cohesion_count));\n\
 \n\
+    /* obstacle avoidance */\n\
+\n\
+    acc = float3_add(acc, a->avoidance);\n\
+\n\
     /* update */\n\
 \n\
     // const float min_speed = 0.2f;\n\
@@ -476,6 +529,7 @@ void agent_act(global Agent *a, global ActContext *c) {\n\
     a->separation = float3_null();\n\
     a->alignment = float3_null();\n\
     a->cohesion = float3_null();\n\
+    a->avoidance = float3_null();\n\
     a->cohesion_count = 0;\n\
     a->separation_count = 0;\n\
 }\n\

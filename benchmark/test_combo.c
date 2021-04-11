@@ -49,14 +49,16 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
     TayGroup *group_b;
 
     if (is_point_a) {
-        group_a = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_a, tay_space_desc(space_type_a, 3, part_radii_a, 250));
+        group_a = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_a);
+        tay_configure_space(tay, group_a, space_type_a, 3, part_radii_a, 250);
 
         make_randomized_direction_cluster(tay, group_a, AGENTS_COUNT / 2,
                                           float3_make(0.0f, 0.0f, 0.0f),
                                           float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE));
     }
     else {
-        group_a = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT / 2, is_point_a, tay_space_desc(space_type_a, 3, part_radii_a, 250));
+        group_a = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT / 2, is_point_a);
+        tay_configure_space(tay, group_a, space_type_a, 3, part_radii_a, 250);
 
         make_randomized_direction_cluster_nonpoint(tay, group_a, AGENTS_COUNT / 2,
                                                    float3_make(0.0f, 0.0f, 0.0f),
@@ -65,7 +67,8 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
     }
 
     if (is_point_b) {
-        group_b = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_b, tay_space_desc(space_type_b, 3, part_radii_b, 250));
+        group_b = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_b);
+        tay_configure_space(tay, group_b, space_type_b, 3, part_radii_b, 250);
 
         make_randomized_direction_cluster(tay,
                                           group_b,
@@ -74,7 +77,8 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
                                           float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE));
     }
     else {
-        group_b = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT / 2, is_point_b, tay_space_desc(space_type_b, 3, part_radii_b, 250));
+        group_b = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT / 2, is_point_b);
+        tay_configure_space(tay, group_b, space_type_b, 3, part_radii_b, 250);
 
         make_randomized_direction_cluster_nonpoint(tay, group_b, AGENTS_COUNT / 2,
                                                    float3_make(0.0f, 0.0f, 0.0f),

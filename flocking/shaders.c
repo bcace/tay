@@ -101,3 +101,42 @@ void main(void) {\n \
     _pos = actual_pos;\n \
 }\n \
 ";
+
+const char *obstacles_frag = "#version 450\n \
+\n \
+in vec4 _color;\n \
+in vec3 _light;\n \
+in vec3 _pos;\n \
+\n \
+out vec4 color;\n \
+\n \
+\n \
+void main(void) {\n \
+    vec3 n = normalize(cross(dFdx(_pos), dFdy(_pos)));\n \
+    float d = dot(n, _light);\n \
+    color = mix(_color, vec4(0.0, 0.0, 0.0, 1.0), d * 0.3);\n \
+}\n \
+";
+
+const char *obstacles_vert = "#version 450\n \
+\n \
+layout(location = 0) in vec3 pos;\n \
+layout(location = 1) in vec3 inst_pos;\n \
+layout(location = 2) in float inst_size;\n \
+\n \
+out vec4 _color;\n \
+out vec3 _light;\n \
+out vec3 _pos;\n \
+\n \
+uniform mat4 projection;\n \
+\n \
+\n \
+void main(void) {\n \
+    vec3 actual_pos = pos * vec3(inst_size, inst_size, inst_size) + inst_pos;\n \
+    gl_Position = projection * vec4(actual_pos, 1.0);\n \
+\n \
+    _color = vec4(0.7, 0.7, 0.7, 1.0);\n \
+    _light = normalize(actual_pos - vec3(1000, -1000, 1000));\n \
+    _pos = actual_pos;\n \
+}\n \
+";

@@ -31,6 +31,25 @@ void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *
     }
 }
 
+void agent_obstacle_see(__GLOBAL__ Agent *a, __GLOBAL__ Obstacle *b, __GLOBAL__ SeeContext *c) {
+    float3 a_p = float3_agent_position(a);
+    float3 b_min = float3_agent_min(b);
+    float3 b_max = float3_agent_max(b);
+
+    float3 b_p;
+    b_p.x = (b_min.x + b_max.x) * 0.5f;
+    b_p.y = (b_min.y + b_max.y) * 0.5f;
+    b_p.z = (b_min.z + b_max.z) * 0.5f;
+
+    float3 d = float3_sub(a_p, b_p);
+    float dl = float3_length(d) - b->radius;
+
+    if (dl < c->avoidance_r) {
+        float f = c->avoidance_c * (c->avoidance_r - dl);
+        a->avoidance = float3_add(a->avoidance, float3_normalize_to(d, f));
+    }
+}
+
 void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
     float3 p = float3_agent_position(a);
     float3 acc = float3_null();
@@ -65,6 +84,10 @@ void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
     if (a->cohesion_count)
         acc = float3_add(acc, float3_mul_scalar(a->cohesion, cohesion_a / (float)a->cohesion_count));
 
+    /* obstacle avoidance */
+
+    acc = float3_add(acc, a->avoidance);
+
     /* update */
 
     // const float min_speed = 0.2f;
@@ -82,6 +105,7 @@ void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
     a->separation = float3_null();
     a->alignment = float3_null();
     a->cohesion = float3_null();
+    a->avoidance = float3_null();
     a->cohesion_count = 0;
     a->separation_count = 0;
 }
