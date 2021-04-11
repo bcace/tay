@@ -6,7 +6,7 @@ Just like most simulations in my experience agent-based simulations tend to be s
 
 Which space partitioning structure is best suited to a given model depends mostly on the nature of agents in the model: if they're point or non-point agents, are they static or do they move, do they tend to gather into groups or are they uniformly distributed in space, etc. The goal of Tay is to provide a comprehensive set of parallelized space partitioning structures that can be easily tested and combined in a model.
 
-This repo contains the Tay library source (`tay/tay` directory), tests to compare structures' performance in different test cases and verify their correctness (`tay/benchmark` directory), and a showcase application (`tay/flocking` directory). Development progess is documented in a series of posts [here](https://bcace.github.io), and you can also watch [videos](https://www.youtube.com/watch?v=DD93xIQqz5s) where I try to showcase some of Tay's features.
+This repo contains the Tay library source (`tay/tay` directory), tests to compare structures' performance in different test cases and verify their correctness (`tay/benchmark` directory), and a showcase application (`tay/examples` directory). Development progess is documented in a series of posts [here](https://bcace.github.io), and you can also watch [videos](https://www.youtube.com/watch?v=DD93xIQqz5s) where I try to showcase some of Tay's features.
 
 ## Overview
 
