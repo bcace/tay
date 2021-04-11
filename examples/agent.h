@@ -30,6 +30,25 @@ typedef struct SeeContext {
 void agent_see(Agent *a, Agent *b, SeeContext *context);
 void agent_act(Agent *a, ActContext *context);
 
+typedef struct Particle {
+    TayAgentTag tag;
+    float4 p;
+    float3 v;
+    float3 f;
+} Particle;
+
+typedef struct ParticleSeeContext {
+    float r;
+} ParticleSeeContext;
+
+typedef struct ParticleActContext {
+    float3 min;
+    float3 max;
+} ParticleActContext;
+
+void particle_see(Particle *a, Particle *b, ParticleSeeContext *c);
+void particle_act(Particle *a, ParticleActContext *c);
+
 
 float3 float3_null();
 float3 float3_make(float x, float y, float z);

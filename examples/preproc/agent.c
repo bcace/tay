@@ -85,3 +85,53 @@ void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *c) {
     a->cohesion_count = 0;
     a->separation_count = 0;
 }
+
+void particle_see(__GLOBAL__ Particle *a, __GLOBAL__ Particle *b, __GLOBAL__ ParticleSeeContext *c) {
+    float3 d = float3_sub(b->p.xyz, a->p.xyz);
+    float l = float3_length(d);
+    if (l > 0.0f && l < c->r)
+        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - l) / l));
+}
+
+void particle_act(__GLOBAL__ Particle *a, __GLOBAL__ ParticleActContext *c) {
+
+    const float m = 0.01f;
+    const float t = 0.11f;
+
+    float3 acc = float3_mul_scalar(a->f, 0.1f / m);                 // acceleration
+    acc.z -= 30.0f;                                                 // gravity
+    a->v = float3_add(a->v, float3_mul_scalar(acc, 0.5f * t));      // velocity increment
+    a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->v, t));    // move
+    a->v = float3_mul_scalar(a->v, 0.95f);                          // dissipate
+    a->f = float3_null();                                           // reset force
+
+    if (a->p.x < c->min.x) {
+        a->p.x = c->min.x;
+        a->v.x = -a->v.x;
+    }
+
+    if (a->p.y < c->min.y) {
+        a->p.y = c->min.y;
+        a->v.y = -a->v.y;
+    }
+
+    if (a->p.z < c->min.z) {
+        a->p.z = c->min.z;
+        a->v.z = -a->v.z;
+    }
+
+    if (a->p.x > c->max.x) {
+        a->p.x = c->max.x;
+        a->v.x = -a->v.x;
+    }
+
+    if (a->p.y > c->max.y) {
+        a->p.y = c->max.y;
+        a->v.y = -a->v.y;
+    }
+
+    if (a->p.z > c->max.z) {
+        a->p.z = c->max.z;
+        a->v.z = -a->v.z;
+    }
+}

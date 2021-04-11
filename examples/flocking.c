@@ -71,7 +71,6 @@ void flocking_init() {
     tay_add_see(tay, boids_group, boids_group, agent_see, see_radii, &see_context);
     tay_add_act(tay, boids_group, agent_act, &act_context);
 
-    /* boids */
     for (int i = 0; i < boids_count; ++i) {
         Agent *boid = tay_get_available_agent(tay, boids_group);
         boid->p.x = _rand(min.x, max.x);

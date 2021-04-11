@@ -21,3 +21,22 @@ typedef struct __PACK__ SeeContext {
 
 void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *context);
 void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *context);
+
+typedef struct __PACK__ Particle {
+    TayAgentTag tag;
+    float4 p;
+    float3 v;
+    float3 f;
+} Particle;
+
+typedef struct __PACK__ ParticleSeeContext {
+    float r;
+} ParticleSeeContext;
+
+typedef struct __PACK__ ParticleActContext {
+    float3 min;
+    float3 max;
+} ParticleActContext;
+
+void particle_see(__GLOBAL__ Particle *a, __GLOBAL__ Particle *b, __GLOBAL__ ParticleSeeContext *c);
+void particle_act(__GLOBAL__ Particle *a, __GLOBAL__ ParticleActContext *c);
