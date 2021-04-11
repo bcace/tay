@@ -8,7 +8,6 @@
 
 
 static TayGroup *boids_group;
-static TayGroup *obstacles_group;
 
 static ActContext act_context;
 static SeeContext see_context;
