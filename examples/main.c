@@ -30,8 +30,11 @@ static void _main_loop_func(GLFWwindow *window) {
         printf("ms: %.4f\n", ms);
     tay_threads_report_telemetry(50, 0);
 
-    /* draw boids */
-    flocking_draw(&global);
+    /* drawing */
+    if (global.example == FLOCKING)
+        flocking_draw();
+    else if (global.example == FLUID)
+        fluid_draw();
 
     glfwSwapBuffers(window);
     // platform_sleep(10);
@@ -39,6 +42,7 @@ static void _main_loop_func(GLFWwindow *window) {
 }
 
 int main() {
+    global.example = FLOCKING;
 
     if (!glfwInit()) {
         fprintf(stderr, "Could not initialize GLFW\n");
@@ -71,7 +75,10 @@ int main() {
     tay_threads_start(); // TODO: remove this!!!
     global.tay = tay_create_state();
 
-    flocking_init(&global);
+    if (global.example == FLOCKING)
+        flocking_init();
+    else if (global.example == FLUID)
+        fluid_init();
 
     tay_simulation_start(global.tay);
 

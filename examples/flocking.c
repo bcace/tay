@@ -13,11 +13,9 @@ static TayGroup *obstacles_group;
 static ActContext act_context;
 static SeeContext see_context;
 
-static int boids_count = 10000;
-static int obstacles_count = 20;
+static int boids_count = 30000;
 
 static Program program;
-
 
 static float pyramid[] = {
     -1.0f, -1.0f, 0.0f,
@@ -47,55 +45,8 @@ static float pyramid[] = {
 
 static const int pyramid_verts_count = 18;
 
-#define ICO_X 0.525731112119133696f
-#define ICO_Z 0.850650808352039932f
-
-#define V0  -ICO_X, 0.0f, ICO_Z
-#define V1  ICO_X, 0.0f, ICO_Z
-#define V2  -ICO_X, 0.0f, -ICO_Z
-#define V3  ICO_X, 0.0f, -ICO_Z
-#define V4  0.0f, ICO_Z, ICO_X
-#define V5  0.0f, ICO_Z, -ICO_X
-#define V6  0.0f, -ICO_Z, ICO_X
-#define V7  0.0f, -ICO_Z, -ICO_X
-#define V8  ICO_Z, ICO_X, 0.0f
-#define V9  -ICO_Z, ICO_X, 0.0f
-#define V10 ICO_Z, -ICO_X, 0.0f
-#define V11 -ICO_Z, -ICO_X, 0.0f
-
-static float icosahedron[] = {
-    V1, V4, V0,
-    V4, V9, V0,
-    V4, V5, V9,
-    V8, V5, V4,
-    V1, V8, V4,
-    V1, V10, V8,
-    V10, V3, V8,
-    V8, V3, V5,
-    V3, V2, V5,
-    V3, V7, V2,
-    V3, V10, V7,
-    V10, V6, V7,
-    V6, V11, V7,
-    V6, V0, V11,
-    V6, V1, V0,
-    V10, V1, V6,
-    V11, V0, V9,
-    V2, V11, V9,
-    V5, V2, V9,
-    V11, V2, V7,
-};
-
-static const int icosahedron_verts_count = 180;
-
-
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
-}
-
-static float _rand_exponential(float min, float max, float exp) {
-    float base = rand() / (float)RAND_MAX;
-    return min + (max - min) * powf(base, exp);
 }
 
 void flocking_init() {

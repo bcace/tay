@@ -4,7 +4,13 @@
 #include <stdbool.h>
 
 
+typedef enum {
+    FLOCKING,
+    FLUID,
+} Examples;
+
 typedef struct Global {
+    Examples example;
     bool window_quit;
     int window_w;
     int window_h;
@@ -18,5 +24,8 @@ Global global;
 
 void flocking_init();
 void flocking_draw();
+
+void fluid_init();
+void fluid_draw();
 
 #endif
