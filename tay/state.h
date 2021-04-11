@@ -24,7 +24,7 @@ typedef struct {
 } int4;
 
 typedef struct {
-    TayAgentTag **first; /* first_ptrs[thread][group] */
+    TayAgentTag **first; /* first[thread] */
 } CpuSimple;
 
 typedef struct {

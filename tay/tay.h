@@ -86,19 +86,6 @@ typedef struct TayAgentTag {
 #pragma pack(pop)
 
 /*
-** Descriptor structs
-*/
-
-typedef struct TaySpaceDesc {
-    TaySpaceType space_type;
-    int space_dims;
-    float4 part_radii;
-    int shared_size_in_megabytes;
-} TaySpaceDesc;
-
-TaySpaceDesc tay_space_desc(TaySpaceType space_type, int space_dims, float4 part_radii, int shared_size_in_megabytes);
-
-/*
 ** library API
 */
 
@@ -110,7 +97,8 @@ void tay_destroy_state(TayState *state);
 
 TayError tay_get_error(TayState *state);
 
-TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, TaySpaceDesc space_desc);
+TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point);
+void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_type, int space_dims, float4 part_radii, int shared_size_in_megabytes);
 
 void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), float4 radii, void *context);
 void tay_add_act(TayState *state, TayGroup *act_group, void (*func)(void *, void *), void *context);

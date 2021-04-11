@@ -43,16 +43,7 @@ void state_set_error(TayState *state, TayError error) {
     state->error = error;
 }
 
-TaySpaceDesc tay_space_desc(TaySpaceType space_type, int space_dims, float4 part_radii, int shared_size_in_megabytes) {
-    TaySpaceDesc desc;
-    desc.space_type = space_type;
-    desc.space_dims = space_dims;
-    desc.part_radii = part_radii;
-    desc.shared_size_in_megabytes = shared_size_in_megabytes;
-    return desc;
-}
-
-TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point, TaySpaceDesc space_desc) {
+TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point) {
     int group_i = 0;
 
     for (; group_i < TAY_MAX_GROUPS; ++group_i)
@@ -62,19 +53,6 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     if (group_i == TAY_MAX_GROUPS) {
         state_set_error(state, TAY_ERROR_GROUP_INDEX_OUT_OF_RANGE);
         return 0;
-    }
-
-    if (is_point) {
-        if (space_desc.space_type == TAY_CPU_AABB_TREE) {
-            state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
-            return 0;
-        }
-    }
-    else {
-        if (space_desc.space_type == TAY_CPU_GRID || space_desc.space_type == TAY_CPU_HASH_GRID) {
-            state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
-            return 0;
-        }
     }
 
     /* initialize group */
@@ -96,15 +74,41 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
 
     /* initialize the group's space */
     Space *space = &group->space;
-    space->type = space_desc.space_type;
-    space->radii = space_desc.part_radii;
-    space->dims = space_desc.space_dims;
-    space->shared_size = space_desc.shared_size_in_megabytes * TAY_MB;
+    space->type = TAY_CPU_SIMPLE;
+    space->radii = (float4){1.0f, 1.0f, 1.0f, 1.0f};
+    space->dims = 3;
+    space->shared_size = TAY_MAX_THREADS * sizeof(TayAgentTag *);
     space->shared = malloc(space->shared_size);
     space->first = 0;
     space->count = 0;
 
     return group;
+}
+
+void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_type, int space_dims, float4 part_radii, int shared_size_in_megabytes) {
+    // ERROR: check arguments
+
+    if (group->is_point) {
+        if (space_type == TAY_CPU_AABB_TREE) {
+            state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
+            return;
+        }
+    }
+    else {
+        if (space_type == TAY_CPU_GRID || space_type == TAY_CPU_HASH_GRID) {
+            state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
+            return;
+        }
+    }
+
+    Space *space = &group->space;
+    space->type = space_type;
+    space->radii = part_radii;
+    space->dims = space_dims;
+    space->shared_size = shared_size_in_megabytes * TAY_MB;
+    space->shared = realloc(space->shared, space->shared_size);
+    space->first = 0;
+    space->count = 0;
 }
 
 int group_is_active(TayGroup *group) {
