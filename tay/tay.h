@@ -47,15 +47,6 @@ typedef enum TayError {
 
 #pragma pack(push, 1)
 
-typedef struct float4 {
-    union {
-        struct {
-            float x, y, z, w;
-        };
-        float arr[4];
-    };
-} float4;
-
 typedef struct float3 {
     union {
         struct {
@@ -64,6 +55,16 @@ typedef struct float3 {
         float arr[3];
     };
 } float3;
+
+typedef struct float4 {
+    union {
+        struct {
+            float x, y, z, w;
+        };
+        float3 xyz;
+        float arr[4];
+    };
+} float4;
 
 typedef struct float2 {
     union {
