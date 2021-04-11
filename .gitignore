@@ -4,7 +4,7 @@ Release
 x64
 lib
 preproc/__pycache__
-flocking/graphics
+examples/graphics
 todo
 benchmark/*.py
 *.vcxproj

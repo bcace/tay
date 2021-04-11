@@ -14,7 +14,6 @@ typedef struct Agent {
     float3 separation;
     float3 alignment;
     float3 cohesion;
-    float3 avoidance;
     int cohesion_count;
     int separation_count;
 } Agent;
@@ -26,21 +25,10 @@ typedef struct ActContext {
 typedef struct SeeContext {
     float r;
     float separation_r;
-    float avoidance_r;
-    float avoidance_c;
 } SeeContext;
 
 void agent_see(Agent *a, Agent *b, SeeContext *context);
 void agent_act(Agent *a, ActContext *context);
-
-typedef struct Obstacle {
-    TayAgentTag tag;
-    float4 min;
-    float4 max;
-    float radius;
-} Obstacle;
-
-void agent_obstacle_see(Agent *a, Obstacle *b, SeeContext *context);
 
 
 float3 float3_null();
