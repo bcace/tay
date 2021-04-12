@@ -135,7 +135,7 @@ void main(void) {\n \
     vec3 actual_pos = pos * inst_size + inst_pos;\n \
     gl_Position = projection * vec4(actual_pos, 1.0);\n \
 \n \
-    _color = vec4(0.3, 0.5, 0.5, 1.0);\n \
+    _color = vec4(0.4, 0.5, 0.6, 1.0);\n \
     _light = normalize(actual_pos - vec3(1000, -1000, 1000));\n \
     _pos = actual_pos;\n \
 }\n \
