@@ -93,6 +93,7 @@ void flocking_init() {
     }
 
     /* drawing init */
+
     shader_program_init(&program, boids_vert, "boids.vert", boids_frag, "boids.frag");
     shader_program_define_in_float(&program, 3); /* vertex position */
     shader_program_define_instanced_in_float(&program, 3); /* instance position */
