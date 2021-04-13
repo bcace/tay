@@ -28,4 +28,13 @@ void flocking_draw();
 void fluid_init();
 void fluid_draw();
 
+float PYRAMID_VERTS[];
+int PYRAMID_VERTS_COUNT;
+
+float ICOSAHEDRON_VERTS[];
+int ICOSAHEDRON_VERTS_COUNT;
+
+float CUBE_VERTS[];
+int CUBE_VERTS_COUNT;
+
 #endif

@@ -16,59 +16,11 @@ static ParticleActContext particle_act_context;
 
 static int particles_count = 30000;
 
-static float icosahedron[] = {
-    0.5257f, 0.0f, 0.8506f, 0.0f, 0.8506f, 0.5257f, -0.5257f, 0.0f, 0.8506f,
-    0.0f, 0.8506f, 0.5257f, -0.8506f, 0.5257f, 0.0f, -0.5257f, 0.0f, 0.8506f,
-    0.0f, 0.8506f, 0.5257f, 0.0f, 0.8506f, -0.5257f, -0.8506f, 0.5257f, 0.0f,
-    0.8506f, 0.5257f, 0.0f, 0.0f, 0.8506f, -0.5257f, 0.0f, 0.8506f, 0.5257f,
-    0.5257f, 0.0f, 0.8506f, 0.8506f, 0.5257f, 0.0f, 0.0f, 0.8506f, 0.5257f,
-    0.5257f, 0.0f, 0.8506f, 0.8506f, -0.5257f, 0.0f, 0.8506f, 0.5257f, 0.0f,
-    0.8506f, -0.5257f, 0.0f, 0.5257f, 0.0f, -0.8506f, 0.8506f, 0.5257f, 0.0f,
-    0.8506f, 0.5257f, 0.0f, 0.5257f, 0.0f, -0.8506f, 0.0f, 0.8506f, -0.5257f,
-    0.5257f, 0.0f, -0.8506f, -0.5257f, 0.0f, -0.8506f, 0.0f, 0.8506f, -0.5257f,
-    0.5257f, 0.0f, -0.8506f, 0.0f, -0.8506f, -0.5257f, -0.5257f, 0.0f, -0.8506f,
-    0.5257f, 0.0f, -0.8506f, 0.8506f, -0.5257f, 0.0f, 0.0f, -0.8506f, -0.5257f,
-    0.8506f, -0.5257f, 0.0f, 0.0f, -0.8506f, 0.5257f, 0.0f, -0.8506f, -0.5257f,
-    0.0f, -0.8506f, 0.5257f, -0.8506f, -0.5257f, 0.0f, 0.0f, -0.8506f, -0.5257f,
-    0.0f, -0.8506f, 0.5257f, -0.5257f, 0.0f, 0.8506f, -0.8506f, -0.5257f, 0.0f,
-    0.0f, -0.8506f, 0.5257f, 0.5257f, 0.0f, 0.8506f, -0.5257f, 0.0f, 0.8506f,
-    0.8506f, -0.5257f, 0.0f, 0.5257f, 0.0f, 0.8506f, 0.0f, -0.8506f, 0.5257f,
-    -0.8506f, -0.5257f, 0.0f, -0.5257f, 0.0f, 0.8506f, -0.8506f, 0.5257f, 0.0f,
-    -0.5257f, 0.0f, -0.8506f, -0.8506f, -0.5257f, 0.0f, -0.8506f, 0.5257f, 0.0f,
-    0.0f, 0.8506f, -0.5257f, -0.5257f, 0.0f, -0.8506f, -0.8506f, 0.5257f, 0.0f,
-    -0.8506f, -0.5257f, 0.0f, -0.5257f, 0.0f, -0.8506f, 0.0f, -0.8506f, -0.5257f,
-};
-
-static const int icosahedron_verts_count = 180;
-
-static float cube[] = {
-    -1, -1, -1, 1, -1, -1, -1, -1, 1,
-    1, -1, -1, 1, -1, 1, -1, -1, 1,
-
-    1, -1, -1, 1, 1, -1, 1, -1, 1,
-    1, 1, -1, 1, 1, 1, 1, -1, 1,
-
-    1, 1, -1, -1, 1, -1, 1, 1, 1,
-    -1, 1, -1, -1, 1, 1, 1, 1, 1,
-
-    -1, 1, -1, -1, -1, -1, -1, 1, 1,
-    -1, -1, -1, -1, -1, 1, -1, 1, 1,
-
-    -1, -1, -1, -1, 1, -1, 1, 1, -1,
-    -1, -1, -1, 1, 1, -1, 1, -1, -1,
-
-    -1, -1, 1, 1, -1, 1, 1, 1, 1,
-    -1, -1, 1, 1, 1, 1, -1, 1, 1,
-};
-
-static int cube_verts_count = 36;
-
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
 }
 
 void fluid_init() {
-
     const float r = 10.0f;
     const float part_r = r * 0.5f;
 
@@ -78,10 +30,10 @@ void fluid_init() {
     particle_see_context.r = r;
 
     particle_act_context.min.x = -200.0f;
-    particle_act_context.min.y = -40.0f;
+    particle_act_context.min.y = -200.0f;
     particle_act_context.min.z = -50.0f;
     particle_act_context.max.x = 200.0f;
-    particle_act_context.max.y = 40.0f;
+    particle_act_context.max.y = 200.0f;
     particle_act_context.max.z = 300.0f;
 
     tay_add_see(global.tay, particles_group, particles_group, particle_see, (float4){r, r, r, r}, &particle_see_context);
@@ -133,9 +85,9 @@ void fluid_draw() {
         inst_size[i] = 0.8f;
     }
 
-    shader_program_set_data_float(&program, 0, cube_verts_count, 3, cube);
+    shader_program_set_data_float(&program, 0, CUBE_VERTS_COUNT, 3, CUBE_VERTS);
     shader_program_set_data_float(&program, 1, particles_count, 3, inst_pos);
     shader_program_set_data_float(&program, 2, particles_count, 1, inst_size);
 
-    graphics_draw_triangles_instanced(cube_verts_count, particles_count);
+    graphics_draw_triangles_instanced(CUBE_VERTS_COUNT, particles_count);
 }

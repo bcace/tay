@@ -7,42 +7,14 @@
 #include <stdlib.h>
 
 
+static Program program;
+
 static TayGroup *boids_group;
 
 static ActContext act_context;
 static SeeContext see_context;
 
 static int boids_count = 30000;
-
-static Program program;
-
-static float pyramid[] = {
-    -1.0f, -1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f,
-    0.0f, 0.0f, 4.0f,
-
-    1.0f, -1.0f, 0.0f,
-    1.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 4.0f,
-
-    1.0f, 1.0f, 0.0f,
-    -1.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 4.0f,
-
-    -1.0f, 1.0f, 0.0f,
-    -1.0f, -1.0f, 0.0f,
-    0.0f, 0.0f, 4.0f,
-
-    -1.0f, -1.0f, 0.0f,
-    1.0f, 1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f,
-
-    -1.0f, -1.0f, 0.0f,
-    -1.0f, 1.0f, 0.0f,
-    1.0f, 1.0f, 0.0f,
-};
-
-static const int pyramid_verts_count = 18;
 
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
@@ -142,10 +114,10 @@ void flocking_draw() {
         inst_shd[i] = 0.0f;
     }
 
-    shader_program_set_data_float(&program, 0, pyramid_verts_count, 3, pyramid);
+    shader_program_set_data_float(&program, 0, PYRAMID_VERTS_COUNT, 3, PYRAMID_VERTS);
     shader_program_set_data_float(&program, 1, boids_count, 3, inst_pos);
     shader_program_set_data_float(&program, 2, boids_count, 3, inst_dir);
     shader_program_set_data_float(&program, 3, boids_count, 1, inst_shd);
 
-    graphics_draw_triangles_instanced(pyramid_verts_count, boids_count);
+    graphics_draw_triangles_instanced(PYRAMID_VERTS_COUNT, boids_count);
 }
