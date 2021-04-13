@@ -37,4 +37,7 @@ int ICOSAHEDRON_VERTS_COUNT;
 float CUBE_VERTS[];
 int CUBE_VERTS_COUNT;
 
+int icosahedron_verts_count(unsigned subdivs);
+void icosahedron_verts(unsigned subdivs, float *verts);
+
 #endif

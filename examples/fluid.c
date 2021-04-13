@@ -14,7 +14,10 @@ static TayGroup *particles_group;
 static ParticleSeeContext particle_see_context;
 static ParticleActContext particle_act_context;
 
-static int particles_count = 30000;
+static int particles_count = 20000;
+
+static float sphere[10000];
+static unsigned sphere_subdivs = 2;
 
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
@@ -23,6 +26,8 @@ static float _rand(float min, float max) {
 void fluid_init() {
     const float r = 10.0f;
     const float part_r = r * 0.5f;
+
+    icosahedron_verts(sphere_subdivs, sphere);
 
     particles_group = tay_add_group(global.tay, sizeof(Particle), particles_count, TAY_TRUE);
     tay_configure_space(global.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_r, part_r, part_r, part_r}, 250);
@@ -82,12 +87,12 @@ void fluid_draw() {
         inst_pos[i].x = p->p.x;
         inst_pos[i].y = p->p.y;
         inst_pos[i].z = p->p.z;
-        inst_size[i] = 0.8f;
+        inst_size[i] = 4.0f;
     }
 
-    shader_program_set_data_float(&program, 0, CUBE_VERTS_COUNT, 3, CUBE_VERTS);
+    shader_program_set_data_float(&program, 0, icosahedron_verts_count(sphere_subdivs), 3, sphere);
     shader_program_set_data_float(&program, 1, particles_count, 3, inst_pos);
     shader_program_set_data_float(&program, 2, particles_count, 1, inst_size);
 
-    graphics_draw_triangles_instanced(CUBE_VERTS_COUNT, particles_count);
+    graphics_draw_triangles_instanced(icosahedron_verts_count(sphere_subdivs), particles_count);
 }
