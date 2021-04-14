@@ -49,6 +49,23 @@ typedef struct ParticleActContext {
 void particle_see(Particle *a, Particle *b, ParticleSeeContext *c);
 void particle_act(Particle *a, ParticleActContext *c);
 
+typedef struct Ball {
+    TayAgentTag tag;
+    float4 min;
+    float4 max;
+    float3 v;
+    float3 f;
+} Ball;
+
+typedef struct BallParticleSeeContext {
+    float r;
+    float ball_r;
+} BallParticleSeeContext;
+
+void ball_act(Ball *a, void *c);
+void ball_particle_see(Ball *a, Particle *b, BallParticleSeeContext *c);
+void particle_ball_see(Particle *a, Ball *b, BallParticleSeeContext *c);
+
 
 float3 float3_null();
 float3 float3_make(float x, float y, float z);

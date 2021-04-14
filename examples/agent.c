@@ -103,11 +103,11 @@ void particle_act(Particle *a, ParticleActContext *c) {
     const float m = 0.01f;
     const float t = 0.11f;
 
-    float3 acc = float3_mul_scalar(a->f, 0.1f / m);                 // acceleration
+    float3 acc = float3_mul_scalar(a->f, 0.8f / m);                 // acceleration
     acc.z -= 30.0f;                                                 // gravity
     a->v = float3_add(a->v, float3_mul_scalar(acc, 0.5f * t));      // velocity increment
     a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->v, t));    // move
-    a->v = float3_mul_scalar(a->v, 0.95f);                          // dissipate
+    a->v = float3_mul_scalar(a->v, 0.96f);                          // dissipate
     a->f = float3_null();                                           // reset force
 
     if (a->p.x < c->min.x) {
@@ -138,6 +138,44 @@ void particle_act(Particle *a, ParticleActContext *c) {
     if (a->p.z > c->max.z) {
         a->p.z = c->max.z;
         a->v.z = -a->v.z;
+    }
+}
+
+void ball_particle_see(Ball *a, Particle *b, BallParticleSeeContext *c) {
+    float3 a_p = float3_mul_scalar(float3_add(a->min.xyz, a->max.xyz), 0.5f);
+    float3 d = float3_sub(b->p.xyz, a_p);
+    float l = float3_length(d);
+    float dl = l - c->ball_r;
+    if (dl < c->r)
+        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - dl) / l));
+}
+
+void particle_ball_see(Particle *a, Ball *b, BallParticleSeeContext *c) {
+    float3 b_p = float3_mul_scalar(float3_add(b->min.xyz, b->max.xyz), 0.5f);
+    float3 d = float3_sub(b_p, a->p.xyz);
+    float l = float3_length(d);
+    float dl = l - c->ball_r;
+    if (dl < c->r)
+        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - dl) / l));
+}
+
+void ball_act(Ball *a, void *c) {
+
+    const float m = 40.1f;
+    const float t = 0.11f; // TODO: move to context
+
+    float3 acc = float3_mul_scalar(a->f, 0.8f / m);                 // acceleration
+    acc.z -= 30.0f;                                                 // gravity
+    a->v = float3_add(a->v, float3_mul_scalar(acc, 0.5f * t));      // velocity increment
+    float3 d = float3_mul_scalar(a->v, t);
+    a->min.xyz = float3_add(a->min.xyz, d);
+    a->max.xyz = float3_add(a->max.xyz, d);
+    a->v = float3_mul_scalar(a->v, 0.96f);                          // dissipate
+    a->f = float3_null();                                           // reset force
+
+    if (a->max.z < -100.0f) {
+        a->min.z += 2000.0f;
+        a->max.z += 2000.0f;
     }
 }
 
@@ -319,6 +357,23 @@ typedef struct __attribute__((packed)) ParticleActContext {\n\
 \n\
 void particle_see(global Particle *a, global Particle *b, global ParticleSeeContext *c);\n\
 void particle_act(global Particle *a, global ParticleActContext *c);\n\
+\n\
+typedef struct __attribute__((packed)) Ball {\n\
+    TayAgentTag tag;\n\
+    float4 min;\n\
+    float4 max;\n\
+    float3 v;\n\
+    float3 f;\n\
+} Ball;\n\
+\n\
+typedef struct __attribute__((packed)) BallParticleSeeContext {\n\
+    float r;\n\
+    float ball_r;\n\
+} BallParticleSeeContext;\n\
+\n\
+void ball_act(global Ball *a, global void *c);\n\
+void ball_particle_see(global Ball *a, global Particle *b, global BallParticleSeeContext *c);\n\
+void particle_ball_see(global Particle *a, global Ball *b, global BallParticleSeeContext *c);\n\
 \n\
 \n\
 float3 float3_null() {\n\
@@ -555,11 +610,11 @@ void particle_act(global Particle *a, global ParticleActContext *c) {\n\
     const float m = 0.01f;\n\
     const float t = 0.11f;\n\
 \n\
-    float3 acc = float3_mul_scalar(a->f, 0.1f / m);                 // acceleration\n\
+    float3 acc = float3_mul_scalar(a->f, 0.8f / m);                 // acceleration\n\
     acc.z -= 30.0f;                                                 // gravity\n\
     a->v = float3_add(a->v, float3_mul_scalar(acc, 0.5f * t));      // velocity increment\n\
     a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->v, t));    // move\n\
-    a->v = float3_mul_scalar(a->v, 0.95f);                          // dissipate\n\
+    a->v = float3_mul_scalar(a->v, 0.96f);                          // dissipate\n\
     a->f = float3_null();                                           // reset force\n\
 \n\
     if (a->p.x < c->min.x) {\n\
@@ -590,6 +645,44 @@ void particle_act(global Particle *a, global ParticleActContext *c) {\n\
     if (a->p.z > c->max.z) {\n\
         a->p.z = c->max.z;\n\
         a->v.z = -a->v.z;\n\
+    }\n\
+}\n\
+\n\
+void ball_particle_see(global Ball *a, global Particle *b, global BallParticleSeeContext *c) {\n\
+    float3 a_p = float3_mul_scalar(float3_add(a->min.xyz, a->max.xyz), 0.5f);\n\
+    float3 d = float3_sub(b->p.xyz, a_p);\n\
+    float l = float3_length(d);\n\
+    float dl = l - c->ball_r;\n\
+    if (dl < c->r)\n\
+        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - dl) / l));\n\
+}\n\
+\n\
+void particle_ball_see(global Particle *a, global Ball *b, global BallParticleSeeContext *c) {\n\
+    float3 b_p = float3_mul_scalar(float3_add(b->min.xyz, b->max.xyz), 0.5f);\n\
+    float3 d = float3_sub(b_p, a->p.xyz);\n\
+    float l = float3_length(d);\n\
+    float dl = l - c->ball_r;\n\
+    if (dl < c->r)\n\
+        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - dl) / l));\n\
+}\n\
+\n\
+void ball_act(global Ball *a, global void *c) {\n\
+\n\
+    const float m = 40.1f;\n\
+    const float t = 0.11f; // TODO: move to context\n\
+\n\
+    float3 acc = float3_mul_scalar(a->f, 0.8f / m);                 // acceleration\n\
+    acc.z -= 30.0f;                                                 // gravity\n\
+    a->v = float3_add(a->v, float3_mul_scalar(acc, 0.5f * t));      // velocity increment\n\
+    float3 d = float3_mul_scalar(a->v, t);\n\
+    a->min.xyz = float3_add(a->min.xyz, d);\n\
+    a->max.xyz = float3_add(a->max.xyz, d);\n\
+    a->v = float3_mul_scalar(a->v, 0.96f);                          // dissipate\n\
+    a->f = float3_null();                                           // reset force\n\
+\n\
+    if (a->max.z < -100.0f) {\n\
+        a->min.z += 2000.0f;\n\
+        a->max.z += 2000.0f;\n\
     }\n\
 }\n\
 \n\

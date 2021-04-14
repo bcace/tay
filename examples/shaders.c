@@ -123,6 +123,7 @@ const char *particles_vert = "#version 450\n \
 layout(location = 0) in vec3 pos;\n \
 layout(location = 1) in vec3 inst_pos;\n \
 layout(location = 2) in float inst_size;\n \
+layout(location = 3) in float inst_energy;\n \
 \n \
 out vec4 _color;\n \
 out vec3 _light;\n \
@@ -135,7 +136,7 @@ void main(void) {\n \
     vec3 actual_pos = pos * inst_size + inst_pos;\n \
     gl_Position = projection * vec4(actual_pos, 1.0);\n \
 \n \
-    _color = vec4(0.4, 0.5, 0.6, 1.0);\n \
+    _color = mix(vec4(0.0, 0.3, 0.4, 1.0), vec4(1.0, 1.0, 1.0, 1.0), inst_energy);\n \
     _light = normalize(actual_pos - vec3(1000, -1000, 1000));\n \
     _pos = actual_pos;\n \
 }\n \

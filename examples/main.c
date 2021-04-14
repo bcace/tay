@@ -71,6 +71,7 @@ int main() {
     global.inst_vec3_buffers[0] = malloc(sizeof(vec3) * global.max_agents_count);
     global.inst_vec3_buffers[1] = malloc(sizeof(vec3) * global.max_agents_count);
     global.inst_float_buffers[0] = malloc(sizeof(float) * global.max_agents_count);
+    global.inst_float_buffers[1] = malloc(sizeof(float) * global.max_agents_count);
 
     tay_threads_start(); // TODO: remove this!!!
     global.tay = tay_create_state();

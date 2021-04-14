@@ -16,7 +16,7 @@ typedef struct Global {
     int window_h;
     struct TayState *tay;
     struct vec3 *inst_vec3_buffers[2];
-    float *inst_float_buffers[1];
+    float *inst_float_buffers[2];
     int max_agents_count;
 } Global;
 

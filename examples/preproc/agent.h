@@ -40,3 +40,20 @@ typedef struct __PACK__ ParticleActContext {
 
 void particle_see(__GLOBAL__ Particle *a, __GLOBAL__ Particle *b, __GLOBAL__ ParticleSeeContext *c);
 void particle_act(__GLOBAL__ Particle *a, __GLOBAL__ ParticleActContext *c);
+
+typedef struct __PACK__ Ball {
+    TayAgentTag tag;
+    float4 min;
+    float4 max;
+    float3 v;
+    float3 f;
+} Ball;
+
+typedef struct __PACK__ BallParticleSeeContext {
+    float r;
+    float ball_r;
+} BallParticleSeeContext;
+
+void ball_act(__GLOBAL__ Ball *a, __GLOBAL__ void *c);
+void ball_particle_see(__GLOBAL__ Ball *a, __GLOBAL__ Particle *b, __GLOBAL__ BallParticleSeeContext *c);
+void particle_ball_see(__GLOBAL__ Particle *a, __GLOBAL__ Ball *b, __GLOBAL__ BallParticleSeeContext *c);
