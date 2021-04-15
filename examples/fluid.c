@@ -27,6 +27,29 @@ static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
 }
 
+static void _init_sph_context(SphContext *c, float h, float m, float k, float mu, float rho0, float dt) {
+    c->h = h;
+    c->k = k;
+    c->mu = mu;
+    c->rho0 = rho0;
+    c->dt = dt;
+
+    c->h2 = h * h;
+
+    /* density: Bindel, Fall (2011) */
+    c->C = 4.0f * m / (3.1415926536f * c->h2 * c->h2 * c->h2 * c->h2);
+    c->C_own = 4.0f * m / (3.1415926536f * c->h2);
+
+    /* density: Matthias Müller, David Charypar and Markus Gross (2003) */
+    // c->C = 315.0f * m / (64.0f * 3.1415926536f * c->h2 * c->h2 * c->h2 * c->h2 * h);
+    // c->C_own = 315.0f * m / (64.0f * 3.1415926536f * c->h2 * h);
+
+    /* acceleration: Bindel, Fall (2011) */
+    c->C0 = m / (3.1415926536f * c->h2 * c->h2);
+    c->Cp = 15.0f * k;
+    c->Cv = -40.0f * mu;
+}
+
 void fluid_init() {
     const float r = 10.0f;
     const float part_r = r * 0.5f;

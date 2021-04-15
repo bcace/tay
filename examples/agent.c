@@ -179,6 +179,50 @@ void ball_act(Ball *a, void *c) {
     }
 }
 
+void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c) {
+    float dx = b->p.x - a->p.x;
+    float dy = b->p.y - a->p.y;
+    float dz = b->p.z - a->p.z;
+    float r2 = dx * dx + dy * dy + dz * dz;
+    float z = c->h2 - r2;
+    if (z > 0.0f)
+        a->density += c->C * z * z * z;
+}
+
+void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c) {
+    float dx = b->p.x - a->p.x;
+    float dy = b->p.y - a->p.y;
+    float dz = b->p.z - a->p.z;
+    float r2 = dx * dx + dy * dy + dz * dz;
+    if (r2 < c->h2) {
+        float q = sqrtf(r2) / c->h;
+        float u = 1.0f - q;
+        float w0 = c->C0 * u / a->density / b->density;
+        float wp = w0 * c->Cp * (a->density + b->density - 2.0f * c->rho0) * u / q;
+        float wv = w0 * c->Cv;
+        float dvx = b->v.x - a->v.x;
+        float dvy = b->v.y - a->v.y;
+        float dvz = b->v.z - a->v.z;
+        a->a.x -= (wp * dx + wv * dvx);
+        a->a.y -= (wp * dy + wv * dvy);
+        a->a.z -= (wp * dz + wv * dvz);
+    }
+}
+
+void sph_particle_leapfrog(SphParticle *a, SphContext *c) {
+
+    a->vh = float3_add(a->vh, float3_mul_scalar(a->a, c->dt));
+    a->v = float3_add(a->vh, float3_mul_scalar(a->a, c->dt * 0.5f));
+    a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->vh, c->dt));
+
+    /* reset values (prepare for the next step) */
+
+    a->a.x = 0.0f;
+    a->a.y = 0.0f;
+    a->a.z = -9.81f;
+    a->density = c->C_own;
+}
+
 
 float3 float3_null() {
     float3 r;
@@ -374,6 +418,35 @@ typedef struct __attribute__((packed)) BallParticleSeeContext {\n\
 void ball_act(global Ball *a, global void *c);\n\
 void ball_particle_see(global Ball *a, global Particle *b, global BallParticleSeeContext *c);\n\
 void particle_ball_see(global Particle *a, global Ball *b, global BallParticleSeeContext *c);\n\
+\n\
+typedef struct __attribute__((packed)) SphParticle {\n\
+    TayAgentTag tag;\n\
+    float4 p;\n\
+    float3 vh;\n\
+    float3 v;\n\
+    float3 a;\n\
+    float density;\n\
+} SphParticle;\n\
+\n\
+typedef struct __attribute__((packed)) SphContext {\n\
+    float h; /* smoothing (interaction) radius */\n\
+    float k; /* bulk modulus */\n\
+    float mu; /* viscosity */\n\
+    float rho0; /* reference density */\n\
+    float dt;\n\
+\n\
+    float h2;\n\
+    float C;\n\
+    float C_own; // each particle's density must start with this value and then accumulate the neighbors' ones\n\
+\n\
+    float C0;\n\
+    float Cp;\n\
+    float Cv;\n\
+} SphContext;\n\
+\n\
+void sph_particle_density(global SphParticle *a, global SphParticle *b, global SphContext *c);\n\
+void sph_particle_acceleration(global SphParticle *a, global SphParticle *b, global SphContext *c);\n\
+void sph_particle_leapfrog(global SphParticle *a, global SphContext *c);\n\
 \n\
 \n\
 float3 float3_null() {\n\
@@ -684,6 +757,50 @@ void ball_act(global Ball *a, global void *c) {\n\
         a->min.z += 2000.0f;\n\
         a->max.z += 2000.0f;\n\
     }\n\
+}\n\
+\n\
+void sph_particle_density(global SphParticle *a, global SphParticle *b, global SphContext *c) {\n\
+    float dx = b->p.x - a->p.x;\n\
+    float dy = b->p.y - a->p.y;\n\
+    float dz = b->p.z - a->p.z;\n\
+    float r2 = dx * dx + dy * dy + dz * dz;\n\
+    float z = c->h2 - r2;\n\
+    if (z > 0.0f)\n\
+        a->density += c->C * z * z * z;\n\
+}\n\
+\n\
+void sph_particle_acceleration(global SphParticle *a, global SphParticle *b, global SphContext *c) {\n\
+    float dx = b->p.x - a->p.x;\n\
+    float dy = b->p.y - a->p.y;\n\
+    float dz = b->p.z - a->p.z;\n\
+    float r2 = dx * dx + dy * dy + dz * dz;\n\
+    if (r2 < c->h2) {\n\
+        float q = sqrtf(r2) / c->h;\n\
+        float u = 1.0f - q;\n\
+        float w0 = c->C0 * u / a->density / b->density;\n\
+        float wp = w0 * c->Cp * (a->density + b->density - 2.0f * c->rho0) * u / q;\n\
+        float wv = w0 * c->Cv;\n\
+        float dvx = b->v.x - a->v.x;\n\
+        float dvy = b->v.y - a->v.y;\n\
+        float dvz = b->v.z - a->v.z;\n\
+        a->a.x -= (wp * dx + wv * dvx);\n\
+        a->a.y -= (wp * dy + wv * dvy);\n\
+        a->a.z -= (wp * dz + wv * dvz);\n\
+    }\n\
+}\n\
+\n\
+void sph_particle_leapfrog(global SphParticle *a, global SphContext *c) {\n\
+\n\
+    a->vh = float3_add(a->vh, float3_mul_scalar(a->a, c->dt));\n\
+    a->v = float3_add(a->vh, float3_mul_scalar(a->a, c->dt * 0.5f));\n\
+    a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->vh, c->dt));\n\
+\n\
+    /* reset values (prepare for the next step) */\n\
+\n\
+    a->a.x = 0.0f;\n\
+    a->a.y = 0.0f;\n\
+    a->a.z = -9.81f;\n\
+    a->density = c->C_own;\n\
 }\n\
 \n\
 ";

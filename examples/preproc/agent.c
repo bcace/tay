@@ -173,3 +173,47 @@ void ball_act(__GLOBAL__ Ball *a, __GLOBAL__ void *c) {
         a->max.z += 2000.0f;
     }
 }
+
+void sph_particle_density(__GLOBAL__ SphParticle *a, __GLOBAL__ SphParticle *b, __GLOBAL__ SphContext *c) {
+    float dx = b->p.x - a->p.x;
+    float dy = b->p.y - a->p.y;
+    float dz = b->p.z - a->p.z;
+    float r2 = dx * dx + dy * dy + dz * dz;
+    float z = c->h2 - r2;
+    if (z > 0.0f)
+        a->density += c->C * z * z * z;
+}
+
+void sph_particle_acceleration(__GLOBAL__ SphParticle *a, __GLOBAL__ SphParticle *b, __GLOBAL__ SphContext *c) {
+    float dx = b->p.x - a->p.x;
+    float dy = b->p.y - a->p.y;
+    float dz = b->p.z - a->p.z;
+    float r2 = dx * dx + dy * dy + dz * dz;
+    if (r2 < c->h2) {
+        float q = sqrtf(r2) / c->h;
+        float u = 1.0f - q;
+        float w0 = c->C0 * u / a->density / b->density;
+        float wp = w0 * c->Cp * (a->density + b->density - 2.0f * c->rho0) * u / q;
+        float wv = w0 * c->Cv;
+        float dvx = b->v.x - a->v.x;
+        float dvy = b->v.y - a->v.y;
+        float dvz = b->v.z - a->v.z;
+        a->a.x -= (wp * dx + wv * dvx);
+        a->a.y -= (wp * dy + wv * dvy);
+        a->a.z -= (wp * dz + wv * dvz);
+    }
+}
+
+void sph_particle_leapfrog(__GLOBAL__ SphParticle *a, __GLOBAL__ SphContext *c) {
+
+    a->vh = float3_add(a->vh, float3_mul_scalar(a->a, c->dt));
+    a->v = float3_add(a->vh, float3_mul_scalar(a->a, c->dt * 0.5f));
+    a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->vh, c->dt));
+
+    /* reset values (prepare for the next step) */
+
+    a->a.x = 0.0f;
+    a->a.y = 0.0f;
+    a->a.z = -9.81f;
+    a->density = c->C_own;
+}

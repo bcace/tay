@@ -66,6 +66,35 @@ void ball_act(Ball *a, void *c);
 void ball_particle_see(Ball *a, Particle *b, BallParticleSeeContext *c);
 void particle_ball_see(Particle *a, Ball *b, BallParticleSeeContext *c);
 
+typedef struct SphParticle {
+    TayAgentTag tag;
+    float4 p;
+    float3 vh;
+    float3 v;
+    float3 a;
+    float density;
+} SphParticle;
+
+typedef struct SphContext {
+    float h; /* smoothing (interaction) radius */
+    float k; /* bulk modulus */
+    float mu; /* viscosity */
+    float rho0; /* reference density */
+    float dt;
+
+    float h2;
+    float C;
+    float C_own; // each particle's density must start with this value and then accumulate the neighbors' ones
+
+    float C0;
+    float Cp;
+    float Cv;
+} SphContext;
+
+void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c);
+void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c);
+void sph_particle_leapfrog(SphParticle *a, SphContext *c);
+
 
 float3 float3_null();
 float3 float3_make(float x, float y, float z);
