@@ -81,6 +81,8 @@ typedef struct SphContext {
     float mu; /* viscosity */
     float rho0; /* reference density */
     float dt;
+    float3 min;
+    float3 max;
 
     float h2;
     float C;
@@ -94,6 +96,7 @@ typedef struct SphContext {
 void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c);
 void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c);
 void sph_particle_leapfrog(SphParticle *a, SphContext *c);
+void sph_particle_reset(SphParticle *a, SphContext *c);
 
 
 float3 float3_null();

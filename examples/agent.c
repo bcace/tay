@@ -215,8 +215,60 @@ void sph_particle_leapfrog(SphParticle *a, SphContext *c) {
     a->v = float3_add(a->vh, float3_mul_scalar(a->a, c->dt * 0.5f));
     a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->vh, c->dt));
 
-    /* reset values (prepare for the next step) */
+    const float damp = 0.75f;
 
+    if (a->p.x < c->min.x) {
+        a->p.x = c->min.x;
+        a->v.x = -a->v.x;
+        a->vh.x = -a->vh.x;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    if (a->p.y < c->min.y) {
+        a->p.y = c->min.y;
+        a->v.y = -a->v.y;
+        a->vh.y = -a->vh.y;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    if (a->p.z < c->min.z) {
+        a->p.z = c->min.z;
+        a->v.z = -a->v.z;
+        a->vh.z = -a->vh.z;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    if (a->p.x > c->max.x) {
+        a->p.x = c->max.x;
+        a->v.x = -a->v.x;
+        a->vh.x = -a->vh.x;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    if (a->p.y > c->max.y) {
+        a->p.y = c->max.y;
+        a->v.y = -a->v.y;
+        a->vh.y = -a->vh.y;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    if (a->p.z > c->max.z) {
+        a->p.z = c->max.z;
+        a->v.z = -a->v.z;
+        a->vh.z = -a->vh.z;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    sph_particle_reset(a, c);
+}
+
+void sph_particle_reset(SphParticle *a, SphContext *c) {
     a->a.x = 0.0f;
     a->a.y = 0.0f;
     a->a.z = -9.81f;
@@ -434,6 +486,8 @@ typedef struct __attribute__((packed)) SphContext {\n\
     float mu; /* viscosity */\n\
     float rho0; /* reference density */\n\
     float dt;\n\
+    float3 min;\n\
+    float3 max;\n\
 \n\
     float h2;\n\
     float C;\n\
@@ -447,6 +501,7 @@ typedef struct __attribute__((packed)) SphContext {\n\
 void sph_particle_density(global SphParticle *a, global SphParticle *b, global SphContext *c);\n\
 void sph_particle_acceleration(global SphParticle *a, global SphParticle *b, global SphContext *c);\n\
 void sph_particle_leapfrog(global SphParticle *a, global SphContext *c);\n\
+void sph_particle_reset(global SphParticle *a, global SphContext *c);\n\
 \n\
 \n\
 float3 float3_null() {\n\
@@ -795,8 +850,60 @@ void sph_particle_leapfrog(global SphParticle *a, global SphContext *c) {\n\
     a->v = float3_add(a->vh, float3_mul_scalar(a->a, c->dt * 0.5f));\n\
     a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->vh, c->dt));\n\
 \n\
-    /* reset values (prepare for the next step) */\n\
+    const float damp = 0.75f;\n\
 \n\
+    if (a->p.x < c->min.x) {\n\
+        a->p.x = c->min.x;\n\
+        a->v.x = -a->v.x;\n\
+        a->vh.x = -a->vh.x;\n\
+        a->v = float3_mul_scalar(a->v, damp);\n\
+        a->vh = float3_mul_scalar(a->vh, damp);\n\
+    }\n\
+\n\
+    if (a->p.y < c->min.y) {\n\
+        a->p.y = c->min.y;\n\
+        a->v.y = -a->v.y;\n\
+        a->vh.y = -a->vh.y;\n\
+        a->v = float3_mul_scalar(a->v, damp);\n\
+        a->vh = float3_mul_scalar(a->vh, damp);\n\
+    }\n\
+\n\
+    if (a->p.z < c->min.z) {\n\
+        a->p.z = c->min.z;\n\
+        a->v.z = -a->v.z;\n\
+        a->vh.z = -a->vh.z;\n\
+        a->v = float3_mul_scalar(a->v, damp);\n\
+        a->vh = float3_mul_scalar(a->vh, damp);\n\
+    }\n\
+\n\
+    if (a->p.x > c->max.x) {\n\
+        a->p.x = c->max.x;\n\
+        a->v.x = -a->v.x;\n\
+        a->vh.x = -a->vh.x;\n\
+        a->v = float3_mul_scalar(a->v, damp);\n\
+        a->vh = float3_mul_scalar(a->vh, damp);\n\
+    }\n\
+\n\
+    if (a->p.y > c->max.y) {\n\
+        a->p.y = c->max.y;\n\
+        a->v.y = -a->v.y;\n\
+        a->vh.y = -a->vh.y;\n\
+        a->v = float3_mul_scalar(a->v, damp);\n\
+        a->vh = float3_mul_scalar(a->vh, damp);\n\
+    }\n\
+\n\
+    if (a->p.z > c->max.z) {\n\
+        a->p.z = c->max.z;\n\
+        a->v.z = -a->v.z;\n\
+        a->vh.z = -a->vh.z;\n\
+        a->v = float3_mul_scalar(a->v, damp);\n\
+        a->vh = float3_mul_scalar(a->vh, damp);\n\
+    }\n\
+\n\
+    sph_particle_reset(a, c);\n\
+}\n\
+\n\
+void sph_particle_reset(global SphParticle *a, global SphContext *c) {\n\
     a->a.x = 0.0f;\n\
     a->a.y = 0.0f;\n\
     a->a.z = -9.81f;\n\

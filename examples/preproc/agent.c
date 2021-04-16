@@ -210,8 +210,60 @@ void sph_particle_leapfrog(__GLOBAL__ SphParticle *a, __GLOBAL__ SphContext *c) 
     a->v = float3_add(a->vh, float3_mul_scalar(a->a, c->dt * 0.5f));
     a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->vh, c->dt));
 
-    /* reset values (prepare for the next step) */
+    const float damp = 0.75f;
 
+    if (a->p.x < c->min.x) {
+        a->p.x = c->min.x;
+        a->v.x = -a->v.x;
+        a->vh.x = -a->vh.x;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    if (a->p.y < c->min.y) {
+        a->p.y = c->min.y;
+        a->v.y = -a->v.y;
+        a->vh.y = -a->vh.y;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    if (a->p.z < c->min.z) {
+        a->p.z = c->min.z;
+        a->v.z = -a->v.z;
+        a->vh.z = -a->vh.z;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    if (a->p.x > c->max.x) {
+        a->p.x = c->max.x;
+        a->v.x = -a->v.x;
+        a->vh.x = -a->vh.x;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    if (a->p.y > c->max.y) {
+        a->p.y = c->max.y;
+        a->v.y = -a->v.y;
+        a->vh.y = -a->vh.y;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    if (a->p.z > c->max.z) {
+        a->p.z = c->max.z;
+        a->v.z = -a->v.z;
+        a->vh.z = -a->vh.z;
+        a->v = float3_mul_scalar(a->v, damp);
+        a->vh = float3_mul_scalar(a->vh, damp);
+    }
+
+    sph_particle_reset(a, c);
+}
+
+void sph_particle_reset(__GLOBAL__ SphParticle *a, __GLOBAL__ SphContext *c) {
     a->a.x = 0.0f;
     a->a.y = 0.0f;
     a->a.z = -9.81f;

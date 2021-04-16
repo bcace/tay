@@ -12,11 +12,9 @@ static Program program;
 static TayGroup *particles_group;
 static TayGroup *balls_group;
 
-static BallParticleSeeContext ball_particle_see_context;
-static ParticleSeeContext particle_see_context;
-static ParticleActContext particle_act_context;
+static SphContext sph_context;
 
-static int particles_count = 40000;
+static int particles_count = 20000;
 static int balls_count = 2;
 static float ball_r = 50.0f;
 
@@ -27,81 +25,98 @@ static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
 }
 
-static void _init_sph_context(SphContext *c, float h, float m, float k, float mu, float rho0, float dt) {
+static void _init_sph_context(SphContext *c, float h, float k, float mu, float rho0, float dt, float3 min, float3 max) {
     c->h = h;
     c->k = k;
     c->mu = mu;
     c->rho0 = rho0;
     c->dt = dt;
+    c->min = min;
+    c->max = max;
+}
 
-    c->h2 = h * h;
+static void _update_sph_context(SphContext *c, float m) {
+    c->h2 = c->h * c->h;
 
     /* density: Bindel, Fall (2011) */
-    c->C = 4.0f * m / (3.1415926536f * c->h2 * c->h2 * c->h2 * c->h2);
-    c->C_own = 4.0f * m / (3.1415926536f * c->h2);
+    // c->C = 4.0f * m / (3.1415926536f * c->h2 * c->h2 * c->h2 * c->h2);
+    // c->C_own = 4.0f * m / (3.1415926536f * c->h2);
 
     /* density: Matthias Müller, David Charypar and Markus Gross (2003) */
-    // c->C = 315.0f * m / (64.0f * 3.1415926536f * c->h2 * c->h2 * c->h2 * c->h2 * h);
-    // c->C_own = 315.0f * m / (64.0f * 3.1415926536f * c->h2 * h);
+    c->C = 315.0f * m / (64.0f * 3.1415926536f * c->h2 * c->h2 * c->h2 * c->h2 * c->h);
+    c->C_own = 315.0f * m / (64.0f * 3.1415926536f * c->h2 * c->h);
 
     /* acceleration: Bindel, Fall (2011) */
     c->C0 = m / (3.1415926536f * c->h2 * c->h2);
-    c->Cp = 15.0f * k;
-    c->Cv = -40.0f * mu;
+    c->Cp = 15.0f * c->k;
+    c->Cv = -40.0f * c->mu;
 }
 
 void fluid_init() {
-    const float r = 10.0f;
-    const float part_r = r * 0.5f;
+    const float h = 0.05f;
+    const float part_r = h * 0.5f;
 
     icosahedron_verts(sphere_subdivs, sphere);
 
-    particles_group = tay_add_group(global.tay, sizeof(Particle), particles_count, TAY_TRUE);
+    particles_group = tay_add_group(global.tay, sizeof(SphParticle), particles_count, TAY_TRUE);
     tay_configure_space(global.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_r, part_r, part_r, part_r}, 250);
 
-    balls_group = tay_add_group(global.tay, sizeof(Ball), balls_count, TAY_FALSE);
-    tay_configure_space(global.tay, balls_group, TAY_CPU_AABB_TREE, 3, (float4){part_r, part_r, part_r, part_r}, 250);
+    float particle_m = 1.0f;
 
-    particle_see_context.r = r;
+    _init_sph_context(&sph_context,
+        h, 1000.0f, 0.1f, 1000.0f, 0.001f,
+        (float3){-1.0f, -1.0f, -1.0f},
+        (float3){1.0f, 1.0f, 1.0f}
+    );
+    _update_sph_context(&sph_context, particle_m);
 
-    particle_act_context.min = (float3){-300.0f, -300.0f, -50.0f};
-    particle_act_context.max = (float3){300.0f, 300.0f, 300.0f};
-
-    ball_particle_see_context.r = r;
-    ball_particle_see_context.ball_r = ball_r;
-
-    tay_add_see(global.tay, particles_group, particles_group, particle_see, (float4){r, r, r, r}, &particle_see_context);
-    tay_add_see(global.tay, balls_group, particles_group, ball_particle_see, (float4){r, r, r, r}, &ball_particle_see_context);
-    tay_add_see(global.tay, particles_group, balls_group, particle_ball_see, (float4){r, r, r, r}, &ball_particle_see_context);
-
-    tay_add_act(global.tay, balls_group, ball_act, &particle_act_context);
-    tay_add_act(global.tay, particles_group, particle_act, &particle_act_context);
+    tay_add_see(global.tay, particles_group, particles_group, sph_particle_density, (float4){h, h, h, h}, &sph_context);
+    tay_add_see(global.tay, particles_group, particles_group, sph_particle_acceleration, (float4){h, h, h, h}, &sph_context);
+    tay_add_act(global.tay, particles_group, sph_particle_leapfrog, &sph_context);
 
     for (int i = 0; i < particles_count; ++i) {
-        Particle *p = tay_get_available_agent(global.tay, particles_group);
-        p->p.x = _rand(particle_act_context.min.x, particle_act_context.max.x);
-        p->p.y = _rand(particle_act_context.min.y, particle_act_context.max.y);
-        p->p.z = _rand(0.0f, 100.0f);
+        SphParticle *p = tay_get_available_agent(global.tay, particles_group);
+        p->p.x = _rand(sph_context.min.x, sph_context.max.x);
+        p->p.y = _rand(sph_context.min.y, sph_context.max.y);
+        p->p.z = _rand(sph_context.min.z, sph_context.max.z);
+        p->vh = (float3){0.0f, 0.0f, 0.0f};
         p->v = (float3){0.0f, 0.0f, 0.0f};
-        p->f = (float3){0.0f, 0.0f, 0.0f};
+        sph_particle_reset(p, &sph_context);
         tay_commit_available_agent(global.tay, particles_group);
     }
 
-    for (int i = 0; i < balls_count; ++i) {
-        Ball *b = tay_get_available_agent(global.tay, balls_group);
-        float x = -150.0f + i * 300.0f;
-        float y = -150.0f + i * 300.0f;
-        float z = 1000.0f + i * 200.0f;
-        b->min.x = x - ball_r;
-        b->min.y = y - ball_r;
-        b->min.z = z - ball_r;
-        b->max.x = x + ball_r;
-        b->max.y = y + ball_r;
-        b->max.z = z + ball_r;
-        b->v = (float3){0.0f, 0.0f, 0.0f};
-        b->f = (float3){0.0f, 0.0f, 0.0f};
-        tay_commit_available_agent(global.tay, balls_group);
+    // assume mass to get densities, and then scale particle mass so we achieve reference density
+
+    {
+        for (int a_i = 0; a_i < particles_count; ++a_i) {
+            SphParticle *a = tay_get_agent(global.tay, particles_group, a_i);
+
+            for (int b_i = 0; b_i < particles_count; ++b_i) {
+
+                if (b_i == a_i)
+                    continue;
+
+                SphParticle *b = tay_get_agent(global.tay, particles_group, b_i);
+
+                sph_particle_density(a, b, &sph_context);
+            }
+        }
+
+        float rho2s = 0.0f;
+        float rhos = 0.0f;
+
+        for (int a_i = 0; a_i < particles_count; ++a_i) {
+            SphParticle *a = tay_get_agent(global.tay, particles_group, a_i);
+            rhos += a->density;
+            rho2s += a->density * a->density;
+
+            sph_particle_reset(a, &sph_context);
+        }
+
+        particle_m *= sph_context.rho0 * rhos / rho2s;
     }
+
+    _update_sph_context(&sph_context, particle_m);
 
     /* drawing init */
 
@@ -136,12 +151,12 @@ void fluid_draw() {
     float *inst_energy = global.inst_float_buffers[1];
 
     for (int i = 0; i < particles_count; ++i) {
-        Particle *p = tay_get_agent(global.tay, particles_group, i);
-        inst_pos[i].x = p->p.x;
-        inst_pos[i].y = p->p.y;
-        inst_pos[i].z = p->p.z;
-        inst_size[i] = 4.0f;
-        inst_energy[i] = sqrtf(p->v.x * p->v.x + p->v.y * p->v.y + p->v.z * p->v.z) * 0.1f;
+        SphParticle *p = tay_get_agent(global.tay, particles_group, i);
+        inst_pos[i].x = p->p.x * 200.0f;
+        inst_pos[i].y = p->p.y * 200.0f;
+        inst_pos[i].z = p->p.z * 200.0f;
+        inst_size[i] = 1.0f;
+        inst_energy[i] = 0.0f;// sqrtf(p->v.x * p->v.x + p->v.y * p->v.y + p->v.z * p->v.z) * 0.1f;
     }
 
     shader_program_set_data_float(&program, 1, particles_count, 3, inst_pos);
@@ -150,20 +165,20 @@ void fluid_draw() {
 
     graphics_draw_triangles_instanced(CUBE_VERTS_COUNT, particles_count);
 
-    shader_program_set_data_float(&program, 0, icosahedron_verts_count(sphere_subdivs), 3, sphere);
+    // shader_program_set_data_float(&program, 0, icosahedron_verts_count(sphere_subdivs), 3, sphere);
 
-    for (int i = 0; i < balls_count; ++i) {
-        Ball *b = tay_get_agent(global.tay, balls_group, i);
-        inst_pos[i].x = (b->min.x + b->max.x) * 0.5f;
-        inst_pos[i].y = (b->min.y + b->max.y) * 0.5f;
-        inst_pos[i].z = (b->min.z + b->max.z) * 0.5f;
-        inst_size[i] = ball_r;
-        inst_energy[i] = 0.0f;
-    }
+    // for (int i = 0; i < balls_count; ++i) {
+    //     Ball *b = tay_get_agent(global.tay, balls_group, i);
+    //     inst_pos[i].x = (b->min.x + b->max.x) * 0.5f;
+    //     inst_pos[i].y = (b->min.y + b->max.y) * 0.5f;
+    //     inst_pos[i].z = (b->min.z + b->max.z) * 0.5f;
+    //     inst_size[i] = ball_r;
+    //     inst_energy[i] = 0.0f;
+    // }
 
-    shader_program_set_data_float(&program, 1, balls_count, 3, inst_pos);
-    shader_program_set_data_float(&program, 2, balls_count, 1, inst_size);
-    shader_program_set_data_float(&program, 3, balls_count, 1, inst_energy);
+    // shader_program_set_data_float(&program, 1, balls_count, 3, inst_pos);
+    // shader_program_set_data_float(&program, 2, balls_count, 1, inst_size);
+    // shader_program_set_data_float(&program, 3, balls_count, 1, inst_energy);
 
-    graphics_draw_triangles_instanced(icosahedron_verts_count(sphere_subdivs), balls_count);
+    // graphics_draw_triangles_instanced(icosahedron_verts_count(sphere_subdivs), balls_count);
 }
