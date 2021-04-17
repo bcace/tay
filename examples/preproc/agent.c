@@ -180,7 +180,7 @@ void sph_particle_density(__GLOBAL__ SphParticle *a, __GLOBAL__ SphParticle *b, 
     float dz = b->p.z - a->p.z;
     float r2 = dx * dx + dy * dy + dz * dz;
     float z = c->h2 - r2;
-    if (z > 0.0f)
+    if (z > 0.0f) // (1.f - clamp(floor(r / h), 0.f, 1.f))
         a->density += c->C * z * z * z;
 }
 
@@ -267,5 +267,6 @@ void sph_particle_reset(__GLOBAL__ SphParticle *a, __GLOBAL__ SphContext *c) {
     a->a.x = 0.0f;
     a->a.y = 0.0f;
     a->a.z = -9.81f;
-    a->density = c->C_own;
+    a->density = 0;
+    sph_particle_density(a, a, c);
 }

@@ -6,6 +6,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+#define F_PI 3.14159265358979323846f
+
 
 static Program program;
 
@@ -38,16 +40,11 @@ static void _init_sph_context(SphContext *c, float h, float k, float mu, float r
 static void _update_sph_context(SphContext *c, float m) {
     c->h2 = c->h * c->h;
 
-    /* density: Bindel, Fall (2011) */
-    // c->C = 4.0f * m / (3.1415926536f * c->h2 * c->h2 * c->h2 * c->h2);
-    // c->C_own = 4.0f * m / (3.1415926536f * c->h2);
-
-    /* density: Matthias Müller, David Charypar and Markus Gross (2003) */
-    c->C = 315.0f * m / (64.0f * 3.1415926536f * c->h2 * c->h2 * c->h2 * c->h2 * c->h);
-    c->C_own = 315.0f * m / (64.0f * 3.1415926536f * c->h2 * c->h);
+    /* density: poly6, Matthias Müller, David Charypar and Markus Gross (2003) */
+    c->C = 315.0f * m / (64.0f * F_PI * c->h2 * c->h2 * c->h2 * c->h2 * c->h);
 
     /* acceleration: Bindel, Fall (2011) */
-    c->C0 = m / (3.1415926536f * c->h2 * c->h2);
+    c->C0 = m / (F_PI * c->h2 * c->h2);
     c->Cp = 15.0f * c->k;
     c->Cv = -40.0f * c->mu;
 }
@@ -98,7 +95,7 @@ void fluid_init() {
 
                 SphParticle *b = tay_get_agent(global.tay, particles_group, b_i);
 
-                sph_particle_density(a, b, &sph_context);
+                sph_particle_density(a, b, &sph_context); // TODO: execute this as a standalone pass execution, with threading and all (maybe within simulation, as a pre-step)
             }
         }
 

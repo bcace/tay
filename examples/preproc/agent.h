@@ -78,7 +78,6 @@ typedef struct __PACK__ SphContext {
 
     float h2;
     float C;
-    float C_own; // each particle's density must start with this value and then accumulate the neighbors' ones
 
     float C0;
     float Cp;
