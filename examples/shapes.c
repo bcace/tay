@@ -150,7 +150,7 @@ void icosahedron_verts(unsigned subdivs, float *verts) {
     int verts_count = icosahedron_verts_count(subdivs);
     for (int i = 0; i < verts_count; ++i) {
         float *v = verts + i * 3;
-        float l = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+        float l = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
         for (int j = 0; j < 3; ++j)
             v[j] /= l;
     }

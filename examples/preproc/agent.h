@@ -64,31 +64,30 @@ typedef struct __PACK__ SphParticle {
     float3 pressure;
     float3 pressure_accum;
     float3 viscosity_accum;
+    float3 normal;
     float3 vh;
     float3 v;
-    float3 a;
     float density;
+    float color_field_laplacian;
 } SphParticle;
 
 typedef struct __PACK__ SphContext {
     float h; /* smoothing (interaction) radius */
-    float k; /* bulk modulus */
-    float mu; /* viscosity */
-    float rho0; /* reference density */
+    float dynamic_viscosity;
     float dt;
     float m;
+    float surface_tension;
+    float surface_tension_threshold;
 
     float3 min;
     float3 max;
 
     float h2;
     float poly6;
+    float poly6_gradient;
+    float poly6_laplacian;
     float spiky;
     float viscosity;
-
-    float C0;
-    float Cp;
-    float Cv;
 } SphContext;
 
 void sph_particle_density(__GLOBAL__ SphParticle *a, __GLOBAL__ SphParticle *b, __GLOBAL__ SphContext *c);

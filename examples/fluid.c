@@ -12,13 +12,10 @@
 static Program program;
 
 static TayGroup *particles_group;
-static TayGroup *balls_group;
 
 static SphContext sph_context;
 
 static int particles_count = 20000;
-static int balls_count = 2;
-static float ball_r = 50.0f;
 
 static float sphere[10000];
 static unsigned sphere_subdivs = 2;
@@ -27,50 +24,49 @@ static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
 }
 
-static void _init_sph_context(SphContext *c, float h, float k, float mu, float rho0, float dt, float3 min, float3 max) {
-    c->h = h;
-    c->k = k;
-    c->mu = mu;
-    c->rho0 = rho0;
-    c->dt = dt;
-    c->min = min;
-    c->max = max;
-}
-
 static void _update_sph_context(SphContext *c, float m) {
     c->m = m;
-    c->h2 = c->h * c->h;
 
-    /* density: poly6, Matthias Müller, David Charypar and Markus Gross (2003) */
-    c->poly6 = 315.0f * m / (64.0f * F_PI * c->h2 * c->h2 * c->h2 * c->h2 * c->h);
-    /* pressure: spiky */
-    c->spiky = -45.0f * m / (F_PI * c->h2 * c->h2 * c->h2);
-    /* viscosity: */
+    float h2 = c->h * c->h;
+    float h6 = h2 * h2 * h2;
+    float h9 = h6 * h2 * c->h;
+
+    c->h2 = h2;
+
+    /* Matthias Müller, David Charypar and Markus Gross (2003) */
+    c->poly6 = m * 315.0f / (64.0f * F_PI * h9);
+    c->poly6_gradient = m * -945.0f / (32.0f * F_PI * h9);
+    c->poly6_laplacian = c->poly6_gradient;
+    c->spiky = m * -45.0f / (F_PI * h6);
     c->viscosity = -c->spiky;
-
-    /* acceleration: Bindel, Fall (2011) */
-    c->C0 = m / (F_PI * c->h2 * c->h2);
-    c->Cp = 15.0f * c->k;
-    c->Cv = -40.0f * c->mu;
 }
 
 void fluid_init() {
-    const float h = 0.05f;
-    const float part_r = h * 0.5f;
 
-    icosahedron_verts(sphere_subdivs, sphere);
+    // icosahedron_verts(sphere_subdivs, sphere);
+
+    float particle_m = 0.05f;
+    float fluid_density = 998.29f;
+    float total_m = particles_count * particle_m;
+    float initial_volume = total_m / fluid_density;
+
+    int particles_inside_influence_radius = 20;
+
+    sph_context.h = cbrtf(3.0f * (particles_inside_influence_radius * (initial_volume / particles_count)) / (4.0f * F_PI));
+    sph_context.dt = 1.0f / 60.0f; // 60 fps
+    sph_context.dynamic_viscosity = 3.5;
+    sph_context.surface_tension = 0.0728f;
+    sph_context.surface_tension_threshold = 7.065f;
+    sph_context.min = (float3){-0.2f, -0.2f, -0.2f};
+    sph_context.max = (float3){0.2f, 0.2f, 0.2f};
+
+    _update_sph_context(&sph_context, particle_m);
+
+    float h = sph_context.h;
+    float part_r = h * 0.5f;
 
     particles_group = tay_add_group(global.tay, sizeof(SphParticle), particles_count, TAY_TRUE);
     tay_configure_space(global.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_r, part_r, part_r, part_r}, 250);
-
-    float particle_m = 1.0f;
-
-    _init_sph_context(&sph_context,
-        h, 1000.0f, 0.1f, 1000.0f, 0.001f,
-        (float3){-1.0f, -1.0f, -1.0f},
-        (float3){1.0f, 1.0f, 1.0f}
-    );
-    _update_sph_context(&sph_context, particle_m);
 
     tay_add_see(global.tay, particles_group, particles_group, sph_particle_density, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
     tay_add_see(global.tay, particles_group, particles_group, sph_particle_acceleration, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
@@ -81,46 +77,11 @@ void fluid_init() {
         p->p.x = _rand(sph_context.min.x, sph_context.max.x);
         p->p.y = _rand(sph_context.min.y, sph_context.max.y);
         p->p.z = _rand(sph_context.min.z, sph_context.max.z);
-        p->pressure_accum = (float3){0.0f, 0.0f, 0.0f};
-        p->viscosity_accum = (float3){0.0f, 0.0f, 0.0f};
         p->vh = (float3){0.0f, 0.0f, 0.0f};
         p->v = (float3){0.0f, 0.0f, 0.0f};
         sph_particle_reset(p);
         tay_commit_available_agent(global.tay, particles_group);
     }
-
-    // assume mass to get densities, and then scale particle mass so we achieve reference density
-
-    {
-        for (int a_i = 0; a_i < particles_count; ++a_i) {
-            SphParticle *a = tay_get_agent(global.tay, particles_group, a_i);
-
-            for (int b_i = 0; b_i < particles_count; ++b_i) {
-
-                if (b_i == a_i)
-                    continue;
-
-                SphParticle *b = tay_get_agent(global.tay, particles_group, b_i);
-
-                sph_particle_density(a, b, &sph_context); // TODO: execute this as a standalone pass execution, with threading and all (maybe within simulation, as a pre-step)
-            }
-        }
-
-        float rho2s = 0.0f;
-        float rhos = 0.0f;
-
-        for (int a_i = 0; a_i < particles_count; ++a_i) {
-            SphParticle *a = tay_get_agent(global.tay, particles_group, a_i);
-            rhos += a->density;
-            rho2s += a->density * a->density;
-
-            sph_particle_reset(a);
-        }
-
-        particle_m *= sph_context.rho0 * rhos / rho2s;
-    }
-
-    _update_sph_context(&sph_context, particle_m);
 
     /* drawing init */
 
@@ -138,7 +99,7 @@ void fluid_draw() {
 
     mat4 modelview;
     mat4_set_identity(&modelview);
-    mat4_translate(&modelview, 0.0f, 50.0f, -800.0f);
+    mat4_translate(&modelview, 0.0f, 50.0f, -400.0f);
     mat4_rotate(&modelview, -0.8f, 1.0f, 0.0f, 0.0f);
     // mat4_rotate(&modelview, 0.7f, 0.0f, 0.0f, 1.0f);
 
