@@ -119,13 +119,14 @@ int group_is_inactive(TayGroup *group) {
     return group->storage == 0;
 }
 
-void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, float4 radii, void *context) {
+void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, float4 radii, int self_see, void *context) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
     p->context = context;
     p->see = func;
     p->radii = radii;
+    p->self_see = self_see;
     p->seer_group = seer_group;
     p->seen_group = seen_group;
 }
@@ -188,19 +189,16 @@ void tay_simulation_start(TayState *state) {
     }
 }
 
-static SEE_PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, int seen_is_point) {
-    if (seer_is_point == seen_is_point)
-        return (seer_is_point) ? space_see_point_point : space_see_nonpoint_nonpoint;
+static SEE_PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, int seen_is_point, int self_see) {
+    if (seer_is_point == seen_is_point) {
+        if (self_see)
+            return (seer_is_point) ? space_see_point_point_self_see : space_see_nonpoint_nonpoint_self_see;
+        else
+            return (seer_is_point) ? space_see_point_point : space_see_nonpoint_nonpoint;
+    }
     else
         return (seer_is_point) ? space_see_point_nonpoint : space_see_nonpoint_point;
 }
-
-// static SEE_PAIRING_FUNC _get_one_to_many_pairing_function(int seer_is_point, int seen_is_point) {
-//     if (seer_is_point == seen_is_point)
-//         return (seer_is_point) ? space_see_one_to_many_point_to_point : space_see_one_to_many_nonpoint_to_nonpoint;
-//     else
-//         return (seer_is_point) ? space_see_one_to_many_point_to_nonpoint : space_see_one_to_many_nonpoint_to_point;
-// }
 
 static TayError _compile_passes(TayState *state) {
 
@@ -216,9 +214,11 @@ static TayError _compile_passes(TayState *state) {
             pass->seer_space = seer_space;
             pass->seen_space = seen_space;
 
+            int self_see = pass->self_see && pass->seer_group == pass->seen_group;
+
             if (seer_space->dims == seen_space->dims) {
 
-                pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point);
+                pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point, self_see);
 
                 if (seer_space->type == TAY_CPU_SIMPLE)
                     pass->struct_pass_func = cpu_simple_see;

@@ -103,6 +103,7 @@ typedef struct TayPass {
         TAY_ACT_FUNC act;
     };
     float4 radii;
+    int self_see;
     void *context;
     /* data prepared by the compile step */
     union {
