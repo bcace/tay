@@ -45,6 +45,8 @@ static void _update_sph_context(SphContext *c, float m) {
     c->poly6 = 315.0f * m / (64.0f * F_PI * c->h2 * c->h2 * c->h2 * c->h2 * c->h);
     /* pressure: spiky */
     c->spiky = -45.0f * m / (F_PI * c->h2 * c->h2 * c->h2);
+    /* viscosity: */
+    c->viscosity = -c->spiky;
 
     /* acceleration: Bindel, Fall (2011) */
     c->C0 = m / (F_PI * c->h2 * c->h2);

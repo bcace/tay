@@ -192,12 +192,13 @@ void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c) {
 void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c) {
     float3 r = float3_sub(b->p.xyz, a->p.xyz);
     float rl = float3_length(r);
-    if (rl < c->h) {
+
+    if (rl < c->h) { // TODO: is this good for GPU?
 
         // pressure
 
         float3 spiky_gradient;
-        if (rl < 0.00001f) {
+        if (rl < 0.00001f) { // TODO: is this widening OK?
             spiky_gradient.x = c->spiky * c->h2;
             spiky_gradient.y = c->spiky * c->h2;
             spiky_gradient.z = c->spiky * c->h2;
@@ -217,6 +218,10 @@ void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c) {
                             );
 
         // viscosity
+
+        float viscosity_laplacian = c->viscosity * (c->h - rl);
+
+        a->viscosity_accum = float3_add(a->viscosity_accum, float3_mul_scalar(float3_sub(b->v, a->v), viscosity_laplacian / b->density));
 
         // float q = sqrtf(r2) / c->h;
         // float u = 1.0f - q;
@@ -534,6 +539,7 @@ typedef struct __attribute__((packed)) SphContext {\n\
     float h2;\n\
     float poly6;\n\
     float spiky;\n\
+    float viscosity;\n\
 \n\
     float C0;\n\
     float Cp;\n\
@@ -877,12 +883,13 @@ void sph_particle_density(global SphParticle *a, global SphParticle *b, global S
 void sph_particle_acceleration(global SphParticle *a, global SphParticle *b, global SphContext *c) {\n\
     float3 r = float3_sub(b->p.xyz, a->p.xyz);\n\
     float rl = float3_length(r);\n\
-    if (rl < c->h) {\n\
+\n\
+    if (rl < c->h) { // TODO: is this good for GPU?\n\
 \n\
         // pressure\n\
 \n\
         float3 spiky_gradient;\n\
-        if (rl < 0.00001f) {\n\
+        if (rl < 0.00001f) { // TODO: is this widening OK?\n\
             spiky_gradient.x = c->spiky * c->h2;\n\
             spiky_gradient.y = c->spiky * c->h2;\n\
             spiky_gradient.z = c->spiky * c->h2;\n\
@@ -902,6 +909,10 @@ void sph_particle_acceleration(global SphParticle *a, global SphParticle *b, glo
                             );\n\
 \n\
         // viscosity\n\
+\n\
+        float viscosity_laplacian = c->viscosity * (c->h - rl);\n\
+\n\
+        a->viscosity_accum = float3_add(a->viscosity_accum, float3_mul_scalar(float3_sub(b->v, a->v), viscosity_laplacian / b->density));\n\
 \n\
         // float q = sqrtf(r2) / c->h;\n\
         // float u = 1.0f - q;\n\

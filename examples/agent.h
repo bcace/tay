@@ -92,6 +92,7 @@ typedef struct SphContext {
     float h2;
     float poly6;
     float spiky;
+    float viscosity;
 
     float C0;
     float Cp;

@@ -84,6 +84,7 @@ typedef struct __PACK__ SphContext {
     float h2;
     float poly6;
     float spiky;
+    float viscosity;
 
     float C0;
     float Cp;

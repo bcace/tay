@@ -187,12 +187,13 @@ void sph_particle_density(__GLOBAL__ SphParticle *a, __GLOBAL__ SphParticle *b, 
 void sph_particle_acceleration(__GLOBAL__ SphParticle *a, __GLOBAL__ SphParticle *b, __GLOBAL__ SphContext *c) {
     float3 r = float3_sub(b->p.xyz, a->p.xyz);
     float rl = float3_length(r);
-    if (rl < c->h) {
+
+    if (rl < c->h) { // TODO: is this good for GPU?
 
         // pressure
 
         float3 spiky_gradient;
-        if (rl < 0.00001f) {
+        if (rl < 0.00001f) { // TODO: is this widening OK?
             spiky_gradient.x = c->spiky * c->h2;
             spiky_gradient.y = c->spiky * c->h2;
             spiky_gradient.z = c->spiky * c->h2;
@@ -212,6 +213,10 @@ void sph_particle_acceleration(__GLOBAL__ SphParticle *a, __GLOBAL__ SphParticle
                             );
 
         // viscosity
+
+        float viscosity_laplacian = c->viscosity * (c->h - rl);
+
+        a->viscosity_accum = float3_add(a->viscosity_accum, float3_mul_scalar(float3_sub(b->v, a->v), viscosity_laplacian / b->density));
 
         // float q = sqrtf(r2) / c->h;
         // float u = 1.0f - q;
