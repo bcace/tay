@@ -33,7 +33,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
     TayGroup *group = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT, TAY_TRUE);
     tay_configure_space(tay, group, space_type, 3, part_radii, 250);
 
-    tay_add_see(tay, group, group, agent_see, see_radii, &see_context);
+    tay_add_see(tay, group, group, agent_see, see_radii, TAY_FALSE, &see_context);
     tay_add_act(tay, group, agent_act, &act_context);
 
     switch (model_case) {

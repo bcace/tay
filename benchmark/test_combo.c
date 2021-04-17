@@ -86,10 +86,10 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
                                                    min_size, max_size, distr_exp);
     }
 
-    tay_add_see(tay, group_a, group_b, _get_see_func(is_point_a, is_point_b), see_radii, 0);
-    tay_add_see(tay, group_a, group_a, _get_see_func(is_point_a, is_point_b), see_radii, 0);
-    tay_add_see(tay, group_b, group_a, _get_see_func(is_point_a, is_point_b), see_radii, 0);
-    tay_add_see(tay, group_b, group_b, _get_see_func(is_point_a, is_point_b), see_radii, 0);
+    tay_add_see(tay, group_a, group_b, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
+    tay_add_see(tay, group_a, group_a, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
+    tay_add_see(tay, group_b, group_a, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
+    tay_add_see(tay, group_b, group_b, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
     tay_add_act(tay, group_a, _get_act_func(is_point_a), &act_context);
     tay_add_act(tay, group_b, _get_act_func(is_point_b), &act_context);
 
