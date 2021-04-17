@@ -69,6 +69,9 @@ void particle_ball_see(Particle *a, Ball *b, BallParticleSeeContext *c);
 typedef struct SphParticle {
     TayAgentTag tag;
     float4 p;
+    float3 pressure;
+    float3 pressure_accum;
+    float3 viscosity_accum;
     float3 vh;
     float3 v;
     float3 a;
@@ -81,12 +84,14 @@ typedef struct SphContext {
     float mu; /* viscosity */
     float rho0; /* reference density */
     float dt;
+    float m;
+
     float3 min;
     float3 max;
 
     float h2;
-    float C;
-    float C_own; // each particle's density must start with this value and then accumulate the neighbors' ones
+    float poly6;
+    float spiky;
 
     float C0;
     float Cp;
@@ -96,13 +101,14 @@ typedef struct SphContext {
 void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c);
 void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c);
 void sph_particle_leapfrog(SphParticle *a, SphContext *c);
-void sph_particle_reset(SphParticle *a, SphContext *c);
+void sph_particle_reset(SphParticle *a);
 
 
 float3 float3_null();
 float3 float3_make(float x, float y, float z);
 float3 float3_add(float3 a, float3 b);
 float3 float3_sub(float3 a, float3 b);
+float3 float3_mul(float3 a, float3 b);
 float3 float3_div_scalar(float3 a, float s);
 float3 float3_mul_scalar(float3 a, float s);
 float3 float3_normalize(float3 a);

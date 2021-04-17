@@ -185,27 +185,50 @@ void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c) {
     float dz = b->p.z - a->p.z;
     float r2 = dx * dx + dy * dy + dz * dz;
     float z = c->h2 - r2;
-    if (z > 0.0f)
-        a->density += c->C * z * z * z;
+    if (z > 0.0f) // (1.f - clamp(floor(r / h), 0.f, 1.f))
+        a->density += c->poly6 * z * z * z;
 }
 
 void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c) {
-    float dx = b->p.x - a->p.x;
-    float dy = b->p.y - a->p.y;
-    float dz = b->p.z - a->p.z;
-    float r2 = dx * dx + dy * dy + dz * dz;
-    if (r2 < c->h2) {
-        float q = sqrtf(r2) / c->h;
-        float u = 1.0f - q;
-        float w0 = c->C0 * u / a->density / b->density;
-        float wp = w0 * c->Cp * (a->density + b->density - 2.0f * c->rho0) * u / q;
-        float wv = w0 * c->Cv;
-        float dvx = b->v.x - a->v.x;
-        float dvy = b->v.y - a->v.y;
-        float dvz = b->v.z - a->v.z;
-        a->a.x -= (wp * dx + wv * dvx);
-        a->a.y -= (wp * dy + wv * dvy);
-        a->a.z -= (wp * dz + wv * dvz);
+    float3 r = float3_sub(b->p.xyz, a->p.xyz);
+    float rl = float3_length(r);
+    if (rl < c->h) {
+
+        // pressure
+
+        float3 spiky_gradient;
+        if (rl < 0.00001f) {
+            spiky_gradient.x = c->spiky * c->h2;
+            spiky_gradient.y = c->spiky * c->h2;
+            spiky_gradient.z = c->spiky * c->h2;
+        }
+        else
+            spiky_gradient = float3_mul_scalar(r, c->spiky * (c->h - rl) * (c->h - rl) / rl);
+
+        a->pressure_accum = float3_add(
+                                a->pressure_accum,
+                                float3_mul(
+                                    float3_add(
+                                        float3_div_scalar(a->pressure, (a->density * a->density)),
+                                        float3_div_scalar(b->pressure, (b->density * b->density))
+                                    ),
+                                    spiky_gradient
+                                )
+                            );
+
+        // viscosity
+
+        // float q = sqrtf(r2) / c->h;
+        // float u = 1.0f - q;
+        // float w0 = c->C0 * u / a->density / b->density;
+        // float wp = w0 * c->Cp * (a->density + b->density - 2.0f * c->rho0) * u / q;
+        // float wv = w0 * c->Cv;
+        // float dvx = b->v.x - a->v.x;
+        // float dvy = b->v.y - a->v.y;
+        // float dvz = b->v.z - a->v.z;
+        // a->a.x -= (wp * dx + wv * dvx);
+        // a->a.y -= (wp * dy + wv * dvy);
+        // a->a.z -= (wp * dz + wv * dvz);
     }
 }
 
@@ -265,14 +288,20 @@ void sph_particle_leapfrog(SphParticle *a, SphContext *c) {
         a->vh = float3_mul_scalar(a->vh, damp);
     }
 
-    sph_particle_reset(a, c);
+    sph_particle_reset(a);
 }
 
-void sph_particle_reset(SphParticle *a, SphContext *c) {
+void sph_particle_reset(SphParticle *a) {
     a->a.x = 0.0f;
     a->a.y = 0.0f;
     a->a.z = -9.81f;
-    a->density = c->C_own;
+    a->density = 0.0;
+    a->pressure_accum.x = 0.0f;
+    a->pressure_accum.y = 0.0f;
+    a->pressure_accum.z = 0.0f;
+    a->viscosity_accum.x = 0.0f;
+    a->viscosity_accum.y = 0.0f;
+    a->viscosity_accum.z = 0.0f;
 }
 
 
@@ -305,6 +334,14 @@ float3 float3_sub(float3 a, float3 b) {
     r.x = a.x - b.x;
     r.y = a.y - b.y;
     r.z = a.z - b.z;
+    return r;
+}
+
+float3 float3_mul(float3 a, float3 b) {
+    float3 r;
+    r.x = a.x * b.x;
+    r.y = a.y * b.y;
+    r.z = a.z * b.z;
     return r;
 }
 
@@ -474,6 +511,9 @@ void particle_ball_see(global Particle *a, global Ball *b, global BallParticleSe
 typedef struct __attribute__((packed)) SphParticle {\n\
     TayAgentTag tag;\n\
     float4 p;\n\
+    float3 pressure;\n\
+    float3 pressure_accum;\n\
+    float3 viscosity_accum;\n\
     float3 vh;\n\
     float3 v;\n\
     float3 a;\n\
@@ -486,12 +526,14 @@ typedef struct __attribute__((packed)) SphContext {\n\
     float mu; /* viscosity */\n\
     float rho0; /* reference density */\n\
     float dt;\n\
+    float m;\n\
+\n\
     float3 min;\n\
     float3 max;\n\
 \n\
     float h2;\n\
-    float C;\n\
-    float C_own; // each particle's density must start with this value and then accumulate the neighbors' ones\n\
+    float poly6;\n\
+    float spiky;\n\
 \n\
     float C0;\n\
     float Cp;\n\
@@ -501,7 +543,7 @@ typedef struct __attribute__((packed)) SphContext {\n\
 void sph_particle_density(global SphParticle *a, global SphParticle *b, global SphContext *c);\n\
 void sph_particle_acceleration(global SphParticle *a, global SphParticle *b, global SphContext *c);\n\
 void sph_particle_leapfrog(global SphParticle *a, global SphContext *c);\n\
-void sph_particle_reset(global SphParticle *a, global SphContext *c);\n\
+void sph_particle_reset(global SphParticle *a);\n\
 \n\
 \n\
 float3 float3_null() {\n\
@@ -533,6 +575,14 @@ float3 float3_sub(float3 a, float3 b) {\n\
     r.x = a.x - b.x;\n\
     r.y = a.y - b.y;\n\
     r.z = a.z - b.z;\n\
+    return r;\n\
+}\n\
+\n\
+float3 float3_mul(float3 a, float3 b) {\n\
+    float3 r;\n\
+    r.x = a.x * b.x;\n\
+    r.y = a.y * b.y;\n\
+    r.z = a.z * b.z;\n\
     return r;\n\
 }\n\
 \n\
@@ -820,27 +870,50 @@ void sph_particle_density(global SphParticle *a, global SphParticle *b, global S
     float dz = b->p.z - a->p.z;\n\
     float r2 = dx * dx + dy * dy + dz * dz;\n\
     float z = c->h2 - r2;\n\
-    if (z > 0.0f)\n\
-        a->density += c->C * z * z * z;\n\
+    if (z > 0.0f) // (1.f - clamp(floor(r / h), 0.f, 1.f))\n\
+        a->density += c->poly6 * z * z * z;\n\
 }\n\
 \n\
 void sph_particle_acceleration(global SphParticle *a, global SphParticle *b, global SphContext *c) {\n\
-    float dx = b->p.x - a->p.x;\n\
-    float dy = b->p.y - a->p.y;\n\
-    float dz = b->p.z - a->p.z;\n\
-    float r2 = dx * dx + dy * dy + dz * dz;\n\
-    if (r2 < c->h2) {\n\
-        float q = sqrtf(r2) / c->h;\n\
-        float u = 1.0f - q;\n\
-        float w0 = c->C0 * u / a->density / b->density;\n\
-        float wp = w0 * c->Cp * (a->density + b->density - 2.0f * c->rho0) * u / q;\n\
-        float wv = w0 * c->Cv;\n\
-        float dvx = b->v.x - a->v.x;\n\
-        float dvy = b->v.y - a->v.y;\n\
-        float dvz = b->v.z - a->v.z;\n\
-        a->a.x -= (wp * dx + wv * dvx);\n\
-        a->a.y -= (wp * dy + wv * dvy);\n\
-        a->a.z -= (wp * dz + wv * dvz);\n\
+    float3 r = float3_sub(b->p.xyz, a->p.xyz);\n\
+    float rl = float3_length(r);\n\
+    if (rl < c->h) {\n\
+\n\
+        // pressure\n\
+\n\
+        float3 spiky_gradient;\n\
+        if (rl < 0.00001f) {\n\
+            spiky_gradient.x = c->spiky * c->h2;\n\
+            spiky_gradient.y = c->spiky * c->h2;\n\
+            spiky_gradient.z = c->spiky * c->h2;\n\
+        }\n\
+        else\n\
+            spiky_gradient = float3_mul_scalar(r, c->spiky * (c->h - rl) * (c->h - rl) / rl);\n\
+\n\
+        a->pressure_accum = float3_add(\n\
+                                a->pressure_accum,\n\
+                                float3_mul(\n\
+                                    float3_add(\n\
+                                        float3_div_scalar(a->pressure, (a->density * a->density)),\n\
+                                        float3_div_scalar(b->pressure, (b->density * b->density))\n\
+                                    ),\n\
+                                    spiky_gradient\n\
+                                )\n\
+                            );\n\
+\n\
+        // viscosity\n\
+\n\
+        // float q = sqrtf(r2) / c->h;\n\
+        // float u = 1.0f - q;\n\
+        // float w0 = c->C0 * u / a->density / b->density;\n\
+        // float wp = w0 * c->Cp * (a->density + b->density - 2.0f * c->rho0) * u / q;\n\
+        // float wv = w0 * c->Cv;\n\
+        // float dvx = b->v.x - a->v.x;\n\
+        // float dvy = b->v.y - a->v.y;\n\
+        // float dvz = b->v.z - a->v.z;\n\
+        // a->a.x -= (wp * dx + wv * dvx);\n\
+        // a->a.y -= (wp * dy + wv * dvy);\n\
+        // a->a.z -= (wp * dz + wv * dvz);\n\
     }\n\
 }\n\
 \n\
@@ -900,14 +973,20 @@ void sph_particle_leapfrog(global SphParticle *a, global SphContext *c) {\n\
         a->vh = float3_mul_scalar(a->vh, damp);\n\
     }\n\
 \n\
-    sph_particle_reset(a, c);\n\
+    sph_particle_reset(a);\n\
 }\n\
 \n\
-void sph_particle_reset(global SphParticle *a, global SphContext *c) {\n\
+void sph_particle_reset(global SphParticle *a) {\n\
     a->a.x = 0.0f;\n\
     a->a.y = 0.0f;\n\
     a->a.z = -9.81f;\n\
-    a->density = c->C_own;\n\
+    a->density = 0.0;\n\
+    a->pressure_accum.x = 0.0f;\n\
+    a->pressure_accum.y = 0.0f;\n\
+    a->pressure_accum.z = 0.0f;\n\
+    a->viscosity_accum.x = 0.0f;\n\
+    a->viscosity_accum.y = 0.0f;\n\
+    a->viscosity_accum.z = 0.0f;\n\
 }\n\
 \n\
 ";

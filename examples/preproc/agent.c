@@ -181,26 +181,49 @@ void sph_particle_density(__GLOBAL__ SphParticle *a, __GLOBAL__ SphParticle *b, 
     float r2 = dx * dx + dy * dy + dz * dz;
     float z = c->h2 - r2;
     if (z > 0.0f) // (1.f - clamp(floor(r / h), 0.f, 1.f))
-        a->density += c->C * z * z * z;
+        a->density += c->poly6 * z * z * z;
 }
 
 void sph_particle_acceleration(__GLOBAL__ SphParticle *a, __GLOBAL__ SphParticle *b, __GLOBAL__ SphContext *c) {
-    float dx = b->p.x - a->p.x;
-    float dy = b->p.y - a->p.y;
-    float dz = b->p.z - a->p.z;
-    float r2 = dx * dx + dy * dy + dz * dz;
-    if (r2 < c->h2) {
-        float q = sqrtf(r2) / c->h;
-        float u = 1.0f - q;
-        float w0 = c->C0 * u / a->density / b->density;
-        float wp = w0 * c->Cp * (a->density + b->density - 2.0f * c->rho0) * u / q;
-        float wv = w0 * c->Cv;
-        float dvx = b->v.x - a->v.x;
-        float dvy = b->v.y - a->v.y;
-        float dvz = b->v.z - a->v.z;
-        a->a.x -= (wp * dx + wv * dvx);
-        a->a.y -= (wp * dy + wv * dvy);
-        a->a.z -= (wp * dz + wv * dvz);
+    float3 r = float3_sub(b->p.xyz, a->p.xyz);
+    float rl = float3_length(r);
+    if (rl < c->h) {
+
+        // pressure
+
+        float3 spiky_gradient;
+        if (rl < 0.00001f) {
+            spiky_gradient.x = c->spiky * c->h2;
+            spiky_gradient.y = c->spiky * c->h2;
+            spiky_gradient.z = c->spiky * c->h2;
+        }
+        else
+            spiky_gradient = float3_mul_scalar(r, c->spiky * (c->h - rl) * (c->h - rl) / rl);
+
+        a->pressure_accum = float3_add(
+                                a->pressure_accum,
+                                float3_mul(
+                                    float3_add(
+                                        float3_div_scalar(a->pressure, (a->density * a->density)),
+                                        float3_div_scalar(b->pressure, (b->density * b->density))
+                                    ),
+                                    spiky_gradient
+                                )
+                            );
+
+        // viscosity
+
+        // float q = sqrtf(r2) / c->h;
+        // float u = 1.0f - q;
+        // float w0 = c->C0 * u / a->density / b->density;
+        // float wp = w0 * c->Cp * (a->density + b->density - 2.0f * c->rho0) * u / q;
+        // float wv = w0 * c->Cv;
+        // float dvx = b->v.x - a->v.x;
+        // float dvy = b->v.y - a->v.y;
+        // float dvz = b->v.z - a->v.z;
+        // a->a.x -= (wp * dx + wv * dvx);
+        // a->a.y -= (wp * dy + wv * dvy);
+        // a->a.z -= (wp * dz + wv * dvz);
     }
 }
 
@@ -260,13 +283,18 @@ void sph_particle_leapfrog(__GLOBAL__ SphParticle *a, __GLOBAL__ SphContext *c) 
         a->vh = float3_mul_scalar(a->vh, damp);
     }
 
-    sph_particle_reset(a, c);
+    sph_particle_reset(a);
 }
 
-void sph_particle_reset(__GLOBAL__ SphParticle *a, __GLOBAL__ SphContext *c) {
+void sph_particle_reset(__GLOBAL__ SphParticle *a) {
     a->a.x = 0.0f;
     a->a.y = 0.0f;
     a->a.z = -9.81f;
-    a->density = 0;
-    sph_particle_density(a, a, c);
+    a->density = 0.0;
+    a->pressure_accum.x = 0.0f;
+    a->pressure_accum.y = 0.0f;
+    a->pressure_accum.z = 0.0f;
+    a->viscosity_accum.x = 0.0f;
+    a->viscosity_accum.y = 0.0f;
+    a->viscosity_accum.z = 0.0f;
 }

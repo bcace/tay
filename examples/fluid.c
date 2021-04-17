@@ -38,10 +38,13 @@ static void _init_sph_context(SphContext *c, float h, float k, float mu, float r
 }
 
 static void _update_sph_context(SphContext *c, float m) {
+    c->m = m;
     c->h2 = c->h * c->h;
 
     /* density: poly6, Matthias Müller, David Charypar and Markus Gross (2003) */
-    c->C = 315.0f * m / (64.0f * F_PI * c->h2 * c->h2 * c->h2 * c->h2 * c->h);
+    c->poly6 = 315.0f * m / (64.0f * F_PI * c->h2 * c->h2 * c->h2 * c->h2 * c->h);
+    /* pressure: spiky */
+    c->spiky = -45.0f * m / (F_PI * c->h2 * c->h2 * c->h2);
 
     /* acceleration: Bindel, Fall (2011) */
     c->C0 = m / (F_PI * c->h2 * c->h2);
@@ -67,8 +70,8 @@ void fluid_init() {
     );
     _update_sph_context(&sph_context, particle_m);
 
-    tay_add_see(global.tay, particles_group, particles_group, sph_particle_density, (float4){h, h, h, h}, &sph_context);
-    tay_add_see(global.tay, particles_group, particles_group, sph_particle_acceleration, (float4){h, h, h, h}, &sph_context);
+    tay_add_see(global.tay, particles_group, particles_group, sph_particle_density, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
+    tay_add_see(global.tay, particles_group, particles_group, sph_particle_acceleration, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
     tay_add_act(global.tay, particles_group, sph_particle_leapfrog, &sph_context);
 
     for (int i = 0; i < particles_count; ++i) {
@@ -76,9 +79,11 @@ void fluid_init() {
         p->p.x = _rand(sph_context.min.x, sph_context.max.x);
         p->p.y = _rand(sph_context.min.y, sph_context.max.y);
         p->p.z = _rand(sph_context.min.z, sph_context.max.z);
+        p->pressure_accum = (float3){0.0f, 0.0f, 0.0f};
+        p->viscosity_accum = (float3){0.0f, 0.0f, 0.0f};
         p->vh = (float3){0.0f, 0.0f, 0.0f};
         p->v = (float3){0.0f, 0.0f, 0.0f};
-        sph_particle_reset(p, &sph_context);
+        sph_particle_reset(p);
         tay_commit_available_agent(global.tay, particles_group);
     }
 
@@ -107,7 +112,7 @@ void fluid_init() {
             rhos += a->density;
             rho2s += a->density * a->density;
 
-            sph_particle_reset(a, &sph_context);
+            sph_particle_reset(a);
         }
 
         particle_m *= sph_context.rho0 * rhos / rho2s;
