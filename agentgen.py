@@ -6,6 +6,7 @@ float3 float3_null();
 float3 float3_make(float x, float y, float z);
 float3 float3_add(float3 a, float3 b);
 float3 float3_sub(float3 a, float3 b);
+float3 float3_mul(float3 a, float3 b);
 float3 float3_div_scalar(float3 a, float s);
 float3 float3_mul_scalar(float3 a, float s);
 float3 float3_normalize(float3 a);
@@ -50,6 +51,14 @@ float3 float3_sub(float3 a, float3 b) {
     r.x = a.x - b.x;
     r.y = a.y - b.y;
     r.z = a.z - b.z;
+    return r;
+}
+
+float3 float3_mul(float3 a, float3 b) {
+    float3 r;
+    r.x = a.x * b.x;
+    r.y = a.y * b.y;
+    r.z = a.z * b.z;
     return r;
 }
 
