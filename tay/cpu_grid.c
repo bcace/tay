@@ -76,7 +76,7 @@ void cpu_grid_sort(TayGroup *group) {
     grid->first_cell = 0;
     grid->origin = space->box.min;
 
-    int cells_count = 1;
+    unsigned long long cells_count = 1;
     int *cell_counts = grid->cell_counts.arr;
     float *cell_sizes = grid->cell_sizes.arr;
 
