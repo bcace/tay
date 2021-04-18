@@ -91,94 +91,6 @@ void agent_act(Agent *a, ActContext *c) {
     a->separation_count = 0;
 }
 
-void particle_see(Particle *a, Particle *b, ParticleSeeContext *c) {
-    float3 d = float3_sub(b->p.xyz, a->p.xyz);
-    float l = float3_length(d);
-    if (l > 0.0f && l < c->r)
-        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - l) / l));
-}
-
-void particle_act(Particle *a, ParticleActContext *c) {
-
-    const float m = 0.01f;
-    const float t = 0.11f;
-
-    float3 acc = float3_mul_scalar(a->f, 0.8f / m);                 // acceleration
-    acc.z -= 30.0f;                                                 // gravity
-    a->v = float3_add(a->v, float3_mul_scalar(acc, 0.5f * t));      // velocity increment
-    a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->v, t));    // move
-    a->v = float3_mul_scalar(a->v, 0.96f);                          // dissipate
-    a->f = float3_null();                                           // reset force
-
-    if (a->p.x < c->min.x) {
-        a->p.x = c->min.x;
-        a->v.x = -a->v.x;
-    }
-
-    if (a->p.y < c->min.y) {
-        a->p.y = c->min.y;
-        a->v.y = -a->v.y;
-    }
-
-    if (a->p.z < c->min.z) {
-        a->p.z = c->min.z;
-        a->v.z = -a->v.z;
-    }
-
-    if (a->p.x > c->max.x) {
-        a->p.x = c->max.x;
-        a->v.x = -a->v.x;
-    }
-
-    if (a->p.y > c->max.y) {
-        a->p.y = c->max.y;
-        a->v.y = -a->v.y;
-    }
-
-    if (a->p.z > c->max.z) {
-        a->p.z = c->max.z;
-        a->v.z = -a->v.z;
-    }
-}
-
-void ball_particle_see(Ball *a, Particle *b, BallParticleSeeContext *c) {
-    float3 a_p = float3_mul_scalar(float3_add(a->min.xyz, a->max.xyz), 0.5f);
-    float3 d = float3_sub(b->p.xyz, a_p);
-    float l = float3_length(d);
-    float dl = l - c->ball_r;
-    if (dl < c->r)
-        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - dl) / l));
-}
-
-void particle_ball_see(Particle *a, Ball *b, BallParticleSeeContext *c) {
-    float3 b_p = float3_mul_scalar(float3_add(b->min.xyz, b->max.xyz), 0.5f);
-    float3 d = float3_sub(b_p, a->p.xyz);
-    float l = float3_length(d);
-    float dl = l - c->ball_r;
-    if (dl < c->r)
-        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - dl) / l));
-}
-
-void ball_act(Ball *a, void *c) {
-
-    const float m = 40.1f;
-    const float t = 0.11f; // TODO: move to context
-
-    float3 acc = float3_mul_scalar(a->f, 0.8f / m);                 // acceleration
-    acc.z -= 30.0f;                                                 // gravity
-    a->v = float3_add(a->v, float3_mul_scalar(acc, 0.5f * t));      // velocity increment
-    float3 d = float3_mul_scalar(a->v, t);
-    a->min.xyz = float3_add(a->min.xyz, d);
-    a->max.xyz = float3_add(a->max.xyz, d);
-    a->v = float3_mul_scalar(a->v, 0.96f);                          // dissipate
-    a->f = float3_null();                                           // reset force
-
-    if (a->max.z < -100.0f) {
-        a->min.z += 2000.0f;
-        a->max.z += 2000.0f;
-    }
-}
-
 void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c) {
     float dx = b->p.x - a->p.x;
     float dy = b->p.y - a->p.y;
@@ -276,16 +188,12 @@ void sph_particle_leapfrog(SphParticle *a, SphContext *c) {
 
 void sph_particle_reset(SphParticle *a) {
     a->density = 0.0;
-    a->color_field_laplacian = 0.0f;
     a->pressure_accum.x = 0.0f;
     a->pressure_accum.y = 0.0f;
     a->pressure_accum.z = 0.0f;
     a->viscosity_accum.x = 0.0f;
     a->viscosity_accum.y = 0.0f;
     a->viscosity_accum.z = 0.0f;
-    a->normal.x = 0.0f;
-    a->normal.y = 0.0f;
-    a->normal.z = 0.0f;
 }
 
 
@@ -456,25 +364,6 @@ typedef struct __attribute__((packed)) SeeContext {\n\
 void agent_see(global Agent *a, global Agent *b, global SeeContext *context);\n\
 void agent_act(global Agent *a, global ActContext *context);\n\
 \n\
-typedef struct __attribute__((packed)) Particle {\n\
-    TayAgentTag tag;\n\
-    float4 p;\n\
-    float3 v;\n\
-    float3 f;\n\
-} Particle;\n\
-\n\
-typedef struct __attribute__((packed)) ParticleSeeContext {\n\
-    float r;\n\
-} ParticleSeeContext;\n\
-\n\
-typedef struct __attribute__((packed)) ParticleActContext {\n\
-    float3 min;\n\
-    float3 max;\n\
-} ParticleActContext;\n\
-\n\
-void particle_see(global Particle *a, global Particle *b, global ParticleSeeContext *c);\n\
-void particle_act(global Particle *a, global ParticleActContext *c);\n\
-\n\
 typedef struct __attribute__((packed)) Ball {\n\
     TayAgentTag tag;\n\
     float4 min;\n\
@@ -483,26 +372,15 @@ typedef struct __attribute__((packed)) Ball {\n\
     float3 f;\n\
 } Ball;\n\
 \n\
-typedef struct __attribute__((packed)) BallParticleSeeContext {\n\
-    float r;\n\
-    float ball_r;\n\
-} BallParticleSeeContext;\n\
-\n\
-void ball_act(global Ball *a, global void *c);\n\
-void ball_particle_see(global Ball *a, global Particle *b, global BallParticleSeeContext *c);\n\
-void particle_ball_see(global Particle *a, global Ball *b, global BallParticleSeeContext *c);\n\
-\n\
 typedef struct __attribute__((packed)) SphParticle {\n\
     TayAgentTag tag;\n\
     float4 p;\n\
     float3 pressure_accum;\n\
     float3 viscosity_accum;\n\
-    float3 normal;\n\
     float3 vh;\n\
     float3 v;\n\
     float density;\n\
     float pressure;\n\
-    float color_field_laplacian;\n\
 } SphParticle;\n\
 \n\
 typedef struct __attribute__((packed)) SphContext {\n\
@@ -763,94 +641,6 @@ void agent_act(global Agent *a, global ActContext *c) {\n\
     a->separation_count = 0;\n\
 }\n\
 \n\
-void particle_see(global Particle *a, global Particle *b, global ParticleSeeContext *c) {\n\
-    float3 d = float3_sub(b->p.xyz, a->p.xyz);\n\
-    float l = float3_length(d);\n\
-    if (l > 0.0f && l < c->r)\n\
-        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - l) / l));\n\
-}\n\
-\n\
-void particle_act(global Particle *a, global ParticleActContext *c) {\n\
-\n\
-    const float m = 0.01f;\n\
-    const float t = 0.11f;\n\
-\n\
-    float3 acc = float3_mul_scalar(a->f, 0.8f / m);                 // acceleration\n\
-    acc.z -= 30.0f;                                                 // gravity\n\
-    a->v = float3_add(a->v, float3_mul_scalar(acc, 0.5f * t));      // velocity increment\n\
-    a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->v, t));    // move\n\
-    a->v = float3_mul_scalar(a->v, 0.96f);                          // dissipate\n\
-    a->f = float3_null();                                           // reset force\n\
-\n\
-    if (a->p.x < c->min.x) {\n\
-        a->p.x = c->min.x;\n\
-        a->v.x = -a->v.x;\n\
-    }\n\
-\n\
-    if (a->p.y < c->min.y) {\n\
-        a->p.y = c->min.y;\n\
-        a->v.y = -a->v.y;\n\
-    }\n\
-\n\
-    if (a->p.z < c->min.z) {\n\
-        a->p.z = c->min.z;\n\
-        a->v.z = -a->v.z;\n\
-    }\n\
-\n\
-    if (a->p.x > c->max.x) {\n\
-        a->p.x = c->max.x;\n\
-        a->v.x = -a->v.x;\n\
-    }\n\
-\n\
-    if (a->p.y > c->max.y) {\n\
-        a->p.y = c->max.y;\n\
-        a->v.y = -a->v.y;\n\
-    }\n\
-\n\
-    if (a->p.z > c->max.z) {\n\
-        a->p.z = c->max.z;\n\
-        a->v.z = -a->v.z;\n\
-    }\n\
-}\n\
-\n\
-void ball_particle_see(global Ball *a, global Particle *b, global BallParticleSeeContext *c) {\n\
-    float3 a_p = float3_mul_scalar(float3_add(a->min.xyz, a->max.xyz), 0.5f);\n\
-    float3 d = float3_sub(b->p.xyz, a_p);\n\
-    float l = float3_length(d);\n\
-    float dl = l - c->ball_r;\n\
-    if (dl < c->r)\n\
-        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - dl) / l));\n\
-}\n\
-\n\
-void particle_ball_see(global Particle *a, global Ball *b, global BallParticleSeeContext *c) {\n\
-    float3 b_p = float3_mul_scalar(float3_add(b->min.xyz, b->max.xyz), 0.5f);\n\
-    float3 d = float3_sub(b_p, a->p.xyz);\n\
-    float l = float3_length(d);\n\
-    float dl = l - c->ball_r;\n\
-    if (dl < c->r)\n\
-        a->f = float3_sub(a->f, float3_mul_scalar(d, (c->r - dl) / l));\n\
-}\n\
-\n\
-void ball_act(global Ball *a, global void *c) {\n\
-\n\
-    const float m = 40.1f;\n\
-    const float t = 0.11f; // TODO: move to context\n\
-\n\
-    float3 acc = float3_mul_scalar(a->f, 0.8f / m);                 // acceleration\n\
-    acc.z -= 30.0f;                                                 // gravity\n\
-    a->v = float3_add(a->v, float3_mul_scalar(acc, 0.5f * t));      // velocity increment\n\
-    float3 d = float3_mul_scalar(a->v, t);\n\
-    a->min.xyz = float3_add(a->min.xyz, d);\n\
-    a->max.xyz = float3_add(a->max.xyz, d);\n\
-    a->v = float3_mul_scalar(a->v, 0.96f);                          // dissipate\n\
-    a->f = float3_null();                                           // reset force\n\
-\n\
-    if (a->max.z < -100.0f) {\n\
-        a->min.z += 2000.0f;\n\
-        a->max.z += 2000.0f;\n\
-    }\n\
-}\n\
-\n\
 void sph_particle_density(global SphParticle *a, global SphParticle *b, global SphContext *c) {\n\
     float dx = b->p.x - a->p.x;\n\
     float dy = b->p.y - a->p.y;\n\
@@ -948,16 +738,12 @@ void sph_particle_leapfrog(global SphParticle *a, global SphContext *c) {\n\
 \n\
 void sph_particle_reset(global SphParticle *a) {\n\
     a->density = 0.0;\n\
-    a->color_field_laplacian = 0.0f;\n\
     a->pressure_accum.x = 0.0f;\n\
     a->pressure_accum.y = 0.0f;\n\
     a->pressure_accum.z = 0.0f;\n\
     a->viscosity_accum.x = 0.0f;\n\
     a->viscosity_accum.y = 0.0f;\n\
     a->viscosity_accum.z = 0.0f;\n\
-    a->normal.x = 0.0f;\n\
-    a->normal.y = 0.0f;\n\
-    a->normal.z = 0.0f;\n\
 }\n\
 \n\
 ";

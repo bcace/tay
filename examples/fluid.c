@@ -102,8 +102,8 @@ void fluid_draw() {
 
     mat4 modelview;
     mat4_set_identity(&modelview);
-    mat4_translate(&modelview, 0.0f, 100.0f, -300.0f);
-    mat4_rotate(&modelview, -0.8f, 1.0f, 0.0f, 0.0f);
+    mat4_translate(&modelview, 0.0f, 130.0f, -400.0f);
+    mat4_rotate(&modelview, -1.2f, 1.0f, 0.0f, 0.0f);
     // mat4_rotate(&modelview, 0.7f, 0.0f, 0.0f, 1.0f);
 
     mat4 projection;
@@ -132,21 +132,4 @@ void fluid_draw() {
     shader_program_set_data_float(&program, 3, particles_count, 1, inst_energy);
 
     graphics_draw_triangles_instanced(CUBE_VERTS_COUNT, particles_count);
-
-    // shader_program_set_data_float(&program, 0, icosahedron_verts_count(sphere_subdivs), 3, sphere);
-
-    // for (int i = 0; i < balls_count; ++i) {
-    //     Ball *b = tay_get_agent(global.tay, balls_group, i);
-    //     inst_pos[i].x = (b->min.x + b->max.x) * 0.5f;
-    //     inst_pos[i].y = (b->min.y + b->max.y) * 0.5f;
-    //     inst_pos[i].z = (b->min.z + b->max.z) * 0.5f;
-    //     inst_size[i] = ball_r;
-    //     inst_energy[i] = 0.0f;
-    // }
-
-    // shader_program_set_data_float(&program, 1, balls_count, 3, inst_pos);
-    // shader_program_set_data_float(&program, 2, balls_count, 1, inst_size);
-    // shader_program_set_data_float(&program, 3, balls_count, 1, inst_energy);
-
-    // graphics_draw_triangles_instanced(icosahedron_verts_count(sphere_subdivs), balls_count);
 }

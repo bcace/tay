@@ -30,25 +30,6 @@ typedef struct SeeContext {
 void agent_see(Agent *a, Agent *b, SeeContext *context);
 void agent_act(Agent *a, ActContext *context);
 
-typedef struct Particle {
-    TayAgentTag tag;
-    float4 p;
-    float3 v;
-    float3 f;
-} Particle;
-
-typedef struct ParticleSeeContext {
-    float r;
-} ParticleSeeContext;
-
-typedef struct ParticleActContext {
-    float3 min;
-    float3 max;
-} ParticleActContext;
-
-void particle_see(Particle *a, Particle *b, ParticleSeeContext *c);
-void particle_act(Particle *a, ParticleActContext *c);
-
 typedef struct Ball {
     TayAgentTag tag;
     float4 min;
@@ -57,26 +38,15 @@ typedef struct Ball {
     float3 f;
 } Ball;
 
-typedef struct BallParticleSeeContext {
-    float r;
-    float ball_r;
-} BallParticleSeeContext;
-
-void ball_act(Ball *a, void *c);
-void ball_particle_see(Ball *a, Particle *b, BallParticleSeeContext *c);
-void particle_ball_see(Particle *a, Ball *b, BallParticleSeeContext *c);
-
 typedef struct SphParticle {
     TayAgentTag tag;
     float4 p;
     float3 pressure_accum;
     float3 viscosity_accum;
-    float3 normal;
     float3 vh;
     float3 v;
     float density;
     float pressure;
-    float color_field_laplacian;
 } SphParticle;
 
 typedef struct SphContext {

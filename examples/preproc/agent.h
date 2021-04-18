@@ -22,25 +22,6 @@ typedef struct __PACK__ SeeContext {
 void agent_see(__GLOBAL__ Agent *a, __GLOBAL__ Agent *b, __GLOBAL__ SeeContext *context);
 void agent_act(__GLOBAL__ Agent *a, __GLOBAL__ ActContext *context);
 
-typedef struct __PACK__ Particle {
-    TayAgentTag tag;
-    float4 p;
-    float3 v;
-    float3 f;
-} Particle;
-
-typedef struct __PACK__ ParticleSeeContext {
-    float r;
-} ParticleSeeContext;
-
-typedef struct __PACK__ ParticleActContext {
-    float3 min;
-    float3 max;
-} ParticleActContext;
-
-void particle_see(__GLOBAL__ Particle *a, __GLOBAL__ Particle *b, __GLOBAL__ ParticleSeeContext *c);
-void particle_act(__GLOBAL__ Particle *a, __GLOBAL__ ParticleActContext *c);
-
 typedef struct __PACK__ Ball {
     TayAgentTag tag;
     float4 min;
@@ -49,26 +30,15 @@ typedef struct __PACK__ Ball {
     float3 f;
 } Ball;
 
-typedef struct __PACK__ BallParticleSeeContext {
-    float r;
-    float ball_r;
-} BallParticleSeeContext;
-
-void ball_act(__GLOBAL__ Ball *a, __GLOBAL__ void *c);
-void ball_particle_see(__GLOBAL__ Ball *a, __GLOBAL__ Particle *b, __GLOBAL__ BallParticleSeeContext *c);
-void particle_ball_see(__GLOBAL__ Particle *a, __GLOBAL__ Ball *b, __GLOBAL__ BallParticleSeeContext *c);
-
 typedef struct __PACK__ SphParticle {
     TayAgentTag tag;
     float4 p;
     float3 pressure_accum;
     float3 viscosity_accum;
-    float3 normal;
     float3 vh;
     float3 v;
     float density;
     float pressure;
-    float color_field_laplacian;
 } SphParticle;
 
 typedef struct __PACK__ SphContext {
