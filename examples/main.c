@@ -81,7 +81,7 @@ int main() {
     else if (global.example == FLUID)
         fluid_init();
 
-    // platform_sleep(5000);
+    platform_sleep(5000);
 
     tay_simulation_start(global.tay);
 

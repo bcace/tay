@@ -15,7 +15,7 @@ static TayGroup *particles_group;
 
 static SphContext sph_context;
 
-static int particles_count = 20000;
+static int particles_count = 15000;
 
 static float sphere[10000];
 static unsigned sphere_subdivs = 2;
@@ -55,13 +55,12 @@ void fluid_init() {
     sph_context.K = 100.0f;
     sph_context.density = fluid_density;
     sph_context.h = cbrtf(3.0f * (particles_inside_influence_radius * (initial_volume / particles_count)) / (4.0f * F_PI));
-    sph_context.dt = 0.1f / 60.0f; // 60 fps
-    sph_context.max_velocity = 0.8f * sph_context.h / sph_context.dt;
+    sph_context.dt = 0.005f;
     sph_context.dynamic_viscosity = 3.5f;
     sph_context.surface_tension = 0.0728f;
     sph_context.surface_tension_threshold = 7.065f;
-    sph_context.min = (float3){-1.0f, -1.0f, -1.0f};
-    sph_context.max = (float3){1.0f, 1.0f, 1.0f};
+    sph_context.min = (float3){-1.0f, -0.3f, -1.0f};
+    sph_context.max = (float3){1.0f, 0.3f, 1.0f};
 
     _update_sph_context(&sph_context, particle_m);
 
@@ -73,14 +72,14 @@ void fluid_init() {
 
     tay_add_see(global.tay, particles_group, particles_group, sph_particle_density, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
     tay_add_act(global.tay, particles_group, sph_particle_pressure, &sph_context);
-    tay_add_see(global.tay, particles_group, particles_group, sph_particle_acceleration, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
+    tay_add_see(global.tay, particles_group, particles_group, sph_force_terms, (float4){h, h, h, h}, TAY_FALSE, &sph_context);
     tay_add_act(global.tay, particles_group, sph_particle_leapfrog, &sph_context);
 
     for (int i = 0; i < particles_count; ++i) {
         SphParticle *p = tay_get_available_agent(global.tay, particles_group);
-        p->p.x = _rand(sph_context.min.x, sph_context.max.x);
+        p->p.x = _rand(sph_context.min.x, sph_context.min.x + (sph_context.max.x - sph_context.min.x) * 0.5f);
         p->p.y = _rand(sph_context.min.y, sph_context.max.y);
-        p->p.z = _rand(sph_context.min.z, sph_context.max.z);
+        p->p.z = _rand(sph_context.min.z, sph_context.min.z + (sph_context.max.z - sph_context.min.z) * 0.5f);
         p->vh = (float3){0.0f, 0.0f, 0.0f};
         p->v = (float3){0.0f, 0.0f, 0.0f};
         sph_particle_reset(p);
@@ -103,7 +102,7 @@ void fluid_draw() {
 
     mat4 modelview;
     mat4_set_identity(&modelview);
-    mat4_translate(&modelview, 0.0f, 50.0f, -400.0f);
+    mat4_translate(&modelview, 0.0f, 100.0f, -300.0f);
     mat4_rotate(&modelview, -0.8f, 1.0f, 0.0f, 0.0f);
     // mat4_rotate(&modelview, 0.7f, 0.0f, 0.0f, 1.0f);
 
@@ -125,7 +124,7 @@ void fluid_draw() {
         inst_pos[i].y = p->p.y * 200.0f;
         inst_pos[i].z = p->p.z * 200.0f;
         inst_size[i] = 1.0f;
-        inst_energy[i] = 0.0f;// sqrtf(p->v.x * p->v.x + p->v.y * p->v.y + p->v.z * p->v.z) * 0.1f;
+        inst_energy[i] = 0.0f; // sqrtf(p->v.x * p->v.x + p->v.y * p->v.y + p->v.z * p->v.z) * 0.7f;
     }
 
     shader_program_set_data_float(&program, 1, particles_count, 3, inst_pos);

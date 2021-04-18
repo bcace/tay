@@ -88,7 +88,6 @@ typedef struct SphContext {
     float surface_tension_threshold;
     float K;
     float density;
-    float max_velocity;
 
     float3 min;
     float3 max;
@@ -103,7 +102,7 @@ typedef struct SphContext {
 
 void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c);
 void sph_particle_pressure(SphParticle *a, SphContext *c);
-void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c);
+void sph_force_terms(SphParticle *a, SphParticle *b, SphContext *c);
 void sph_particle_leapfrog(SphParticle *a, SphContext *c);
 void sph_particle_reset(SphParticle *a);
 
