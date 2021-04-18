@@ -52,13 +52,16 @@ void fluid_init() {
 
     int particles_inside_influence_radius = 20;
 
+    sph_context.K = 100.0f;
+    sph_context.density = fluid_density;
     sph_context.h = cbrtf(3.0f * (particles_inside_influence_radius * (initial_volume / particles_count)) / (4.0f * F_PI));
-    sph_context.dt = 1.0f / 60.0f; // 60 fps
-    sph_context.dynamic_viscosity = 3.5;
+    sph_context.dt = 0.1f / 60.0f; // 60 fps
+    sph_context.max_velocity = 0.8f * sph_context.h / sph_context.dt;
+    sph_context.dynamic_viscosity = 3.5f;
     sph_context.surface_tension = 0.0728f;
     sph_context.surface_tension_threshold = 7.065f;
-    sph_context.min = (float3){-0.2f, -0.2f, -0.2f};
-    sph_context.max = (float3){0.2f, 0.2f, 0.2f};
+    sph_context.min = (float3){-1.0f, -1.0f, -1.0f};
+    sph_context.max = (float3){1.0f, 1.0f, 1.0f};
 
     _update_sph_context(&sph_context, particle_m);
 
@@ -69,6 +72,7 @@ void fluid_init() {
     tay_configure_space(global.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_r, part_r, part_r, part_r}, 250);
 
     tay_add_see(global.tay, particles_group, particles_group, sph_particle_density, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
+    tay_add_act(global.tay, particles_group, sph_particle_pressure, &sph_context);
     tay_add_see(global.tay, particles_group, particles_group, sph_particle_acceleration, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
     tay_add_act(global.tay, particles_group, sph_particle_leapfrog, &sph_context);
 

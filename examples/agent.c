@@ -189,6 +189,14 @@ void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c) {
         a->density += c->poly6 * z * z * z;
 }
 
+void sph_particle_pressure(SphParticle *a, SphContext *c) {
+    /* Tait equation more suitable to liquids than state equation */
+    a->pressure = c->K * (powf(a->density / c->density, 7.0f) - 1.0f);
+
+    /* state equation */
+    // a->pressure = c->K * (a->density - c->density);
+}
+
 void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c) {
     float3 r = float3_sub(b->p.xyz, a->p.xyz);
     float rl = float3_length(r);
@@ -197,36 +205,22 @@ void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c) {
 
         if (a != b) {
 
-            float3 spiky_gradient;
-            if (rl < 0.00001f) { // TODO: is this widening OK?
-                spiky_gradient.x = c->spiky * c->h2;
-                spiky_gradient.y = c->spiky * c->h2;
-                spiky_gradient.z = c->spiky * c->h2;
-            }
+            float spiky_gradient;
+            if (rl < 0.00001f)
+                spiky_gradient = c->spiky * c->h2;
             else
-                spiky_gradient = float3_mul_scalar(r, c->spiky * (c->h - rl) * (c->h - rl) / rl);
+                spiky_gradient = c->spiky * (c->h - rl) * (c->h - rl);
 
-            a->pressure_accum = float3_add(
-                                    a->pressure_accum,
-                                    float3_mul(
-                                        float3_add(
-                                            float3_div_scalar(a->pressure, (a->density * a->density)),
-                                            float3_div_scalar(b->pressure, (b->density * b->density))
-                                        ),
-                                        spiky_gradient
-                                    )
-                                );
+            a->pressure_accum = float3_add(a->pressure_accum, float3_mul_scalar(r, spiky_gradient * (a->pressure + b->pressure) / (2.0f * b->density) / rl));
 
-            float viscosity_laplacian = c->viscosity * (c->h - rl);
-
-            a->viscosity_accum = float3_add(a->viscosity_accum, float3_mul_scalar(float3_sub(b->v, a->v), viscosity_laplacian / b->density));
+            a->viscosity_accum = float3_add(a->viscosity_accum, float3_mul_scalar(float3_sub(b->v, a->v), c->viscosity * (c->h - rl) / b->density));
         }
 
-        float3 poly6_gradient = float3_mul_scalar(r, c->poly6_gradient * (c->h2 - rl * rl) * (c->h2 - rl * rl) / b->density);
+        // float3 poly6_gradient = float3_mul_scalar(r, c->poly6_gradient * (c->h2 - rl * rl) * (c->h2 - rl * rl) / b->density);
 
-        a->normal = float3_add(a->normal, poly6_gradient);
+        // a->normal = float3_add(a->normal, poly6_gradient);
 
-        a->color_field_laplacian += c->poly6_laplacian * (c->h2 - rl * rl) * (3.0f * c->h2 - 7.0f * rl * rl) / b->density;
+        // a->color_field_laplacian += c->poly6_laplacian * (c->h2 - rl * rl) * (3.0f * c->h2 - 7.0f * rl * rl) / b->density;
     }
 }
 
@@ -234,11 +228,11 @@ void sph_particle_leapfrog(SphParticle *a, SphContext *c) {
 
     /* calculate internal forces */
 
-    float3 f = float3_add(float3_mul_scalar(a->pressure_accum, -a->density), float3_mul_scalar(a->viscosity_accum, c->dynamic_viscosity));
+    float3 f = float3_add(a->pressure_accum, float3_mul_scalar(a->viscosity_accum, c->dynamic_viscosity));
 
-    float nl = float3_length(a->normal);
-    if (nl > c->surface_tension_threshold)
-        f = float3_add(f, float3_mul_scalar(a->normal, -c->surface_tension * a->color_field_laplacian / nl));
+    // float nl = float3_length(a->normal);
+    // if (nl > c->surface_tension_threshold)
+    //     f = float3_add(f, float3_mul_scalar(a->normal, -c->surface_tension * a->color_field_laplacian / nl));
 
     /* acceleration */
 
@@ -248,55 +242,60 @@ void sph_particle_leapfrog(SphParticle *a, SphContext *c) {
     /* leapfrog */
 
     a->vh = float3_add(a->vh, float3_mul_scalar(acc, c->dt));
+
+    // float vhl = float3_length(a->vh);
+    // if (vhl > c->max_velocity)
+    //     a->vh = float3_mul_scalar(a->vh, c->max_velocity / vhl);
+
     a->v = float3_add(a->vh, float3_mul_scalar(acc, c->dt * 0.5f));
     a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->vh, c->dt));
 
-    const float damp = 0.75f;
+    const float damp = -0.5f;
 
     if (a->p.x < c->min.x) {
         a->p.x = c->min.x;
-        a->v.x = -a->v.x;
-        a->vh.x = -a->vh.x;
+        a->v.x = damp * a->v.x;
+        a->vh.x = damp * a->vh.x;
         // a->v = float3_mul_scalar(a->v, damp);
         // a->vh = float3_mul_scalar(a->vh, damp);
     }
 
     if (a->p.y < c->min.y) {
         a->p.y = c->min.y;
-        a->v.y = -a->v.y;
-        a->vh.y = -a->vh.y;
+        a->v.y = damp * a->v.y;
+        a->vh.y = damp * a->vh.y;
         // a->v = float3_mul_scalar(a->v, damp);
         // a->vh = float3_mul_scalar(a->vh, damp);
     }
 
     if (a->p.z < c->min.z) {
         a->p.z = c->min.z;
-        a->v.z = -a->v.z;
-        a->vh.z = -a->vh.z;
+        a->v.z = damp * a->v.z;
+        a->vh.z = damp * a->vh.z;
         // a->v = float3_mul_scalar(a->v, damp);
         // a->vh = float3_mul_scalar(a->vh, damp);
     }
 
     if (a->p.x > c->max.x) {
         a->p.x = c->max.x;
-        a->v.x = -a->v.x;
-        a->vh.x = -a->vh.x;
+        a->v.x = damp * a->v.x;
+        a->vh.x = damp * a->vh.x;
         // a->v = float3_mul_scalar(a->v, damp);
         // a->vh = float3_mul_scalar(a->vh, damp);
     }
 
     if (a->p.y > c->max.y) {
         a->p.y = c->max.y;
-        a->v.y = -a->v.y;
-        a->vh.y = -a->vh.y;
+        a->v.y = damp * a->v.y;
+        a->vh.y = damp * a->vh.y;
         // a->v = float3_mul_scalar(a->v, damp);
         // a->vh = float3_mul_scalar(a->vh, damp);
     }
 
     if (a->p.z > c->max.z) {
         a->p.z = c->max.z;
-        a->v.z = -a->v.z;
-        a->vh.z = -a->vh.z;
+        a->v.z = damp * a->v.z;
+        a->vh.z = damp * a->vh.z;
         // a->v = float3_mul_scalar(a->v, damp);
         // a->vh = float3_mul_scalar(a->vh, damp);
     }
@@ -525,13 +524,13 @@ void particle_ball_see(global Particle *a, global Ball *b, global BallParticleSe
 typedef struct __attribute__((packed)) SphParticle {\n\
     TayAgentTag tag;\n\
     float4 p;\n\
-    float3 pressure;\n\
     float3 pressure_accum;\n\
     float3 viscosity_accum;\n\
     float3 normal;\n\
     float3 vh;\n\
     float3 v;\n\
     float density;\n\
+    float pressure;\n\
     float color_field_laplacian;\n\
 } SphParticle;\n\
 \n\
@@ -542,6 +541,9 @@ typedef struct __attribute__((packed)) SphContext {\n\
     float m;\n\
     float surface_tension;\n\
     float surface_tension_threshold;\n\
+    float K;\n\
+    float density;\n\
+    float max_velocity;\n\
 \n\
     float3 min;\n\
     float3 max;\n\
@@ -555,6 +557,7 @@ typedef struct __attribute__((packed)) SphContext {\n\
 } SphContext;\n\
 \n\
 void sph_particle_density(global SphParticle *a, global SphParticle *b, global SphContext *c);\n\
+void sph_particle_pressure(global SphParticle *a, global SphContext *c);\n\
 void sph_particle_acceleration(global SphParticle *a, global SphParticle *b, global SphContext *c);\n\
 void sph_particle_leapfrog(global SphParticle *a, global SphContext *c);\n\
 void sph_particle_reset(global SphParticle *a);\n\
@@ -888,6 +891,14 @@ void sph_particle_density(global SphParticle *a, global SphParticle *b, global S
         a->density += c->poly6 * z * z * z;\n\
 }\n\
 \n\
+void sph_particle_pressure(global SphParticle *a, global SphContext *c) {\n\
+    /* Tait equation more suitable to liquids than state equation */\n\
+    a->pressure = c->K * (powf(a->density / c->density, 7.0f) - 1.0f);\n\
+\n\
+    /* state equation */\n\
+    // a->pressure = c->K * (a->density - c->density);\n\
+}\n\
+\n\
 void sph_particle_acceleration(global SphParticle *a, global SphParticle *b, global SphContext *c) {\n\
     float3 r = float3_sub(b->p.xyz, a->p.xyz);\n\
     float rl = float3_length(r);\n\
@@ -896,36 +907,22 @@ void sph_particle_acceleration(global SphParticle *a, global SphParticle *b, glo
 \n\
         if (a != b) {\n\
 \n\
-            float3 spiky_gradient;\n\
-            if (rl < 0.00001f) { // TODO: is this widening OK?\n\
-                spiky_gradient.x = c->spiky * c->h2;\n\
-                spiky_gradient.y = c->spiky * c->h2;\n\
-                spiky_gradient.z = c->spiky * c->h2;\n\
-            }\n\
+            float spiky_gradient;\n\
+            if (rl < 0.00001f)\n\
+                spiky_gradient = c->spiky * c->h2;\n\
             else\n\
-                spiky_gradient = float3_mul_scalar(r, c->spiky * (c->h - rl) * (c->h - rl) / rl);\n\
+                spiky_gradient = c->spiky * (c->h - rl) * (c->h - rl);\n\
 \n\
-            a->pressure_accum = float3_add(\n\
-                                    a->pressure_accum,\n\
-                                    float3_mul(\n\
-                                        float3_add(\n\
-                                            float3_div_scalar(a->pressure, (a->density * a->density)),\n\
-                                            float3_div_scalar(b->pressure, (b->density * b->density))\n\
-                                        ),\n\
-                                        spiky_gradient\n\
-                                    )\n\
-                                );\n\
+            a->pressure_accum = float3_add(a->pressure_accum, float3_mul_scalar(r, spiky_gradient * (a->pressure + b->pressure) / (2.0f * b->density) / rl));\n\
 \n\
-            float viscosity_laplacian = c->viscosity * (c->h - rl);\n\
-\n\
-            a->viscosity_accum = float3_add(a->viscosity_accum, float3_mul_scalar(float3_sub(b->v, a->v), viscosity_laplacian / b->density));\n\
+            a->viscosity_accum = float3_add(a->viscosity_accum, float3_mul_scalar(float3_sub(b->v, a->v), c->viscosity * (c->h - rl) / b->density));\n\
         }\n\
 \n\
-        float3 poly6_gradient = float3_mul_scalar(r, c->poly6_gradient * (c->h2 - rl * rl) * (c->h2 - rl * rl) / b->density);\n\
+        // float3 poly6_gradient = float3_mul_scalar(r, c->poly6_gradient * (c->h2 - rl * rl) * (c->h2 - rl * rl) / b->density);\n\
 \n\
-        a->normal = float3_add(a->normal, poly6_gradient);\n\
+        // a->normal = float3_add(a->normal, poly6_gradient);\n\
 \n\
-        a->color_field_laplacian += c->poly6_laplacian * (c->h2 - rl * rl) * (3.0f * c->h2 - 7.0f * rl * rl) / b->density;\n\
+        // a->color_field_laplacian += c->poly6_laplacian * (c->h2 - rl * rl) * (3.0f * c->h2 - 7.0f * rl * rl) / b->density;\n\
     }\n\
 }\n\
 \n\
@@ -933,11 +930,11 @@ void sph_particle_leapfrog(global SphParticle *a, global SphContext *c) {\n\
 \n\
     /* calculate internal forces */\n\
 \n\
-    float3 f = float3_add(float3_mul_scalar(a->pressure_accum, -a->density), float3_mul_scalar(a->viscosity_accum, c->dynamic_viscosity));\n\
+    float3 f = float3_add(a->pressure_accum, float3_mul_scalar(a->viscosity_accum, c->dynamic_viscosity));\n\
 \n\
-    float nl = float3_length(a->normal);\n\
-    if (nl > c->surface_tension_threshold)\n\
-        f = float3_add(f, float3_mul_scalar(a->normal, -c->surface_tension * a->color_field_laplacian / nl));\n\
+    // float nl = float3_length(a->normal);\n\
+    // if (nl > c->surface_tension_threshold)\n\
+    //     f = float3_add(f, float3_mul_scalar(a->normal, -c->surface_tension * a->color_field_laplacian / nl));\n\
 \n\
     /* acceleration */\n\
 \n\
@@ -947,55 +944,60 @@ void sph_particle_leapfrog(global SphParticle *a, global SphContext *c) {\n\
     /* leapfrog */\n\
 \n\
     a->vh = float3_add(a->vh, float3_mul_scalar(acc, c->dt));\n\
+\n\
+    // float vhl = float3_length(a->vh);\n\
+    // if (vhl > c->max_velocity)\n\
+    //     a->vh = float3_mul_scalar(a->vh, c->max_velocity / vhl);\n\
+\n\
     a->v = float3_add(a->vh, float3_mul_scalar(acc, c->dt * 0.5f));\n\
     a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->vh, c->dt));\n\
 \n\
-    const float damp = 0.75f;\n\
+    const float damp = -0.5f;\n\
 \n\
     if (a->p.x < c->min.x) {\n\
         a->p.x = c->min.x;\n\
-        a->v.x = -a->v.x;\n\
-        a->vh.x = -a->vh.x;\n\
+        a->v.x = damp * a->v.x;\n\
+        a->vh.x = damp * a->vh.x;\n\
         // a->v = float3_mul_scalar(a->v, damp);\n\
         // a->vh = float3_mul_scalar(a->vh, damp);\n\
     }\n\
 \n\
     if (a->p.y < c->min.y) {\n\
         a->p.y = c->min.y;\n\
-        a->v.y = -a->v.y;\n\
-        a->vh.y = -a->vh.y;\n\
+        a->v.y = damp * a->v.y;\n\
+        a->vh.y = damp * a->vh.y;\n\
         // a->v = float3_mul_scalar(a->v, damp);\n\
         // a->vh = float3_mul_scalar(a->vh, damp);\n\
     }\n\
 \n\
     if (a->p.z < c->min.z) {\n\
         a->p.z = c->min.z;\n\
-        a->v.z = -a->v.z;\n\
-        a->vh.z = -a->vh.z;\n\
+        a->v.z = damp * a->v.z;\n\
+        a->vh.z = damp * a->vh.z;\n\
         // a->v = float3_mul_scalar(a->v, damp);\n\
         // a->vh = float3_mul_scalar(a->vh, damp);\n\
     }\n\
 \n\
     if (a->p.x > c->max.x) {\n\
         a->p.x = c->max.x;\n\
-        a->v.x = -a->v.x;\n\
-        a->vh.x = -a->vh.x;\n\
+        a->v.x = damp * a->v.x;\n\
+        a->vh.x = damp * a->vh.x;\n\
         // a->v = float3_mul_scalar(a->v, damp);\n\
         // a->vh = float3_mul_scalar(a->vh, damp);\n\
     }\n\
 \n\
     if (a->p.y > c->max.y) {\n\
         a->p.y = c->max.y;\n\
-        a->v.y = -a->v.y;\n\
-        a->vh.y = -a->vh.y;\n\
+        a->v.y = damp * a->v.y;\n\
+        a->vh.y = damp * a->vh.y;\n\
         // a->v = float3_mul_scalar(a->v, damp);\n\
         // a->vh = float3_mul_scalar(a->vh, damp);\n\
     }\n\
 \n\
     if (a->p.z > c->max.z) {\n\
         a->p.z = c->max.z;\n\
-        a->v.z = -a->v.z;\n\
-        a->vh.z = -a->vh.z;\n\
+        a->v.z = damp * a->v.z;\n\
+        a->vh.z = damp * a->vh.z;\n\
         // a->v = float3_mul_scalar(a->v, damp);\n\
         // a->vh = float3_mul_scalar(a->vh, damp);\n\
     }\n\

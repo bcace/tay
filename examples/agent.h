@@ -69,13 +69,13 @@ void particle_ball_see(Particle *a, Ball *b, BallParticleSeeContext *c);
 typedef struct SphParticle {
     TayAgentTag tag;
     float4 p;
-    float3 pressure;
     float3 pressure_accum;
     float3 viscosity_accum;
     float3 normal;
     float3 vh;
     float3 v;
     float density;
+    float pressure;
     float color_field_laplacian;
 } SphParticle;
 
@@ -86,6 +86,9 @@ typedef struct SphContext {
     float m;
     float surface_tension;
     float surface_tension_threshold;
+    float K;
+    float density;
+    float max_velocity;
 
     float3 min;
     float3 max;
@@ -99,6 +102,7 @@ typedef struct SphContext {
 } SphContext;
 
 void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c);
+void sph_particle_pressure(SphParticle *a, SphContext *c);
 void sph_particle_acceleration(SphParticle *a, SphParticle *b, SphContext *c);
 void sph_particle_leapfrog(SphParticle *a, SphContext *c);
 void sph_particle_reset(SphParticle *a);
