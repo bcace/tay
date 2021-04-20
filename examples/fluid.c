@@ -47,12 +47,13 @@ void fluid_init() {
 
     float particle_m = 0.05f;
     float fluid_density = 998.29f;
+    float atmospheric_pressure = 101325.0f;
     float total_m = particles_count * particle_m;
     float initial_volume = total_m / fluid_density;
 
     int particles_inside_influence_radius = 20;
 
-    sph_context.K = 100.0f;
+    sph_context.K = atmospheric_pressure / fluid_density; // from pV=mRT
     sph_context.density = fluid_density;
     sph_context.h = cbrtf(3.0f * (particles_inside_influence_radius * (initial_volume / particles_count)) / (4.0f * F_PI));
     sph_context.dt = 0.005f;

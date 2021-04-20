@@ -100,7 +100,7 @@ void sph_particle_pressure(__GLOBAL__ SphParticle *a, __GLOBAL__ SphContext *c) 
     /* Tait equation more suitable to liquids than state equation */
     a->pressure = c->K * (powf(a->density / c->density, 7.0f) - 1.0f);
 
-    /* state equation */
+    /* state equation: P = kp ​(ρ − ρ0​) */
     // a->pressure = c->K * (a->density - c->density);
 }
 
