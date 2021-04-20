@@ -1,6 +1,7 @@
 #include "test.h"
 #include "thread.h"
 #include "agent.h"
+#include "taystd.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>

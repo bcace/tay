@@ -1,6 +1,7 @@
 #include "test.h"
 #include "state.h"
 #include "agent.h"
+#include "taystd.h"
 #include "thread.h"
 #include <stdlib.h>
 #include <stdio.h>

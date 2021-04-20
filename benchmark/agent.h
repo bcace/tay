@@ -34,32 +34,12 @@ typedef struct BoxAgent {
     float4 f_buffer;
 } BoxAgent;
 
+#pragma pack(pop)
+
 void agent_see(Agent *a, Agent *b, SeeContext *context);
 void agent_act(Agent *agent, ActContext *context);
 
 void box_agent_see(BoxAgent *a, BoxAgent *b, SeeContext *context);
 void box_agent_act(BoxAgent *agent, ActContext *context);
-
-
-float3 float3_null();
-float3 float3_make(float x, float y, float z);
-float3 float3_add(float3 a, float3 b);
-float3 float3_sub(float3 a, float3 b);
-float3 float3_div_scalar(float3 a, float s);
-float3 float3_mul_scalar(float3 a, float s);
-float3 float3_normalize(float3 a);
-float3 float3_normalize_to(float3 a, float b);
-float float3_length(float3 a);
-float float3_dot(float3 a, float3 b);
-
-float4 float4_null();
-float4 float4_make(float x, float y, float z, float w);
-float4 float4_add(float4 a, float4 b);
-float4 float4_sub(float4 a, float4 b);
-float4 float4_div_scalar(float4 a, float s);
-
-extern const char *agent_kernels_source;
-
-#pragma pack(pop)
 
 #endif
