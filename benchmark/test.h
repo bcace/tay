@@ -22,7 +22,7 @@ typedef struct {
 Results *results_create();
 void results_reset(Results *r);
 void results_destroy(Results *r);
-void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, int agents_count, int f_buffer_offset, void *file);
+void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, int agents_count, int f_buffer_offset, int result_index_offset, void *file);
 
 void make_randomized_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max);
 void make_uniform_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max);

@@ -100,7 +100,17 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
         fprintf(stderr, "error %d\n", tay_get_error(tay));
     tay_log(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
     tay_threads_report_telemetry(0, file);
-    results_write_or_compare(results, tay, group_a, AGENTS_COUNT / 2, is_point_a ? offsetof(Agent, f_buffer) : offsetof(BoxAgent, f_buffer), file);
+    int f_buffer_offset;
+    int result_index_offset;
+    if (is_point_a) {
+        f_buffer_offset = offsetof(Agent, f_buffer);
+        result_index_offset = offsetof(Agent, result_index);
+    }
+    else {
+        f_buffer_offset = offsetof(BoxAgent, f_buffer);
+        result_index_offset = offsetof(BoxAgent, result_index);
+    }
+    results_write_or_compare(results, tay, group_a, AGENTS_COUNT / 2, f_buffer_offset, result_index_offset, file);
     tay_log(file, "      },\n");
     tay_simulation_end(tay);
 

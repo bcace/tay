@@ -13,15 +13,15 @@ int main() {
 
     Results *results = results_create();
 
-    // test_basic(results, MC_UNIFORM, 100,
-    //            0, 1, // see radius
-    //            0, 2, // depth correction
-    //            TAY_CPU_SIMPLE
-    //            |
-    //            TAY_CPU_GRID
-    //            |
-    //            TAY_CPU_KD_TREE
-    // );
+    test_basic(results, MC_UNIFORM, 100,
+               0, 1, // see radius
+               0, 2, // depth correction
+               TAY_CPU_SIMPLE
+               |
+               TAY_CPU_GRID
+               |
+               TAY_CPU_KD_TREE
+    );
 
     // test_nonpoint(results, 100,
     //               0, 1, // see radius
@@ -31,26 +31,26 @@ int main() {
     //               TAY_CPU_AABB_TREE
     // );
 
-    TaySpaceType spec_pairs[] = {
-        // TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,
-        TAY_CPU_KD_TREE, TAY_CPU_KD_TREE,
-        TAY_CPU_GRID, TAY_CPU_GRID,
-        TAY_CPU_KD_TREE, TAY_CPU_GRID,
-        TAY_SPACE_NONE,
-    };
+    // TaySpaceType spec_pairs[] = {
+    //     // TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,
+    //     TAY_CPU_KD_TREE, TAY_CPU_KD_TREE,
+    //     TAY_CPU_GRID, TAY_CPU_GRID,
+    //     TAY_CPU_KD_TREE, TAY_CPU_GRID,
+    //     TAY_SPACE_NONE,
+    // };
 
-    test_combo(results, 100, TAY_TRUE, TAY_TRUE,
-                0, 1, // see radius
-                0, 1, // depth correction
-                spec_pairs
-    );
+    // test_combo(results, 100, TAY_TRUE, TAY_TRUE,
+    //             0, 1, // see radius
+    //             0, 1, // depth correction
+    //             spec_pairs
+    // );
 
-    TaySpaceType spec_pairs_nonpoint[] = {
-        // TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,
-        TAY_CPU_KD_TREE, TAY_CPU_KD_TREE,
-        TAY_CPU_AABB_TREE, TAY_CPU_AABB_TREE,
-        TAY_SPACE_NONE,
-    };
+    // TaySpaceType spec_pairs_nonpoint[] = {
+    //     // TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,
+    //     TAY_CPU_KD_TREE, TAY_CPU_KD_TREE,
+    //     TAY_CPU_AABB_TREE, TAY_CPU_AABB_TREE,
+    //     TAY_SPACE_NONE,
+    // };
 
     // test_combo(results, 100, TAY_FALSE, TAY_FALSE,
     //             0, 1, // see radius

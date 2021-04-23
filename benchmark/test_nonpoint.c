@@ -42,7 +42,7 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
         fprintf(stderr, "error %d\n", tay_get_error(tay));
     tay_log(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
     tay_threads_report_telemetry(0, file);
-    results_write_or_compare(results, tay, group, AGENTS_COUNT, offsetof(BoxAgent, f_buffer), file);
+    results_write_or_compare(results, tay, group, AGENTS_COUNT, offsetof(BoxAgent, f_buffer), offsetof(BoxAgent, result_index), file);
     tay_log(file, "      },\n");
     tay_simulation_end(tay);
 

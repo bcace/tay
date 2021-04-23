@@ -51,12 +51,13 @@ static inline void _check_error(float a, float b, float *max_error) {
         *max_error = -relative_error;
 }
 
-void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, int agents_count, int f_buffer_offset, void *file) {
+void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, int agents_count, int f_buffer_offset, int result_index_offset, void *file) {
     if (results) {
         if (results->first_time) {
             for (int i = 0; i < agents_count; ++i) {
                 char *agent = tay_get_agent(tay, group, i);
-                results->data[i] = *(float4 *)(agent + f_buffer_offset);
+                int result_index = *(int *)(agent + result_index_offset);
+                results->data[result_index] = *(float4 *)(agent + f_buffer_offset);
             }
             results->first_time = 0;
         }
@@ -65,7 +66,8 @@ void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, 
 
             for (int i = 0; i < agents_count; ++i) {
                 char *agent = tay_get_agent(tay, group, i);
-                float4 a = results->data[i];
+                int result_index = *(int *)(agent + result_index_offset);
+                float4 a = results->data[result_index];
                 float4 b = *(float4 *)(agent + f_buffer_offset);
                 _check_error(a.x, b.x, &max_error);
                 _check_error(a.y, b.y, &max_error);
@@ -123,6 +125,8 @@ void make_randomized_direction_cluster_nonpoint(TayState *state, TayGroup *group
         a->f_buffer.y = 0.0f;
         a->f_buffer.z = 0.0f;
 
+        a->result_index = i;
+
         tay_commit_available_agent(state, group);
     }
 }
@@ -153,6 +157,8 @@ void make_randomized_direction_cluster(TayState *state, TayGroup *group, int cou
         a->f_buffer.x = 0.0f;
         a->f_buffer.y = 0.0f;
         a->f_buffer.z = 0.0f;
+
+        a->result_index = i;
 
         tay_commit_available_agent(state, group);
     }
@@ -191,6 +197,8 @@ void make_uniform_direction_cluster(TayState *state, TayGroup *group, int count,
         a->f_buffer.x = 0.0f;
         a->f_buffer.y = 0.0f;
         a->f_buffer.z = 0.0f;
+
+        a->result_index = i;
 
         tay_commit_available_agent(state, group);
     }

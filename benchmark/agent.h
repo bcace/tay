@@ -13,6 +13,7 @@ typedef struct Agent {
     float4 b_buffer;
     int b_buffer_count;
     float4 f_buffer;
+    int result_index;
 } Agent;
 
 typedef struct ActContext {
@@ -32,6 +33,7 @@ typedef struct BoxAgent {
     float4 b_buffer;
     int b_buffer_count;
     float4 f_buffer;
+    int result_index;
 } BoxAgent;
 
 #pragma pack(pop)
