@@ -232,10 +232,6 @@ void space_see_nonpoint_nonpoint_self_see(TayAgentTag *seer_agents, TayAgentTag 
     }
 }
 
-int group_tag_to_index(TayGroup *group, TayAgentTag *tag) {
-    return (tag != 0) ? (int)((char *)tag - (char *)group->storage) / group->agent_size : TAY_GPU_NULL_INDEX;
-}
-
 int space_agent_count_to_bucket_index(int count) {
     /* both these consts must be within [0, TAY_MAX_BUCKETS> */
     const int min_pow = 5;
