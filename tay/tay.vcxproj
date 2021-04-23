@@ -94,8 +94,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>OpenCL.lib;</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)lib\x86;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -130,8 +132,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>OpenCL.lib;</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)lib\x86;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -157,7 +161,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="config.h" />
-    <ClInclude Include="gpu.h" />
     <ClInclude Include="space.h" />
     <ClInclude Include="state.h" />
     <ClInclude Include="tay.h" />
@@ -170,8 +173,6 @@
     <ClCompile Include="cpu_hash_grid.c" />
     <ClCompile Include="cpu_simple.c" />
     <ClCompile Include="cpu_tree.c" />
-    <ClCompile Include="gpu.c" />
-    <ClCompile Include="gpu_simple.c" />
     <ClCompile Include="space.c" />
     <ClCompile Include="state.c" />
     <ClCompile Include="taystd.c" />
