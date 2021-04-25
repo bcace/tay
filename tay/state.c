@@ -162,7 +162,7 @@ void tay_commit_available_agent(TayState *state, TayGroup *group) {
         Space *space = &group->space;
         a->next = space->first;
         space->first = a;
-        box_update_from_agent(&space->box, a, space->dims, group->is_point);
+        box_update_from_agent(&space->box, (char *)a, space->dims, group->is_point);
         ++space->count;
     }
 }
@@ -203,6 +203,17 @@ static SEE_PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, in
         return (seer_is_point) ? space_see_point_nonpoint : space_see_nonpoint_point;
 }
 
+static NEW_PAIRING_FUNC _get_many_to_many_pairing_function_new(int seer_is_point, int seen_is_point, int self_see) {
+    if (seer_is_point == seen_is_point) {
+        if (self_see)
+            return (seer_is_point) ? space_see_point_point_self_see_new : space_see_nonpoint_nonpoint_self_see_new;
+        else
+            return (seer_is_point) ? space_see_point_point_new : space_see_nonpoint_nonpoint_new;
+    }
+    else
+        return (seer_is_point) ? space_see_point_nonpoint_new : space_see_nonpoint_point_new;
+}
+
 static TayError _compile_passes(TayState *state) {
 
     for (int pass_i = 0; pass_i < state->passes_count; ++pass_i) {
@@ -222,6 +233,7 @@ static TayError _compile_passes(TayState *state) {
             if (seer_space->dims == seen_space->dims) {
 
                 pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point, self_see);
+                pass->new_pairing_func = _get_many_to_many_pairing_function_new(seer_is_point, seen_is_point, self_see);
 
                 if (seer_space->type == TAY_CPU_SIMPLE)
                     pass->struct_pass_func = cpu_simple_see;
@@ -241,7 +253,7 @@ static TayError _compile_passes(TayState *state) {
                 else if (seen_space->type == TAY_CPU_AABB_TREE)
                     pass->struct_seen_func = cpu_aabb_tree_see_seen;
                 else if (seen_space->type == TAY_CPU_GRID)
-                    ;//     pass->struct_seen_func = cpu_grid_see_seen;
+                    pass->new_seen_func = cpu_grid_see_seen_new;
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
             }

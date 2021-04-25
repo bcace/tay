@@ -6,13 +6,22 @@
 
 #define TAY_MB (1 << 20)
 
+
+typedef struct {
+    char *agents;
+    unsigned size;
+    unsigned beg;
+    unsigned end;
+} AgentsSlice;
+
 typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 
 typedef void (*PASS_FUNC)(struct TayPass *);
 typedef void (*SEEN_FUNC)(struct TayPass *, TayAgentTag *, Box, int, struct TayThreadContext *);
+typedef void (*NEW_SEEN_FUNC)(struct TayPass *, AgentsSlice, Box, int, struct TayThreadContext *);
 typedef void (*SEE_PAIRING_FUNC)(TayAgentTag *, TayAgentTag *, TAY_SEE_FUNC, float4, int, struct TayThreadContext *);
-
+typedef void (*NEW_PAIRING_FUNC)(AgentsSlice, AgentsSlice, TAY_SEE_FUNC, float4, int, struct TayThreadContext *);
 
 typedef struct {
     union {
@@ -115,7 +124,9 @@ typedef struct TayPass {
     Space *seen_space;
     PASS_FUNC struct_pass_func;
     SEEN_FUNC struct_seen_func;
+    NEW_SEEN_FUNC new_seen_func;
     SEE_PAIRING_FUNC pairing_func;
+    NEW_PAIRING_FUNC new_pairing_func;
 } TayPass;
 
 typedef enum TayStateStatus {

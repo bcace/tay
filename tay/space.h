@@ -6,23 +6,22 @@
 #define TAY_MAX_BUCKETS     32
 
 
-typedef struct {
-    char *agents;
-    unsigned size;
-    unsigned beg;
-    unsigned end;
-} AgentsSlice;
-
 void space_return_agents(Space *space, TayAgentTag *tag, int is_point);
 void space_update_box(TayGroup *group);
 
 void space_see_point_point(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
-void space_see_point_point_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 void space_see_point_point_self_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 void space_see_nonpoint_point(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 void space_see_point_nonpoint(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 void space_see_nonpoint_nonpoint(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 void space_see_nonpoint_nonpoint_self_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
+
+void space_see_point_point_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
+void space_see_point_point_self_see_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
+void space_see_nonpoint_point_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
+void space_see_point_nonpoint_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
+void space_see_nonpoint_nonpoint_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
+void space_see_nonpoint_nonpoint_self_see_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 
 void cpu_simple_sort(TayGroup *group);
 void cpu_simple_unsort(TayGroup *group);
@@ -48,7 +47,6 @@ void cpu_grid_sort(TayGroup *group);
 void cpu_grid_unsort(TayGroup *group);
 void cpu_grid_see(TayPass *pass);
 void cpu_grid_act(TayPass *pass);
-// void cpu_grid_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, struct TayThreadContext *thread_context);
 void cpu_grid_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, struct TayThreadContext *thread_context);
 
 void cpu_hash_grid_on_simulation_start(Space *space);
