@@ -242,20 +242,28 @@ void cpu_grid_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, 
     int4 indices;
     switch (dims) {
         case 1: {
-            // for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
-            //     unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
-            //     GridCell *seen_cell = seen_grid->cells + seen_cell_i;
-            //     pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
-            // }
+            for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
+                unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
+                GridCell *seen_cell = seen_grid->cells + seen_cell_i;
+                
+                seen_slice.beg = seen_cell->first_agent_i;
+                seen_slice.end = seen_cell->first_agent_i + seen_cell->count;
+
+                pass->new_pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
+            }
         } break;
         case 2: {
-            // for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
-            //     for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
-            //         unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
-            //         GridCell *seen_cell = seen_grid->cells + seen_cell_i;
-            //         pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
-            //     }
-            // }
+            for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
+                for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
+                    unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
+                    GridCell *seen_cell = seen_grid->cells + seen_cell_i;
+                    
+                    seen_slice.beg = seen_cell->first_agent_i;
+                    seen_slice.end = seen_cell->first_agent_i + seen_cell->count;
+
+                    pass->new_pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
+                }
+            }
         } break;
         case 3: {
             for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
@@ -273,17 +281,21 @@ void cpu_grid_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, 
             }
         } break;
         default: {
-            // for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
-            //     for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
-            //         for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {
-            //             for (indices.w = min_indices.w; indices.w <= max_indices.w; ++indices.w) {
-            //                 unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
-            //                 GridCell *seen_cell = seen_grid->cells + seen_cell_i;
-            //                 pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
-            //             }
-            //         }
-            //     }
-            // }
+            for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
+                for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
+                    for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {
+                        for (indices.w = min_indices.w; indices.w <= max_indices.w; ++indices.w) {
+                            unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
+                            GridCell *seen_cell = seen_grid->cells + seen_cell_i;
+                            
+                            seen_slice.beg = seen_cell->first_agent_i;
+                            seen_slice.end = seen_cell->first_agent_i + seen_cell->count;
+
+                            pass->new_pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
+                        }
+                    }
+                }
+            }
         };
     }
 }
