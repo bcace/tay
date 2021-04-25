@@ -116,8 +116,6 @@ void cpu_grid_sort(TayGroup *group) {
 
     /* find cells and agent indices in those cells */
 
-    GridCell *last_cell = 0;
-
     for (unsigned i = 0; i < space->count; ++i) {
         Tag *agent = (Tag *)((char *)group->storage + group->agent_size * i);
 
@@ -129,12 +127,8 @@ void cpu_grid_sort(TayGroup *group) {
         GridCell *cell = grid->cells + cell_i;
 
         if (cell->count == 0) { /* if first agent in this cell, add the cell to the list of non-empty cells */
-            cell->next = 0; //grid->first_cell;
-            if (last_cell)
-                last_cell->next = cell;
-            else
-                grid->first_cell = cell;
-            last_cell = cell;
+            cell->next = grid->first_cell;
+            grid->first_cell = cell;
             cell->indices = indices;
         }
 
