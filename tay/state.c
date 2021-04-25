@@ -26,7 +26,7 @@ static void _clear_group(TayGroup *group) {
     free(group->agent_storage[0]);
     free(group->agent_storage[1]);
     group->agent_storage[0] = group->storage = 0;
-    group->agent_storage[1] = group->seen_storage = 0;
+    group->agent_storage[1] = group->sort_storage = 0;
     group->first = 0;
     _clear_space(&group->space);
 }
@@ -61,7 +61,7 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     TayGroup *group = state->groups + group_i;
     group->agent_size = agent_size;
     group->agent_storage[0] = group->storage = calloc(agent_capacity, agent_size);
-    group->agent_storage[1] = group->seen_storage = calloc(agent_capacity, agent_size);
+    group->agent_storage[1] = group->sort_storage = calloc(agent_capacity, agent_size);
     group->capacity = agent_capacity;
     group->is_point = is_point;
     group->first = (TayAgentTag *)group->storage;

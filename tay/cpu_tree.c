@@ -226,13 +226,13 @@ void cpu_tree_sort(TayGroup *group) {
     for (unsigned i = 0; i < space->count; ++i) {
         TayAgentTag *src = (TayAgentTag *)((char *)group->storage + group->agent_size * i);
         unsigned sorted_agent_i = tree->cells[src->cell_i].first_agent_i + src->cell_agent_i;
-        TayAgentTag *dst = (TayAgentTag *)((char *)group->seen_storage + group->agent_size * sorted_agent_i);
+        TayAgentTag *dst = (TayAgentTag *)((char *)group->sort_storage + group->agent_size * sorted_agent_i);
         memcpy(dst, src, group->agent_size);
     }
 
     void *storage = group->storage;
-    group->storage = group->seen_storage;
-    group->seen_storage = storage;
+    group->storage = group->sort_storage;
+    group->sort_storage = storage;
 }
 
 void cpu_tree_unsort(TayGroup *group) {
@@ -292,7 +292,7 @@ static void _thread_traverse_seen(TayPass *pass, AgentsSlice seer_slice, Box see
 
     if (seen_cell->count) {
         AgentsSlice seen_slice = {
-            (pass->seer_group == pass->seen_group) ? pass->seen_group->seen_storage : pass->seen_group->storage,
+            pass->seen_group->storage,
             pass->seen_group->agent_size,
             seen_cell->first_agent_i,
             seen_cell->first_agent_i + seen_cell->count
@@ -357,11 +357,6 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
 }
 
 void cpu_tree_see(TayPass *pass) {
-
-    if (pass->seer_group == pass->seen_group) {
-        TayGroup *seen_group = pass->seen_group;
-        memcpy(seen_group->seen_storage, seen_group->storage, seen_group->agent_size * seen_group->space.count);
-    }
 
     static SeeTask tasks[TAY_MAX_THREADS];
 

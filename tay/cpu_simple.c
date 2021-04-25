@@ -16,7 +16,7 @@ static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, int thread
 void cpu_simple_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
     
     AgentsSlice seen_slice = {
-        (pass->seer_group == pass->seen_group) ? pass->seen_group->seen_storage : pass->seen_group->storage,
+        pass->seen_group->storage,
         pass->seen_group->agent_size,
         0,
         pass->seen_group->space.count,
@@ -55,7 +55,7 @@ void cpu_simple_see(TayPass *pass) {
 
     if (pass->seer_group == pass->seen_group) {
         TayGroup *seen_group = pass->seen_group;
-        memcpy(seen_group->seen_storage, seen_group->storage, seen_group->agent_size * seen_group->space.count);
+        memcpy(seen_group->sort_storage, seen_group->storage, seen_group->agent_size * seen_group->space.count);
     }
 
     static SimpleSeeTask tasks[TAY_MAX_THREADS];

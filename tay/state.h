@@ -89,7 +89,7 @@ typedef struct Space {
 typedef struct TayGroup {
     void *agent_storage[2];
     char *storage; /* agents storage */
-    char *seen_storage; /* for seen agent copies during see passes */
+    char *sort_storage; /* for seen agent copies during see passes */
     TayAgentTag *first; /* single linked list of available agents from storage */
     int agent_size; /* agent size in bytes */
     int capacity; /* max. number of agents */
