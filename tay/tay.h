@@ -84,8 +84,8 @@ typedef struct TayAgentTag {
     union {
         struct TayAgentTag *next;
         struct {
-            unsigned u1;
-            unsigned u2;
+            unsigned cell_i;
+            unsigned cell_agent_i;
         };
     };
 } TayAgentTag;

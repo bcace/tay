@@ -38,8 +38,8 @@ typedef struct {
 
 typedef struct {
     struct TreeCell *cells; /* cells storage, first cell is always the root cell */
-    int max_cells; /* calculated from the size of available shared memory */
-    int cells_count;
+    unsigned max_cells; /* calculated from the size of available shared memory */
+    unsigned cells_count;
     int dims;
     int4 max_depths;
 } CpuKdTree;

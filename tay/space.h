@@ -34,7 +34,7 @@ void cpu_tree_sort(TayGroup *group);
 void cpu_tree_unsort(TayGroup *group);
 void cpu_tree_see(TayPass *pass);
 void cpu_tree_act(TayPass *pass);
-void cpu_kd_tree_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, struct TayThreadContext *thread_context);
+void cpu_kd_tree_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, struct TayThreadContext *thread_context);
 
 void cpu_aabb_tree_sort(TayGroup *group);
 void cpu_aabb_tree_unsort(TayGroup *group);

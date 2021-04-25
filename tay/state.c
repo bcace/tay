@@ -249,7 +249,7 @@ static TayError _compile_passes(TayState *state) {
                 if (seen_space->type == TAY_CPU_SIMPLE)
                     pass->new_seen_func = cpu_simple_see_seen_new;
                 else if (seen_space->type == TAY_CPU_KD_TREE)
-                    pass->struct_seen_func = cpu_kd_tree_see_seen;
+                    pass->new_seen_func = cpu_kd_tree_see_seen_new;
                 else if (seen_space->type == TAY_CPU_AABB_TREE)
                     pass->struct_seen_func = cpu_aabb_tree_see_seen;
                 else if (seen_space->type == TAY_CPU_GRID)

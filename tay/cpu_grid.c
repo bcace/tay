@@ -134,7 +134,6 @@ void cpu_grid_sort(TayGroup *group) {
 
         agent->cell_i = cell_i;
         agent->cell_agent_i = cell->count;
-
         ++cell->count;
     }
 
@@ -157,10 +156,7 @@ void cpu_grid_sort(TayGroup *group) {
 }
 
 void cpu_grid_unsort(TayGroup *group) {
-    Space *space = &group->space;
-    CpuGrid *grid = &space->cpu_grid;
-
-    for (GridCell *cell = grid->first_cell; cell; cell = cell->next)
+    for (GridCell *cell = group->space.cpu_grid.first_cell; cell; cell = cell->next)
         _clear_cell(cell);
 }
 
@@ -302,7 +298,6 @@ static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
     TayGroup *seer_group = pass->seer_group;
     TayGroup *seen_group = pass->seen_group;
     CpuGrid *seer_grid = &seer_group->space.cpu_grid;
-    CpuGrid *seen_grid = &seen_group->space.cpu_grid;
 
     int min_dims = (seer_group->space.dims < seen_group->space.dims) ?
                    seer_group->space.dims :
@@ -314,13 +309,13 @@ static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
                           beg_seer_i + seers_per_thread :
                           pass->seer_group->space.count;
 
-    Box seer_box;
     unsigned seer_i = beg_seer_i;
 
     while (seer_i < end_seer_i) {
         Tag *seer = (Tag *)((char *)seer_group->storage + seer_group->agent_size * seer_i);
         GridCell *seer_cell = seer_grid->cells + seer->cell_i;
 
+        Box seer_box;
         for (int i = 0; i < min_dims; ++i) {
             float min = seer_grid->origin.arr[i] + seer_cell->indices.arr[i] * seer_grid->cell_sizes.arr[i];
             seer_box.min.arr[i] = min - pass->radii.arr[i];
