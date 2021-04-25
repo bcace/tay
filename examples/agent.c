@@ -110,8 +110,13 @@ void sph_particle_pressure(SphParticle *a, SphContext *c) {
 }
 
 void sph_force_terms(SphParticle *a, SphParticle *b, SphContext *c) {
-    float3 r = float3_sub(b->p.xyz, a->p.xyz);
-    float rl = float3_length(r);
+    float3 r;
+    r.x = b->p.x - a->p.x;
+    r.y = b->p.y - a->p.y;
+    r.z = b->p.z - a->p.z;
+    float r2 = r.x * r.x + r.y * r.y + r.z * r.z;
+
+    float rl = sqrtf(r2);
 
     if (rl < c->h) {
 
@@ -121,7 +126,8 @@ void sph_force_terms(SphParticle *a, SphParticle *b, SphContext *c) {
         else
             spiky_gradient = c->spiky * (c->h - rl) * (c->h - rl);
 
-        a->pressure_accum = float3_add(a->pressure_accum, float3_mul_scalar(r, spiky_gradient * (a->pressure + b->pressure) / (2.0f * b->density) / rl));
+        if (rl > 0.00001f)
+            a->pressure_accum = float3_add(a->pressure_accum, float3_mul_scalar(r, spiky_gradient * (a->pressure + b->pressure) / (2.0f * b->density) / rl));
 
         a->viscosity_accum = float3_add(a->viscosity_accum, float3_mul_scalar(float3_sub(b->v, a->v), c->viscosity * (c->h - rl) / b->density));
     }

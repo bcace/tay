@@ -52,7 +52,7 @@ int main() {
     global.window_quit = false;
     global.window_h = 800;
     global.window_w = 1600;
-    global.max_agents_count = 100000;
+    global.max_agents_count = 200000;
 
     GLFWmonitor *monitor = 0;
     GLFWwindow *window = glfwCreateWindow(global.window_w, global.window_h, "Tay", monitor, 0);
