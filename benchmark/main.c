@@ -15,9 +15,9 @@ int main() {
 
     test_basic(results, MC_UNIFORM, 100,
                0, 1, // see radius
-               0, 2, // depth correction
-               TAY_CPU_SIMPLE
-               |
+               0, 1, // depth correction
+               // TAY_CPU_SIMPLE
+               // |
                TAY_CPU_GRID
                |
                TAY_CPU_KD_TREE
