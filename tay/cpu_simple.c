@@ -1,6 +1,6 @@
 #include "space.h"
 #include "thread.h"
-#include <assert.h>
+#include <string.h>
 
 
 typedef struct {
