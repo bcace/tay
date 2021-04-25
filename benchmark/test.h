@@ -15,7 +15,7 @@ typedef enum {
 } ModelCase;
 
 typedef struct {
-    float4 data[10000000];
+    float4 data[1000000];
     int first_time;
 } Results;
 
