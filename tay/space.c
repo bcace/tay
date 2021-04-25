@@ -6,7 +6,7 @@
 #include <assert.h>
 
 
-void box_update_from_agent(Box *box, TayAgentTag *agent, int dims, int is_point) {
+void box_update_from_agent(Box *box, char *agent, int dims, int is_point) {
     float4 min = float4_agent_min(agent);
     if (is_point) {
         for (int i = 0; i < dims; ++i) {
@@ -39,7 +39,7 @@ void space_return_agents(Space *space, TayAgentTag *tag, int is_point) {
         return;
     TayAgentTag *last = tag;
     while (1) {
-        box_update_from_agent(&space->box, last, space->dims, is_point);
+        box_update_from_agent(&space->box, (char *)last, space->dims, is_point);
         ++space->count;
         if (last->next)
             last = last->next;
@@ -48,6 +48,15 @@ void space_return_agents(Space *space, TayAgentTag *tag, int is_point) {
     }
     last->next = space->first;
     space->first = tag;
+}
+
+void space_update_box(TayGroup *group) {
+    Space *space = &group->space;
+    box_reset(&space->box, space->dims);
+    for (unsigned i = 0; i < space->count; ++i) {
+        char *agent = group->storage + group->agent_size * i;
+        box_update_from_agent(&space->box, agent, space->dims, group->is_point);
+    }
 }
 
 #if TAY_TELEMETRY
@@ -131,17 +140,18 @@ void space_see_point_point(TayAgentTag *seer_agents, TayAgentTag *seen_agents, T
 /* should only be applied on see between the same type that specified that agent should not see itself */
 void space_see_point_point_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (unsigned seer_i = seer_slice.beg; seer_i < seer_slice.end; ++seer_i) {
-        void *seer_agent = seer_slice.agents + seer_slice.size * seer_i;
+        TayAgentTag *seer_agent = (TayAgentTag *)(seer_slice.agents + seer_slice.size * seer_i);
         float4 seer_p = float4_agent_position(seer_agent);
 
         for (unsigned seen_i = seen_slice.beg; seen_i < seen_slice.end; ++seen_i) {
 
+            TayAgentTag *seen_agent = (TayAgentTag *)(seen_slice.agents + seen_slice.size * seen_i);
+            float4 seen_p = float4_agent_position(seen_agent);
+
             if (seer_i == seen_i)
                 continue;
 
-            void *seen_agent = seen_slice.agents + seen_slice.size * seen_i;
-            float4 seen_p = float4_agent_position(seen_agent);
-
+            
             _BROAD_PHASE_COUNT
             _POINT_POINT_NARROW_PHASE_TEST
             _NARROW_PHASE_COUNT

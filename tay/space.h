@@ -14,6 +14,7 @@ typedef struct {
 } AgentsSlice;
 
 void space_return_agents(Space *space, TayAgentTag *tag, int is_point);
+void space_update_box(TayGroup *group);
 
 void space_see_point_point(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 void space_see_point_point_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
@@ -59,6 +60,6 @@ void cpu_hash_grid_act(TayPass *pass);
 int space_agent_count_to_bucket_index(int count);
 
 void box_reset(Box *box, int dims);
-void box_update_from_agent(Box *box, TayAgentTag *agent, int dims, int is_point);
+void box_update_from_agent(Box *box, char *agent, int dims, int is_point);
 
 #endif

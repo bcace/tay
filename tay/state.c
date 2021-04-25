@@ -64,7 +64,7 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     group->agent_storage[1] = group->seen_storage = calloc(agent_capacity, agent_size);
     group->capacity = agent_capacity;
     group->is_point = is_point;
-    group->first = group->storage;
+    group->first = (TayAgentTag *)group->storage;
 
     /* connect all dead agents in storage into a list */
     TayAgentTag *prev = group->first;

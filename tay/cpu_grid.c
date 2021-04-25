@@ -80,6 +80,8 @@ void cpu_grid_sort(TayGroup *group) {
     Space *space = &group->space;
     CpuGrid *grid = &space->cpu_grid;
 
+    space_update_box(group);
+
     grid->first_cell = 0;
     grid->origin = space->box.min;
 
@@ -114,7 +116,9 @@ void cpu_grid_sort(TayGroup *group) {
 
     /* find cells and agent indices in those cells */
 
-    for (int i = 0; i < space->count; ++i) {
+    GridCell *last_cell = 0;
+
+    for (unsigned i = 0; i < space->count; ++i) {
         Tag *agent = (Tag *)((char *)group->storage + group->agent_size * i);
 
         float4 p = float4_agent_position(agent);
@@ -125,8 +129,12 @@ void cpu_grid_sort(TayGroup *group) {
         GridCell *cell = grid->cells + cell_i;
 
         if (cell->count == 0) { /* if first agent in this cell, add the cell to the list of non-empty cells */
-            cell->next = grid->first_cell;
-            grid->first_cell = cell;
+            cell->next = 0; //grid->first_cell;
+            if (last_cell)
+                last_cell->next = cell;
+            else
+                grid->first_cell = cell;
+            last_cell = cell;
             cell->indices = indices;
         }
 
@@ -142,7 +150,7 @@ void cpu_grid_sort(TayGroup *group) {
         first_agent_i += cell->count;
     }
 
-    for (int i = 0; i < space->count; ++i) {
+    for (unsigned i = 0; i < space->count; ++i) {
         Tag *src = (Tag *)((char *)group->storage + group->agent_size * i);
         unsigned sorted_agent_i = grid->cells[src->cell_i].first_agent_i + src->cell_agent_i;
         Tag *dst = (Tag *)((char *)group->seen_storage + group->agent_size * sorted_agent_i);
@@ -158,10 +166,8 @@ void cpu_grid_unsort(TayGroup *group) {
     Space *space = &group->space;
     CpuGrid *grid = &space->cpu_grid;
 
-    for (GridCell *cell = grid->first_cell; cell; cell = cell->next) {
-        // space_return_agents(space, cell->first, group->is_point);
+    for (GridCell *cell = grid->first_cell; cell; cell = cell->next)
         _clear_cell(cell);
-    }
 }
 
 typedef struct {
@@ -181,20 +187,13 @@ static void _act_func(GridActTask *task, TayThreadContext *thread_context) {
     int agents_per_thread = pass->act_group->space.count / runner.count;
     unsigned beg_agent_i = agents_per_thread * task->thread_i;
     unsigned end_agent_i = (task->thread_i < runner.count - 1) ?
-                          beg_agent_i + agents_per_thread :
-                          pass->act_group->space.count;
+                           beg_agent_i + agents_per_thread :
+                           pass->act_group->space.count;
 
     for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
         void *agent = (char *)pass->act_group->storage + pass->act_group->agent_size * agent_i;
         pass->act(agent, thread_context->context);
     }
-
-    // for (GridCell *seer_cell = seer_grid->first_cell; seer_cell; seer_cell = seer_cell->next) {
-    //     if (task->thread_i % runner.count == 0)
-    //         for (TayAgentTag *tag = seer_cell->first; tag; tag = tag->next)
-    //             task->pass->act(tag, thread_context->context);
-    //     ++task->thread_i;
-    // }
 }
 
 void cpu_grid_act(TayPass *pass) {
