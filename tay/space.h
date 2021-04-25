@@ -27,7 +27,7 @@ void cpu_simple_sort(TayGroup *group);
 void cpu_simple_unsort(TayGroup *group);
 void cpu_simple_see(TayPass *pass);
 void cpu_simple_act(TayPass *pass);
-void cpu_simple_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, struct TayThreadContext *thread_context);
+void cpu_simple_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, struct TayThreadContext *thread_context);
 
 void cpu_tree_on_simulation_start(Space *space);
 void cpu_tree_sort(TayGroup *group);

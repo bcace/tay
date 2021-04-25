@@ -247,7 +247,7 @@ static TayError _compile_passes(TayState *state) {
                     return TAY_ERROR_NOT_IMPLEMENTED;
 
                 if (seen_space->type == TAY_CPU_SIMPLE)
-                    pass->struct_seen_func = cpu_simple_see_seen;
+                    pass->new_seen_func = cpu_simple_see_seen_new;
                 else if (seen_space->type == TAY_CPU_KD_TREE)
                     pass->struct_seen_func = cpu_kd_tree_see_seen;
                 else if (seen_space->type == TAY_CPU_AABB_TREE)

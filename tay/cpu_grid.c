@@ -182,7 +182,6 @@ static void _init_act_task(GridActTask *task, TayPass *pass, int thread_i) {
 
 static void _act_func(GridActTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
-    CpuGrid *seer_grid = &pass->act_space->cpu_grid;
 
     int agents_per_thread = pass->act_group->space.count / runner.count;
     unsigned beg_agent_i = agents_per_thread * task->thread_i;
