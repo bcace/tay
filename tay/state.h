@@ -78,7 +78,9 @@ typedef struct Space {
 } Space;
 
 typedef struct TayGroup {
+    void *agent_storage[2];
     void *storage; /* agents storage */
+    void *seen_storage; /* for seen agent copies during see passes */
     struct TayAgentTag *first; /* single linked list of available agents from storage */
     int agent_size; /* agent size in bytes */
     int capacity; /* max. number of agents */

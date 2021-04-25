@@ -1,16 +1,23 @@
 #include "space.h"
 #include "thread.h"
 #include <math.h>
+#include <string.h>
 
 
 typedef struct GridCell {
     struct GridCell *next; /* next full cell */
-    TayAgentTag *first;
+    unsigned count; /* agents count */
+    unsigned first_agent_i;
     int4 indices;
 } GridCell;
 
+typedef struct {
+    unsigned cell_i;
+    unsigned cell_agent_i; /* index of agent in cell */
+} Tag;
+
 static inline void _clear_cell(GridCell *cell) {
-    cell->first = 0;
+    cell->count = 0;
 }
 
 static inline int4 _agent_position_to_cell_indices(float4 pos, float4 orig, float4 sizes, int dims) {
@@ -105,28 +112,46 @@ void cpu_grid_sort(TayGroup *group) {
         }
     }
 
-    TayAgentTag *next = space->first;
+    /* find cells and agent indices in those cells */
 
-    while (next) {
-        TayAgentTag *agent = next;
-        next = next->next;
+    for (int i = 0; i < space->count; ++i) {
+        Tag *agent = (Tag *)((char *)group->storage + group->agent_size * i);
 
         float4 p = float4_agent_position(agent);
+
         int4 indices = _agent_position_to_cell_indices(p, grid->origin, grid->cell_sizes, space->dims);
         unsigned cell_i = _cell_indices_to_cell_index(indices, grid->cell_counts, space->dims);
 
         GridCell *cell = grid->cells + cell_i;
-        if (cell->first == 0) { /* if first agent in this cell, add the cell to the list of non-empty cells */
+
+        if (cell->count == 0) { /* if first agent in this cell, add the cell to the list of non-empty cells */
             cell->next = grid->first_cell;
             grid->first_cell = cell;
             cell->indices = indices;
         }
-        agent->next = cell->first;
-        cell->first = agent;
+
+        agent->cell_i = cell_i;
+        agent->cell_agent_i = cell->count;
+
+        ++cell->count;
     }
 
-    space->first = 0;
-    space->count = 0;
+    unsigned first_agent_i = 0;
+    for (GridCell *cell = grid->first_cell; cell; cell = cell->next) {
+        cell->first_agent_i = first_agent_i;
+        first_agent_i += cell->count;
+    }
+
+    for (int i = 0; i < space->count; ++i) {
+        Tag *src = (Tag *)((char *)group->storage + group->agent_size * i);
+        unsigned sorted_agent_i = grid->cells[src->cell_i].first_agent_i + src->cell_agent_i;
+        Tag *dst = (Tag *)((char *)group->seen_storage + group->agent_size * sorted_agent_i);
+        memcpy(dst, src, group->agent_size);
+    }
+
+    void *storage = group->storage;
+    group->storage = group->seen_storage;
+    group->seen_storage = storage;
 }
 
 void cpu_grid_unsort(TayGroup *group) {
@@ -134,30 +159,42 @@ void cpu_grid_unsort(TayGroup *group) {
     CpuGrid *grid = &space->cpu_grid;
 
     for (GridCell *cell = grid->first_cell; cell; cell = cell->next) {
-        space_return_agents(space, cell->first, group->is_point);
+        // space_return_agents(space, cell->first, group->is_point);
         _clear_cell(cell);
     }
 }
 
 typedef struct {
     TayPass *pass;
-    int counter;
+    int thread_i;
 } GridActTask;
 
 static void _init_act_task(GridActTask *task, TayPass *pass, int thread_i) {
     task->pass = pass;
-    task->counter = thread_i;
+    task->thread_i = thread_i;
 }
 
 static void _act_func(GridActTask *task, TayThreadContext *thread_context) {
-    CpuGrid *seer_grid = &task->pass->act_space->cpu_grid;
+    TayPass *pass = task->pass;
+    CpuGrid *seer_grid = &pass->act_space->cpu_grid;
 
-    for (GridCell *seer_cell = seer_grid->first_cell; seer_cell; seer_cell = seer_cell->next) {
-        if (task->counter % runner.count == 0)
-            for (TayAgentTag *tag = seer_cell->first; tag; tag = tag->next)
-                task->pass->act(tag, thread_context->context);
-        ++task->counter;
+    int agents_per_thread = pass->act_group->space.count / runner.count;
+    unsigned beg_agent_i = agents_per_thread * task->thread_i;
+    unsigned end_agent_i = (task->thread_i < runner.count - 1) ?
+                          beg_agent_i + agents_per_thread :
+                          pass->act_group->space.count;
+
+    for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
+        void *agent = (char *)pass->act_group->storage + pass->act_group->agent_size * agent_i;
+        pass->act(agent, thread_context->context);
     }
+
+    // for (GridCell *seer_cell = seer_grid->first_cell; seer_cell; seer_cell = seer_cell->next) {
+    //     if (task->thread_i % runner.count == 0)
+    //         for (TayAgentTag *tag = seer_cell->first; tag; tag = tag->next)
+    //             task->pass->act(tag, thread_context->context);
+    //     ++task->thread_i;
+    // }
 }
 
 void cpu_grid_act(TayPass *pass) {
@@ -174,15 +211,15 @@ void cpu_grid_act(TayPass *pass) {
 
 typedef struct {
     TayPass *pass;
-    int counter;
+    int thread_i;
 } GridSeeTask;
 
 static void _init_see_task(GridSeeTask *task, TayPass *pass, int thread_i) {
     task->pass = pass;
-    task->counter = thread_i;
+    task->thread_i = thread_i;
 }
 
-void cpu_grid_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, TayThreadContext *thread_context) {
+void cpu_grid_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
     CpuGrid *seen_grid = &pass->seen_space->cpu_grid;
 
     int4 min_indices = _agent_position_to_cell_indices(seer_box.min, seen_grid->origin, seen_grid->cell_sizes, dims);
@@ -199,23 +236,27 @@ void cpu_grid_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, in
             max_indices.arr[i] = seen_grid->cell_counts.arr[i] - 1;
     }
 
+    AgentsSlice seen_slice;
+    seen_slice.agents = (pass->seer_group == pass->seen_group) ? pass->seen_group->seen_storage : pass->seen_group->storage;
+    seen_slice.size = pass->seen_group->agent_size;
+
     int4 indices;
     switch (dims) {
         case 1: {
-            for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
-                unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
-                GridCell *seen_cell = seen_grid->cells + seen_cell_i;
-                pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
-            }
+            // for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
+            //     unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
+            //     GridCell *seen_cell = seen_grid->cells + seen_cell_i;
+            //     pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
+            // }
         } break;
         case 2: {
-            for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
-                for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
-                    unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
-                    GridCell *seen_cell = seen_grid->cells + seen_cell_i;
-                    pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
-                }
-            }
+            // for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
+            //     for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
+            //         unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
+            //         GridCell *seen_cell = seen_grid->cells + seen_cell_i;
+            //         pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
+            //     }
+            // }
         } break;
         case 3: {
             for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
@@ -223,52 +264,85 @@ void cpu_grid_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, in
                     for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {
                         unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
                         GridCell *seen_cell = seen_grid->cells + seen_cell_i;
-                        pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
+
+                        seen_slice.beg = seen_cell->first_agent_i;
+                        seen_slice.end = seen_cell->first_agent_i + seen_cell->count;
+
+                        space_see_point_point_new(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
                     }
                 }
             }
         } break;
         default: {
-            for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
-                for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
-                    for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {
-                        for (indices.w = min_indices.w; indices.w <= max_indices.w; ++indices.w) {
-                            unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
-                            GridCell *seen_cell = seen_grid->cells + seen_cell_i;
-                            pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
-                        }
-                    }
-                }
-            }
+            // for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
+            //     for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
+            //         for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {
+            //             for (indices.w = min_indices.w; indices.w <= max_indices.w; ++indices.w) {
+            //                 unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
+            //                 GridCell *seen_cell = seen_grid->cells + seen_cell_i;
+            //                 pass->pairing_func(seer_agents, seen_cell->first, pass->see, pass->radii, dims, thread_context);
+            //             }
+            //         }
+            //     }
+            // }
         };
     }
 }
 
+static inline unsigned _min(unsigned a, unsigned b) {
+    return (a < b) ? a : b;
+}
+
 static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
-    Space *seer_space = pass->seer_space;
-    Space *seen_space = pass->seen_space;
-    CpuGrid *seer_grid = &seer_space->cpu_grid;
+    TayGroup *seer_group = pass->seer_group;
+    TayGroup *seen_group = pass->seen_group;
+    CpuGrid *seer_grid = &seer_group->space.cpu_grid;
+    CpuGrid *seen_grid = &seen_group->space.cpu_grid;
 
-    int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
+    int min_dims = (seer_group->space.dims < seen_group->space.dims) ?
+                   seer_group->space.dims :
+                   seen_group->space.dims;
 
-    for (GridCell *seer_cell = seer_grid->first_cell; seer_cell; seer_cell = seer_cell->next) {
-        if (task->counter % runner.count == 0) {
+    int seers_per_thread = pass->seer_group->space.count / runner.count;
+    unsigned beg_seer_i = seers_per_thread * task->thread_i;
+    unsigned end_seer_i = (task->thread_i < runner.count - 1) ?
+                          beg_seer_i + seers_per_thread :
+                          pass->seer_group->space.count;
 
-            Box seer_box;
-            for (int i = 0; i < min_dims; ++i) {
-                float min = seer_grid->origin.arr[i] + seer_cell->indices.arr[i] * seer_grid->cell_sizes.arr[i];
-                seer_box.min.arr[i] = min - pass->radii.arr[i];
-                seer_box.max.arr[i] = min + seer_grid->cell_sizes.arr[i] + pass->radii.arr[i];
-            }
+    Box seer_box;
+    unsigned seer_i = beg_seer_i;
 
-            pass->struct_seen_func(pass, seer_cell->first, seer_box, min_dims, thread_context);
+    while (seer_i < end_seer_i) {
+        Tag *seer = (Tag *)((char *)seer_group->storage + seer_group->agent_size * seer_i);
+        GridCell *seer_cell = seer_grid->cells + seer->cell_i;
+
+        for (int i = 0; i < min_dims; ++i) {
+            float min = seer_grid->origin.arr[i] + seer_cell->indices.arr[i] * seer_grid->cell_sizes.arr[i];
+            seer_box.min.arr[i] = min - pass->radii.arr[i];
+            seer_box.max.arr[i] = min + seer_grid->cell_sizes.arr[i] + pass->radii.arr[i];
         }
-        ++task->counter;
+
+        unsigned cell_end_seer_i = _min(seer_cell->first_agent_i + seer_cell->count, end_seer_i);
+        AgentsSlice seer_slice = {
+            seer_group->storage,
+            seer_group->agent_size,
+            seer_i,
+            cell_end_seer_i,
+        };
+        cpu_grid_see_seen_new(pass, seer_slice, seer_box, min_dims, thread_context);
+
+        seer_i = cell_end_seer_i;
     }
 }
 
 void cpu_grid_see(TayPass *pass) {
+
+    if (pass->seer_group == pass->seen_group) {
+        TayGroup *seen_group = pass->seen_group;
+        memcpy(seen_group->seen_storage, seen_group->storage, seen_group->agent_size * seen_group->space.count);
+    }
+
     static GridSeeTask tasks[TAY_MAX_THREADS];
 
     for (int i = 0; i < runner.count; ++i) {

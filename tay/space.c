@@ -128,6 +128,31 @@ void space_see_point_point(TayAgentTag *seer_agents, TayAgentTag *seen_agents, T
     }
 }
 
+/* should only be applied on see between the same type that specified that agent should not see itself */
+void space_see_point_point_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+    for (unsigned seer_i = seer_slice.beg; seer_i < seer_slice.end; ++seer_i) {
+        void *seer_agent = seer_slice.agents + seer_slice.size * seer_i;
+        float4 seer_p = float4_agent_position(seer_agent);
+
+        for (unsigned seen_i = seen_slice.beg; seen_i < seen_slice.end; ++seen_i) {
+
+            if (seer_i == seen_i)
+                continue;
+
+            void *seen_agent = seen_slice.agents + seen_slice.size * seen_i;
+            float4 seen_p = float4_agent_position(seen_agent);
+
+            _BROAD_PHASE_COUNT
+            _POINT_POINT_NARROW_PHASE_TEST
+            _NARROW_PHASE_COUNT
+
+            func(seer_agent, seen_agent, thread_context->context);
+
+            SKIP_SEE:;
+        }
+    }
+}
+
 void space_see_point_point_self_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
         float4 seer_p = float4_agent_position(seer_agent);

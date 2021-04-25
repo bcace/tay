@@ -67,7 +67,7 @@ void _start_threads(int threads_count) {
 }
 
 void tay_threads_start() {
-    _start_threads(GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS));
+    _start_threads(1);//GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS));
 }
 
 void tay_runner_run() {
