@@ -11,11 +11,6 @@ typedef struct GridCell {
     int4 indices;
 } GridCell;
 
-typedef struct {
-    unsigned cell_i;
-    unsigned cell_agent_i; /* index of agent in cell */
-} Tag;
-
 static inline void _clear_cell(GridCell *cell) {
     cell->count = 0;
 }
@@ -117,7 +112,7 @@ void cpu_grid_sort(TayGroup *group) {
     /* find cells and agent indices in those cells */
 
     for (unsigned i = 0; i < space->count; ++i) {
-        Tag *agent = (Tag *)((char *)group->storage + group->agent_size * i);
+        TayAgentTag *agent = (TayAgentTag *)((char *)group->storage + group->agent_size * i);
 
         float4 p = float4_agent_position(agent);
 
@@ -144,9 +139,9 @@ void cpu_grid_sort(TayGroup *group) {
     }
 
     for (unsigned i = 0; i < space->count; ++i) {
-        Tag *src = (Tag *)((char *)group->storage + group->agent_size * i);
+        TayAgentTag *src = (TayAgentTag *)((char *)group->storage + group->agent_size * i);
         unsigned sorted_agent_i = grid->cells[src->cell_i].first_agent_i + src->cell_agent_i;
-        Tag *dst = (Tag *)((char *)group->sort_storage + group->agent_size * sorted_agent_i);
+        TayAgentTag *dst = (TayAgentTag *)((char *)group->sort_storage + group->agent_size * sorted_agent_i);
         memcpy(dst, src, group->agent_size);
     }
 
@@ -312,7 +307,7 @@ static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
     unsigned seer_i = beg_seer_i;
 
     while (seer_i < end_seer_i) {
-        Tag *seer = (Tag *)((char *)seer_group->storage + seer_group->agent_size * seer_i);
+        TayAgentTag *seer = (TayAgentTag *)((char *)seer_group->storage + seer_group->agent_size * seer_i);
         GridCell *seer_cell = seer_grid->cells + seer->cell_i;
 
         Box seer_box;
