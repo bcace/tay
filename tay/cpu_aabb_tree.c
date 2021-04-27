@@ -1,11 +1,15 @@
 #include "space.h"
 #include "thread.h"
+#include <string.h>
 
 
 typedef struct TreeNode {
     union {
         struct TreeNode *a;
-        TayAgentTag *first;
+        struct {
+            unsigned first_agent_i;
+            unsigned count;
+        };
     };
     struct TreeNode *b;
     struct TreeNode *parent;
@@ -15,6 +19,10 @@ typedef struct TreeNode {
 
 static inline int _is_leaf_node(TreeNode *node) {
     return node->b == 0;
+}
+
+static inline unsigned _minu(unsigned a, unsigned b) {
+    return (a < b) ? a : b;
 }
 
 static inline float _min(float a, float b) {
@@ -44,9 +52,14 @@ static inline float _box_volume(Box box, int dims) {
     return v;
 }
 
-static void _init_leaf_node(TreeNode *node, TayAgentTag *agent, int dims) {
-    agent->next = 0;
-    node->first = agent;
+static inline unsigned _node_index(TreeNode *nodes, TreeNode *node) {
+    return (unsigned)(node - nodes);
+}
+
+static void _init_leaf_node(TreeNode *node, unsigned node_i, TayAgentTag *agent, int dims) {
+    agent->cell_i = node_i;
+    agent->cell_agent_i = 0;
+    node->count = 1;
     node->b = 0;
     node->box.min = float4_agent_min(agent);
     node->box.max = float4_agent_max(agent);
@@ -54,9 +67,10 @@ static void _init_leaf_node(TreeNode *node, TayAgentTag *agent, int dims) {
     node->parent = 0;
 }
 
-static void _expand_leaf_node(TreeNode *node, TayAgentTag *agent, Box agent_box, int dims) {
-    agent->next = node->first;
-    node->first = agent;
+static void _expand_leaf_node(TreeNode *node, unsigned node_i, TayAgentTag *agent, Box agent_box, int dims) {
+    agent->cell_i = node_i;
+    agent->cell_agent_i = node->count;
+    node->count++;
     node->box = _box_union(node->box, agent_box);
     node->volume = _box_volume(node->box, dims);
 }
@@ -104,6 +118,8 @@ void cpu_aabb_tree_sort(TayGroup *group) {
     Space *space = &group->space;
     CpuAabbTree *tree = &space->cpu_aabb_tree;
 
+    box_reset(&space->box, space->dims);
+
     tree->nodes = space->shared;
     tree->nodes_count = 0;
     tree->max_nodes = space->shared_size / (int)sizeof(TreeNode);
@@ -111,14 +127,12 @@ void cpu_aabb_tree_sort(TayGroup *group) {
 
     float4 part_sizes = { space->radii.x * 2.0f, space->radii.y * 2.0f, space->radii.z * 2.0f, space->radii.w * 2.0f };
 
-    TayAgentTag *next = space->first;
-    while (next) {
-        TayAgentTag *agent = next;
-        next = next->next;
+    for (unsigned agent_i = 0; agent_i < space->count; ++agent_i) {
+        TayAgentTag *agent = (TayAgentTag *)(group->storage + group->agent_size * agent_i);
 
         if (tree->root == 0) { /* first node */
             TreeNode *node = tree->nodes + tree->nodes_count++;
-            _init_leaf_node(node, agent, space->dims);
+            _init_leaf_node(node, _node_index(tree->nodes, node), agent, space->dims);
             tree->root = node;
         }
         else { /* first node already exists */
@@ -131,14 +145,14 @@ void cpu_aabb_tree_sort(TayGroup *group) {
             /* if leaf node's box is smaller than suggested partition size (part_sizes) or there's
             no more space for new nodes just add agent to the leaf node and expand the leaf node's box */
             if (tree->nodes_count == tree->max_nodes || _leaf_node_should_expand(agent_box, leaf->box, part_sizes, space->dims))
-                _expand_leaf_node(leaf, agent, agent_box, space->dims);
+                _expand_leaf_node(leaf, _node_index(tree->nodes, leaf), agent, agent_box, space->dims);
             /* create new node for agent, put both new node and leaf into a new parent node and
             replace the leaf node with the new parent node in the old parent node */
             else {
                 TreeNode *new_node = tree->nodes + tree->nodes_count++;
                 TreeNode *new_parent = tree->nodes + tree->nodes_count++;
 
-                _init_leaf_node(new_node, agent, space->dims);
+                _init_leaf_node(new_node, _node_index(tree->nodes, new_node), agent, space->dims);
 
                 if (old_parent == 0) { /* only root node found */
                     _init_branch_node(new_parent, leaf, new_node, space->dims);
@@ -178,46 +192,51 @@ void cpu_aabb_tree_sort(TayGroup *group) {
         }
     }
 
-    space->first = 0;
-    space->count = 0;
-}
-
-void cpu_aabb_tree_unsort(TayGroup *group) {
-    Space *space = &group->space;
-    CpuAabbTree *tree = &space->cpu_aabb_tree;
-
-    box_reset(&space->box, space->dims);
-
+    unsigned first_agent_i = 0;
     for (unsigned node_i = 0; node_i < tree->nodes_count; ++node_i) {
         TreeNode *node = tree->nodes + node_i;
-
-        if (_is_leaf_node(node))
-            space_return_agents(space, node->first, group->is_point);
+        if (_is_leaf_node(node)) {
+            node->first_agent_i = first_agent_i;
+            first_agent_i += node->count;
+        }
     }
+
+    for (unsigned i = 0; i < space->count; ++i) {
+        TayAgentTag *src = (TayAgentTag *)((char *)group->storage + group->agent_size * i);
+        unsigned sorted_agent_i = tree->nodes[src->cell_i].first_agent_i + src->cell_agent_i;
+        TayAgentTag *dst = (TayAgentTag *)((char *)group->sort_storage + group->agent_size * sorted_agent_i);
+        memcpy(dst, src, group->agent_size);
+    }
+
+    void *storage = group->storage;
+    group->storage = group->sort_storage;
+    group->sort_storage = storage;
 }
+
+void cpu_aabb_tree_unsort(TayGroup *group) {}
 
 typedef struct {
     TayPass *pass;
-    int counter;
+    int thread_i;
 } ActTask;
 
 static void _init_act_task(ActTask *task, TayPass *pass, int thread_i) {
     task->pass = pass;
-    task->counter = thread_i;
+    task->thread_i = thread_i;
 }
 
 static void _act_func(ActTask *task, TayThreadContext *thread_context) {
-    CpuAabbTree *tree = &task->pass->act_space->cpu_aabb_tree;
+    TayPass *pass = task->pass;
 
-    for (unsigned node_i = 0; node_i < tree->nodes_count; ++node_i) {
-        TreeNode *node = tree->nodes + node_i;
+    int agents_per_thread = pass->act_group->space.count / runner.count;
+    unsigned beg_agent_i = agents_per_thread * task->thread_i;
+    unsigned end_agent_i = (task->thread_i < runner.count - 1) ?
+                           beg_agent_i + agents_per_thread :
+                           pass->act_group->space.count;
 
-        if (_is_leaf_node(node)) {
-            if (task->counter % runner.count == 0)
-                for (TayAgentTag *tag = node->first; tag; tag = tag->next)
-                    task->pass->act(tag, thread_context->context);
-            ++task->counter;
-        }
+    for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
+        void *agent = (char *)pass->act_group->storage + pass->act_group->agent_size * agent_i;
+        pass->act(agent, thread_context->context);
     }
 }
 
@@ -235,55 +254,78 @@ void cpu_aabb_tree_act(TayPass *pass) {
 
 typedef struct {
     TayPass *pass;
-    int counter;
+    int thread_i;
 } SeeTask;
 
 static void _init_see_task(SeeTask *task, TayPass *pass, int thread_i) {
     task->pass = pass;
-    task->counter = thread_i;
+    task->thread_i = thread_i;
 }
 
-static void _node_see_func(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, TreeNode *seen_node, int dims, TayThreadContext *thread_context) {
+static void _node_see_func(TayPass *pass, AgentsSlice seer_slice, Box seer_box, TreeNode *seen_node, int dims, TayThreadContext *thread_context) {
     for (int i = 0; i < dims; ++i)
         if (seer_box.max.arr[i] < seen_node->box.min.arr[i] || seer_box.min.arr[i] > seen_node->box.max.arr[i])
             return;
 
-    if (_is_leaf_node(seen_node))
-        pass->pairing_func(seer_agents, seen_node->first, pass->see, pass->radii, dims, thread_context);
+    if (_is_leaf_node(seen_node)) {
+        AgentsSlice seen_slice = {
+            pass->seen_group->storage,
+            pass->seen_group->agent_size,
+            seen_node->first_agent_i,
+            seen_node->first_agent_i + seen_node->count
+        };
+        pass->new_pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
+    }
     else {
-        _node_see_func(pass, seer_agents, seer_box, seen_node->a, dims, thread_context);
-        _node_see_func(pass, seer_agents, seer_box, seen_node->b, dims, thread_context);
+        _node_see_func(pass, seer_slice, seer_box, seen_node->a, dims, thread_context);
+        _node_see_func(pass, seer_slice, seer_box, seen_node->b, dims, thread_context);
     }
 }
 
-void cpu_aabb_tree_see_seen(TayPass *pass, TayAgentTag *seer_agents, Box seer_box, int dims, TayThreadContext *thread_context) {
-    _node_see_func(pass, seer_agents, seer_box, pass->seen_space->cpu_aabb_tree.root, dims, thread_context);
+void cpu_aabb_tree_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
+    _node_see_func(pass, seer_slice, seer_box, pass->seen_space->cpu_aabb_tree.root, dims, thread_context);
 }
 
 static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
-    Space *seer_space = pass->seer_space;
-    Space *seen_space = pass->seen_space;
-    CpuAabbTree *seer_tree = &seer_space->cpu_aabb_tree;
+    TayGroup *seer_group = pass->seer_group;
+    TayGroup *seen_group = pass->seen_group;
+    CpuAabbTree *seer_tree = &seer_group->space.cpu_aabb_tree;
 
-    int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
+    int min_dims = (seer_group->space.dims < seen_group->space.dims) ?
+                   seer_group->space.dims :
+                   seen_group->space.dims;
 
-    for (unsigned seer_node_i = 0; seer_node_i < seer_tree->nodes_count; ++seer_node_i) {
-        TreeNode *seer_node = seer_tree->nodes + seer_node_i;
+    int seers_per_thread = pass->seer_group->space.count / runner.count;
+    unsigned beg_seer_i = seers_per_thread * task->thread_i;
+    unsigned end_seer_i = (task->thread_i < runner.count - 1) ?
+                          beg_seer_i + seers_per_thread :
+                          pass->seer_group->space.count;
 
-        if (_is_leaf_node(seer_node)) {
-            if (task->counter % runner.count == 0) {
+    unsigned seer_i = beg_seer_i;
 
-                Box seer_box = seer_node->box;
-                for (int i = 0; i < min_dims; ++i) {
-                    seer_box.min.arr[i] -= pass->radii.arr[i];
-                    seer_box.max.arr[i] += pass->radii.arr[i];
-                }
+    while (seer_i < end_seer_i) {
+        TayAgentTag *seer = (TayAgentTag *)((char *)seer_group->storage + seer_group->agent_size * seer_i);
+        TreeNode *seer_node = seer_tree->nodes + seer->cell_i;
 
-                pass->struct_seen_func(pass, seer_node->first, seer_box, min_dims, thread_context);
-            }
-            ++task->counter;
+        Box seer_box = seer_node->box;
+        for (int i = 0; i < min_dims; ++i) {
+            seer_box.min.arr[i] -= pass->radii.arr[i];
+            seer_box.max.arr[i] += pass->radii.arr[i];
         }
+
+        unsigned cell_end_seer_i = _minu(seer_node->first_agent_i + seer_node->count, end_seer_i);
+        
+        AgentsSlice seer_slice = {
+            seer_group->storage,
+            seer_group->agent_size,
+            seer_i,
+            cell_end_seer_i,
+        };
+        
+        pass->new_seen_func(pass, seer_slice, seer_box, min_dims, thread_context);
+
+        seer_i = cell_end_seer_i;
     }
 }
 

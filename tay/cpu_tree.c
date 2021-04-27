@@ -357,7 +357,6 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
 }
 
 void cpu_tree_see(TayPass *pass) {
-
     static SeeTask tasks[TAY_MAX_THREADS];
 
     for (int i = 0; i < runner.count; ++i) {
