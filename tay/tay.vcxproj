@@ -175,7 +175,6 @@
   <ItemGroup>
     <ClCompile Include="cpu_aabb_tree.c" />
     <ClCompile Include="cpu_grid.c" />
-    <ClCompile Include="cpu_hash_grid.c" />
     <ClCompile Include="cpu_simple.c" />
     <ClCompile Include="cpu_tree.c" />
     <ClCompile Include="space.c" />
