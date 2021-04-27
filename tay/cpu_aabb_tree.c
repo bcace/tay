@@ -154,7 +154,7 @@ void cpu_aabb_tree_unsort(TayGroup *group) {
 
     box_reset(&space->box, space->dims);
 
-    for (int node_i = 0; node_i < tree->nodes_count; ++node_i) {
+    for (unsigned node_i = 0; node_i < tree->nodes_count; ++node_i) {
         TreeNode *node = tree->nodes + node_i;
 
         if (_is_leaf_node(node))
@@ -175,7 +175,7 @@ static void _init_act_task(ActTask *task, TayPass *pass, int thread_i) {
 static void _act_func(ActTask *task, TayThreadContext *thread_context) {
     CpuAabbTree *tree = &task->pass->act_space->cpu_aabb_tree;
 
-    for (int node_i = 0; node_i < tree->nodes_count; ++node_i) {
+    for (unsigned node_i = 0; node_i < tree->nodes_count; ++node_i) {
         TreeNode *node = tree->nodes + node_i;
 
         if (_is_leaf_node(node)) {
@@ -234,7 +234,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
 
     int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
 
-    for (int seer_node_i = 0; seer_node_i < seer_tree->nodes_count; ++seer_node_i) {
+    for (unsigned seer_node_i = 0; seer_node_i < seer_tree->nodes_count; ++seer_node_i) {
         TreeNode *seer_node = seer_tree->nodes + seer_node_i;
 
         if (_is_leaf_node(seer_node)) {
