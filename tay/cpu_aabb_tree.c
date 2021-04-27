@@ -114,6 +114,17 @@ static int _leaf_node_should_expand(Box agent_box, Box leaf_box, float4 part_siz
     return 1;
 }
 
+static void _order_nodes(TreeNode *node, unsigned *first_agent_i) {
+    if (_is_leaf_node(node)) {
+        node->first_agent_i = *first_agent_i;
+        *first_agent_i += node->count;
+    }
+    else {
+        _order_nodes(node->a, first_agent_i);
+        _order_nodes(node->b, first_agent_i);
+    }
+}
+
 void cpu_aabb_tree_sort(TayGroup *group) {
     Space *space = &group->space;
     CpuAabbTree *tree = &space->cpu_aabb_tree;
@@ -193,13 +204,7 @@ void cpu_aabb_tree_sort(TayGroup *group) {
     }
 
     unsigned first_agent_i = 0;
-    for (unsigned node_i = 0; node_i < tree->nodes_count; ++node_i) {
-        TreeNode *node = tree->nodes + node_i;
-        if (_is_leaf_node(node)) {
-            node->first_agent_i = first_agent_i;
-            first_agent_i += node->count;
-        }
-    }
+    _order_nodes(tree->root, &first_agent_i);
 
     for (unsigned i = 0; i < space->count; ++i) {
         TayAgentTag *src = (TayAgentTag *)((char *)group->storage + group->agent_size * i);
