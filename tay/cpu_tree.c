@@ -336,7 +336,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
         TreeCell *seer_cell = seer_tree->cells + seer->cell_i;
 
         Box seer_box = seer_cell->box;
-        for (int i = 0; i < seer_tree->dims; ++i) {
+        for (int i = 0; i < min_dims; ++i) {
             seer_box.min.arr[i] -= pass->radii.arr[i];
             seer_box.max.arr[i] += pass->radii.arr[i];
         }

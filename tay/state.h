@@ -40,15 +40,15 @@ typedef struct {
     struct TreeCell *cells; /* cells storage, first cell is always the root cell */
     unsigned max_cells; /* calculated from the size of available shared memory */
     unsigned cells_count;
-    int dims;
+    int dims; // TODO: maybe remove
     int4 max_depths;
 } CpuKdTree;
 
 typedef struct {
     struct TreeNode *nodes;
     struct TreeNode *root;
-    int max_nodes;
-    int nodes_count;
+    unsigned max_nodes;
+    unsigned nodes_count;
 } CpuAabbTree;
 
 typedef struct {
@@ -118,10 +118,10 @@ typedef struct TayPass {
     void *context;
     /* data prepared by the compile step */
     union {
-        Space *act_space;
-        Space *seer_space;
+        Space *act_space; // TODO: remove these
+        Space *seer_space; // TODO: remove these
     };
-    Space *seen_space;
+    Space *seen_space; // TODO: remove these
     PASS_FUNC struct_pass_func;
     SEEN_FUNC struct_seen_func;
     NEW_SEEN_FUNC new_seen_func;

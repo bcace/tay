@@ -338,7 +338,6 @@ static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
 }
 
 void cpu_grid_see(TayPass *pass) {
-
     static GridSeeTask tasks[TAY_MAX_THREADS];
 
     for (int i = 0; i < runner.count; ++i) {
