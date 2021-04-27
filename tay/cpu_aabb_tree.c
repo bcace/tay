@@ -54,6 +54,13 @@ static void _init_leaf_node(TreeNode *node, TayAgentTag *agent, int dims) {
     node->parent = 0;
 }
 
+static void _expand_leaf_node(TreeNode *node, TayAgentTag *agent, Box agent_box, int dims) {
+    agent->next = node->first;
+    node->first = agent;
+    node->box = _box_union(node->box, agent_box);
+    node->volume = _box_volume(node->box, dims);
+}
+
 static void _init_branch_node(TreeNode *node, TreeNode *a, TreeNode *b, int dims) {
     node->a = a;
     node->b = b;
@@ -123,12 +130,8 @@ void cpu_aabb_tree_sort(TayGroup *group) {
 
             /* if leaf node's box is smaller than suggested partition size (part_sizes) or there's
             no more space for new nodes just add agent to the leaf node and expand the leaf node's box */
-            if (tree->nodes_count == tree->max_nodes || _leaf_node_should_expand(agent_box, leaf->box, part_sizes, space->dims)) {
-                agent->next = leaf->first;
-                leaf->first = agent;
-                leaf->box = _box_union(leaf->box, agent_box);
-                leaf->volume = _box_volume(leaf->box, space->dims);
-            }
+            if (tree->nodes_count == tree->max_nodes || _leaf_node_should_expand(agent_box, leaf->box, part_sizes, space->dims))
+                _expand_leaf_node(leaf, agent, agent_box, space->dims);
             /* create new node for agent, put both new node and leaf into a new parent node and
             replace the leaf node with the new parent node in the old parent node */
             else {
@@ -147,7 +150,7 @@ void cpu_aabb_tree_sort(TayGroup *group) {
 
                     if (maybe_new_parent_volume < old_parent->volume) {
                         _init_branch_node(new_parent, leaf, new_node, space->dims);
-                        
+
                         if (leaf == old_parent->a)
                             old_parent->a = new_parent;
                         else
