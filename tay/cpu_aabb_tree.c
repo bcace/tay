@@ -10,6 +10,7 @@ typedef struct TreeNode {
     struct TreeNode *b;
     struct TreeNode *parent;
     Box box;
+    float volume;
 } TreeNode;
 
 static inline int _is_leaf_node(TreeNode *node) {
@@ -36,43 +37,50 @@ static inline Box _box_union(Box a, Box b) {
     return (Box){ _float4_min(a.min, b.min), _float4_max(a.max, b.max) };
 }
 
-static void _init_leaf_node(TreeNode *node, TayAgentTag *agent) {
+static inline float _box_volume(Box box, int dims) {
+    float v = 1.0f;
+    for (int i = 0; i < dims; ++i)
+        v *= box.max.arr[i] - box.min.arr[i];
+    return v;
+}
+
+static void _init_leaf_node(TreeNode *node, TayAgentTag *agent, int dims) {
     agent->next = 0;
     node->first = agent;
     node->b = 0;
     node->box.min = float4_agent_min(agent);
     node->box.max = float4_agent_max(agent);
+    node->volume = _box_volume(node->box, dims);
     node->parent = 0;
 }
 
-static void _init_branch_node(TreeNode *node, TreeNode *a, TreeNode *b) {
+static void _init_branch_node(TreeNode *node, TreeNode *a, TreeNode *b, int dims) {
     node->a = a;
     node->b = b;
     node->box.min = _float4_min(a->box.min, b->box.min);
     node->box.max = _float4_max(a->box.max, b->box.max);
+    node->volume = _box_volume(node->box, dims);
     node->parent = 0;
     a->parent = node;
     b->parent = node;
 }
 
-static void _update_node_box(TreeNode *node) {
+static void _update_node_box(TreeNode *node, int dims) {
     node->box = _box_union(node->a->box, node->b->box);
+    node->volume = _box_volume(node->box, dims);
 }
 
-static float _increase_in_volume(Box box, Box target_box, int dims) {
-    float target_vol = 1.0f;
+static float _increase_in_volume(Box box, TreeNode *node, int dims) {
     float union_vol = 1.0f;
-    for (int i = 0; i < dims; ++i) {
-        target_vol *= target_box.max.arr[i] - target_box.min.arr[i];
-        union_vol *= _max(target_box.max.arr[i], box.max.arr[i]) - _min(target_box.min.arr[i], box.min.arr[i]);
-    }
-    return union_vol - target_vol;
+    for (int i = 0; i < dims; ++i)
+        union_vol *= _max(node->box.max.arr[i], box.max.arr[i]) - _min(node->box.min.arr[i], box.min.arr[i]);
+    return union_vol - node->volume;
 }
 
 static TreeNode *_find_best_leaf_node(TreeNode *node, Box box, int dims) {
     if (_is_leaf_node(node))
         return node;
-    if (_increase_in_volume(box, node->a->box, dims) < _increase_in_volume(box, node->b->box, dims))
+    if (_increase_in_volume(box, node->a, dims) < _increase_in_volume(box, node->b, dims))
         return _find_best_leaf_node(node->a, box, dims);
     else
         return _find_best_leaf_node(node->b, box, dims);
@@ -103,7 +111,7 @@ void cpu_aabb_tree_sort(TayGroup *group) {
 
         if (tree->root == 0) { /* first node */
             TreeNode *node = tree->nodes + tree->nodes_count++;
-            _init_leaf_node(node, agent);
+            _init_leaf_node(node, agent, space->dims);
             tree->root = node;
         }
         else { /* first node already exists */
@@ -111,6 +119,7 @@ void cpu_aabb_tree_sort(TayGroup *group) {
 
             TreeNode *leaf = _find_best_leaf_node(tree->root, agent_box, space->dims);
             TreeNode *old_parent = leaf->parent;
+            TreeNode *old_parent_parent = old_parent ? old_parent->parent : 0;
 
             /* if leaf node's box is smaller than suggested partition size (part_sizes) or there's
             no more space for new nodes just add agent to the leaf node and expand the leaf node's box */
@@ -118,6 +127,7 @@ void cpu_aabb_tree_sort(TayGroup *group) {
                 agent->next = leaf->first;
                 leaf->first = agent;
                 leaf->box = _box_union(leaf->box, agent_box);
+                leaf->volume = _box_volume(leaf->box, space->dims);
             }
             /* create new node for agent, put both new node and leaf into a new parent node and
             replace the leaf node with the new parent node in the old parent node */
@@ -125,22 +135,43 @@ void cpu_aabb_tree_sort(TayGroup *group) {
                 TreeNode *new_node = tree->nodes + tree->nodes_count++;
                 TreeNode *new_parent = tree->nodes + tree->nodes_count++;
 
-                _init_leaf_node(new_node, agent);
-                _init_branch_node(new_parent, leaf, new_node);
+                _init_leaf_node(new_node, agent, space->dims);
 
-                if (old_parent == 0) /* only root node found */
+                if (old_parent == 0) { /* only root node found */
+                    _init_branch_node(new_parent, leaf, new_node, space->dims);
+
                     tree->root = new_parent;
+                }
                 else { /* substitute new_parent for leaf in old_parent */
-                    if (leaf == old_parent->a)
-                        old_parent->a = new_parent;
-                    else
-                        old_parent->b = new_parent;
-                    new_parent->parent = old_parent;
+                    float maybe_new_parent_volume = _box_volume(_box_union(leaf->box, new_node->box), space->dims);
+
+                    if (maybe_new_parent_volume < old_parent->volume) {
+                        _init_branch_node(new_parent, leaf, new_node, space->dims);
+                        
+                        if (leaf == old_parent->a)
+                            old_parent->a = new_parent;
+                        else
+                            old_parent->b = new_parent;
+                        new_parent->parent = old_parent;
+                    }
+                    else {
+                        _init_branch_node(new_parent, old_parent, new_node, space->dims);
+
+                        if (old_parent_parent == 0)
+                            tree->root = new_parent;
+                        else {
+                            if (old_parent == old_parent_parent->a)
+                                old_parent_parent->a = new_parent;
+                            else
+                                old_parent_parent->b = new_parent;
+                            new_parent->parent = old_parent_parent;   
+                        }
+                    }
                 }
             }
 
             for (TreeNode *node = old_parent; node; node = node->parent)
-                _update_node_box(node);
+                _update_node_box(node, space->dims);
         }
     }
 
