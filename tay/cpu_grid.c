@@ -202,7 +202,7 @@ static void _init_see_task(GridSeeTask *task, TayPass *pass, int thread_i) {
     task->thread_i = thread_i;
 }
 
-void cpu_grid_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
+void cpu_grid_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
     CpuGrid *seen_grid = &pass->seen_space->cpu_grid;
 
     int4 min_indices = _agent_position_to_cell_indices(seer_box.min, seen_grid->origin, seen_grid->cell_sizes, dims);

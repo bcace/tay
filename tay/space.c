@@ -115,30 +115,7 @@ void space_update_box(TayGroup *group) {
     } \
 }
 
-void space_see_point_point(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
-        float4 seer_p = float4_agent_position(seer_agent);
-
-        for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-
-            if (seer_agent == seen_agent)
-                continue;
-
-            float4 seen_p = float4_agent_position(seen_agent);
-
-            _BROAD_PHASE_COUNT
-            _POINT_POINT_NARROW_PHASE_TEST
-            _NARROW_PHASE_COUNT
-
-            func(seer_agent, seen_agent, thread_context->context);
-
-            SKIP_SEE:;
-        }
-    }
-}
-
-/* should only be applied on see between the same type that specified that agent should not see itself */
-void space_see_point_point_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+void space_see_point_point(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (unsigned seer_i = seer_slice.beg; seer_i < seer_slice.end; ++seer_i) {
         TayAgentTag *seer_agent = (TayAgentTag *)(seer_slice.agents + seer_slice.size * seer_i);
         float4 seer_p = float4_agent_position(seer_agent);
@@ -162,25 +139,7 @@ void space_see_point_point_new(AgentsSlice seer_slice, AgentsSlice seen_slice, T
     }
 }
 
-void space_see_point_point_self_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
-        float4 seer_p = float4_agent_position(seer_agent);
-
-        for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-            float4 seen_p = float4_agent_position(seen_agent);
-
-            _BROAD_PHASE_COUNT
-            _POINT_POINT_NARROW_PHASE_TEST
-            _NARROW_PHASE_COUNT
-
-            func(seer_agent, seen_agent, thread_context->context);
-
-            SKIP_SEE:;
-        }
-    }
-}
-
-void space_see_point_point_self_see_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+void space_see_point_point_self_see(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (unsigned seer_i = seer_slice.beg; seer_i < seer_slice.end; ++seer_i) {
         TayAgentTag *seer_agent = (TayAgentTag *)(seer_slice.agents + seer_slice.size * seer_i);
         float4 seer_p = float4_agent_position(seer_agent);
@@ -200,27 +159,7 @@ void space_see_point_point_self_see_new(AgentsSlice seer_slice, AgentsSlice seen
     }
 }
 
-void space_see_nonpoint_point(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
-        float4 seer_min = float4_agent_min(seer_agent);
-        float4 seer_max = float4_agent_max(seer_agent);
-
-        for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-
-            float4 seen_p = float4_agent_position(seen_agent);
-
-            _BROAD_PHASE_COUNT
-            _NONPOINT_POINT_NARROW_PHASE_TEST
-            _NARROW_PHASE_COUNT
-
-            func(seer_agent, seen_agent, thread_context->context);
-
-            SKIP_SEE:;
-        }
-    }
-}
-
-void space_see_nonpoint_point_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+void space_see_nonpoint_point(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (unsigned seer_i = seer_slice.beg; seer_i < seer_slice.end; ++seer_i) {
         TayAgentTag *seer_agent = (TayAgentTag *)(seer_slice.agents + seer_slice.size * seer_i);
         float4 seer_min = float4_agent_min(seer_agent);
@@ -241,27 +180,7 @@ void space_see_nonpoint_point_new(AgentsSlice seer_slice, AgentsSlice seen_slice
     }
 }
 
-
-void space_see_point_nonpoint(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
-        float4 seer_p = float4_agent_position(seer_agent);
-
-        for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-            float4 seen_min = float4_agent_min(seen_agent);
-            float4 seen_max = float4_agent_max(seen_agent);
-
-            _BROAD_PHASE_COUNT
-            _POINT_NONPOINT_NARROW_PHASE_TEST
-            _NARROW_PHASE_COUNT
-
-            func(seer_agent, seen_agent, thread_context->context);
-
-            SKIP_SEE:;
-        }
-    }
-}
-
-void space_see_point_nonpoint_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+void space_see_point_nonpoint(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (unsigned seer_i = seer_slice.beg; seer_i < seer_slice.end; ++seer_i) {
         TayAgentTag *seer_agent = (TayAgentTag *)(seer_slice.agents + seer_slice.size * seer_i);
         float4 seer_p = float4_agent_position(seer_agent);
@@ -282,31 +201,7 @@ void space_see_point_nonpoint_new(AgentsSlice seer_slice, AgentsSlice seen_slice
     }
 }
 
-void space_see_nonpoint_nonpoint(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
-        float4 seer_min = float4_agent_min(seer_agent);
-        float4 seer_max = float4_agent_max(seer_agent);
-
-        for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-
-            if (seer_agent == seen_agent)
-                continue;
-
-            float4 seen_min = float4_agent_min(seen_agent);
-            float4 seen_max = float4_agent_max(seen_agent);
-
-            _BROAD_PHASE_COUNT
-            _NONPOINT_NONPOINT_NARROW_PHASE_TEST
-            _NARROW_PHASE_COUNT
-
-            func(seer_agent, seen_agent, thread_context->context);
-
-            SKIP_SEE:;
-        }
-    }
-}
-
-void space_see_nonpoint_nonpoint_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+void space_see_nonpoint_nonpoint(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (unsigned seer_i = seer_slice.beg; seer_i < seer_slice.end; ++seer_i) {
         TayAgentTag *seer_agent = (TayAgentTag *)(seer_slice.agents + seer_slice.size * seer_i);
         float4 seer_min = float4_agent_min(seer_agent);
@@ -332,27 +227,7 @@ void space_see_nonpoint_nonpoint_new(AgentsSlice seer_slice, AgentsSlice seen_sl
     }
 }
 
-void space_see_nonpoint_nonpoint_self_see(TayAgentTag *seer_agents, TayAgentTag *seen_agents, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
-    for (TayAgentTag *seer_agent = seer_agents; seer_agent; seer_agent = seer_agent->next) {
-        float4 seer_min = float4_agent_min(seer_agent);
-        float4 seer_max = float4_agent_max(seer_agent);
-
-        for (TayAgentTag *seen_agent = seen_agents; seen_agent; seen_agent = seen_agent->next) {
-            float4 seen_min = float4_agent_min(seen_agent);
-            float4 seen_max = float4_agent_max(seen_agent);
-
-            _BROAD_PHASE_COUNT
-            _NONPOINT_NONPOINT_NARROW_PHASE_TEST
-            _NARROW_PHASE_COUNT
-
-            func(seer_agent, seen_agent, thread_context->context);
-
-            SKIP_SEE:;
-        }
-    }
-}
-
-void space_see_nonpoint_nonpoint_self_see_new(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
+void space_see_nonpoint_nonpoint_self_see(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, TayThreadContext *thread_context) {
     for (unsigned seer_i = seer_slice.beg; seer_i < seer_slice.end; ++seer_i) {
         TayAgentTag *seer_agent = (TayAgentTag *)(seer_slice.agents + seer_slice.size * seer_i);
         float4 seer_min = float4_agent_min(seer_agent);

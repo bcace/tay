@@ -305,7 +305,7 @@ static void _thread_traverse_seen(TayPass *pass, AgentsSlice seer_slice, Box see
         _thread_traverse_seen(pass, seer_slice, seer_box, seen_cell->hi, dims, thread_context);
 }
 
-void cpu_kd_tree_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
+void cpu_kd_tree_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
     _thread_traverse_seen(pass, seer_slice, seer_box, pass->seen_space->cpu_tree.cells, dims, thread_context);
 }
 

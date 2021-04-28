@@ -287,7 +287,7 @@ static void _node_see_func(TayPass *pass, AgentsSlice seer_slice, Box seer_box, 
     }
 }
 
-void cpu_aabb_tree_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
+void cpu_aabb_tree_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
     _node_see_func(pass, seer_slice, seer_box, pass->seen_space->cpu_aabb_tree.root, dims, thread_context);
 }
 

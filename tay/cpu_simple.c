@@ -13,7 +13,7 @@ static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, int thread
     task->thread_i = thread_i;
 }
 
-void cpu_simple_see_seen_new(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
+void cpu_simple_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
     
     AgentsSlice seen_slice = {
         pass->seen_group->storage,

@@ -123,9 +123,7 @@ typedef struct TayPass {
     };
     Space *seen_space; // TODO: remove these
     PASS_FUNC struct_pass_func;
-    SEEN_FUNC struct_seen_func;
     NEW_SEEN_FUNC new_seen_func;
-    SEE_PAIRING_FUNC pairing_func;
     NEW_PAIRING_FUNC new_pairing_func;
 } TayPass;
 
