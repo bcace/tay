@@ -115,11 +115,11 @@ typedef struct TayPass {
     int self_see;
     void *context;
     /* data prepared by the compile step */
-    union {
-        Space *act_space; // TODO: remove these
-        Space *seer_space; // TODO: remove these
-    };
-    Space *seen_space; // TODO: remove these
+    // union {
+    //     Space *act_space; // TODO: remove these
+    //     Space *seer_space; // TODO: remove these
+    // };
+    // Space *seen_space; // TODO: remove these
     PASS_FUNC struct_pass_func;
     SEEN_FUNC seen_func;
     PAIRING_FUNC pairing_func;

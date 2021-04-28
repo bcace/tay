@@ -6,10 +6,10 @@
 
 
 typedef struct TreeCell {
-    struct TreeCell *lo, *hi;       // child partitions
+    struct TreeCell *lo, *hi;       /* child partitions */
     unsigned first_agent_i;
-    unsigned count;                 // agent counts for this cell
-    int dim;                        // dimension along which the cell's partition is divided into child partitions
+    unsigned count;                 /* agent counts for this cell */
+    int dim;                        /* dimension along which the cell's partition is divided into child partitions */
     Box box;
     float mid;
 } TreeCell;
@@ -46,7 +46,7 @@ static inline void _decide_cell_split(TreeCell *cell, int dims, int *max_depths,
 
 static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
 
-    if (cell->dim == TREE_CELL_LEAF_DIM) { // leaf cell, put the agent here
+    if (cell->dim == TREE_CELL_LEAF_DIM) { /* leaf cell, put the agent here */
         agent->cell_i = _cell_index(tree->cells, cell);
         agent->cell_agent_i = cell->count;
         ++cell->count;
@@ -58,9 +58,9 @@ static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agen
 
     float pos = float4_agent_position(agent).arr[cell->dim];
     if (pos < cell->mid) {
-        if (cell->lo == 0) { // lo cell needed but doesn't exist yet
+        if (cell->lo == 0) { /* lo cell needed but doesn't exist yet */
 
-            if (tree->cells_count == tree->max_cells) { // no more space for new cells, leave the agent in current cell
+            if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
                 agent->cell_i = _cell_index(tree->cells, cell);
                 agent->cell_agent_i = cell->count;
                 ++cell->count;
@@ -76,9 +76,9 @@ static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agen
         _sort_point_agent(tree, cell->lo, agent, sub_node_depths, radii);
     }
     else {
-        if (cell->hi == 0) { // hi cell needed but doesn't exist yet
+        if (cell->hi == 0) { /* hi cell needed but doesn't exist yet */
 
-            if (tree->cells_count == tree->max_cells) { // no more space for new cells, leave the agent in current cell
+            if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
                 agent->cell_i = _cell_index(tree->cells, cell);
                 agent->cell_agent_i = cell->count;
                 ++cell->count;
@@ -97,7 +97,7 @@ static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agen
 
 static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
 
-    if (cell->dim == TREE_CELL_LEAF_DIM) { // leaf cell, put the agent here
+    if (cell->dim == TREE_CELL_LEAF_DIM) { /* leaf cell, put the agent here */
         agent->cell_i = _cell_index(tree->cells, cell);
         agent->cell_agent_i = cell->count;
         ++cell->count;
@@ -110,9 +110,9 @@ static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *
     float min = float4_agent_min(agent).arr[cell->dim];
     float max = float4_agent_max(agent).arr[cell->dim];
     if (max <= cell->mid) {
-        if (cell->lo == 0) { // lo cell needed but doesn't exist yet
+        if (cell->lo == 0) { /* lo cell needed but doesn't exist yet */
 
-            if (tree->cells_count == tree->max_cells) { // no more space for new cells, leave the agent in current cell
+            if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
                 agent->cell_i = _cell_index(tree->cells, cell);
                 agent->cell_agent_i = cell->count;
                 ++cell->count;
@@ -128,9 +128,9 @@ static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *
         _sort_non_point_agent(tree, cell->lo, agent, sub_node_depths, radii);
     }
     else if (min >= cell->mid) {
-        if (cell->hi == 0) { // hi cell needed but doesn't exist yet
+        if (cell->hi == 0) { /* hi cell needed but doesn't exist yet */
 
-            if (tree->cells_count == tree->max_cells) { // no more space for new cells, leave the agent in current cell
+            if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
                 agent->cell_i = _cell_index(tree->cells, cell);
                 agent->cell_agent_i = cell->count;
                 ++cell->count;
@@ -145,7 +145,7 @@ static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *
         }
         _sort_non_point_agent(tree, cell->hi, agent, sub_node_depths, radii);
     }
-    else { // agent extends to both sides of the mid plane, leave it in the current cell
+    else { /* agent extends to both sides of the mid plane, leave it in the current cell */
         agent->cell_i = _cell_index(tree->cells, cell);
         agent->cell_agent_i = cell->count;
         ++cell->count;
@@ -168,7 +168,7 @@ void cpu_tree_on_simulation_start(Space *space) {
     tree->dims = space->dims;
     tree->cells = space->shared;
     tree->max_cells = space->shared_size / (int)sizeof(TreeCell);
-    // ERROR: must be space for at least one cell
+    /* ERROR: must be space for at least one cell */
 }
 
 void cpu_tree_sort(TayGroup *group) {
@@ -188,7 +188,7 @@ void cpu_tree_sort(TayGroup *group) {
     {
         tree->cells_count = 1;
         _init_cell(tree->cells);
-        tree->cells->box = space->box; // root cell inherits tree's box
+        tree->cells->box = space->box; /* root cell inherits tree's box */
         _decide_cell_split(tree->cells, tree->dims, tree->max_depths.arr, space->radii.arr, root_cell_depths);
     }
 
@@ -306,7 +306,7 @@ static void _thread_traverse_seen(TayPass *pass, AgentsSlice seer_slice, Box see
 }
 
 void cpu_kd_tree_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
-    _thread_traverse_seen(pass, seer_slice, seer_box, pass->seen_space->cpu_tree.cells, dims, thread_context);
+    _thread_traverse_seen(pass, seer_slice, seer_box, pass->seen_group->space.cpu_tree.cells, dims, thread_context);
 }
 
 static inline unsigned _min(unsigned a, unsigned b) {

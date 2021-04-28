@@ -216,9 +216,6 @@ static TayError _compile_passes(TayState *state) {
             int seer_is_point = pass->seer_group->is_point;
             int seen_is_point = pass->seen_group->is_point;
 
-            pass->seer_space = seer_space;
-            pass->seen_space = seen_space;
-
             if (seer_space->dims == seen_space->dims) {
 
                 pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point, pass->seer_group == pass->seen_group, pass->self_see);
@@ -251,8 +248,6 @@ static TayError _compile_passes(TayState *state) {
         else if (pass->type == TAY_PASS_ACT) {
             Space *act_space = &pass->act_group->space;
             int act_is_point = pass->act_group->is_point;
-
-            pass->act_space = act_space;
 
             if (act_space->type == TAY_CPU_SIMPLE)
                 pass->struct_pass_func = cpu_simple_act;
