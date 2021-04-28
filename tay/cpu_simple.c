@@ -22,7 +22,7 @@ void cpu_simple_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, in
         pass->seen_group->space.count,
     };
 
-    pass->new_pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
+    pass->pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
 }
 
 static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
@@ -48,7 +48,7 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
         end_seer_i,
     };
 
-    pass->new_seen_func(task->pass, seer_slice, (Box){0}, min_dims, thread_context);
+    pass->seen_func(task->pass, seer_slice, (Box){0}, min_dims, thread_context);
 }
 
 void cpu_simple_see(TayPass *pass) {

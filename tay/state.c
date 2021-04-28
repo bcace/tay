@@ -190,15 +190,19 @@ void tay_simulation_start(TayState *state) {
     }
 }
 
-static NEW_PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, int seen_is_point, int self_see) {
-    if (seer_is_point == seen_is_point) {
+static PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, int seen_is_point, int same_group, int self_see) {
+    if (same_group) {
         if (self_see)
             return (seer_is_point) ? space_see_point_point_self_see : space_see_nonpoint_nonpoint_self_see;
         else
             return (seer_is_point) ? space_see_point_point : space_see_nonpoint_nonpoint;
     }
-    else
-        return (seer_is_point) ? space_see_point_nonpoint : space_see_nonpoint_point;
+    else {
+        if (seer_is_point == seen_is_point)
+            return (seer_is_point) ? space_see_point_point_self_see : space_see_nonpoint_nonpoint_self_see;
+        else
+            return (seer_is_point) ? space_see_point_nonpoint : space_see_nonpoint_point;    
+    }
 }
 
 static TayError _compile_passes(TayState *state) {
@@ -215,11 +219,9 @@ static TayError _compile_passes(TayState *state) {
             pass->seer_space = seer_space;
             pass->seen_space = seen_space;
 
-            int self_see = pass->self_see && pass->seer_group == pass->seen_group;
-
             if (seer_space->dims == seen_space->dims) {
 
-                pass->new_pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point, self_see);
+                pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point, pass->seer_group == pass->seen_group, pass->self_see);
 
                 if (seer_space->type == TAY_CPU_SIMPLE)
                     pass->struct_pass_func = cpu_simple_see;
@@ -233,13 +235,13 @@ static TayError _compile_passes(TayState *state) {
                     return TAY_ERROR_NOT_IMPLEMENTED;
 
                 if (seen_space->type == TAY_CPU_SIMPLE)
-                    pass->new_seen_func = cpu_simple_see_seen;
+                    pass->seen_func = cpu_simple_see_seen;
                 else if (seen_space->type == TAY_CPU_KD_TREE)
-                    pass->new_seen_func = cpu_kd_tree_see_seen;
+                    pass->seen_func = cpu_kd_tree_see_seen;
                 else if (seen_space->type == TAY_CPU_AABB_TREE)
-                    pass->new_seen_func = cpu_aabb_tree_see_seen;
+                    pass->seen_func = cpu_aabb_tree_see_seen;
                 else if (seen_space->type == TAY_CPU_GRID)
-                    pass->new_seen_func = cpu_grid_see_seen;
+                    pass->seen_func = cpu_grid_see_seen;
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
             }

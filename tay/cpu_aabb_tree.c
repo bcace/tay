@@ -279,7 +279,7 @@ static void _node_see_func(TayPass *pass, AgentsSlice seer_slice, Box seer_box, 
             seen_node->first_agent_i,
             seen_node->first_agent_i + seen_node->count
         };
-        pass->new_pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
+        pass->pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
     }
     else {
         _node_see_func(pass, seer_slice, seer_box, seen_node->a, dims, thread_context);
@@ -328,7 +328,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
             cell_end_seer_i,
         };
         
-        pass->new_seen_func(pass, seer_slice, seer_box, min_dims, thread_context);
+        pass->seen_func(pass, seer_slice, seer_box, min_dims, thread_context);
 
         seer_i = cell_end_seer_i;
     }

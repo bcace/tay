@@ -18,10 +18,8 @@ typedef void (*TAY_SEE_FUNC)(void *, void *, void *);
 typedef void (*TAY_ACT_FUNC)(void *, void *);
 
 typedef void (*PASS_FUNC)(struct TayPass *);
-typedef void (*SEEN_FUNC)(struct TayPass *, TayAgentTag *, Box, int, struct TayThreadContext *);
-typedef void (*NEW_SEEN_FUNC)(struct TayPass *, AgentsSlice, Box, int, struct TayThreadContext *);
-typedef void (*SEE_PAIRING_FUNC)(TayAgentTag *, TayAgentTag *, TAY_SEE_FUNC, float4, int, struct TayThreadContext *);
-typedef void (*NEW_PAIRING_FUNC)(AgentsSlice, AgentsSlice, TAY_SEE_FUNC, float4, int, struct TayThreadContext *);
+typedef void (*SEEN_FUNC)(struct TayPass *, AgentsSlice, Box, int, struct TayThreadContext *);
+typedef void (*PAIRING_FUNC)(AgentsSlice, AgentsSlice, TAY_SEE_FUNC, float4, int, struct TayThreadContext *);
 
 typedef struct {
     union {
@@ -123,8 +121,8 @@ typedef struct TayPass {
     };
     Space *seen_space; // TODO: remove these
     PASS_FUNC struct_pass_func;
-    NEW_SEEN_FUNC new_seen_func;
-    NEW_PAIRING_FUNC new_pairing_func;
+    SEEN_FUNC seen_func;
+    PAIRING_FUNC pairing_func;
 } TayPass;
 
 typedef enum TayStateStatus {
