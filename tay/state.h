@@ -58,14 +58,6 @@ typedef struct {
     int4 cell_counts;
 } CpuGrid;
 
-typedef struct {
-    struct Bin *bins;
-    struct Bin *first_bin; /* first bin that contains any agents */
-    float4 cell_sizes;
-    float4 grid_origin;
-    unsigned modulo_mask;
-} CpuHashGrid;
-
 typedef struct Space {
     int dims;
     float4 radii; /* if space is partitioned, these are suggested subdivision radii */
@@ -78,7 +70,6 @@ typedef struct Space {
         CpuKdTree cpu_tree;
         CpuAabbTree cpu_aabb_tree;
         CpuGrid cpu_grid;
-        CpuHashGrid cpu_hash_grid;
     };
     void *shared; /* buffer shared internally by all structures in this space */
     int shared_size; /* size of the shared buffer */
@@ -115,11 +106,6 @@ typedef struct TayPass {
     int self_see;
     void *context;
     /* data prepared by the compile step */
-    // union {
-    //     Space *act_space; // TODO: remove these
-    //     Space *seer_space; // TODO: remove these
-    // };
-    // Space *seen_space; // TODO: remove these
     PASS_FUNC struct_pass_func;
     SEEN_FUNC seen_func;
     PAIRING_FUNC pairing_func;
