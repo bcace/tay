@@ -47,7 +47,7 @@ static inline void _decide_cell_split(TreeCell *cell, int dims, int *max_depths,
 static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
 
     if (cell->dim == TREE_CELL_LEAF_DIM) { /* leaf cell, put the agent here */
-        agent->cell_i = _cell_index(tree->cells, cell);
+        agent->part_i = _cell_index(tree->cells, cell);
         agent->cell_agent_i = cell->count;
         ++cell->count;
         return;
@@ -61,7 +61,7 @@ static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agen
         if (cell->lo == 0) { /* lo cell needed but doesn't exist yet */
 
             if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
-                agent->cell_i = _cell_index(tree->cells, cell);
+                agent->part_i = _cell_index(tree->cells, cell);
                 agent->cell_agent_i = cell->count;
                 ++cell->count;
                 return;
@@ -79,7 +79,7 @@ static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agen
         if (cell->hi == 0) { /* hi cell needed but doesn't exist yet */
 
             if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
-                agent->cell_i = _cell_index(tree->cells, cell);
+                agent->part_i = _cell_index(tree->cells, cell);
                 agent->cell_agent_i = cell->count;
                 ++cell->count;
                 return;
@@ -98,7 +98,7 @@ static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agen
 static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
 
     if (cell->dim == TREE_CELL_LEAF_DIM) { /* leaf cell, put the agent here */
-        agent->cell_i = _cell_index(tree->cells, cell);
+        agent->part_i = _cell_index(tree->cells, cell);
         agent->cell_agent_i = cell->count;
         ++cell->count;
         return;
@@ -113,7 +113,7 @@ static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *
         if (cell->lo == 0) { /* lo cell needed but doesn't exist yet */
 
             if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
-                agent->cell_i = _cell_index(tree->cells, cell);
+                agent->part_i = _cell_index(tree->cells, cell);
                 agent->cell_agent_i = cell->count;
                 ++cell->count;
                 return;
@@ -131,7 +131,7 @@ static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *
         if (cell->hi == 0) { /* hi cell needed but doesn't exist yet */
 
             if (tree->cells_count == tree->max_cells) { /* no more space for new cells, leave the agent in current cell */
-                agent->cell_i = _cell_index(tree->cells, cell);
+                agent->part_i = _cell_index(tree->cells, cell);
                 agent->cell_agent_i = cell->count;
                 ++cell->count;
                 return;
@@ -146,7 +146,7 @@ static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *
         _sort_non_point_agent(tree, cell->hi, agent, sub_node_depths, radii);
     }
     else { /* agent extends to both sides of the mid plane, leave it in the current cell */
-        agent->cell_i = _cell_index(tree->cells, cell);
+        agent->part_i = _cell_index(tree->cells, cell);
         agent->cell_agent_i = cell->count;
         ++cell->count;
 #if TAY_TELEMETRY
@@ -225,7 +225,7 @@ void cpu_tree_sort(TayGroup *group) {
 
     for (unsigned i = 0; i < space->count; ++i) {
         TayAgentTag *src = (TayAgentTag *)(group->storage + group->agent_size * i);
-        unsigned sorted_agent_i = tree->cells[src->cell_i].first_agent_i + src->cell_agent_i;
+        unsigned sorted_agent_i = tree->cells[src->part_i].first_agent_i + src->cell_agent_i;
         TayAgentTag *dst = (TayAgentTag *)(group->sort_storage + group->agent_size * sorted_agent_i);
         memcpy(dst, src, group->agent_size);
     }
@@ -333,7 +333,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
 
     while (seer_i < end_seer_i) {
         TayAgentTag *seer = (TayAgentTag *)(seer_group->storage + seer_group->agent_size * seer_i);
-        TreeCell *seer_cell = seer_tree->cells + seer->cell_i;
+        TreeCell *seer_cell = seer_tree->cells + seer->part_i;
 
         Box seer_box = seer_cell->box;
         for (int i = 0; i < min_dims; ++i) {

@@ -127,7 +127,7 @@ void cpu_grid_sort(TayGroup *group) {
             cell->indices = indices;
         }
 
-        agent->cell_i = cell_i;
+        agent->part_i = cell_i;
         agent->cell_agent_i = cell->count;
         ++cell->count;
     }
@@ -140,7 +140,7 @@ void cpu_grid_sort(TayGroup *group) {
 
     for (unsigned i = 0; i < space->count; ++i) {
         TayAgentTag *src = (TayAgentTag *)(group->storage + group->agent_size * i);
-        unsigned sorted_agent_i = grid->cells[src->cell_i].first_agent_i + src->cell_agent_i;
+        unsigned sorted_agent_i = grid->cells[src->part_i].first_agent_i + src->cell_agent_i;
         TayAgentTag *dst = (TayAgentTag *)(group->sort_storage + group->agent_size * sorted_agent_i);
         memcpy(dst, src, group->agent_size);
     }
@@ -308,7 +308,7 @@ static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
 
     while (seer_i < end_seer_i) {
         TayAgentTag *seer = (TayAgentTag *)(seer_group->storage + seer_group->agent_size * seer_i);
-        GridCell *seer_cell = seer_grid->cells + seer->cell_i;
+        GridCell *seer_cell = seer_grid->cells + seer->part_i;
 
         Box seer_box;
         for (int i = 0; i < min_dims; ++i) {

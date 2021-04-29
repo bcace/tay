@@ -78,13 +78,8 @@ typedef struct {
 } Box;
 
 typedef struct TayAgentTag {
-    union {
-        struct TayAgentTag *next;
-        struct {
-            unsigned cell_i;
-            unsigned cell_agent_i;
-        };
-    };
+    unsigned part_i;
+    unsigned cell_agent_i;
 } TayAgentTag;
 
 #pragma pack(pop)
