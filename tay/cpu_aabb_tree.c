@@ -207,9 +207,9 @@ void cpu_aabb_tree_sort(TayGroup *group) {
     _order_nodes(tree->root, &first_agent_i);
 
     for (unsigned i = 0; i < space->count; ++i) {
-        TayAgentTag *src = (TayAgentTag *)((char *)group->storage + group->agent_size * i);
+        TayAgentTag *src = (TayAgentTag *)(group->storage + group->agent_size * i);
         unsigned sorted_agent_i = tree->nodes[src->cell_i].first_agent_i + src->cell_agent_i;
-        TayAgentTag *dst = (TayAgentTag *)((char *)group->sort_storage + group->agent_size * sorted_agent_i);
+        TayAgentTag *dst = (TayAgentTag *)(group->sort_storage + group->agent_size * sorted_agent_i);
         memcpy(dst, src, group->agent_size);
     }
 
@@ -240,7 +240,7 @@ static void _act_func(ActTask *task, TayThreadContext *thread_context) {
                            pass->act_group->space.count;
 
     for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
-        void *agent = (char *)pass->act_group->storage + pass->act_group->agent_size * agent_i;
+        void *agent = pass->act_group->storage + pass->act_group->agent_size * agent_i;
         pass->act(agent, thread_context->context);
     }
 }
@@ -310,7 +310,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
     unsigned seer_i = beg_seer_i;
 
     while (seer_i < end_seer_i) {
-        TayAgentTag *seer = (TayAgentTag *)((char *)seer_group->storage + seer_group->agent_size * seer_i);
+        TayAgentTag *seer = (TayAgentTag *)(seer_group->storage + seer_group->agent_size * seer_i);
         TreeNode *seer_node = seer_tree->nodes + seer->cell_i;
 
         Box seer_box = seer_node->box;

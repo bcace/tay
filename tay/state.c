@@ -27,7 +27,6 @@ static void _clear_group(TayGroup *group) {
     free(group->agent_storage[1]);
     group->agent_storage[0] = group->storage = 0;
     group->agent_storage[1] = group->sort_storage = 0;
-    group->first = 0;
     _clear_space(&group->space);
 }
 
@@ -64,16 +63,6 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     group->agent_storage[1] = group->sort_storage = calloc(agent_capacity, agent_size);
     group->capacity = agent_capacity;
     group->is_point = is_point;
-    group->first = (TayAgentTag *)group->storage;
-
-    /* connect all dead agents in storage into a list */
-    TayAgentTag *prev = group->first;
-    for (unsigned i = 0; i < agent_capacity - 1; ++i) {
-        TayAgentTag *next = (TayAgentTag *)((char *)prev + agent_size);
-        prev->next = next;
-        prev = next;
-    }
-    prev->next = 0;
 
     /* initialize the group's space */
     Space *space = &group->space;
@@ -144,27 +133,20 @@ void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, void *
 void *tay_get_available_agent(TayState *state, TayGroup *group) {
     // ERROR: check group
     assert(group->first != 0);
-    return group->first;
+    Space *space = &group->space;
+    return group->storage + group->agent_size * space->count;
 }
 
 void tay_commit_available_agent(TayState *state, TayGroup *group) {
     // ERROR: check group
     assert(group->first != 0);
-
-    /* remove agent from storage */
-    TayAgentTag *a = group->first;
-    group->first = a->next;
-
-    /* add agent to space (make it live) */
-    {
-        Space *space = &group->space;
-        ++space->count;
-    }
+    Space *space = &group->space;
+    ++space->count;
 }
 
 void *tay_get_agent(TayState *state, TayGroup *group, int index) {
     // ERROR: check group
-    return (char *)group->storage + group->agent_size * index;
+    return group->storage + group->agent_size * index;
 }
 
 void tay_simulation_start(TayState *state) {

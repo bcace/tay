@@ -89,7 +89,7 @@ static void _act_func(ActTask *task, TayThreadContext *thread_context) {
                            pass->act_group->space.count;
 
     for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
-        void *agent = (char *)pass->act_group->storage + pass->act_group->agent_size * agent_i;
+        void *agent = pass->act_group->storage + pass->act_group->agent_size * agent_i;
         pass->act(agent, thread_context->context);
     }
 }

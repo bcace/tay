@@ -62,7 +62,7 @@ typedef struct Space {
     int dims;
     float4 radii; /* if space is partitioned, these are suggested subdivision radii */
     TaySpaceType type;
-    unsigned count; /* counts of unsorted agents */
+    unsigned count; /* number of agents */
     Box box;
     union {
         CpuSimple cpu_simple;
@@ -78,11 +78,10 @@ typedef struct TayGroup {
     void *agent_storage[2];
     char *storage; /* agents storage */
     char *sort_storage; /* for seen agent copies during see passes */
-    TayAgentTag *first; /* single linked list of available agents from storage */
     int agent_size; /* agent size in bytes */
     int capacity; /* max. number of agents */
     int is_point; /* are all agents of this group points */
-    Space space; // TODO: rename to space once I finish the transition
+    Space space;
 } TayGroup;
 
 typedef enum TayPassType {

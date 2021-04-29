@@ -112,7 +112,7 @@ void cpu_grid_sort(TayGroup *group) {
     /* find cells and agent indices in those cells */
 
     for (unsigned i = 0; i < space->count; ++i) {
-        TayAgentTag *agent = (TayAgentTag *)((char *)group->storage + group->agent_size * i);
+        TayAgentTag *agent = (TayAgentTag *)(group->storage + group->agent_size * i);
 
         float4 p = float4_agent_position(agent);
 
@@ -139,9 +139,9 @@ void cpu_grid_sort(TayGroup *group) {
     }
 
     for (unsigned i = 0; i < space->count; ++i) {
-        TayAgentTag *src = (TayAgentTag *)((char *)group->storage + group->agent_size * i);
+        TayAgentTag *src = (TayAgentTag *)(group->storage + group->agent_size * i);
         unsigned sorted_agent_i = grid->cells[src->cell_i].first_agent_i + src->cell_agent_i;
-        TayAgentTag *dst = (TayAgentTag *)((char *)group->sort_storage + group->agent_size * sorted_agent_i);
+        TayAgentTag *dst = (TayAgentTag *)(group->sort_storage + group->agent_size * sorted_agent_i);
         memcpy(dst, src, group->agent_size);
     }
 
@@ -175,7 +175,7 @@ static void _act_func(GridActTask *task, TayThreadContext *thread_context) {
                            pass->act_group->space.count;
 
     for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
-        void *agent = (char *)pass->act_group->storage + pass->act_group->agent_size * agent_i;
+        void *agent = pass->act_group->storage + pass->act_group->agent_size * agent_i;
         pass->act(agent, thread_context->context);
     }
 }
@@ -307,7 +307,7 @@ static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
     unsigned seer_i = beg_seer_i;
 
     while (seer_i < end_seer_i) {
-        TayAgentTag *seer = (TayAgentTag *)((char *)seer_group->storage + seer_group->agent_size * seer_i);
+        TayAgentTag *seer = (TayAgentTag *)(seer_group->storage + seer_group->agent_size * seer_i);
         GridCell *seer_cell = seer_grid->cells + seer->cell_i;
 
         Box seer_box;
