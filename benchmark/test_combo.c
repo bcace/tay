@@ -87,10 +87,10 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
                                                    min_size, max_size, distr_exp);
     }
 
-    tay_add_see(tay, group_a, group_b, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
     tay_add_see(tay, group_a, group_a, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
-    tay_add_see(tay, group_b, group_a, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
+    tay_add_see(tay, group_a, group_b, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
     tay_add_see(tay, group_b, group_b, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
+    tay_add_see(tay, group_b, group_a, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
     tay_add_act(tay, group_a, _get_act_func(is_point_a), &act_context);
     tay_add_act(tay, group_b, _get_act_func(is_point_b), &act_context);
 
@@ -141,7 +141,8 @@ void test_combo(Results *results, int steps, int is_point_a, int is_point_b,
             TaySpaceType space_type_b = spec_pairs[j * 2 + 1];
 
             tay_log(file, "    \"%s-%s\": [\n", space_type_name(space_type_a), space_type_name(space_type_b));
-            _test(space_type_a, space_type_b, is_point_a, is_point_b, steps, see_radius, 0, 0, results, file);
+            for (int k = beg_depth_correction; k < end_depth_correction; ++k)
+                _test(space_type_a, space_type_b, is_point_a, is_point_b, steps, see_radius, k, k, results, file);
             tay_log(file, "    ],\n");
         }
 
