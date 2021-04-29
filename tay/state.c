@@ -82,7 +82,6 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     space->dims = 3;
     space->shared_size = TAY_MAX_THREADS * sizeof(TayAgentTag *);
     space->shared = malloc(space->shared_size);
-    space->first = 0;
     space->count = 0;
 
     return group;
@@ -110,7 +109,6 @@ void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_ty
     space->dims = space_dims;
     space->shared_size = shared_size_in_megabytes * TAY_MB;
     space->shared = realloc(space->shared, space->shared_size);
-    space->first = 0;
     space->count = 0;
 }
 
@@ -160,9 +158,6 @@ void tay_commit_available_agent(TayState *state, TayGroup *group) {
     /* add agent to space (make it live) */
     {
         Space *space = &group->space;
-        a->next = space->first;
-        space->first = a;
-        box_update_from_agent(&space->box, (char *)a, space->dims, group->is_point);
         ++space->count;
     }
 }

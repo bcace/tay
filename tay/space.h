@@ -6,7 +6,6 @@
 #define TAY_MAX_BUCKETS     32
 
 
-void space_return_agents(Space *space, TayAgentTag *tag, int is_point);
 void space_update_box(TayGroup *group);
 
 void space_see_point_point(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);

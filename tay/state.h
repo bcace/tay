@@ -62,7 +62,6 @@ typedef struct Space {
     int dims;
     float4 radii; /* if space is partitioned, these are suggested subdivision radii */
     TaySpaceType type;
-    TayAgentTag *first; /* unsorted agents */
     unsigned count; /* counts of unsorted agents */
     Box box;
     union {
