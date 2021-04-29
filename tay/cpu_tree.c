@@ -163,12 +163,24 @@ static int _max_depth(float space_side, float cell_side) {
     return depth;
 }
 
+// TODO: move this down to the sort function
 void cpu_tree_on_simulation_start(Space *space) {
     CpuKdTree *tree = &space->cpu_tree;
     tree->dims = space->dims;
     tree->cells = space->shared;
     tree->max_cells = space->shared_size / (int)sizeof(TreeCell);
     /* ERROR: must be space for at least one cell */
+}
+
+static void _order_nodes(TreeCell *cell, unsigned *first_agent_i) {
+    if (cell->count) {
+        cell->first_agent_i = *first_agent_i;
+        *first_agent_i += cell->count;
+    }
+    if (cell->lo)
+        _order_nodes(cell->lo, first_agent_i);
+    if (cell->hi)
+        _order_nodes(cell->hi, first_agent_i);
 }
 
 void cpu_tree_sort(TayGroup *group) {
@@ -217,11 +229,7 @@ void cpu_tree_sort(TayGroup *group) {
     }
 
     unsigned first_agent_i = 0;
-    for (unsigned cell_i = 0; cell_i < tree->cells_count; ++cell_i) {
-        TreeCell *cell = tree->cells + cell_i;
-        cell->first_agent_i = first_agent_i;
-        first_agent_i += cell->count;
-    }
+    _order_nodes(tree->cells, &first_agent_i);
 
     for (unsigned i = 0; i < space->count; ++i) {
         TayAgentTag *src = (TayAgentTag *)(group->storage + group->agent_size * i);

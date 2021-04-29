@@ -132,14 +132,12 @@ void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, void *
 
 void *tay_get_available_agent(TayState *state, TayGroup *group) {
     // ERROR: check group
-    assert(group->first != 0);
     Space *space = &group->space;
     return group->storage + group->agent_size * space->count;
 }
 
 void tay_commit_available_agent(TayState *state, TayGroup *group) {
     // ERROR: check group
-    assert(group->first != 0);
     Space *space = &group->space;
     ++space->count;
 }
