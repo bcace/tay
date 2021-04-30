@@ -165,7 +165,7 @@ static int _max_depth(float space_side, float cell_side) {
 
 // TODO: move this down to the sort function
 void cpu_tree_on_simulation_start(Space *space) {
-    CpuKdTree *tree = &space->cpu_tree;
+    CpuKdTree *tree = &space->cpu_kd_tree;
     tree->dims = space->dims;
     tree->cells = space->shared;
     tree->max_cells = space->shared_size / (int)sizeof(TreeCell);
@@ -185,7 +185,7 @@ static void _order_nodes(TreeCell *cell, unsigned *first_agent_i) {
 
 void cpu_tree_sort(TayGroup *group) {
     Space *space = &group->space;
-    CpuKdTree *tree = &space->cpu_tree;
+    CpuKdTree *tree = &space->cpu_kd_tree;
 
     space_update_box(group);
 
@@ -314,7 +314,7 @@ static void _thread_traverse_seen(TayPass *pass, AgentsSlice seer_slice, Box see
 }
 
 void cpu_kd_tree_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
-    _thread_traverse_seen(pass, seer_slice, seer_box, pass->seen_group->space.cpu_tree.cells, dims, thread_context);
+    _thread_traverse_seen(pass, seer_slice, seer_box, pass->seen_group->space.cpu_kd_tree.cells, dims, thread_context);
 }
 
 static inline unsigned _min(unsigned a, unsigned b) {
@@ -325,7 +325,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
     TayGroup *seer_group = pass->seer_group;
     TayGroup *seen_group = pass->seen_group;
-    CpuKdTree *seer_tree = &seer_group->space.cpu_tree;
+    CpuKdTree *seer_tree = &seer_group->space.cpu_kd_tree;
 
     int min_dims = (seer_group->space.dims < seen_group->space.dims) ?
                    seer_group->space.dims :
