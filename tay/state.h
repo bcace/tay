@@ -66,7 +66,7 @@ typedef struct Space {
     Box box;
     union {
         CpuSimple cpu_simple;
-        CpuKdTree cpu_tree;
+        CpuKdTree cpu_kd_tree;
         CpuAabbTree cpu_aabb_tree;
         CpuGrid cpu_grid;
     };
