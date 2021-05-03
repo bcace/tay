@@ -162,6 +162,8 @@ void tay_simulation_start(TayState *state) {
             cpu_tree_on_simulation_start(space);
         else if (space->type == TAY_CPU_GRID)
             cpu_grid_on_simulation_start(space);
+        else if (space->type == TAY_CPU_Z_GRID)
+            cpu_z_grid_on_simulation_start(space);
     }
 }
 
@@ -176,7 +178,7 @@ static PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, int se
         if (seer_is_point == seen_is_point)
             return (seer_is_point) ? space_see_point_point_self_see : space_see_nonpoint_nonpoint_self_see;
         else
-            return (seer_is_point) ? space_see_point_nonpoint : space_see_nonpoint_point;    
+            return (seer_is_point) ? space_see_point_nonpoint : space_see_nonpoint_point;
     }
 }
 
@@ -203,6 +205,8 @@ static TayError _compile_passes(TayState *state) {
                     pass->struct_pass_func = cpu_aabb_tree_see;
                 else if (seer_space->type == TAY_CPU_GRID)
                     pass->struct_pass_func = cpu_grid_see;
+                else if (seer_space->type == TAY_CPU_Z_GRID)
+                    ;
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
 
@@ -214,6 +218,8 @@ static TayError _compile_passes(TayState *state) {
                     pass->seen_func = cpu_aabb_tree_see_seen;
                 else if (seen_space->type == TAY_CPU_GRID)
                     pass->seen_func = cpu_grid_see_seen;
+                else if (seen_space->type == TAY_CPU_Z_GRID)
+                    ;
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
             }
@@ -232,6 +238,8 @@ static TayError _compile_passes(TayState *state) {
                 pass->struct_pass_func = cpu_aabb_tree_act;
             else if (act_space->type == TAY_CPU_GRID)
                 pass->struct_pass_func = cpu_grid_act;
+            else if (act_space->type == TAY_CPU_Z_GRID)
+                ;
             else
                 return TAY_ERROR_NOT_IMPLEMENTED;
         }
@@ -273,6 +281,7 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_KD_TREE: cpu_tree_sort(group); break;
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_sort(group); break;
                 case TAY_CPU_GRID: cpu_grid_sort(group); break;
+                case TAY_CPU_Z_GRID: cpu_z_grid_sort(group); break;
                 default: assert(0);
             }
         }
@@ -295,6 +304,7 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_KD_TREE: cpu_tree_unsort(group); break;
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_unsort(group); break;
                 case TAY_CPU_GRID: cpu_grid_unsort(group); break;
+                case TAY_CPU_Z_GRID: cpu_z_grid_unsort(group); break;
                 default: assert(0); /* not implemented */
             }
         }

@@ -31,6 +31,15 @@ typedef struct {
 } int4;
 
 typedef struct {
+    union {
+        struct {
+            unsigned x, y, z, w;
+        };
+        unsigned arr[4];
+    };
+} uint4;
+
+typedef struct {
     TayAgentTag **first; /* first[thread] */
 } CpuSimple;
 
@@ -58,6 +67,15 @@ typedef struct {
     int4 cell_counts;
 } CpuGrid;
 
+typedef struct {
+    struct ZGridCell *cells;
+    float4 origin;
+    float4 cell_sizes;
+    uint4 cell_counts;
+    unsigned max_cells;
+    unsigned cells_count;
+} CpuZGrid;
+
 typedef struct Space {
     int dims;
     float4 radii; /* if space is partitioned, these are suggested subdivision radii */
@@ -69,6 +87,7 @@ typedef struct Space {
         CpuKdTree cpu_kd_tree;
         CpuAabbTree cpu_aabb_tree;
         CpuGrid cpu_grid;
+        CpuZGrid cpu_z_grid;
     };
     void *shared; /* buffer shared internally by all structures in this space */
     int shared_size; /* size of the shared buffer */
