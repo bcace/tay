@@ -9,29 +9,31 @@
 
 
 int main() {
-    tay_threads_start();
+    tay_threads_start(100000);
 
     Results *results = results_create();
 
     test_basic(results, MC_UNIFORM, 1000,
                0, 1, // see radius
-               0, 10, // depth correction
-               TAY_CPU_SIMPLE
-               |
+               2, 8, // depth correction
+               // TAY_CPU_SIMPLE
+               // |
                TAY_CPU_GRID
                |
-               TAY_CPU_KD_TREE
+               TAY_CPU_Z_GRID
+               // |
+               // TAY_CPU_KD_TREE
     );
 
-    test_nonpoint(results, 1000,
-                  0, 1, // see radius
-                  0, 10, // depth correction
-                  TAY_CPU_SIMPLE 
-                  |
-                  TAY_CPU_KD_TREE
-                  |
-                  TAY_CPU_AABB_TREE
-    );
+    // test_nonpoint(results, 1000,
+    //               0, 1, // see radius
+    //               0, 10, // depth correction
+    //               TAY_CPU_SIMPLE
+    //               |
+    //               TAY_CPU_KD_TREE
+    //               |
+    //               TAY_CPU_AABB_TREE
+    // );
 
     // TaySpaceType spec_pairs[] = {
     //     TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,

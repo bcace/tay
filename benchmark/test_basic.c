@@ -114,6 +114,13 @@ void test_basic(Results *results, ModelCase model_case, int steps,
             tay_log(file, "    ],\n");
         }
 
+        if (space_type_flags & TAY_CPU_Z_GRID) {
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_Z_GRID));
+            for (int j = beg_depth_correction; j < end_depth_correction; ++j)
+                _test(model_case, TAY_CPU_Z_GRID, see_radius, j, results, steps, file);
+            tay_log(file, "    ],\n");
+        }
+
 #if TAY_GPU
         if (space_type_flags & TAY_GPU_SIMPLE_DIRECT) {
             _test(model_case, TAY_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps, file);
