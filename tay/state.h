@@ -71,7 +71,7 @@ typedef struct {
     struct ZGridCell *cells;
     float4 origin;
     float4 cell_sizes;
-    uint4 cell_counts;
+    int4 cell_counts;
     unsigned max_cells;
     unsigned cells_count;
 } CpuZGrid;

@@ -206,7 +206,7 @@ static TayError _compile_passes(TayState *state) {
                 else if (seer_space->type == TAY_CPU_GRID)
                     pass->struct_pass_func = cpu_grid_see;
                 else if (seer_space->type == TAY_CPU_Z_GRID)
-                    ;
+                    pass->struct_pass_func = cpu_z_grid_see;
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
 
@@ -219,7 +219,7 @@ static TayError _compile_passes(TayState *state) {
                 else if (seen_space->type == TAY_CPU_GRID)
                     pass->seen_func = cpu_grid_see_seen;
                 else if (seen_space->type == TAY_CPU_Z_GRID)
-                    ;
+                    pass->seen_func = cpu_z_grid_see_seen;
                 else
                     return TAY_ERROR_NOT_IMPLEMENTED;
             }
@@ -239,7 +239,7 @@ static TayError _compile_passes(TayState *state) {
             else if (act_space->type == TAY_CPU_GRID)
                 pass->struct_pass_func = cpu_grid_act;
             else if (act_space->type == TAY_CPU_Z_GRID)
-                ;
+                pass->struct_pass_func = cpu_z_grid_act;
             else
                 return TAY_ERROR_NOT_IMPLEMENTED;
         }

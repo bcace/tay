@@ -63,12 +63,11 @@ typedef struct TayRunner {
     int count;
     TayRunnerState state;
     TayTelemetry telemetry;
+    unsigned thread_storage_size;
 } TayRunner;
 
-void tay_threads_start();
+void tay_threads_start(unsigned thread_storage_size);
 void tay_threads_stop();
-
-void *tay_threads_refresh_thread_storage(TayThreadContext *context, unsigned size);
 
 void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *), void *task, void *context);
 void tay_runner_run();

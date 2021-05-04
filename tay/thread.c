@@ -48,16 +48,17 @@ static void _reset_telemetry() {
 #endif
 }
 
-void _start_threads(int threads_count) {
+void _start_threads(int threads_count, unsigned thread_storage_size) {
     assert(runner.state == TAY_RUNNER_IDLE);
+    runner.thread_storage_size = thread_storage_size;
     for (int i = 0; i < threads_count; ++i) {
         TayThread *t = runner.threads + i;
         t->run = 1;
         t->beg_semaphore = CreateSemaphore(0, 0, 1, 0);
         t->end_semaphore = CreateSemaphore(0, 0, 1, 0);
         t->thread = CreateThread(0, 0, _thread_func, t, 0, 0);
-        t->context.storage = 0;
-        t->context.storage_size = 0;
+        t->context.storage = calloc(1, thread_storage_size);
+        t->context.storage_size = thread_storage_size;
     }
     runner.count = threads_count;
     runner.state = TAY_RUNNER_WAITING;
@@ -66,8 +67,8 @@ void _start_threads(int threads_count) {
 #endif
 }
 
-void tay_threads_start() {
-    _start_threads(GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS));
+void tay_threads_start(unsigned thread_storage_size) {
+    _start_threads(GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS), thread_storage_size);
 }
 
 void tay_runner_run() {
@@ -110,14 +111,6 @@ void _stop_threads() {
 
 void tay_threads_stop() {
     _stop_threads();
-}
-
-void *tay_threads_refresh_thread_storage(TayThreadContext *context, unsigned size) {
-    if (size > context->storage_size) {
-        context->storage_size = (size / TAY_MB + 1) * TAY_MB;
-        context->storage = realloc(context->storage, context->storage_size);
-    }
-    return context->storage;
 }
 
 static void _init_thread(TayThread *thread) {
