@@ -14,7 +14,7 @@ static TayGroup *boids_group;
 static ActContext act_context;
 static SeeContext see_context;
 
-static int boids_count = 60000;
+static int boids_count = 80000;
 
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
@@ -81,10 +81,10 @@ void flocking_draw() {
     float *inst_shd = global.inst_float_buffers[0];
 
     mat4 perspective;
-    graphics_perspective(&perspective, 1.2f, (float)global.window_w / (float)global.window_h, 1.0f, 2000.0f);
+    graphics_perspective(&perspective, 1.2f, (float)global.window_w / (float)global.window_h, 1.0f, 4000.0f);
 
     vec3 pos, fwd, up;
-    pos.x = -1000.0f;
+    pos.x = -2000.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
     fwd.x = 1.0f;

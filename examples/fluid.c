@@ -15,10 +15,10 @@ static TayGroup *particles_group;
 
 static SphContext sph_context;
 
-static int particles_count = 100000;
+static int particles_count = 60000;
 
-static float sphere[10000];
-static unsigned sphere_subdivs = 2;
+// static float sphere[10000];
+// static unsigned sphere_subdivs = 2;
 
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
@@ -60,8 +60,8 @@ void fluid_init() {
     sph_context.dynamic_viscosity = 3.5f;
     sph_context.surface_tension = 0.0728f;
     sph_context.surface_tension_threshold = 7.065f;
-    sph_context.min = (float3){-2.0f, -1.8f, -1.0f};
-    sph_context.max = (float3){2.0f, 1.8f, 1.0f};
+    sph_context.min = (float3){-1.0f, -1.8f, -1.0f};
+    sph_context.max = (float3){1.0f, 1.8f, 1.0f};
 
     _update_sph_context(&sph_context, particle_m);
 
@@ -103,7 +103,7 @@ void fluid_draw() {
 
     mat4 modelview;
     mat4_set_identity(&modelview);
-    mat4_translate(&modelview, 0.0f, 130.0f, -400.0f);
+    mat4_translate(&modelview, 0.0f, 130.0f, -800.0f);
     mat4_rotate(&modelview, -1.2f, 1.0f, 0.0f, 0.0f);
     // mat4_rotate(&modelview, 0.7f, 0.0f, 0.0f, 1.0f);
 

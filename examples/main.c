@@ -73,7 +73,7 @@ int main() {
     global.inst_float_buffers[0] = malloc(sizeof(float) * global.max_agents_count);
     global.inst_float_buffers[1] = malloc(sizeof(float) * global.max_agents_count);
 
-    tay_threads_start(); // TODO: remove this!!!
+    tay_threads_start(100000); // TODO: remove this!!!
     global.tay = tay_create_state();
 
     if (global.example == FLOCKING)
@@ -81,7 +81,7 @@ int main() {
     else if (global.example == FLUID)
         fluid_init();
 
-    // platform_sleep(5000);
+    platform_sleep(5000);
 
     tay_simulation_start(global.tay);
 

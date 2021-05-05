@@ -42,7 +42,7 @@ void agent_act(Agent *a, ActContext *c) {
 
     /* gravity */
 
-    const float gravity_r = 200.0f;
+    const float gravity_r = 400.0f;
     const float gravity_a = 0.00001f;
 
     float d = (float)sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
