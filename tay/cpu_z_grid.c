@@ -127,7 +127,14 @@ static inline int4 _cell_index_to_cell_indices(unsigned i, int dims) {
 
 static inline unsigned _round_down_to_power_of_2(unsigned v) {
     unsigned n = 0u;
-    while ((1u << (n + 1u)) < v)
+    while ((1u << (n + 1u)) <= v)
+        ++n;
+    return n;
+}
+
+static inline unsigned _round_up_to_power_of_2(unsigned v) {
+    unsigned n = 0u;
+    while ((1u << n) <= v)
         ++n;
     return n;
 }
@@ -152,16 +159,16 @@ void cpu_z_grid_sort(TayGroup *group) {
 
     space_update_box(group);
 
-    unsigned n = 1 << 31;
+    unsigned n = 0;
 
     for (int i = 0; i < space->dims; ++i) {
         float cell_size = space->radii.arr[i] * 2.0f;
         float space_size = space->box.max.arr[i] - space->box.min.arr[i] + cell_size * 0.001f;
 
         unsigned cells_count = (unsigned)floorf(space_size / cell_size);
-        unsigned side_n = _round_down_to_power_of_2(cells_count);
+        unsigned side_n = _round_up_to_power_of_2(cells_count);
 
-        if (side_n < n)
+        if (side_n > n)
             n = side_n;
     }
 
@@ -286,97 +293,34 @@ void cpu_z_grid_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, in
             max_indices.arr[i] = seen_grid->cell_counts.arr[i] - 1;
     }
 
-    // unsigned min_seen_cell_i = _cell_indices_to_cell_index(min_indices, dims);
-    // unsigned max_seen_cell_i = _cell_indices_to_cell_index(max_indices, dims);
-
     AgentsSlice seen_slice;
     seen_slice.agents = pass->seen_group->storage;
     seen_slice.size = pass->seen_group->agent_size;
 
-    // unsigned kernel_size = max_seen_cell_i - min_seen_cell_i + 1;
+    int4 indices;
+    switch (dims) {
+        case 1: {
+        } break;
+        case 2: {
+        } break;
+        case 3: {
+            for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
+                for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
+                    for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {
+                        unsigned seen_cell_i = _cell_indices_to_cell_index(indices, dims);
+                        ZGridCell *seen_cell = seen_grid->cells + seen_cell_i;
 
-    // if (kernel_size * sizeof(ZGridKernelCell) <= thread_context->storage_size) {
-    //     ZGridKernelCell *kernel_cells = thread_context->storage;
+                        seen_slice.beg = seen_cell->first_agent_i;
+                        seen_slice.end = seen_cell->first_agent_i + seen_cell->count;
 
-    //     int4 indices;
-    //     for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
-    //         for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
-    //             for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {
-
-    //                 unsigned seen_cell_i = _cell_indices_to_cell_index(indices, dims);
-    //                 ZGridCell *seen_cell = seen_grid->cells + seen_cell_i;
-    //                 ZGridKernelCell *kernel_cell = kernel_cells + (seen_cell_i - min_seen_cell_i);
-
-    //                 kernel_cell->beg = seen_cell->first_agent_i;
-    //                 kernel_cell->end = seen_cell->first_agent_i + seen_cell->count;
-
-    //                 // pass->pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
-    //             }
-    //         }
-    //     }
-
-    //     int beg = -1;
-    //     int end = -1;
-
-    //     for (unsigned kernel_i = 0; kernel_i < kernel_size; ++kernel_i) {
-    //         ZGridKernelCell *kernel_cell = kernel_cells + kernel_i;
-
-    //         if (kernel_cell->beg != kernel_cell->end) {
-
-    //             if (beg == -1)
-    //                 beg = kernel_cell->beg;
-    //             end = kernel_cell->end;
-
-    //             kernel_cell->beg = 0;
-    //             kernel_cell->end = 0;
-    //         }
-    //         else {
-    //             if (beg != -1) {
-
-    //                 seen_slice.beg = beg;
-    //                 seen_slice.end = end;
-    //                 pass->pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
-
-    //                 beg = -1;
-    //             }
-    //         }
-    //     }
-
-    //     if (beg != -1) {
-
-    //         seen_slice.beg = beg;
-    //         seen_slice.end = end;
-    //         pass->pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
-
-    //         beg = -1;
-    //     }
-    // }
-    // else {
-        int4 indices;
-        switch (dims) {
-            case 1: {
-            } break;
-            case 2: {
-            } break;
-            case 3: {
-                for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
-                    for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
-                        for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {
-                            unsigned seen_cell_i = _cell_indices_to_cell_index(indices, dims);
-                            ZGridCell *seen_cell = seen_grid->cells + seen_cell_i;
-
-                            seen_slice.beg = seen_cell->first_agent_i;
-                            seen_slice.end = seen_cell->first_agent_i + seen_cell->count;
-
-                            pass->pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
-                        }
+                        pass->pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
                     }
                 }
-            } break;
-            default: {
-            };
-        }
-    // }
+            }
+        } break;
+        default: {
+        };
+    }
 }
 
 static inline unsigned _min(unsigned a, unsigned b) {
