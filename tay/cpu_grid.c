@@ -158,43 +158,6 @@ void cpu_grid_unsort(TayGroup *group) {
 typedef struct {
     TayPass *pass;
     int thread_i;
-} GridActTask;
-
-static void _init_act_task(GridActTask *task, TayPass *pass, int thread_i) {
-    task->pass = pass;
-    task->thread_i = thread_i;
-}
-
-static void _act_func(GridActTask *task, TayThreadContext *thread_context) {
-    TayPass *pass = task->pass;
-
-    int agents_per_thread = pass->act_group->space.count / runner.count;
-    unsigned beg_agent_i = agents_per_thread * task->thread_i;
-    unsigned end_agent_i = (task->thread_i < runner.count - 1) ?
-                           beg_agent_i + agents_per_thread :
-                           pass->act_group->space.count;
-
-    for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
-        void *agent = pass->act_group->storage + pass->act_group->agent_size * agent_i;
-        pass->act(agent, thread_context->context);
-    }
-}
-
-void cpu_grid_act(TayPass *pass) {
-    static GridActTask tasks[TAY_MAX_THREADS];
-
-    for (int thread_i = 0; thread_i < runner.count; ++thread_i) {
-        GridActTask *task = tasks + thread_i;
-        _init_act_task(task, pass, thread_i);
-        tay_thread_set_task(thread_i, _act_func, task, pass->context);
-    }
-
-    tay_runner_run();
-}
-
-typedef struct {
-    TayPass *pass;
-    int thread_i;
 } GridSeeTask;
 
 static void _init_see_task(GridSeeTask *task, TayPass *pass, int thread_i) {

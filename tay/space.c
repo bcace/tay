@@ -111,7 +111,7 @@ void space_see_point_point(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_S
 
             TayAgentTag *seen_agent = (TayAgentTag *)(seen_slice.agents + seen_slice.size * seen_i);
             float4 seen_p = float4_agent_position(seen_agent);
-            
+
             _BROAD_PHASE_COUNT
             _POINT_POINT_NARROW_PHASE_TEST
             _NARROW_PHASE_COUNT
@@ -131,7 +131,7 @@ void space_see_point_point_self_see(AgentsSlice seer_slice, AgentsSlice seen_sli
         for (unsigned seen_i = seen_slice.beg; seen_i < seen_slice.end; ++seen_i) {
             TayAgentTag *seen_agent = (TayAgentTag *)(seen_slice.agents + seen_slice.size * seen_i);
             float4 seen_p = float4_agent_position(seen_agent);
-            
+
             _BROAD_PHASE_COUNT
             _POINT_POINT_NARROW_PHASE_TEST
             _NARROW_PHASE_COUNT
@@ -241,4 +241,41 @@ int space_agent_count_to_bucket_index(int count) {
     while (pow < max_pow && (1 << pow) < count)
         ++pow;
     return max_pow - pow;
+}
+
+typedef struct {
+    TayPass *pass;
+    int thread_i;
+} ActTask;
+
+static void _init_act_task(ActTask *task, TayPass *pass, int thread_i) {
+    task->pass = pass;
+    task->thread_i = thread_i;
+}
+
+static void _act_func(ActTask *task, TayThreadContext *thread_context) {
+    TayPass *pass = task->pass;
+
+    int agents_per_thread = pass->act_group->space.count / runner.count;
+    unsigned beg_agent_i = agents_per_thread * task->thread_i;
+    unsigned end_agent_i = (task->thread_i < runner.count - 1) ?
+                           beg_agent_i + agents_per_thread :
+                           pass->act_group->space.count;
+
+    for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
+        void *agent = pass->act_group->storage + pass->act_group->agent_size * agent_i;
+        pass->act(agent, thread_context->context);
+    }
+}
+
+void space_act(TayPass *pass) {
+    static ActTask act_contexts[TAY_MAX_THREADS];
+
+    for (int i = 0; i < runner.count; ++i) {
+        ActTask *task = act_contexts + i;
+        _init_act_task(task, pass, i);
+        tay_thread_set_task(i, _act_func, task, pass->context);
+    }
+
+    tay_runner_run();
 }

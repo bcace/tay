@@ -249,43 +249,6 @@ void cpu_tree_unsort(TayGroup *group) {
 typedef struct {
     TayPass *pass;
     int thread_i;
-} ActTask;
-
-static void _init_act_task(ActTask *task, TayPass *pass, int thread_i) {
-    task->pass = pass;
-    task->thread_i = thread_i;
-}
-
-static void _act_func(ActTask *task, TayThreadContext *thread_context) {
-    TayPass *pass = task->pass;
-
-    int agents_per_thread = pass->act_group->space.count / runner.count;
-    unsigned beg_agent_i = agents_per_thread * task->thread_i;
-    unsigned end_agent_i = (task->thread_i < runner.count - 1) ?
-                           beg_agent_i + agents_per_thread :
-                           pass->act_group->space.count;
-
-    for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
-        void *agent = pass->act_group->storage + pass->act_group->agent_size * agent_i;
-        pass->act(agent, thread_context->context);
-    }
-}
-
-void cpu_tree_act(TayPass *pass) {
-    static ActTask tasks[TAY_MAX_THREADS];
-
-    for (int i = 0; i < runner.count; ++i) {
-        ActTask *task = tasks + i;
-        _init_act_task(task, pass, i);
-        tay_thread_set_task(i, _act_func, task, pass->context);
-    }
-
-    tay_runner_run();
-}
-
-typedef struct {
-    TayPass *pass;
-    int thread_i;
 } SeeTask;
 
 static void _init_see_task(SeeTask *task, TayPass *pass, int thread_i) {
@@ -350,14 +313,14 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
         }
 
         unsigned cell_end_seer_i = _min(seer_cell->first_agent_i + seer_cell->count, end_seer_i);
-        
+
         AgentsSlice seer_slice = {
             seer_group->storage,
             seer_group->agent_size,
             seer_i,
             cell_end_seer_i,
         };
-        
+
         pass->seen_func(pass, seer_slice, seer_box, min_dims, thread_context);
 
         seer_i = cell_end_seer_i;

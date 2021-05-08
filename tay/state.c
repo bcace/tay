@@ -230,18 +230,7 @@ static TayError _compile_passes(TayState *state) {
             Space *act_space = &pass->act_group->space;
             int act_is_point = pass->act_group->is_point;
 
-            if (act_space->type == TAY_CPU_SIMPLE)
-                pass->struct_pass_func = cpu_simple_act;
-            else if (act_space->type == TAY_CPU_KD_TREE)
-                pass->struct_pass_func = cpu_tree_act;
-            else if (act_space->type == TAY_CPU_AABB_TREE)
-                pass->struct_pass_func = cpu_aabb_tree_act;
-            else if (act_space->type == TAY_CPU_GRID)
-                pass->struct_pass_func = cpu_grid_act;
-            else if (act_space->type == TAY_CPU_Z_GRID)
-                pass->struct_pass_func = cpu_z_grid_act;
-            else
-                return TAY_ERROR_NOT_IMPLEMENTED;
+            pass->struct_pass_func = space_act;
         }
     }
 

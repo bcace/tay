@@ -14,7 +14,7 @@ static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, int thread
 }
 
 void cpu_simple_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
-    
+
     AgentsSlice seen_slice = {
         pass->seen_group->storage,
         pass->seen_group->agent_size,
@@ -64,43 +64,6 @@ void cpu_simple_see(TayPass *pass) {
         SimpleSeeTask *task = tasks + i;
         _init_simple_see_task(task, pass, i);
         tay_thread_set_task(i, _see_func, task, pass->context);
-    }
-
-    tay_runner_run();
-}
-
-typedef struct {
-    TayPass *pass;
-    int thread_i;
-} ActTask;
-
-static void _init_act_task(ActTask *task, TayPass *pass, int thread_i) {
-    task->pass = pass;
-    task->thread_i = thread_i;
-}
-
-static void _act_func(ActTask *task, TayThreadContext *thread_context) {
-    TayPass *pass = task->pass;
-
-    int agents_per_thread = pass->act_group->space.count / runner.count;
-    unsigned beg_agent_i = agents_per_thread * task->thread_i;
-    unsigned end_agent_i = (task->thread_i < runner.count - 1) ?
-                           beg_agent_i + agents_per_thread :
-                           pass->act_group->space.count;
-
-    for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
-        void *agent = pass->act_group->storage + pass->act_group->agent_size * agent_i;
-        pass->act(agent, thread_context->context);
-    }
-}
-
-void cpu_simple_act(TayPass *pass) {
-    static ActTask act_contexts[TAY_MAX_THREADS];
-
-    for (int i = 0; i < runner.count; ++i) {
-        ActTask *task = act_contexts + i;
-        _init_act_task(task, pass, i);
-        tay_thread_set_task(i, _act_func, task, pass->context);
     }
 
     tay_runner_run();
