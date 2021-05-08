@@ -28,7 +28,7 @@ void make_randomized_direction_cluster(TayState *state, TayGroup *group, int cou
 void make_uniform_direction_cluster(TayState *state, TayGroup *group, int count, float3 min, float3 max);
 void make_randomized_direction_cluster_nonpoint(TayState *state, TayGroup *group, int count, float3 min, float3 max, float min_size, float max_size, float distr_exp);
 
-float4 depth_correct(float4 radii, int level);
+float4 interaction_radii_to_partition_sizes(float4 radii, int level);
 const char *space_type_name(TaySpaceType space_type);
 
 void test_basic(Results *results, ModelCase model_case, int steps,

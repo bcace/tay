@@ -6,11 +6,10 @@
 #include <math.h>
 
 
-/* Positive "level" makes partitions smaller, negative makes them larger */
-float4 depth_correct(float4 radii, int level) {
-    if (level == 0)
-        return radii;
-    float c = 1.0f - level * 0.1f;
+/* Returns suggested partition sizes calculated from interaction radii.
+Positive "level" makes partitions smaller, negative makes them larger. */
+float4 interaction_radii_to_partition_sizes(float4 radii, int level) {
+    float c = (1.0f - level * 0.1f) * 2.0f;
     return (float4){ radii.x * c, radii.y * c, radii.z * c, radii.w * c };
 }
 

@@ -12,10 +12,10 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
     srand(1);
 
     float4 see_radii = { see_radius, see_radius, see_radius, 0.0f };
-    float4 part_radii = depth_correct(see_radii, depth_correction);
+    float4 part_sizes = interaction_radii_to_partition_sizes(see_radii, depth_correction);
 
     tay_log(file, "      {\n");
-    tay_log(file, "        \"part_radii\": (%g, %g, %g),\n", part_radii.x, part_radii.y, part_radii.z);
+    tay_log(file, "        \"part_sizes\": (%g, %g, %g),\n", part_sizes.x, part_sizes.y, part_sizes.z);
 
     ActContext act_context;
     act_context.min.x = 0.0f;
@@ -32,7 +32,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
 
     TayState *tay = tay_create_state();
     TayGroup *group = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT, TAY_TRUE);
-    tay_configure_space(tay, group, space_type, 3, part_radii, 250);
+    tay_configure_space(tay, group, space_type, 3, part_sizes, 250);
 
     tay_add_see(tay, group, group, agent_see, see_radii, TAY_FALSE, &see_context);
     tay_add_act(tay, group, agent_act, &act_context);

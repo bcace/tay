@@ -26,8 +26,8 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
     srand(1);
 
     float4 see_radii = { see_radius, see_radius, see_radius, see_radius };
-    float4 part_radii_a = depth_correct(see_radii, part_res_a);
-    float4 part_radii_b = depth_correct(see_radii, part_res_b);
+    float4 part_sizes_a = interaction_radii_to_partition_sizes(see_radii, part_res_a);
+    float4 part_sizes_b = interaction_radii_to_partition_sizes(see_radii, part_res_b);
 
     ActContext act_context;
     act_context.min.x = 0.0f;
@@ -38,8 +38,8 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
     act_context.max.z = SPACE_SIZE;
 
     tay_log(file, "      {\n");
-    tay_log(file, "        \"part radii a\": (%g, %g, %g),\n", part_radii_a.x, part_radii_a.y, part_radii_a.z);
-    tay_log(file, "        \"part radii b\": (%g, %g, %g),\n", part_radii_b.x, part_radii_b.y, part_radii_b.z);
+    tay_log(file, "        \"part sizes a\": (%g, %g, %g),\n", part_sizes_a.x, part_sizes_a.y, part_sizes_a.z);
+    tay_log(file, "        \"part sizes b\": (%g, %g, %g),\n", part_sizes_b.x, part_sizes_b.y, part_sizes_b.z);
 
     float min_size = 1.0f;
     float max_size = 50.0f;
@@ -51,7 +51,7 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
 
     if (is_point_a) {
         group_a = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_a);
-        tay_configure_space(tay, group_a, space_type_a, 3, part_radii_a, 250);
+        tay_configure_space(tay, group_a, space_type_a, 3, part_sizes_a, 250);
 
         make_randomized_direction_cluster(tay, group_a, AGENTS_COUNT / 2,
                                           float3_make(0.0f, 0.0f, 0.0f),
@@ -59,7 +59,7 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
     }
     else {
         group_a = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT / 2, is_point_a);
-        tay_configure_space(tay, group_a, space_type_a, 3, part_radii_a, 250);
+        tay_configure_space(tay, group_a, space_type_a, 3, part_sizes_a, 250);
 
         make_randomized_direction_cluster_nonpoint(tay, group_a, AGENTS_COUNT / 2,
                                                    float3_make(0.0f, 0.0f, 0.0f),
@@ -69,7 +69,7 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
 
     if (is_point_b) {
         group_b = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_b);
-        tay_configure_space(tay, group_b, space_type_b, 3, part_radii_b, 250);
+        tay_configure_space(tay, group_b, space_type_b, 3, part_sizes_b, 250);
 
         make_randomized_direction_cluster(tay,
                                           group_b,
@@ -79,7 +79,7 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
     }
     else {
         group_b = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT / 2, is_point_b);
-        tay_configure_space(tay, group_b, space_type_b, 3, part_radii_b, 250);
+        tay_configure_space(tay, group_b, space_type_b, 3, part_sizes_b, 250);
 
         make_randomized_direction_cluster_nonpoint(tay, group_b, AGENTS_COUNT / 2,
                                                    float3_make(0.0f, 0.0f, 0.0f),
