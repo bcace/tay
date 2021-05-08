@@ -35,17 +35,13 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
                    seer_group->space.dims :
                    seen_group->space.dims;
 
-    int agents_per_thread = pass->seer_group->space.count / runner.count;
-    unsigned beg_seer_i = agents_per_thread * task->thread_i;
-    unsigned end_seer_i = (task->thread_i < runner.count - 1) ?
-                          beg_seer_i + agents_per_thread :
-                          pass->seer_group->space.count;
+    TayRange seers_range = tay_threads_range(pass->seer_group->space.count, task->thread_i);
 
     AgentsSlice seer_slice = {
         seer_group->storage,
         seer_group->agent_size,
-        beg_seer_i,
-        end_seer_i,
+        seers_range.beg,
+        seers_range.end,
     };
 
     pass->seen_func(task->pass, seer_slice, (Box){0}, min_dims, thread_context);

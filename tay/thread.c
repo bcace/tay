@@ -232,3 +232,11 @@ void tay_threads_report_telemetry(unsigned steps_between_reports, void *file) {
     _reset_telemetry();
 #endif
 }
+
+TayRange tay_threads_range(unsigned count, unsigned thread_i) {
+    TayRange r;
+    unsigned per_thread_count = count / runner.count;
+    r.beg = per_thread_count * thread_i;
+    r.end = (thread_i < runner.count - 1u) ? r.beg + per_thread_count : count;
+    return r;
+}

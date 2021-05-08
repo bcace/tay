@@ -66,6 +66,11 @@ typedef struct TayRunner {
     unsigned thread_storage_size;
 } TayRunner;
 
+typedef struct {
+    unsigned beg;
+    unsigned end;
+} TayRange;
+
 void tay_threads_start(unsigned thread_storage_size);
 void tay_threads_stop();
 
@@ -76,6 +81,8 @@ void tay_runner_run_no_threads();
 void tay_threads_update_telemetry();
 void tay_threads_report_telemetry(unsigned steps_between_reports, void *file);
 void tay_threads_get_telemetry_results(TayTelemetryResults *telemetry_results);
+
+TayRange tay_threads_range(unsigned count, unsigned thread_i);
 
 extern TayRunner runner;
 

@@ -31,15 +31,6 @@ typedef struct {
 } int4;
 
 typedef struct {
-    union {
-        struct {
-            unsigned x, y, z, w;
-        };
-        unsigned arr[4];
-    };
-} uint4;
-
-typedef struct {
     TayAgentTag **first; /* first[thread] */
 } CpuSimple;
 

@@ -294,15 +294,10 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
                    seer_group->space.dims :
                    seen_group->space.dims;
 
-    int seers_per_thread = pass->seer_group->space.count / runner.count;
-    unsigned beg_seer_i = seers_per_thread * task->thread_i;
-    unsigned end_seer_i = (task->thread_i < runner.count - 1) ?
-                          beg_seer_i + seers_per_thread :
-                          pass->seer_group->space.count;
+    TayRange seers_range = tay_threads_range(pass->seer_group->space.count, task->thread_i);
+    unsigned seer_i = seers_range.beg;
 
-    unsigned seer_i = beg_seer_i;
-
-    while (seer_i < end_seer_i) {
+    while (seer_i < seers_range.end) {
         TayAgentTag *seer = (TayAgentTag *)(seer_group->storage + seer_group->agent_size * seer_i);
         TreeCell *seer_cell = seer_tree->cells + seer->part_i;
 
@@ -312,7 +307,7 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
             seer_box.max.arr[i] += pass->radii.arr[i];
         }
 
-        unsigned cell_end_seer_i = _min(seer_cell->first_agent_i + seer_cell->count, end_seer_i);
+        unsigned cell_end_seer_i = _min(seer_cell->first_agent_i + seer_cell->count, seers_range.end);
 
         AgentsSlice seer_slice = {
             seer_group->storage,
