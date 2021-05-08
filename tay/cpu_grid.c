@@ -229,7 +229,7 @@ void cpu_grid_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int 
             for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {
                 unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
                 GridCell *seen_cell = seen_grid->cells + seen_cell_i;
-                
+
                 seen_slice.beg = seen_cell->first_agent_i;
                 seen_slice.end = seen_cell->first_agent_i + seen_cell->count;
 
@@ -241,7 +241,7 @@ void cpu_grid_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int 
                 for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {
                     unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
                     GridCell *seen_cell = seen_grid->cells + seen_cell_i;
-                    
+
                     seen_slice.beg = seen_cell->first_agent_i;
                     seen_slice.end = seen_cell->first_agent_i + seen_cell->count;
 
@@ -271,7 +271,7 @@ void cpu_grid_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int 
                         for (indices.w = min_indices.w; indices.w <= max_indices.w; ++indices.w) {
                             unsigned seen_cell_i = _cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);
                             GridCell *seen_cell = seen_grid->cells + seen_cell_i;
-                            
+
                             seen_slice.beg = seen_cell->first_agent_i;
                             seen_slice.end = seen_cell->first_agent_i + seen_cell->count;
 
@@ -318,14 +318,14 @@ static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
         }
 
         unsigned cell_end_seer_i = _min(seer_cell->first_agent_i + seer_cell->count, end_seer_i);
-        
+
         AgentsSlice seer_slice = {
             seer_group->storage,
             seer_group->agent_size,
             seer_i,
             cell_end_seer_i,
         };
-        
+
         pass->seen_func(pass, seer_slice, seer_box, min_dims, thread_context);
 
         seer_i = cell_end_seer_i;

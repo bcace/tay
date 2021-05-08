@@ -166,13 +166,13 @@ void cpu_z_grid_sort(TayGroup *group) {
         float space_size = space->box.max.arr[i] - space->box.min.arr[i] + cell_size * 0.001f;
 
         unsigned cells_count = (unsigned)floorf(space_size / cell_size);
-        unsigned side_n = _round_up_to_power_of_2(cells_count);
+        unsigned side_n = _round_down_to_power_of_2(cells_count);
 
         if (side_n > n)
             n = side_n;
     }
 
-    while (_powi(1u << n, space->dims) > grid->max_cells)
+    while (_powi(1u << (n + 1u), space->dims) > grid->max_cells)
         --n;
 
     grid->origin = space->box.min;
