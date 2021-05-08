@@ -246,16 +246,6 @@ void cpu_tree_sort(TayGroup *group) {
 void cpu_tree_unsort(TayGroup *group) {
 }
 
-typedef struct {
-    TayPass *pass;
-    int thread_i;
-} SeeTask;
-
-static void _init_see_task(SeeTask *task, TayPass *pass, int thread_i) {
-    task->pass = pass;
-    task->thread_i = thread_i;
-}
-
 static void _thread_traverse_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, TreeCell *seen_cell, int dims, TayThreadContext *thread_context) {
     for (int i = 0; i < dims; ++i)
         if (seer_box.min.arr[i] > seen_cell->box.max.arr[i] || seer_box.max.arr[i] < seen_cell->box.min.arr[i])
@@ -284,7 +274,7 @@ static inline unsigned _min(unsigned a, unsigned b) {
     return (a < b) ? a : b;
 }
 
-static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
+static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
     TayGroup *seer_group = pass->seer_group;
     TayGroup *seen_group = pass->seen_group;
@@ -323,13 +313,5 @@ static void _see_func(SeeTask *task, TayThreadContext *thread_context) {
 }
 
 void cpu_tree_see(TayPass *pass) {
-    static SeeTask tasks[TAY_MAX_THREADS];
-
-    for (int i = 0; i < runner.count; ++i) {
-        SeeTask *task = tasks + i;
-        _init_see_task(task, pass, i);
-        tay_thread_set_task(i, _see_func, task, pass->context);
-    }
-
-    tay_runner_run();
+    space_run_thread_tasks(pass, _see_func);
 }

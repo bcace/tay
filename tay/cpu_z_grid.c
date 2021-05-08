@@ -225,19 +225,9 @@ void cpu_z_grid_unsort(TayGroup *group) {
 }
 
 typedef struct {
-    TayPass *pass;
-    int thread_i;
-} ZGridSeeTask;
-
-typedef struct {
     unsigned beg;
     unsigned end;
 } ZGridKernelCell;
-
-static void _init_see_task(ZGridSeeTask *task, TayPass *pass, int thread_i) {
-    task->pass = pass;
-    task->thread_i = thread_i;
-}
 
 void cpu_z_grid_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, struct TayThreadContext *thread_context) {
     CpuZGrid *seen_grid = &pass->seen_group->space.cpu_z_grid;
@@ -290,7 +280,7 @@ static inline unsigned _min(unsigned a, unsigned b) {
     return (a < b) ? a : b;
 }
 
-static void _see_func(ZGridSeeTask *task, TayThreadContext *thread_context) {
+static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
     TayGroup *seer_group = pass->seer_group;
     TayGroup *seen_group = pass->seen_group;
@@ -331,13 +321,5 @@ static void _see_func(ZGridSeeTask *task, TayThreadContext *thread_context) {
 }
 
 void cpu_z_grid_see(TayPass *pass) {
-    static ZGridSeeTask tasks[TAY_MAX_THREADS];
-
-    for (int i = 0; i < runner.count; ++i) {
-        ZGridSeeTask *task = tasks + i;
-        _init_see_task(task, pass, i);
-        tay_thread_set_task(i, _see_func, task, pass->context);
-    }
-
-    tay_runner_run();
+    space_run_thread_tasks(pass, _see_func);
 }

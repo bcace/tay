@@ -3,16 +3,6 @@
 #include <string.h>
 
 
-typedef struct {
-    TayPass *pass;
-    int thread_i;
-} SimpleSeeTask;
-
-static void _init_simple_see_task(SimpleSeeTask *task, TayPass *pass, int thread_i) {
-    task->pass = pass;
-    task->thread_i = thread_i;
-}
-
 void cpu_simple_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
 
     AgentsSlice seen_slice = {
@@ -25,7 +15,7 @@ void cpu_simple_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, in
     pass->pairing_func(seer_slice, seen_slice, pass->see, pass->radii, dims, thread_context);
 }
 
-static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
+static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
     TayGroup *seer_group = pass->seer_group;
     TayGroup *seen_group = pass->seen_group;
@@ -48,21 +38,7 @@ static void _see_func(SimpleSeeTask *task, TayThreadContext *thread_context) {
 }
 
 void cpu_simple_see(TayPass *pass) {
-
-    if (pass->seer_group == pass->seen_group) {
-        TayGroup *seen_group = pass->seen_group;
-        memcpy(seen_group->sort_storage, seen_group->storage, seen_group->agent_size * seen_group->space.count);
-    }
-
-    static SimpleSeeTask tasks[TAY_MAX_THREADS];
-
-    for (int i = 0; i < runner.count; ++i) {
-        SimpleSeeTask *task = tasks + i;
-        _init_simple_see_task(task, pass, i);
-        tay_thread_set_task(i, _see_func, task, pass->context);
-    }
-
-    tay_runner_run();
+    space_run_thread_tasks(pass, _see_func);
 }
 
 void cpu_simple_sort(TayGroup *group) {

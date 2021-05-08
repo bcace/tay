@@ -19,9 +19,14 @@ typedef struct TayThreadContext {
 #endif
 } TayThreadContext;
 
+typedef struct {
+    struct TayPass *pass;
+    int thread_i;
+} TayThreadTask;
+
 typedef struct TayThread {
-    void *task;
-    void (*task_func)(void *task, TayThreadContext *thread_context);
+    TayThreadTask *task;
+    void (*task_func)(TayThreadTask *task, TayThreadContext *thread_context);
     TayThreadContext context;
     int run; /* signal that the thread function should end */
     Handle thread;
@@ -74,7 +79,7 @@ typedef struct {
 void tay_threads_start(unsigned thread_storage_size);
 void tay_threads_stop();
 
-void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *), void *task, void *context);
+void tay_thread_set_task(int index, void (*task_func)(TayThreadTask *, TayThreadContext *), TayThreadTask *task, void *context);
 void tay_runner_run();
 void tay_runner_run_no_threads();
 

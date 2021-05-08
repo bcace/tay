@@ -117,7 +117,7 @@ static void _init_thread(TayThread *thread) {
     thread->run = 1;
 }
 
-void tay_thread_set_task(int index, void (*task_func)(void *, TayThreadContext *), void *task, void *context) {
+void tay_thread_set_task(int index, void (*task_func)(TayThreadTask *, TayThreadContext *), TayThreadTask *task, void *context) {
     assert(index >= 0 && index < runner.count);
     TayThread *t = runner.threads + index;
     _init_thread(t);

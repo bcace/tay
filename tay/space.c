@@ -243,38 +243,29 @@ int space_agent_count_to_bucket_index(int count) {
     return max_pow - pow;
 }
 
-typedef struct {
-    TayPass *pass;
-    int thread_i;
-} ActTask;
-
-static void _init_act_task(ActTask *task, TayPass *pass, int thread_i) {
-    task->pass = pass;
-    task->thread_i = thread_i;
-}
-
-static void _act_func(ActTask *task, TayThreadContext *thread_context) {
+static void _act_func(TayThreadTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
 
-    int agents_per_thread = pass->act_group->space.count / runner.count;
-    unsigned beg_agent_i = agents_per_thread * task->thread_i;
-    unsigned end_agent_i = (task->thread_i < runner.count - 1) ?
-                           beg_agent_i + agents_per_thread :
-                           pass->act_group->space.count;
+    TayRange agents_range = tay_threads_range(pass->act_group->space.count, task->thread_i);
 
-    for (unsigned agent_i = beg_agent_i; agent_i < end_agent_i; ++agent_i) {
+    for (unsigned agent_i = agents_range.beg; agent_i < agents_range.end; ++agent_i) {
         void *agent = pass->act_group->storage + pass->act_group->agent_size * agent_i;
         pass->act(agent, thread_context->context);
     }
 }
 
 void space_act(TayPass *pass) {
-    static ActTask act_contexts[TAY_MAX_THREADS];
+    space_run_thread_tasks(pass, _act_func);
+}
 
-    for (int i = 0; i < runner.count; ++i) {
-        ActTask *task = act_contexts + i;
-        _init_act_task(task, pass, i);
-        tay_thread_set_task(i, _act_func, task, pass->context);
+void space_run_thread_tasks(TayPass *pass, void (*task_func)(TayThreadTask *, TayThreadContext *)) {
+    static TayThreadTask tasks[TAY_MAX_THREADS];
+
+    for (int thread_i = 0; thread_i < runner.count; ++thread_i) {
+        TayThreadTask *task = tasks + thread_i;
+        task->pass = pass;
+        task->thread_i = thread_i;
+        tay_thread_set_task(thread_i, task_func, task, pass->context);
     }
 
     tay_runner_run();

@@ -49,5 +49,6 @@ void box_reset(Box *box, int dims);
 void box_update_from_agent(Box *box, char *agent, int dims, int is_point);
 
 void space_act(TayPass *pass);
+void space_run_thread_tasks(TayPass *pass, void (*task_func)(struct TayThreadTask *, struct TayThreadContext *));
 
 #endif

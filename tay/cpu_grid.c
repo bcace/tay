@@ -155,16 +155,6 @@ void cpu_grid_unsort(TayGroup *group) {
         _clear_cell(cell);
 }
 
-typedef struct {
-    TayPass *pass;
-    int thread_i;
-} GridSeeTask;
-
-static void _init_see_task(GridSeeTask *task, TayPass *pass, int thread_i) {
-    task->pass = pass;
-    task->thread_i = thread_i;
-}
-
 void cpu_grid_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, TayThreadContext *thread_context) {
     CpuGrid *seen_grid = &pass->seen_group->space.cpu_grid;
 
@@ -251,7 +241,7 @@ static inline unsigned _min(unsigned a, unsigned b) {
     return (a < b) ? a : b;
 }
 
-static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
+static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
     TayPass *pass = task->pass;
     TayGroup *seer_group = pass->seer_group;
     TayGroup *seen_group = pass->seen_group;
@@ -291,13 +281,5 @@ static void _see_func(GridSeeTask *task, TayThreadContext *thread_context) {
 }
 
 void cpu_grid_see(TayPass *pass) {
-    static GridSeeTask tasks[TAY_MAX_THREADS];
-
-    for (int i = 0; i < runner.count; ++i) {
-        GridSeeTask *task = tasks + i;
-        _init_see_task(task, pass, i);
-        tay_thread_set_task(i, _see_func, task, pass->context);
-    }
-
-    tay_runner_run();
+    space_run_thread_tasks(pass, _see_func);
 }
