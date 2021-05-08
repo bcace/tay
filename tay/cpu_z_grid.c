@@ -162,7 +162,7 @@ void cpu_z_grid_sort(TayGroup *group) {
     unsigned n = 0;
 
     for (int i = 0; i < space->dims; ++i) {
-        float cell_size = space->radii.arr[i] * 2.0f;
+        float cell_size = space->min_part_sizes.arr[i];
         float space_size = space->box.max.arr[i] - space->box.min.arr[i] + cell_size * 0.001f;
 
         unsigned cells_count = (unsigned)floorf(space_size / cell_size);
@@ -178,7 +178,7 @@ void cpu_z_grid_sort(TayGroup *group) {
     grid->origin = space->box.min;
 
     for (int i = 0; i < space->dims; ++i) {
-        float cell_size = space->radii.arr[i] * 2.0f;
+        float cell_size = space->min_part_sizes.arr[i];
         float space_size = space->box.max.arr[i] - space->box.min.arr[i] + cell_size * 0.001f;
 
         grid->cell_counts.arr[i] = 1u << n;

@@ -28,13 +28,13 @@ typedef struct {
     unsigned char arr[4];
 } Depths;
 
-static inline void _decide_cell_split(TreeCell *cell, int dims, int *max_depths, float *radii, Depths cell_depths) {
+static inline void _decide_cell_split(TreeCell *cell, int dims, int *max_depths, float *min_part_sizes, Depths cell_depths) {
     cell->dim = TREE_CELL_LEAF_DIM;
     float max_r = 0.0f;
     for (int i = 0; i < dims; ++i) {
         if (cell_depths.arr[i] >= max_depths[i])
             continue;
-        float r = (cell->box.max.arr[i] - cell->box.min.arr[i]) / radii[i];
+        float r = (cell->box.max.arr[i] - cell->box.min.arr[i]) / min_part_sizes[i];
         if (r > max_r) {
             max_r = r;
             cell->dim = i;
@@ -44,7 +44,7 @@ static inline void _decide_cell_split(TreeCell *cell, int dims, int *max_depths,
         cell->mid = (cell->box.max.arr[cell->dim] + cell->box.min.arr[cell->dim]) * 0.5f;
 }
 
-static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
+static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *min_part_sizes) {
 
     if (cell->dim == TREE_CELL_LEAF_DIM) { /* leaf cell, put the agent here */
         agent->part_i = _cell_index(tree->cells, cell);
@@ -71,9 +71,9 @@ static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agen
             _init_cell(cell->lo);
             cell->lo->box = cell->box;
             cell->lo->box.max.arr[cell->dim] = cell->mid;
-            _decide_cell_split(cell->lo, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
+            _decide_cell_split(cell->lo, tree->dims, tree->max_depths.arr, min_part_sizes, sub_node_depths);
         }
-        _sort_point_agent(tree, cell->lo, agent, sub_node_depths, radii);
+        _sort_point_agent(tree, cell->lo, agent, sub_node_depths, min_part_sizes);
     }
     else {
         if (cell->hi == 0) { /* hi cell needed but doesn't exist yet */
@@ -89,13 +89,13 @@ static void _sort_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agen
             _init_cell(cell->hi);
             cell->hi->box = cell->box;
             cell->hi->box.min.arr[cell->dim] = cell->mid;
-            _decide_cell_split(cell->hi, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
+            _decide_cell_split(cell->hi, tree->dims, tree->max_depths.arr, min_part_sizes, sub_node_depths);
         }
-        _sort_point_agent(tree, cell->hi, agent, sub_node_depths, radii);
+        _sort_point_agent(tree, cell->hi, agent, sub_node_depths, min_part_sizes);
     }
 }
 
-static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *radii) {
+static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *agent, Depths cell_depths, float *min_part_sizes) {
 
     if (cell->dim == TREE_CELL_LEAF_DIM) { /* leaf cell, put the agent here */
         agent->part_i = _cell_index(tree->cells, cell);
@@ -123,9 +123,9 @@ static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *
             _init_cell(cell->lo);
             cell->lo->box = cell->box;
             cell->lo->box.max.arr[cell->dim] = cell->mid;
-            _decide_cell_split(cell->lo, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
+            _decide_cell_split(cell->lo, tree->dims, tree->max_depths.arr, min_part_sizes, sub_node_depths);
         }
-        _sort_non_point_agent(tree, cell->lo, agent, sub_node_depths, radii);
+        _sort_non_point_agent(tree, cell->lo, agent, sub_node_depths, min_part_sizes);
     }
     else if (min >= cell->mid) {
         if (cell->hi == 0) { /* hi cell needed but doesn't exist yet */
@@ -141,9 +141,9 @@ static void _sort_non_point_agent(CpuKdTree *tree, TreeCell *cell, TayAgentTag *
             _init_cell(cell->hi);
             cell->hi->box = cell->box;
             cell->hi->box.min.arr[cell->dim] = cell->mid;
-            _decide_cell_split(cell->hi, tree->dims, tree->max_depths.arr, radii, sub_node_depths);
+            _decide_cell_split(cell->hi, tree->dims, tree->max_depths.arr, min_part_sizes, sub_node_depths);
         }
-        _sort_non_point_agent(tree, cell->hi, agent, sub_node_depths, radii);
+        _sort_non_point_agent(tree, cell->hi, agent, sub_node_depths, min_part_sizes);
     }
     else { /* agent extends to both sides of the mid plane, leave it in the current cell */
         agent->part_i = _cell_index(tree->cells, cell);
@@ -192,7 +192,7 @@ void cpu_tree_sort(TayGroup *group) {
     /* calculate max partition depths for each dimension */
     Depths root_cell_depths;
     for (int i = 0; i < tree->dims; ++i) {
-        tree->max_depths.arr[i] = _max_depth(space->box.max.arr[i] - space->box.min.arr[i], space->radii.arr[i] * 2.0f);
+        tree->max_depths.arr[i] = _max_depth(space->box.max.arr[i] - space->box.min.arr[i], space->min_part_sizes.arr[i]);
         root_cell_depths.arr[i] = 0;
     }
 
@@ -201,7 +201,7 @@ void cpu_tree_sort(TayGroup *group) {
         tree->cells_count = 1;
         _init_cell(tree->cells);
         tree->cells->box = space->box; /* root cell inherits tree's box */
-        _decide_cell_split(tree->cells, tree->dims, tree->max_depths.arr, space->radii.arr, root_cell_depths);
+        _decide_cell_split(tree->cells, tree->dims, tree->max_depths.arr, space->min_part_sizes.arr, root_cell_depths);
     }
 
 #if TAY_TELEMETRY
@@ -212,7 +212,7 @@ void cpu_tree_sort(TayGroup *group) {
     if (group->is_point) {
         for (unsigned i = 0; i < space->count; ++i) {
             TayAgentTag *agent = (TayAgentTag *)(group->storage + group->agent_size * i);
-            _sort_point_agent(tree, tree->cells, agent, root_cell_depths, space->radii.arr);
+            _sort_point_agent(tree, tree->cells, agent, root_cell_depths, space->min_part_sizes.arr);
 #if TAY_TELEMETRY
             ++runner.telemetry.tree_agents;
 #endif
@@ -221,7 +221,7 @@ void cpu_tree_sort(TayGroup *group) {
     else {
         for (unsigned i = 0; i < space->count; ++i) {
             TayAgentTag *agent = (TayAgentTag *)(group->storage + group->agent_size * i);
-            _sort_non_point_agent(tree, tree->cells, agent, root_cell_depths, space->radii.arr);
+            _sort_non_point_agent(tree, tree->cells, agent, root_cell_depths, space->min_part_sizes.arr);
 #if TAY_TELEMETRY
             ++runner.telemetry.tree_agents;
 #endif

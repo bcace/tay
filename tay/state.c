@@ -67,7 +67,7 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     /* initialize the group's space */
     Space *space = &group->space;
     space->type = TAY_CPU_SIMPLE;
-    space->radii = (float4){1.0f, 1.0f, 1.0f, 1.0f};
+    space->min_part_sizes = (float4){1.0f, 1.0f, 1.0f, 1.0f};
     space->dims = 3;
     space->shared_size = TAY_MAX_THREADS * sizeof(TayAgentTag *);
     space->shared = malloc(space->shared_size);
@@ -76,7 +76,7 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     return group;
 }
 
-void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_type, int space_dims, float4 part_radii, int shared_size_in_megabytes) {
+void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_type, int space_dims, float4 min_part_sizes, int shared_size_in_megabytes) {
     // ERROR: check arguments
 
     if (group->is_point) {
@@ -94,7 +94,7 @@ void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_ty
 
     Space *space = &group->space;
     space->type = space_type;
-    space->radii = part_radii;
+    space->min_part_sizes = min_part_sizes;
     space->dims = space_dims;
     space->shared_size = shared_size_in_megabytes * TAY_MB;
     space->shared = realloc(space->shared, space->shared_size);

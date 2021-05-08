@@ -69,7 +69,7 @@ typedef struct {
 
 typedef struct Space {
     int dims;
-    float4 radii; /* if space is partitioned, these are suggested subdivision radii */
+    float4 min_part_sizes; /* if space is partitioned, these are suggested subdivision sizes */
     TaySpaceType type;
     unsigned count; /* number of agents */
     Box box;

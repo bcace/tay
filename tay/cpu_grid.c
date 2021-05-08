@@ -86,7 +86,7 @@ void cpu_grid_sort(TayGroup *group) {
 
     /* calculate initial cell sizes (smallest without going below suggested smallest partition sizes) */
     for (int i = 0; i < space->dims; ++i) {
-        float cell_size = space->radii.arr[i] * 2.0f;
+        float cell_size = space->min_part_sizes.arr[i];
         float space_size = space->box.max.arr[i] - space->box.min.arr[i] + cell_size * 0.001f;
 
         cell_counts[i] = (int)floorf(space_size / cell_size);
@@ -101,7 +101,7 @@ void cpu_grid_sort(TayGroup *group) {
         float ratio = powf(volume_ratio, 1.0f / (float)space->dims);
 
         for (int i = 0; i < space->dims; ++i) {
-            float cell_size = space->radii.arr[i] * 2.0f;
+            float cell_size = space->min_part_sizes.arr[i];
             float space_size = space->box.max.arr[i] - space->box.min.arr[i] + cell_size * 0.001f;
 
             cell_counts[i] = (int)floorf(cell_counts[i] / ratio);

@@ -136,7 +136,7 @@ void cpu_aabb_tree_sort(TayGroup *group) {
     tree->max_nodes = space->shared_size / (int)sizeof(TreeNode);
     tree->root = 0;
 
-    float4 part_sizes = { space->radii.x * 2.0f, space->radii.y * 2.0f, space->radii.z * 2.0f, space->radii.w * 2.0f };
+    float4 part_sizes = { space->min_part_sizes.x, space->min_part_sizes.y, space->min_part_sizes.z, space->min_part_sizes.w };
 
     for (unsigned agent_i = 0; agent_i < space->count; ++agent_i) {
         TayAgentTag *agent = (TayAgentTag *)(group->storage + group->agent_size * agent_i);

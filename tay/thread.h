@@ -19,7 +19,7 @@ typedef struct TayThreadContext {
 #endif
 } TayThreadContext;
 
-typedef struct {
+typedef struct TayThreadTask {
     struct TayPass *pass;
     int thread_i;
 } TayThreadTask;
