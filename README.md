@@ -73,7 +73,7 @@ When specifying the agent group's structure (`CpuSimple` is the default) host su
 tay_configure_space(tay, my_group,
                     TAY_CPU_AABB_TREE,              /* structure type enum */
                     3,                              /* 3D space, can be 1, 2, 3 or 4 dimensions */
-                    min_part_radii,                 /* minimum partition sizes for each dimension (float4) */
+                    min_part_sizes,                 /* minimum partition sizes for each dimension (float4) */
                     internal_memory_in_megabytes    /* memory used by the structure, more memory generally means faster structure */
 );
 ```
