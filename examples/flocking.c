@@ -27,9 +27,8 @@ void flocking_init() {
     const float avoidance_r = 100.0f;
     const float4 see_radii = { radius, radius, radius, radius };
     const float4 avoidance_see_radii = { avoidance_r, avoidance_r, avoidance_r, avoidance_r };
-    const float part_radius = radius * 0.5f;
-    const float4 part_radii = { part_radius, part_radius, part_radius, part_radius };
-    const float4 obstacle_part_radii = { 10.0f, 10.0f, 10.0f, 10.0f };
+    const float part_size = radius * 1.0f;
+    const float4 part_sizes = { part_size, part_size, part_size, part_size };
     const float velocity = 1.0f;
     const float4 min = { -300.0f, -300.0f, -300.0f, -300.0f };
     const float4 max = { 300.0f, 300.0f, 300.0f, 300.0f };
@@ -38,7 +37,7 @@ void flocking_init() {
     see_context.separation_r = radius * 0.5f;
 
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE);
-    tay_configure_space(tay, boids_group, TAY_CPU_GRID, 3, part_radii, 250);
+    tay_configure_space(tay, boids_group, TAY_CPU_GRID, 3, part_sizes, 250);
 
     tay_add_see(tay, boids_group, boids_group, agent_see, see_radii, TAY_FALSE, &see_context);
     tay_add_act(tay, boids_group, agent_act, &act_context);

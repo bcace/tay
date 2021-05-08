@@ -66,10 +66,10 @@ void fluid_init() {
     _update_sph_context(&sph_context, particle_m);
 
     float h = sph_context.h;
-    float part_r = h * 0.5f;
+    float part_size = h * 1.0f;
 
     particles_group = tay_add_group(global.tay, sizeof(SphParticle), particles_count, TAY_TRUE);
-    tay_configure_space(global.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_r, part_r, part_r, part_r}, 250);
+    tay_configure_space(global.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 250);
 
     tay_add_see(global.tay, particles_group, particles_group, sph_particle_density, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
     tay_add_act(global.tay, particles_group, sph_particle_pressure, &sph_context);
