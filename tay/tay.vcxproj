@@ -149,6 +149,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -157,15 +158,14 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>
-      </AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>OpenCL.lib;</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="config.h" />
+    <ClInclude Include="ocl.h" />
     <ClInclude Include="space.h" />
     <ClInclude Include="state.h" />
     <ClInclude Include="tay.h" />
@@ -178,6 +178,7 @@
     <ClCompile Include="cpu_simple.c" />
     <ClCompile Include="cpu_tree.c" />
     <ClCompile Include="cpu_z_grid.c" />
+    <ClCompile Include="ocl.c" />
     <ClCompile Include="space.c" />
     <ClCompile Include="state.c" />
     <ClCompile Include="taystd.c" />
