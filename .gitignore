@@ -1,8 +1,6 @@
 ﻿.vs
 Debug
 Release
-x64
-lib
 preproc/__pycache__
 examples/graphics
 todo
