@@ -146,7 +146,7 @@ void ocl_destroy(TayState *state) {
     #endif
 }
 
-void ocl_compile(TayState *state) {
+void ocl_on_simulation_start(TayState *state) {
     #ifdef TAY_OCL
 
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
@@ -160,11 +160,41 @@ void ocl_compile(TayState *state) {
             cl_int err;
 
             simple->agent_buffer = clCreateBuffer(state->ocl.context, CL_MEM_READ_WRITE, (size_t)(group->capacity * group->agent_size), NULL, &err);
-            if (err) {
+            if (err)
                 printf("clCreateBuffer error\n");
+
+            simple->push_agents = 1;
+        }
+    }
+
+    #endif
+}
+
+void ocl_on_run_start(TayState *state) {
+    #ifdef TAY_OCL
+
+    for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+        TayGroup *group = state->groups + group_i;
+
+        if (group_is_inactive(group))
+            continue;
+
+        if (group->space.type == TAY_OCL_SIMPLE) {
+            OclSimple *simple = &group->space.ocl_simple;
+            cl_int err;
+
+            if (simple->push_agents) {
+
+                err = clEnqueueWriteBuffer(state->ocl.queue, simple->agent_buffer, CL_NON_BLOCKING, 0, group->space.count * group->agent_size, group->storage, 0, 0, 0);
+                if (err)
+                    printf("clEnqueueWriteBuffer error\n");
+
+                simple->push_agents = 0;
             }
         }
     }
+
+    clFinish(state->ocl.queue);
 
     #endif
 }

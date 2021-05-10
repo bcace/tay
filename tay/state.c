@@ -168,7 +168,7 @@ void tay_simulation_start(TayState *state) {
             cpu_z_grid_on_simulation_start(space);
     }
 
-    ocl_compile(state);
+    ocl_on_simulation_start(state);
 }
 
 static PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, int seen_is_point, int same_group, int self_see) {
@@ -266,6 +266,8 @@ int tay_run(TayState *state, int steps) {
     /* start measuring run-time */
     struct timespec beg, end;
     timespec_get(&beg, TIME_UTC);
+
+    ocl_on_run_start(state);
 
     /* run requested number of simulation steps */
     for (int step_i = 0; step_i < steps; ++step_i) {

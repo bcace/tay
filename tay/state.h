@@ -70,6 +70,7 @@ typedef struct {
 
 typedef struct {
     void *agent_buffer;
+    unsigned push_agents; /* set this flag if agents have to be pushed to gpu before a run */
 } OclSimple;
 
 typedef struct Space {

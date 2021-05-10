@@ -21,6 +21,7 @@ typedef struct TayState TayState;
 void ocl_init(TayState *state);
 void ocl_destroy(TayState *state);
 
-void ocl_compile(TayState *state);
+void ocl_on_simulation_start(TayState *state);
+void ocl_on_run_start(TayState *state);
 
 #endif
