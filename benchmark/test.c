@@ -20,6 +20,7 @@ const char *space_type_name(TaySpaceType space_type) {
         case TAY_CPU_AABB_TREE: return "CpuAabbTree";
         case TAY_CPU_GRID: return "CpuGrid";
         case TAY_CPU_Z_GRID: return "CpuZGrid";
+        case TAY_OCL_SIMPLE: return "OclSimple";
         default: return "(None)";
     }
 }

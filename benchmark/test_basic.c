@@ -121,15 +121,11 @@ void test_basic(Results *results, ModelCase model_case, int steps,
             tay_log(file, "    ],\n");
         }
 
-#if TAY_GPU
-        if (space_type_flags & TAY_GPU_SIMPLE_DIRECT) {
-            _test(model_case, TAY_GPU_SIMPLE_DIRECT, see_radius, 0, results, steps, file);
+        if (space_type_flags == TAY_OCL_SIMPLE) {
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_OCL_SIMPLE));
+            _test(model_case, TAY_OCL_SIMPLE, see_radius, 0, results, steps, file);
+            tay_log(file, "    ],\n");
         }
-
-        if (space_type_flags & TAY_GPU_SIMPLE_INDIRECT) {
-            _test(model_case, TAY_GPU_SIMPLE_INDIRECT, see_radius, 0, results, steps, file);
-        }
-#endif
 
         results_reset(results);
         tay_log(file, "  },\n");
