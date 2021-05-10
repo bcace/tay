@@ -198,3 +198,27 @@ void ocl_on_run_start(TayState *state) {
 
     #endif
 }
+
+void ocl_fetch_agents(TayState *state) {
+    #ifdef TAY_OCL
+
+    for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+        TayGroup *group = state->groups + group_i;
+
+        if (group_is_inactive(group))
+            continue;
+
+        if (group->space.type == TAY_OCL_SIMPLE) {
+            OclSimple *simple = &group->space.ocl_simple;
+            cl_int err;
+
+            err = clEnqueueReadBuffer(state->ocl.queue, simple->agent_buffer, CL_NON_BLOCKING, 0, group->space.count * group->agent_size, group->storage, 0, 0, 0);
+            if (err)
+                printf("clEnqueueReadBuffer error\n");
+        }
+    }
+
+    clFinish(state->ocl.queue);
+
+    #endif
+}
