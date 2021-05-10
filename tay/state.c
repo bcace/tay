@@ -167,6 +167,8 @@ void tay_simulation_start(TayState *state) {
         else if (space->type == TAY_CPU_Z_GRID)
             cpu_z_grid_on_simulation_start(space);
     }
+
+    ocl_compile(state);
 }
 
 static PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, int seen_is_point, int same_group, int self_see) {
@@ -232,7 +234,15 @@ static TayError _compile_passes(TayState *state) {
             Space *act_space = &pass->act_group->space;
             int act_is_point = pass->act_group->is_point;
 
-            pass->struct_pass_func = space_act;
+            if (act_space->type == TAY_CPU_SIMPLE ||
+                act_space->type == TAY_CPU_KD_TREE ||
+                act_space->type == TAY_CPU_AABB_TREE ||
+                act_space->type == TAY_CPU_GRID ||
+                act_space->type == TAY_CPU_Z_GRID) {
+                pass->struct_pass_func = space_act;
+            }
+            else
+                return TAY_ERROR_NOT_IMPLEMENTED;
         }
     }
 

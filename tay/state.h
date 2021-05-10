@@ -68,6 +68,10 @@ typedef struct {
     unsigned cells_count;
 } CpuZGrid;
 
+typedef struct {
+    void *agent_buffer;
+} OclSimple;
+
 typedef struct Space {
     int dims;
     float4 min_part_sizes; /* if space is partitioned, these are suggested subdivision sizes */
@@ -80,6 +84,7 @@ typedef struct Space {
         CpuAabbTree cpu_aabb_tree;
         CpuGrid cpu_grid;
         CpuZGrid cpu_z_grid;
+        OclSimple ocl_simple;
     };
     void *shared; /* buffer shared internally by all structures in this space */
     int shared_size; /* size of the shared buffer */

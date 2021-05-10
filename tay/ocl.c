@@ -114,14 +114,23 @@ void ocl_init(TayOcl *ocl) {
 }
 
 void ocl_destroy(TayOcl *ocl) {
-    #ifdef TayOcl
+    #ifdef TAY_OCL
     #endif
 }
 
 void ocl_compile(TayState *state) {
-    #ifdef TayOcl
+    #ifdef TAY_OCL
 
-    // ...
+    for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+        TayGroup *group = state->groups + group_i;
+
+        if (group_is_inactive(group))
+            continue;
+
+        if (group->space.type == TAY_OCL_SIMPLE) {
+            // TODO: create the buffer and set it to the space
+        }
+    }
 
     #endif
 }

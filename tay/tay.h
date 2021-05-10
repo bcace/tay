@@ -19,12 +19,13 @@ typedef enum TayBool {
 } TayBool;
 
 typedef enum TaySpaceType {
-    TAY_SPACE_NONE              = 0x00,
-    TAY_CPU_SIMPLE              = 0x01,
-    TAY_CPU_KD_TREE             = 0x02,
-    TAY_CPU_AABB_TREE           = 0x04,
-    TAY_CPU_GRID                = 0x08,
-    TAY_CPU_Z_GRID              = 0x10,
+    TAY_SPACE_NONE      = 0x00,
+    TAY_CPU_SIMPLE      = 0x01,
+    TAY_CPU_KD_TREE     = 0x02,
+    TAY_CPU_AABB_TREE   = 0x04,
+    TAY_CPU_GRID        = 0x08,
+    TAY_CPU_Z_GRID      = 0x10,
+    TAY_OCL_SIMPLE      = 0x20,
 } TaySpaceType;
 
 typedef enum TayError {
