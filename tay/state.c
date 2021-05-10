@@ -13,7 +13,7 @@ TayState *tay_create_state() {
     state->running = TAY_STATE_STATUS_IDLE;
     state->error = TAY_ERROR_NONE;
     state->ms_per_step = 0.0;
-    ocl_init(&state->ocl);
+    ocl_init(state);
     return state;
 }
 
@@ -35,7 +35,7 @@ void tay_destroy_state(TayState *state) {
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         _clear_group(state->groups + i);
     free(state);
-    ocl_destroy(&state->ocl);
+    ocl_destroy(state);
 }
 
 TayError tay_get_error(TayState *state) {
