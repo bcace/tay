@@ -12,9 +12,6 @@
 #define float3_agent_max(__agent_tag__) (*(float3 *)((char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))
 #define float2_agent_max(__agent_tag__) (*(float2 *)((char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))
 
-/*
-** Enums
-*/
 
 typedef enum TayBool {
     TAY_FALSE,
@@ -38,10 +35,6 @@ typedef enum TayError {
     TAY_ERROR_STATE_STATUS,
     TAY_ERROR_NOT_IMPLEMENTED,
 } TayError;
-
-/*
-** basic structs that have to work on both CPU and GPU
-*/
 
 #pragma pack(push, 1)
 
@@ -84,10 +77,6 @@ typedef struct TayAgentTag {
 } TayAgentTag;
 
 #pragma pack(pop)
-
-/*
-** library API
-*/
 
 typedef struct TayState TayState;
 typedef struct TayGroup TayGroup;

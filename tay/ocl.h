@@ -13,6 +13,11 @@ typedef struct {
     unsigned long long max_workgroup_size;
 } TayOcl;
 
+typedef struct TayState TayState;
+
 void ocl_init(TayOcl *ocl);
+void ocl_destroy(TayOcl *ocl);
+
+void ocl_compile(TayState *state);
 
 #endif

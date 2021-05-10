@@ -1,13 +1,13 @@
-#include "ocl.h"
+#include "state.h"
 #include "CL/cl.h"
 #include <stdio.h>
 
 
 void ocl_init(TayOcl *ocl) {
-
     ocl->active = CL_FALSE;
 
-#ifdef TAY_OCL
+    #ifdef TAY_OCL
+
     cl_uint platforms_count = 0;
     cl_platform_id platform_ids[8];
     clGetPlatformIDs(8, platform_ids, &platforms_count);
@@ -109,5 +109,19 @@ void ocl_init(TayOcl *ocl) {
             }
         }
     }
-#endif
+
+    #endif
+}
+
+void ocl_destroy(TayOcl *ocl) {
+    #ifdef TayOcl
+    #endif
+}
+
+void ocl_compile(TayState *state) {
+    #ifdef TayOcl
+
+    // ...
+
+    #endif
 }

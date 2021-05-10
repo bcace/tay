@@ -9,12 +9,12 @@
 
 
 TayState *tay_create_state() {
-    TayState *s = calloc(1, sizeof(TayState));
-    s->running = TAY_STATE_STATUS_IDLE;
-    s->error = TAY_ERROR_NONE;
-    s->ms_per_step = 0.0;
-    ocl_init(&s->ocl);
-    return s;
+    TayState *state = calloc(1, sizeof(TayState));
+    state->running = TAY_STATE_STATUS_IDLE;
+    state->error = TAY_ERROR_NONE;
+    state->ms_per_step = 0.0;
+    ocl_init(&state->ocl);
+    return state;
 }
 
 static void _clear_space(Space *space) {
@@ -35,6 +35,7 @@ void tay_destroy_state(TayState *state) {
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         _clear_group(state->groups + i);
     free(state);
+    ocl_destroy(&state->ocl);
 }
 
 TayError tay_get_error(TayState *state) {
