@@ -3,6 +3,7 @@
 
 #include "tay.h"
 #include "config.h"
+#include "ocl.h"
 
 #define TAY_MB (1 << 20)
 
@@ -131,6 +132,7 @@ typedef struct TayState {
     TayStateStatus running;
     TayError error;
     double ms_per_step; /* for the last run */
+    TayOcl ocl;
 } TayState;
 
 void state_set_error(TayState *state, TayError error);

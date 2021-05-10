@@ -13,6 +13,7 @@ TayState *tay_create_state() {
     s->running = TAY_STATE_STATUS_IDLE;
     s->error = TAY_ERROR_NONE;
     s->ms_per_step = 0.0;
+    ocl_init(&s->ocl);
     return s;
 }
 

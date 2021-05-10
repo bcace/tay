@@ -3,23 +3,11 @@
 #include <stdio.h>
 
 
-typedef struct {
-    cl_bool active;
-    cl_device_id device_id;
-    cl_ulong global_mem_size;
-    cl_ulong local_mem_size;
-    cl_uint max_compute_units;
-    cl_uint max_work_item_dims;
-    cl_ulong max_work_item_sizes[4];
-    cl_ulong max_workgroup_size;
-} TayOcl;
+void ocl_init(TayOcl *ocl) {
 
-TayOcl ocl;
+    ocl->active = CL_FALSE;
 
-void ocl_init() {
-
-    ocl.active = CL_FALSE;
-
+#ifdef TAY_OCL
     cl_uint platforms_count = 0;
     cl_platform_id platform_ids[8];
     clGetPlatformIDs(8, platform_ids, &platforms_count);
@@ -109,16 +97,17 @@ void ocl_init() {
             printf("      local memory size: %llu\n", local_mem_size);
 
             if (device_t == CL_DEVICE_TYPE_GPU && device_available && compiler_available && linker_available) {
-                ocl.device_id = device_ids[dev_i];
-                ocl.active = CL_TRUE;
-                ocl.global_mem_size = global_mem_size;
-                ocl.local_mem_size = local_mem_size;
-                ocl.max_compute_units = max_compute_units;
-                ocl.max_work_item_dims = max_work_item_dims;
+                ocl->device_id = device_ids[dev_i];
+                ocl->active = CL_TRUE;
+                ocl->global_mem_size = global_mem_size;
+                ocl->local_mem_size = local_mem_size;
+                ocl->max_compute_units = max_compute_units;
+                ocl->max_work_item_dims = max_work_item_dims;
                 for (unsigned dim_i = 0; dim_i < max_work_item_dims; ++dim_i)
-                    ocl.max_work_item_sizes[dim_i] = max_work_item_sizes[dim_i];
-                ocl.max_workgroup_size = max_workgroup_size;
+                    ocl->max_work_item_sizes[dim_i] = max_work_item_sizes[dim_i];
+                ocl->max_workgroup_size = max_workgroup_size;
             }
         }
     }
+#endif
 }
