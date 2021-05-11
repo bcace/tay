@@ -1,11 +1,14 @@
 #include "state.h"
 #include "CL/cl.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 
 void ocl_init(TayState *state) {
     TayOcl *ocl = &state->ocl;
     ocl->active = CL_FALSE;
+    ocl->sources_count = 0;
 
     #ifdef TAY_OCL
 
@@ -149,6 +152,8 @@ void ocl_destroy(TayState *state) {
 void ocl_on_simulation_start(TayState *state) {
     #ifdef TAY_OCL
 
+    TayOcl *ocl = &state->ocl;
+
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
@@ -159,13 +164,33 @@ void ocl_on_simulation_start(TayState *state) {
             OclSimple *simple = &group->space.ocl_simple;
             cl_int err;
 
-            simple->agent_buffer = clCreateBuffer(state->ocl.context, CL_MEM_READ_WRITE, (size_t)(group->capacity * group->agent_size), NULL, &err);
+            simple->agent_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, (size_t)(group->capacity * group->agent_size), NULL, &err);
             if (err)
                 printf("clCreateBuffer error\n");
 
             simple->push_agents = 1;
         }
     }
+
+    /* load sources */
+
+    unsigned text_length = 0;
+    char *text = calloc(1, 100000);
+
+    for (unsigned source_i = 0; source_i < ocl->sources_count; ++source_i) {
+        FILE *file;
+        fopen_s(&file, ocl->sources[source_i], "rb");
+        fseek(file, 0, SEEK_END);
+        unsigned file_length = ftell(file);
+        fseek(file, 0, SEEK_SET);
+        fread(text + text_length, 1, file_length, file);
+        fclose(file);
+        text_length += file_length;
+    }
+
+    // TODO: compile text here!
+
+    free(text);
 
     #endif
 }
@@ -219,6 +244,19 @@ void ocl_fetch_agents(TayState *state) {
     }
 
     clFinish(state->ocl.queue);
+
+    #endif
+}
+
+void ocl_add_source(TayState *state, const char *path) {
+    #ifdef TAY_OCL
+
+    TayOcl *ocl = &state->ocl;
+
+    if (ocl->sources_count < OCL_MAX_SOURCES) {
+        strcpy_s(ocl->sources[ocl->sources_count], OCL_MAX_PATH, path);
+        ++ocl->sources_count;
+    }
 
     #endif
 }

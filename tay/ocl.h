@@ -1,6 +1,9 @@
 #ifndef ocl_h
 #define ocl_h
 
+#define OCL_MAX_SOURCES     16
+#define OCL_MAX_PATH        512
+
 
 typedef struct {
     unsigned active;
@@ -14,6 +17,9 @@ typedef struct {
     void *device_id;
     void *context;
     void *queue;
+
+    char sources[OCL_MAX_SOURCES][OCL_MAX_PATH];
+    unsigned sources_count;
 } TayOcl;
 
 typedef struct TayState TayState;
