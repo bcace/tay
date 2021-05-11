@@ -18,13 +18,13 @@ int main() {
                0, 1, // depth correction
                // TAY_CPU_SIMPLE
                // |
-               TAY_CPU_GRID
-               |
-               TAY_CPU_Z_GRID
+               // TAY_CPU_GRID
+               // |
+               // TAY_CPU_Z_GRID
                // |
                // TAY_CPU_KD_TREE
                // |
-               // TAY_OCL_SIMPLE
+               TAY_OCL_SIMPLE
     );
 
     // test_nonpoint(results, 1000,

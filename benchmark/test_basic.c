@@ -62,6 +62,11 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
             fprintf(stderr, "model case not implemented\n");
     }
 
+    ocl_add_source(tay, "agent.h");
+    ocl_add_source(tay, "taystd.h");
+    ocl_add_source(tay, "agent.c");
+    ocl_add_source(tay, "taystd.c");
+
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);
     if (steps_run == 0)
