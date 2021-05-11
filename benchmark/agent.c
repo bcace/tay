@@ -1,8 +1,5 @@
-#include "agent.h"
-#include "taystd.h"
 
-
-void agent_see(Agent *a, Agent *b, SeeContext *c) {
+void agent_see(global Agent *a, global Agent *b, global SeeContext *c) {
     float4 a_p = float4_agent_position(a);
     float4 b_p = float4_agent_position(b);
     for (int i = 0; i < 1; ++i)
@@ -10,7 +7,7 @@ void agent_see(Agent *a, Agent *b, SeeContext *c) {
     a->b_buffer_count++;
 }
 
-void agent_act(Agent *agent, ActContext *c) {
+void agent_act(global Agent *agent, global ActContext *c) {
 
     /* buffer swap */
 
@@ -57,7 +54,7 @@ void agent_act(Agent *agent, ActContext *c) {
     }
 }
 
-void box_agent_see(BoxAgent *a, BoxAgent *b, SeeContext *c) {
+void box_agent_see(global BoxAgent *a, global BoxAgent *b, global SeeContext *c) {
     float4 a_min = float4_agent_min(a);
     float4 b_min = float4_agent_min(b);
     for (int i = 0; i < 1; ++i)
@@ -65,7 +62,7 @@ void box_agent_see(BoxAgent *a, BoxAgent *b, SeeContext *c) {
     a->b_buffer_count++;
 }
 
-void box_agent_act(BoxAgent *agent, ActContext *c) {
+void box_agent_act(global BoxAgent *agent, global ActContext *c) {
 
     /* buffer swap */
 

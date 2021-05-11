@@ -151,7 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="agent.c" />
+    <ClCompile Include="agent_host.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="test.c" />
     <ClCompile Include="test_basic.c" />
@@ -159,7 +159,7 @@
     <ClCompile Include="test_nonpoint.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="agent.h" />
+    <ClInclude Include="agent_host.h" />
     <ClInclude Include="test.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

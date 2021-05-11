@@ -1,6 +1,6 @@
 #include "test.h"
 #include "thread.h"
-#include "agent.h"
+#include "agent_host.h"
 #include "taystd.h"
 #include <stdlib.h>
 #include <stdio.h>

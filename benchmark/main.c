@@ -1,6 +1,6 @@
 #include "tay.h"
 #include "test.h"
-#include "agent.h"
+#include "agent_host.h"
 #include "thread.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,18 +13,18 @@ int main() {
 
     Results *results = results_create();
 
-    test_basic(results, MC_UNIFORM, 100,
+    test_basic(results, MC_UNIFORM, 1000,
                0, 1, // see radius
                0, 1, // depth correction
                // TAY_CPU_SIMPLE
                // |
-               // TAY_CPU_GRID
-               // |
-               // TAY_CPU_Z_GRID
+               TAY_CPU_GRID
+               |
+               TAY_CPU_Z_GRID
                // |
                // TAY_CPU_KD_TREE
                // |
-               TAY_OCL_SIMPLE
+               // TAY_OCL_SIMPLE
     );
 
     // test_nonpoint(results, 1000,
