@@ -168,7 +168,6 @@
     <ClInclude Include="space.h" />
     <ClInclude Include="state.h" />
     <ClInclude Include="tay.h" />
-    <ClInclude Include="taystd.h" />
     <ClInclude Include="thread.h" />
   </ItemGroup>
   <ItemGroup>
@@ -180,7 +179,6 @@
     <ClCompile Include="ocl.c" />
     <ClCompile Include="space.c" />
     <ClCompile Include="state.c" />
-    <ClCompile Include="taystd.c" />
     <ClCompile Include="thread.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
