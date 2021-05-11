@@ -151,7 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="agent.c" />
+    <ClCompile Include="agent_host.c" />
     <ClCompile Include="flocking.c" />
     <ClCompile Include="fluid.c" />
     <ClCompile Include="graphics.c" />
@@ -160,13 +160,15 @@
     <ClCompile Include="platform.c" />
     <ClCompile Include="shaders.c" />
     <ClCompile Include="shapes.c" />
+    <ClCompile Include="taystd_host.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="agent.h" />
+    <ClInclude Include="agent_host.h" />
     <ClInclude Include="graphics.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="platform.h" />
     <ClInclude Include="shaders.h" />
+    <ClInclude Include="taystd_host.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

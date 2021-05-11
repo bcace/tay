@@ -1,6 +1,6 @@
 #include "main.h"
 #include "tay.h"
-#include "agent.h"
+#include "agent_host.h"
 #include "shaders.h"
 #include "graphics.h"
 #include <math.h>
@@ -21,7 +21,7 @@ static float _rand(float min, float max) {
 }
 
 void flocking_init() {
-    TayState *tay = global.tay;
+    TayState *tay = demos.tay;
 
     const float radius = 20.0f;
     const float avoidance_r = 100.0f;
@@ -74,13 +74,13 @@ void flocking_init() {
 }
 
 void flocking_draw() {
-    TayState *tay = global.tay;
-    vec3 *inst_pos = global.inst_vec3_buffers[0];
-    vec3 *inst_dir = global.inst_vec3_buffers[1];
-    float *inst_shd = global.inst_float_buffers[0];
+    TayState *tay = demos.tay;
+    vec3 *inst_pos = demos.inst_vec3_buffers[0];
+    vec3 *inst_dir = demos.inst_vec3_buffers[1];
+    float *inst_shd = demos.inst_float_buffers[0];
 
     mat4 perspective;
-    graphics_perspective(&perspective, 1.2f, (float)global.window_w / (float)global.window_h, 1.0f, 4000.0f);
+    graphics_perspective(&perspective, 1.2f, (float)demos.window_w / (float)demos.window_h, 1.0f, 4000.0f);
 
     vec3 pos, fwd, up;
     pos.x = -2000.0f;

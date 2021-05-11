@@ -1,6 +1,6 @@
 #include "main.h"
 #include "tay.h"
-#include "agent.h"
+#include "agent_host.h"
 #include "shaders.h"
 #include "graphics.h"
 #include <math.h>
@@ -68,23 +68,23 @@ void fluid_init() {
     float h = sph_context.h;
     float part_size = h * 1.0f;
 
-    particles_group = tay_add_group(global.tay, sizeof(SphParticle), particles_count, TAY_TRUE);
-    tay_configure_space(global.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 250);
+    particles_group = tay_add_group(demos.tay, sizeof(SphParticle), particles_count, TAY_TRUE);
+    tay_configure_space(demos.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 250);
 
-    tay_add_see(global.tay, particles_group, particles_group, sph_particle_density, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
-    tay_add_act(global.tay, particles_group, sph_particle_pressure, &sph_context);
-    tay_add_see(global.tay, particles_group, particles_group, sph_force_terms, (float4){h, h, h, h}, TAY_FALSE, &sph_context);
-    tay_add_act(global.tay, particles_group, sph_particle_leapfrog, &sph_context);
+    tay_add_see(demos.tay, particles_group, particles_group, sph_particle_density, (float4){h, h, h, h}, TAY_TRUE, &sph_context);
+    tay_add_act(demos.tay, particles_group, sph_particle_pressure, &sph_context);
+    tay_add_see(demos.tay, particles_group, particles_group, sph_force_terms, (float4){h, h, h, h}, TAY_FALSE, &sph_context);
+    tay_add_act(demos.tay, particles_group, sph_particle_leapfrog, &sph_context);
 
     for (int i = 0; i < particles_count; ++i) {
-        SphParticle *p = tay_get_available_agent(global.tay, particles_group);
+        SphParticle *p = tay_get_available_agent(demos.tay, particles_group);
         p->p.x = _rand(sph_context.min.x, sph_context.min.x + (sph_context.max.x - sph_context.min.x) * 0.5f);
         p->p.y = _rand(sph_context.min.y, sph_context.max.y);
         p->p.z = _rand(sph_context.min.z, sph_context.min.z + (sph_context.max.z - sph_context.min.z) * 0.5f);
         p->vh = (float3){0.0f, 0.0f, 0.0f};
         p->v = (float3){0.0f, 0.0f, 0.0f};
         sph_particle_reset(p);
-        tay_commit_available_agent(global.tay, particles_group);
+        tay_commit_available_agent(demos.tay, particles_group);
     }
 
     /* drawing init */
@@ -99,7 +99,7 @@ void fluid_init() {
 
 void fluid_draw() {
     mat4 perspective;
-    graphics_perspective(&perspective, 1.2f, (float)global.window_w / (float)global.window_h, 1.0f, 2000.0f);
+    graphics_perspective(&perspective, 1.2f, (float)demos.window_w / (float)demos.window_h, 1.0f, 2000.0f);
 
     mat4 modelview;
     mat4_set_identity(&modelview);
@@ -115,12 +115,12 @@ void fluid_draw() {
 
     shader_program_set_data_float(&program, 0, CUBE_VERTS_COUNT, 3, CUBE_VERTS);
 
-    vec3 *inst_pos = global.inst_vec3_buffers[0];
-    float *inst_size = global.inst_float_buffers[0];
-    float *inst_energy = global.inst_float_buffers[1];
+    vec3 *inst_pos = demos.inst_vec3_buffers[0];
+    float *inst_size = demos.inst_float_buffers[0];
+    float *inst_energy = demos.inst_float_buffers[1];
 
     for (int i = 0; i < particles_count; ++i) {
-        SphParticle *p = tay_get_agent(global.tay, particles_group, i);
+        SphParticle *p = tay_get_agent(demos.tay, particles_group, i);
         inst_pos[i].x = p->p.x * 200.0f;
         inst_pos[i].y = p->p.y * 200.0f;
         inst_pos[i].z = p->p.z * 200.0f;

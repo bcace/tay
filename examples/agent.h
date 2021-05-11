@@ -1,10 +1,3 @@
-#ifndef tay_agent_h
-#define tay_agent_h
-
-#include "tay.h"
-
-
-#pragma pack(push, 1)
 
 typedef struct Agent {
     TayAgentTag tag;
@@ -70,12 +63,8 @@ typedef struct SphContext {
     float viscosity;
 } SphContext;
 
-#pragma pack(pop)
-
 void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c);
 void sph_particle_pressure(SphParticle *a, SphContext *c);
 void sph_force_terms(SphParticle *a, SphParticle *b, SphContext *c);
 void sph_particle_leapfrog(SphParticle *a, SphContext *c);
 void sph_particle_reset(SphParticle *a);
-
-#endif

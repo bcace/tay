@@ -20,7 +20,7 @@ typedef struct Global {
     int max_agents_count;
 } Global;
 
-Global global;
+Global demos;
 
 void flocking_init();
 void flocking_draw();

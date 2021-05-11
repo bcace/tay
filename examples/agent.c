@@ -1,7 +1,3 @@
-#include "agent.h"
-#include "taystd.h"
-#include <math.h>
-
 
 void agent_see(Agent *a, Agent *b, SeeContext *c) {
     float3 a_p = float3_agent_position(a);
