@@ -28,8 +28,8 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
     TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT, TAY_FALSE);
     tay_configure_space(tay, group, space_type, 3, part_sizes, 250);
 
-    tay_add_see(tay, group, group, box_agent_see, see_radii, TAY_FALSE, 0);
-    tay_add_act(tay, group, box_agent_act, &act_context);
+    tay_add_see(tay, group, group, box_agent_see, "box_agent_see", see_radii, TAY_FALSE, 0);
+    tay_add_act(tay, group, box_agent_act, "box_agent_act", &act_context);
 
     make_randomized_direction_cluster_nonpoint(tay, group, AGENTS_COUNT,
                                                float3_make(0, 0, 0),

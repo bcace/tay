@@ -15,11 +15,26 @@ static TAY_SEE_FUNC _get_see_func(int is_point_a, int is_point_b) {
     return 0;
 }
 
+static char *_get_see_func_name(int is_point_a, int is_point_b) {
+    if (is_point_a && is_point_b)
+        return "agent_see";
+    else if (!is_point_a && !is_point_b)
+        return "box_agent_see";
+    return 0;
+}
+
 static TAY_ACT_FUNC _get_act_func(int is_point) {
     if (is_point)
         return agent_act;
     else
         return box_agent_act;
+}
+
+static char *_get_act_func_name(int is_point) {
+    if (is_point)
+        return "agent_act";
+    else
+        return "box_agent_act";
 }
 
 static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_point_a, int is_point_b, int steps, float see_radius, int part_res_a, int part_res_b, Results *results, FILE *file) {
@@ -87,12 +102,12 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
                                                    min_size, max_size, distr_exp);
     }
 
-    tay_add_see(tay, group_a, group_a, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
-    tay_add_see(tay, group_a, group_b, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
-    tay_add_see(tay, group_b, group_b, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
-    tay_add_see(tay, group_b, group_a, _get_see_func(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
-    tay_add_act(tay, group_a, _get_act_func(is_point_a), &act_context);
-    tay_add_act(tay, group_b, _get_act_func(is_point_b), &act_context);
+    tay_add_see(tay, group_a, group_a, _get_see_func(is_point_a, is_point_b), _get_see_func_name(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
+    tay_add_see(tay, group_a, group_b, _get_see_func(is_point_a, is_point_b), _get_see_func_name(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
+    tay_add_see(tay, group_b, group_b, _get_see_func(is_point_a, is_point_b), _get_see_func_name(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
+    tay_add_see(tay, group_b, group_a, _get_see_func(is_point_a, is_point_b), _get_see_func_name(is_point_a, is_point_b), see_radii, TAY_FALSE, 0);
+    tay_add_act(tay, group_a, _get_act_func(is_point_a), _get_act_func_name(is_point_a), &act_context);
+    tay_add_act(tay, group_b, _get_act_func(is_point_b), _get_act_func_name(is_point_b), &act_context);
 
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);
