@@ -6,6 +6,7 @@
 #include "ocl.h"
 
 #define TAY_MB (1 << 20)
+#define TAY_MAX_FUNC_NAME 512
 
 
 typedef struct {
@@ -117,6 +118,7 @@ typedef struct TayPass {
         TAY_SEE_FUNC see;
         TAY_ACT_FUNC act;
     };
+    char func_name[TAY_MAX_FUNC_NAME];
     float4 radii;
     int self_see;
     void *context;
@@ -134,7 +136,7 @@ typedef enum TayStateStatus {
 typedef struct TayState {
     TayGroup groups[TAY_MAX_GROUPS];
     TayPass passes[TAY_MAX_PASSES];
-    int passes_count;
+    unsigned passes_count;
     TayStateStatus running;
     TayError error;
     double ms_per_step; /* for the last run */

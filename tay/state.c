@@ -111,7 +111,7 @@ int group_is_inactive(TayGroup *group) {
     return group->storage == 0;
 }
 
-void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, float4 radii, int self_see, void *context) {
+void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
@@ -121,15 +121,17 @@ void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TA
     p->self_see = self_see;
     p->seer_group = seer_group;
     p->seen_group = seen_group;
+    strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
 }
 
-void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, void *context) {
+void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *func_name, void *context) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
     p->context = context;
     p->act = func;
     p->act_group = act_group;
+    strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
 }
 
 void *tay_get_available_agent(TayState *state, TayGroup *group) {
@@ -188,7 +190,7 @@ static PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, int se
 
 static TayError _compile_passes(TayState *state) {
 
-    for (int pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
         if (pass->type == TAY_PASS_SEE) {
@@ -290,7 +292,7 @@ int tay_run(TayState *state, int steps) {
         }
 
         /* do passes */
-        for (int pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+        for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
             TayPass *pass = state->passes + pass_i;
             pass->struct_pass_func(pass);
         }
