@@ -177,6 +177,7 @@
     <ClCompile Include="cpu_tree.c" />
     <ClCompile Include="cpu_z_grid.c" />
     <ClCompile Include="ocl.c" />
+    <ClCompile Include="ocl_simple.c" />
     <ClCompile Include="space.c" />
     <ClCompile Include="state.c" />
     <ClCompile Include="thread.c" />

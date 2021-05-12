@@ -1,27 +1,9 @@
-#include "state.h"
+#include "space.h"
 #include "CL/cl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-
-static const char *HEADER = "\n\
-#define float4_agent_position(__agent_tag__) (*(global float4 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
-#define float3_agent_position(__agent_tag__) (*(global float3 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
-#define float2_agent_position(__agent_tag__) (*(global float2 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
-\n\
-#define float4_agent_min(__agent_tag__) (*(global float4 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
-#define float3_agent_min(__agent_tag__) (*(global float3 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
-#define float2_agent_min(__agent_tag__) (*(global float2 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
-#define float4_agent_max(__agent_tag__) (*(global float4 *)((global char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))\n\
-#define float3_agent_max(__agent_tag__) (*(global float3 *)((global char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))\n\
-#define float2_agent_max(__agent_tag__) (*(global float2 *)((global char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))\n\
-\n\
-typedef struct __attribute__((packed)) TayAgentTag {\n\
-    unsigned part_i;\n\
-    unsigned cell_agent_i;\n\
-} TayAgentTag;\n\
-\n";
 
 void ocl_init(TayState *state) {
     TayOcl *ocl = &state->ocl;
@@ -188,10 +170,27 @@ void ocl_on_simulation_start(TayState *state) {
     * compose source
     */
 
+    const unsigned MAX_TEXT_LENGTH = 100000;
     unsigned text_length = 0;
-    char *text = calloc(1, 100000);
+    char *text = calloc(1, MAX_TEXT_LENGTH);
 
-    text_length = sprintf_s(text, 100000, HEADER);
+    text_length = sprintf_s(text, MAX_TEXT_LENGTH, "\n\
+#define float4_agent_position(__agent_tag__) (*(global float4 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float3_agent_position(__agent_tag__) (*(global float3 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float2_agent_position(__agent_tag__) (*(global float2 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+\n\
+#define float4_agent_min(__agent_tag__) (*(global float4 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float3_agent_min(__agent_tag__) (*(global float3 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float2_agent_min(__agent_tag__) (*(global float2 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float4_agent_max(__agent_tag__) (*(global float4 *)((global char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))\n\
+#define float3_agent_max(__agent_tag__) (*(global float3 *)((global char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))\n\
+#define float2_agent_max(__agent_tag__) (*(global float2 *)((global char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))\n\
+\n\
+typedef struct __attribute__((packed)) TayAgentTag {\n\
+    unsigned part_i;\n\
+    unsigned cell_agent_i;\n\
+} TayAgentTag;\n\
+\n");
 
     for (unsigned source_i = 0; source_i < ocl->sources_count; ++source_i) {
         FILE *file;
@@ -202,6 +201,26 @@ void ocl_on_simulation_start(TayState *state) {
         fread(text + text_length, 1, file_length, file);
         fclose(file);
         text_length += file_length;
+    }
+
+    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+        TayPass *pass = state->passes + pass_i;
+
+        if (pass->type == TAY_PASS_SEE) {
+            Space *seer_space = &pass->seer_group->space;
+            Space *seen_space = &pass->seen_group->space;
+
+            if (seer_space->type == seen_space->type) {
+                if (seer_space->type == TAY_OCL_SIMPLE)
+                    text_length += ocl_add_see_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length);
+            }
+        }
+        else if (pass->type == TAY_PASS_ACT) {
+            Space *act_space = &pass->act_group->space;
+
+            if (act_space->type == TAY_OCL_SIMPLE)
+                text_length += ocl_add_act_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length);
+        }
     }
 
     text[text_length] = '\0';
