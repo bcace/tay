@@ -34,8 +34,8 @@ static void _clear_group(TayGroup *group) {
 void tay_destroy_state(TayState *state) {
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         _clear_group(state->groups + i);
-    free(state);
     ocl_destroy(state);
+    free(state);
 }
 
 TayError tay_get_error(TayState *state) {
@@ -328,6 +328,7 @@ int tay_run(TayState *state, int steps) {
 void tay_simulation_end(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_RUNNING);
     state->running = TAY_STATE_STATUS_IDLE;
+    ocl_on_simulation_end(state);
 }
 
 double tay_get_ms_per_step_for_last_run(TayState *state) {

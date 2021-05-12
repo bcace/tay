@@ -17,6 +17,7 @@ typedef struct {
     void *device_id;
     void *context;
     void *queue;
+    void *program;
 
     char sources[OCL_MAX_SOURCES][OCL_MAX_PATH];
     unsigned sources_count;
@@ -29,6 +30,7 @@ void ocl_destroy(TayState *state);
 
 void ocl_on_simulation_start(TayState *state);
 void ocl_on_run_start(TayState *state);
+void ocl_on_simulation_end(TayState *state);
 
 void ocl_fetch_agents(TayState *state);
 

@@ -5,6 +5,24 @@
 #include <string.h>
 
 
+static const char *HEADER = "\n\
+#define float4_agent_position(__agent_tag__) (*(global float4 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float3_agent_position(__agent_tag__) (*(global float3 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float2_agent_position(__agent_tag__) (*(global float2 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+\n\
+#define float4_agent_min(__agent_tag__) (*(global float4 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float3_agent_min(__agent_tag__) (*(global float3 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float2_agent_min(__agent_tag__) (*(global float2 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
+#define float4_agent_max(__agent_tag__) (*(global float4 *)((global char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))\n\
+#define float3_agent_max(__agent_tag__) (*(global float3 *)((global char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))\n\
+#define float2_agent_max(__agent_tag__) (*(global float2 *)((global char *)(__agent_tag__) + sizeof(TayAgentTag) + sizeof(float4)))\n\
+\n\
+typedef struct __attribute__((packed)) TayAgentTag {\n\
+    unsigned part_i;\n\
+    unsigned cell_agent_i;\n\
+} TayAgentTag;\n\
+\n";
+
 void ocl_init(TayState *state) {
     TayOcl *ocl = &state->ocl;
     ocl->active = CL_FALSE;
@@ -134,16 +152,6 @@ void ocl_init(TayState *state) {
 void ocl_destroy(TayState *state) {
     #ifdef TAY_OCL
 
-    for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-        TayGroup *group = state->groups + group_i;
-
-        if (group_is_inactive(group))
-            continue;
-
-        if (group->space.type == TAY_OCL_SIMPLE)
-            clReleaseMemObject(group->space.ocl_simple.agent_buffer);
-    }
-
     clReleaseContext(state->ocl.context);
 
     #endif
@@ -153,6 +161,10 @@ void ocl_on_simulation_start(TayState *state) {
     #ifdef TAY_OCL
 
     TayOcl *ocl = &state->ocl;
+
+    /*
+    * create agent buffers
+    */
 
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
@@ -172,10 +184,14 @@ void ocl_on_simulation_start(TayState *state) {
         }
     }
 
-    /* load sources */
+    /*
+    * compose source
+    */
 
     unsigned text_length = 0;
     char *text = calloc(1, 100000);
+
+    text_length = sprintf_s(text, 100000, HEADER);
 
     for (unsigned source_i = 0; source_i < ocl->sources_count; ++source_i) {
         FILE *file;
@@ -188,9 +204,47 @@ void ocl_on_simulation_start(TayState *state) {
         text_length += file_length;
     }
 
-    // TODO: compile text here!
+    text[text_length] = '\0';
+
+    /*
+    * create and compile program
+    */
+
+    cl_int err;
+
+    ocl->program = clCreateProgramWithSource(ocl->context, 1, &text, 0, &err);
+    if (err) {
+        printf("clCreateProgramWithSource error\n");
+    }
+
+    err = clBuildProgram(ocl->program, 1, &(cl_device_id)ocl->device_id, 0, 0, 0);
+    if (err) {
+        static char build_log[10024];
+        clGetProgramBuildInfo(ocl->program, ocl->device_id, CL_PROGRAM_BUILD_LOG, 10024, build_log, 0);
+        fprintf(stderr, build_log);
+    }
 
     free(text);
+
+    #endif
+}
+
+void ocl_on_simulation_end(TayState *state) {
+    #ifdef TAY_OCL
+
+    TayOcl *ocl = &state->ocl;
+
+    clReleaseProgram(ocl->program);
+
+    for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+        TayGroup *group = state->groups + group_i;
+
+        if (group_is_inactive(group))
+            continue;
+
+        if (group->space.type == TAY_OCL_SIMPLE)
+            clReleaseMemObject(group->space.ocl_simple.agent_buffer);
+    }
 
     #endif
 }
