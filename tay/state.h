@@ -123,9 +123,16 @@ typedef struct TayPass {
     int self_see;
     void *context;
     /* data prepared by the compile step */
-    PASS_FUNC struct_pass_func;
-    SEEN_FUNC seen_func;
-    PAIRING_FUNC pairing_func;
+    union {
+        struct { /* cpu pass */
+            PASS_FUNC struct_pass_func;
+            SEEN_FUNC seen_func;
+            PAIRING_FUNC pairing_func;
+        };
+        struct { /* ocl pass */
+            void *pass_kernel;
+        };
+    };
 } TayPass;
 
 typedef enum TayStateStatus {

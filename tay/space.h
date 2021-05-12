@@ -43,8 +43,9 @@ void cpu_z_grid_unsort(TayGroup *group);
 void cpu_z_grid_see(TayPass *pass);
 void cpu_z_grid_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, struct TayThreadContext *thread_context);
 
-unsigned ocl_add_see_kernel_text(TayPass *pass, char *text, unsigned remaining_space);
-unsigned ocl_add_act_kernel_text(TayPass *pass, char *text, unsigned remaining_space);
+unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned remaining_space);
+unsigned ocl_simple_add_act_kernel_text(TayPass *pass, char *text, unsigned remaining_space);
+void ocl_simple_get_kernel(TayOcl *ocl, TayPass *pass);
 
 int space_agent_count_to_bucket_index(int count);
 

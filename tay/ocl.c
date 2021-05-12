@@ -212,14 +212,14 @@ typedef struct __attribute__((packed)) TayAgentTag {\n\
 
             if (seer_space->type == seen_space->type) {
                 if (seer_space->type == TAY_OCL_SIMPLE)
-                    text_length += ocl_add_see_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length);
+                    text_length += ocl_simple_add_see_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length);
             }
         }
         else if (pass->type == TAY_PASS_ACT) {
             Space *act_space = &pass->act_group->space;
 
             if (act_space->type == TAY_OCL_SIMPLE)
-                text_length += ocl_add_act_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length);
+                text_length += ocl_simple_add_act_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length);
         }
     }
 
@@ -244,6 +244,30 @@ typedef struct __attribute__((packed)) TayAgentTag {\n\
     }
 
     free(text);
+
+    /*
+    * get kernels from compiled programs
+    */
+
+    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+        TayPass *pass = state->passes + pass_i;
+
+        if (pass->type == TAY_PASS_SEE) {
+            Space *seer_space = &pass->seer_group->space;
+            Space *seen_space = &pass->seen_group->space;
+
+            if (seer_space->type == seen_space->type) {
+                if (seer_space->type == TAY_OCL_SIMPLE)
+                    ocl_simple_get_kernel(ocl, pass);
+            }
+        }
+        else if (pass->type == TAY_PASS_ACT) {
+            Space *act_space = &pass->act_group->space;
+
+            if (act_space->type == TAY_OCL_SIMPLE)
+                ocl_simple_get_kernel(ocl, pass);
+        }
+    }
 
     #endif
 }
