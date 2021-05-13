@@ -30,6 +30,7 @@ void ocl_destroy(TayState *state);
 
 void ocl_on_simulation_start(TayState *state);
 void ocl_on_run_start(TayState *state);
+void ocl_on_run_end(TayState *state);
 void ocl_on_simulation_end(TayState *state);
 
 void ocl_fetch_agents(TayState *state);

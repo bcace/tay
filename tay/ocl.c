@@ -321,6 +321,14 @@ void ocl_on_run_start(TayState *state) {
     #endif
 }
 
+void ocl_on_run_end(TayState *state) {
+    #ifdef TAY_OCL
+
+    ocl_fetch_agents(state);
+
+    #endif
+}
+
 void ocl_fetch_agents(TayState *state) {
     #ifdef TAY_OCL
 

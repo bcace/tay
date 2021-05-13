@@ -45,6 +45,8 @@ void cpu_z_grid_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, in
 
 unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned remaining_space);
 unsigned ocl_simple_add_act_kernel_text(TayPass *pass, char *text, unsigned remaining_space);
+void ocl_simple_run_act_kernel(TayOcl *ocl, TayPass *pass);
+
 void ocl_simple_get_kernel(TayOcl *ocl, TayPass *pass);
 
 int space_agent_count_to_bucket_index(int count);

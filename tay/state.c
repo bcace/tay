@@ -319,6 +319,8 @@ int tay_run(TayState *state, int steps) {
 #endif
     }
 
+    ocl_on_run_end(state);
+
     /* end measuring run-time */
     timespec_get(&end, TIME_UTC);
     double t = (end.tv_sec - beg.tv_sec) + ((long long)end.tv_nsec - (long long)beg.tv_nsec) * 1.0e-9;

@@ -38,6 +38,28 @@ kernel void %s_kernel(global char *a, global void *c) {\n\
     #endif
 }
 
+void ocl_simple_run_act_kernel(TayOcl *ocl, TayPass *pass) {
+    #ifdef TAY_OCL
+
+    clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->act_group->space.ocl_simple.agent_buffer);
+
+    unsigned long long global_work_size = pass->act_group->space.count;
+
+    clEnqueueNDRangeKernel(ocl->queue,
+                           pass->pass_kernel,
+                           1,
+                           0,
+                           &global_work_size,
+                           0,
+                           0,
+                           0,
+                           0);
+
+    clFinish(ocl->queue);
+
+    #endif
+}
+
 void ocl_simple_get_kernel(TayOcl *ocl, TayPass *pass) {
     #ifdef TAY_OCL
 
