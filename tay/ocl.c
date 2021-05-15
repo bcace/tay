@@ -414,7 +414,15 @@ void ocl_add_source(TayState *state, const char *path) {
     #endif
 }
 
-const char *ocl_pairing_text(int dims) {
+const char *ocl_self_see_text(int same_group, int self_see) {
+    if (same_group && !self_see)
+        return "\n\
+if (a_i == b_i)\n\
+    goto SKIP_SEE;\n\
+\n";
+}
+
+const char *_point_point(int dims) {
     if (dims == 1) {
         return "\n\
 float dx = a_p.x - b_p.x;\n\
@@ -461,4 +469,260 @@ if (dw < -radii.w || dw > radii.w)\n\
     goto SKIP_SEE;\n\
 \n";
     }
+}
+
+const char *_point_nonpoint(int dims) {
+    if (dims == 1) {
+        return "\n\
+float d;\n\
+d = a_p.x - b_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_min.x - a_p.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else if (dims == 2) {
+        return "\n\
+float d;\n\
+d = a_p.x - b_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_min.x - a_p.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = a_p.y - b_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = b_min.y - a_p.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else if (dims == 3) {
+        return "\n\
+float d;\n\
+d = a_p.x - b_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_min.x - a_p.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = a_p.y - b_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = b_min.y - a_p.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = a_p.z - b_max.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+d = b_min.z - a_p.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else {
+        return "\n\
+float d;\n\
+d = a_p.x - b_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_min.x - a_p.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = a_p.y - b_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = b_min.y - a_p.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = a_p.z - b_max.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+d = b_min.z - a_p.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+d = a_p.w - b_max.w;\n\
+if (d > radii.w)\n\
+    goto SKIP_SEE;\n\
+d = b_min.w - a_p.w;\n\
+if (d > radii.w)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+}
+
+const char *_nonpoint_point(int dims) {
+    if (dims == 1) {
+        return "\n\
+float d;\n\
+d = b_p.x - a_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = a_min.x - b_p.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else if (dims == 2) {
+        return "\n\
+float d;\n\
+d = b_p.x - a_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = a_min.x - b_p.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_p.y - a_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = a_min.y - b_p.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else if (dims == 3) {
+        return "\n\
+float d;\n\
+d = b_p.x - a_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = a_min.x - b_p.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_p.y - a_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = a_min.y - b_p.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = b_p.z - a_max.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+d = a_min.z - b_p.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else {
+        return "\n\
+float d;\n\
+d = b_p.x - a_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = a_min.x - b_p.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_p.y - a_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = a_min.y - b_p.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = b_p.z - a_max.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+d = a_min.z - b_p.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+d = b_p.w - a_max.w;\n\
+if (d > radii.w)\n\
+    goto SKIP_SEE;\n\
+d = a_min.w - b_p.w;\n\
+if (d > radii.w)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+}
+
+const char *_nonpoint_nonpoint(int dims) {
+    if (dims == 1) {
+        return "\n\
+float d;\n\
+d = a_min.x - b_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_min.x - a_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else if (dims == 2) {
+        return "\n\
+float d;\n\
+d = a_min.x - b_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_min.x - a_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = a_min.y - b_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = b_min.y - a_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    if (dims == 1) {
+        return "\n\
+float d;\n\
+d = a_min.x - b_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_min.x - a_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = a_min.y - b_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = b_min.y - a_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = a_min.z - b_max.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+d = b_min.z - a_max.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else {
+        return "\n\
+float d;\n\
+d = a_min.x - b_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = b_min.x - a_max.x;\n\
+if (d > radii.x)\n\
+    goto SKIP_SEE;\n\
+d = a_min.y - b_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = b_min.y - a_max.y;\n\
+if (d > radii.y)\n\
+    goto SKIP_SEE;\n\
+d = a_min.z - b_max.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+d = b_min.z - a_max.z;\n\
+if (d > radii.z)\n\
+    goto SKIP_SEE;\n\
+d = a_min.w - b_max.w;\n\
+if (d > radii.w)\n\
+    goto SKIP_SEE;\n\
+d = b_min.w - a_max.w;\n\
+if (d > radii.w)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+}
+
+const char *ocl_pairing_text(int seer_is_point, int seen_is_point, int dims) {
+    if (seer_is_point == seen_is_point)
+        return (seer_is_point) ? _point_point(dims) : _nonpoint_nonpoint(dims);
+    else
+        return (seer_is_point) ? _point_nonpoint(dims) : _nonpoint_point(dims);
 }
