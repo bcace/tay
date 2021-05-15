@@ -160,9 +160,26 @@ void ocl_on_simulation_start(TayState *state) {
 
             simple->agent_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, (size_t)(group->capacity * group->agent_size), NULL, &err);
             if (err)
-                printf("clCreateBuffer error\n");
+                printf("clCreateBuffer error (agent buffer)\n");
 
             simple->push_agents = 1;
+        }
+    }
+
+    /*
+    * create pass context buffers
+    */
+
+    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+        TayPass *pass = state->passes + pass_i;
+
+        if (pass->type == TAY_PASS_SEE && pass->seer_group->space.type == TAY_OCL_SIMPLE ||
+            pass->type == TAY_PASS_ACT && pass->act_group->space.type == TAY_OCL_SIMPLE) {
+            cl_int err;
+
+            pass->context_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_ONLY, pass->context_size, NULL, &err);
+            if (err)
+                printf("clCreateBuffer error (context buffer)\n");
         }
     }
 
@@ -279,6 +296,8 @@ void ocl_on_simulation_end(TayState *state) {
 
     clReleaseProgram(ocl->program);
 
+    /* release agent buffers */
+
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
@@ -289,11 +308,23 @@ void ocl_on_simulation_end(TayState *state) {
             clReleaseMemObject(group->space.ocl_simple.agent_buffer);
     }
 
+    /* release pass context buffers */
+
+    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+        TayPass *pass = state->passes + pass_i;
+
+        if (pass->type == TAY_PASS_SEE && pass->seer_group->space.type == TAY_OCL_SIMPLE ||
+            pass->type == TAY_PASS_ACT && pass->act_group->space.type == TAY_OCL_SIMPLE)
+            clReleaseMemObject(pass->context_buffer);
+    }
+
     #endif
 }
 
 void ocl_on_run_start(TayState *state) {
     #ifdef TAY_OCL
+
+    /* push agents if they have been modified (push_agents flag) */
 
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
@@ -309,10 +340,25 @@ void ocl_on_run_start(TayState *state) {
 
                 err = clEnqueueWriteBuffer(state->ocl.queue, simple->agent_buffer, CL_NON_BLOCKING, 0, group->space.count * group->agent_size, group->storage, 0, 0, 0);
                 if (err)
-                    printf("clEnqueueWriteBuffer error\n");
+                    printf("clEnqueueWriteBuffer error (agents)\n");
 
                 simple->push_agents = 0;
             }
+        }
+    }
+
+    /* push pass contexts */
+
+    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+        TayPass *pass = state->passes + pass_i;
+
+        if (pass->type == TAY_PASS_SEE && pass->seer_group->space.type == TAY_OCL_SIMPLE ||
+            pass->type == TAY_PASS_ACT && pass->act_group->space.type == TAY_OCL_SIMPLE) {
+            cl_int err;
+
+            err = clEnqueueWriteBuffer(state->ocl.queue, pass->context_buffer, CL_NON_BLOCKING, 0, pass->context_size, pass->context, 0, 0, 0);
+            if (err)
+                printf("clEnqueueWriteBuffer error (context)\n");
         }
     }
 

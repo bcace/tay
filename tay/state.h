@@ -122,14 +122,15 @@ typedef struct TayPass {
     float4 radii;
     int self_see;
     void *context;
+    unsigned context_size;
     /* data prepared by the compile step */
     union {
         struct { /* cpu pass */
-            PASS_FUNC struct_pass_func;
             SEEN_FUNC seen_func;
             PAIRING_FUNC pairing_func;
         };
         struct { /* ocl pass */
+            void *context_buffer;
             void *pass_kernel;
         };
     };

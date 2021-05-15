@@ -111,11 +111,12 @@ int group_is_inactive(TayGroup *group) {
     return group->storage == 0;
 }
 
-void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context) {
+void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
     p->context = context;
+    p->context_size = context_size;
     p->see = func;
     p->radii = radii;
     p->self_see = self_see;
@@ -124,11 +125,12 @@ void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TA
     strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
 }
 
-void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *func_name, void *context) {
+void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *func_name, void *context, unsigned context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
     p->context = context;
+    p->context_size = context_size;
     p->act = func;
     p->act_group = act_group;
     strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
@@ -203,19 +205,6 @@ static TayError _compile_passes(TayState *state) {
 
                 pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point, pass->seer_group == pass->seen_group, pass->self_see);
 
-                if (seer_space->type == TAY_CPU_SIMPLE)
-                    pass->struct_pass_func = cpu_simple_see;
-                else if (seer_space->type == TAY_CPU_KD_TREE)
-                    pass->struct_pass_func = cpu_tree_see;
-                else if (seer_space->type == TAY_CPU_AABB_TREE)
-                    pass->struct_pass_func = cpu_aabb_tree_see;
-                else if (seer_space->type == TAY_CPU_GRID)
-                    pass->struct_pass_func = cpu_grid_see;
-                else if (seer_space->type == TAY_CPU_Z_GRID)
-                    pass->struct_pass_func = cpu_z_grid_see;
-                else
-                    return TAY_ERROR_NOT_IMPLEMENTED;
-
                 if (seen_space->type == TAY_CPU_SIMPLE)
                     pass->seen_func = cpu_simple_see_seen;
                 else if (seen_space->type == TAY_CPU_KD_TREE)
@@ -226,22 +215,8 @@ static TayError _compile_passes(TayState *state) {
                     pass->seen_func = cpu_grid_see_seen;
                 else if (seen_space->type == TAY_CPU_Z_GRID)
                     pass->seen_func = cpu_z_grid_see_seen;
-                else
-                    return TAY_ERROR_NOT_IMPLEMENTED;
-            }
-            else
-                return TAY_ERROR_NOT_IMPLEMENTED;
-        }
-        else if (pass->type == TAY_PASS_ACT) {
-            Space *act_space = &pass->act_group->space;
-            int act_is_point = pass->act_group->is_point;
-
-            if (act_space->type == TAY_CPU_SIMPLE ||
-                act_space->type == TAY_CPU_KD_TREE ||
-                act_space->type == TAY_CPU_AABB_TREE ||
-                act_space->type == TAY_CPU_GRID ||
-                act_space->type == TAY_CPU_Z_GRID) {
-                pass->struct_pass_func = space_act;
+                // else
+                //     return TAY_ERROR_NOT_IMPLEMENTED;
             }
             else
                 return TAY_ERROR_NOT_IMPLEMENTED;
@@ -287,6 +262,7 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_sort(group); break;
                 case TAY_CPU_GRID: cpu_grid_sort(group); break;
                 case TAY_CPU_Z_GRID: cpu_z_grid_sort(group); break;
+                case TAY_OCL_SIMPLE: break;
                 default: assert(0);
             }
         }
@@ -294,7 +270,44 @@ int tay_run(TayState *state, int steps) {
         /* do passes */
         for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
             TayPass *pass = state->passes + pass_i;
-            pass->struct_pass_func(pass);
+
+            if (pass->type == TAY_PASS_SEE) {
+                Space *seer_space = &pass->seer_group->space;
+
+                if (seer_space->type == TAY_CPU_SIMPLE)
+                    cpu_simple_see(pass);
+                else if (seer_space->type == TAY_CPU_KD_TREE)
+                    cpu_tree_see(pass);
+                else if (seer_space->type == TAY_CPU_AABB_TREE)
+                    cpu_aabb_tree_see(pass);
+                else if (seer_space->type == TAY_CPU_GRID)
+                    cpu_grid_see(pass);
+                else if (seer_space->type == TAY_CPU_Z_GRID)
+                    cpu_z_grid_see(pass);
+                else if (seer_space->type == TAY_OCL_SIMPLE)
+                    ;
+                else {
+                    state_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
+                    return 0;
+                }
+            }
+            else if (pass->type == TAY_PASS_ACT) {
+                Space *act_space = &pass->act_group->space;
+
+                if (act_space->type == TAY_CPU_SIMPLE ||
+                    act_space->type == TAY_CPU_KD_TREE ||
+                    act_space->type == TAY_CPU_AABB_TREE ||
+                    act_space->type == TAY_CPU_GRID ||
+                    act_space->type == TAY_CPU_Z_GRID) {
+                    space_act(pass);
+                }
+                else if (act_space->type == TAY_OCL_SIMPLE)
+                    ocl_simple_run_act_kernel(&state->ocl, pass);
+                else {
+                    state_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
+                    return 0;
+                }
+            }
         }
 
         /* return agents from structures */
@@ -310,6 +323,7 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_unsort(group); break;
                 case TAY_CPU_GRID: cpu_grid_unsort(group); break;
                 case TAY_CPU_Z_GRID: cpu_z_grid_unsort(group); break;
+                case TAY_OCL_SIMPLE: break;
                 default: assert(0); /* not implemented */
             }
         }

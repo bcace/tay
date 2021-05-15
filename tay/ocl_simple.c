@@ -7,7 +7,7 @@ unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned rema
     #ifdef TAY_OCL
 
     unsigned length = sprintf_s(text, remaining_space, "\n\
-kernel void %s_kernel(global char *a, global char *b, global void *c) {\n\
+kernel void %s_kernel(global char *a, global char *b, constant void *c) {\n\
     %s((global void *)a, (global void *)b, c);\n\
 }\n\
 \n",
@@ -24,7 +24,7 @@ unsigned ocl_simple_add_act_kernel_text(TayPass *pass, char *text, unsigned rema
     #ifdef TAY_OCL
 
     unsigned length = sprintf_s(text, remaining_space, "\n\
-kernel void %s_kernel(global char *a, global void *c) {\n\
+kernel void %s_kernel(global char *a, constant void *c) {\n\
     global void *agent = a + %d * get_global_id(0);\n\
     %s(agent, c);\n\
 }\n\
@@ -41,11 +41,19 @@ kernel void %s_kernel(global char *a, global void *c) {\n\
 void ocl_simple_run_act_kernel(TayOcl *ocl, TayPass *pass) {
     #ifdef TAY_OCL
 
-    clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->act_group->space.ocl_simple.agent_buffer);
+    cl_int err;
+
+    err = clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->act_group->space.ocl_simple.agent_buffer);
+    if (err)
+        printf("clSetKernelArg error (agent buffer)\n");
+
+    err = clSetKernelArg(pass->pass_kernel, 1, sizeof(void *), &pass->context_buffer);
+    if (err)
+        printf("clSetKernelArg error (context buffer)\n");
 
     unsigned long long global_work_size = pass->act_group->space.count;
 
-    clEnqueueNDRangeKernel(ocl->queue,
+    err = clEnqueueNDRangeKernel(ocl->queue,
                            pass->pass_kernel,
                            1,
                            0,
@@ -54,8 +62,12 @@ void ocl_simple_run_act_kernel(TayOcl *ocl, TayPass *pass) {
                            0,
                            0,
                            0);
+    if (err)
+        printf("clEnqueueNDRangeKernel error\n");
 
-    clFinish(ocl->queue);
+    err = clFinish(ocl->queue);
+    if (err)
+        printf("clFinish error\n");
 
     #endif
 }
