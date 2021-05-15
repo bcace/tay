@@ -7,11 +7,15 @@ unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned rema
     #ifdef TAY_OCL
 
     unsigned length = sprintf_s(text, remaining_space, "\n\
-kernel void %s_kernel(global char *a, global char *b, constant void *c) {\n\
-    %s((global void *)a, (global void *)b, c);\n\
+kernel void %s_kernel(global char *agents_a, global char *agents_b, constant void *c) {\n\
+    global void *a = agents_a + %d * get_global_id(0);\n\
+    for (unsigned b_i = 0; b_i < %d; ++b_i) {\n\
+        global void *b = agents_b + %d * b_i;\n\
+        %s(a, b, c);\n\
+    }\n\
 }\n\
 \n",
-    pass->func_name, pass->func_name);
+    pass->func_name, pass->seer_group->agent_size, pass->seen_group->space.count, pass->seen_group->agent_size, pass->func_name);
 
     return length;
 
@@ -52,6 +56,44 @@ void ocl_simple_run_act_kernel(TayOcl *ocl, TayPass *pass) {
         printf("clSetKernelArg error (context buffer)\n");
 
     unsigned long long global_work_size = pass->act_group->space.count;
+
+    err = clEnqueueNDRangeKernel(ocl->queue,
+                           pass->pass_kernel,
+                           1,
+                           0,
+                           &global_work_size,
+                           0,
+                           0,
+                           0,
+                           0);
+    if (err)
+        printf("clEnqueueNDRangeKernel error\n");
+
+    err = clFinish(ocl->queue);
+    if (err)
+        printf("clFinish error\n");
+
+    #endif
+}
+
+void ocl_simple_run_see_kernel(TayOcl *ocl, TayPass *pass) {
+    #ifdef TAY_OCL
+
+    cl_int err;
+
+    err = clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->seer_group->space.ocl_simple.agent_buffer);
+    if (err)
+        printf("clSetKernelArg error (agent buffer)\n");
+
+    err = clSetKernelArg(pass->pass_kernel, 1, sizeof(void *), &pass->seen_group->space.ocl_simple.agent_buffer);
+    if (err)
+        printf("clSetKernelArg error (agent buffer)\n");
+
+    err = clSetKernelArg(pass->pass_kernel, 2, sizeof(void *), &pass->context_buffer);
+    if (err)
+        printf("clSetKernelArg error (context buffer)\n");
+
+    unsigned long long global_work_size = pass->seer_group->space.count;
 
     err = clEnqueueNDRangeKernel(ocl->queue,
                            pass->pass_kernel,
