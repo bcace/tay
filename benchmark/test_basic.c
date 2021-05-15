@@ -34,8 +34,8 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
     TayGroup *group = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT, TAY_TRUE);
     tay_configure_space(tay, group, space_type, 3, part_sizes, 250);
 
-    tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context);
-    tay_add_act(tay, group, agent_act, "agent_act", &act_context);
+    tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
+    tay_add_act(tay, group, agent_act, "agent_act", &act_context, sizeof(act_context));
 
     switch (model_case) {
         case MC_UNIFORM: {
@@ -126,7 +126,7 @@ void test_basic(Results *results, ModelCase model_case, int steps,
             tay_log(file, "    ],\n");
         }
 
-        if (space_type_flags == TAY_OCL_SIMPLE) {
+        if (space_type_flags & TAY_OCL_SIMPLE) {
             tay_log(file, "    \"%s\": [\n", space_type_name(TAY_OCL_SIMPLE));
             _test(model_case, TAY_OCL_SIMPLE, see_radius, 0, results, steps, file);
             tay_log(file, "    ],\n");

@@ -29,8 +29,8 @@ typedef struct __attribute__((packed)) BoxAgent {
     int result_index;
 } BoxAgent;
 
-void agent_see(global Agent *a, global Agent *b, global SeeContext *context);
-void agent_act(global Agent *agent, global ActContext *context);
+void agent_see(global Agent *a, global Agent *b, constant SeeContext *context);
+void agent_act(global Agent *agent, constant ActContext *context);
 
-void box_agent_see(global BoxAgent *a, global BoxAgent *b, global SeeContext *context);
-void box_agent_act(global BoxAgent *agent, global ActContext *context);
+void box_agent_see(global BoxAgent *a, global BoxAgent *b, constant SeeContext *context);
+void box_agent_act(global BoxAgent *agent, constant ActContext *context);
