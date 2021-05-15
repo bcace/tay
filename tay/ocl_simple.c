@@ -3,11 +3,11 @@
 #include <stdio.h>
 
 
-unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned remaining_space) {
+unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned remaining_space, int dims) {
     #ifdef TAY_OCL
 
     unsigned length = sprintf_s(text, remaining_space, "\n\
-kernel void %s_kernel(global char *agents_a, global char *agents_b, constant void *c) {\n\
+kernel void %s_kernel(global char *agents_a, global char *agents_b, constant void *c, float4 radii) {\n\
     unsigned a_i = get_global_id(0);\n\
     global void *a = agents_a + %d * a_i;\n\
     float4 a_p = float4_agent_position(a);\n\
@@ -18,22 +18,20 @@ kernel void %s_kernel(global char *agents_a, global char *agents_b, constant voi
         global void *b = agents_b + %d * b_i;\n\
         float4 b_p = float4_agent_position(b);\n\
 \n\
-        float dx = a_p.x - b_p.x;\n\
-        if (dx < -50.0f || dx > 50.0f) \
-            goto SKIP_SEE; \
-        float dy = a_p.y - b_p.y;\n\
-        if (dy < -50.0f || dy > 50.0f) \
-            goto SKIP_SEE; \
-        float dz = a_p.z - b_p.z;\n\
-        if (dz < -50.0f || dz > 50.0f) \
-            goto SKIP_SEE; \
+        %s\
 \n\
         %s(a, b, c);\n\
+\n\
         SKIP_SEE:;\n\
     }\n\
 }\n\
 \n",
-    pass->func_name, pass->seer_group->agent_size, pass->seen_group->space.count, pass->seen_group->agent_size, pass->func_name);
+    pass->func_name,
+    pass->seer_group->agent_size,
+    pass->seen_group->space.count,
+    pass->seen_group->agent_size,
+    ocl_pairing_text(dims),
+    pass->func_name);
 
     return length;
 
@@ -110,6 +108,10 @@ void ocl_simple_run_see_kernel(TayOcl *ocl, TayPass *pass) {
     err = clSetKernelArg(pass->pass_kernel, 2, sizeof(void *), &pass->context_buffer);
     if (err)
         printf("clSetKernelArg error (context buffer)\n");
+
+    err = clSetKernelArg(pass->pass_kernel, 3, sizeof(pass->radii), &pass->radii);
+    if (err)
+        printf("clSetKernelArg error (radii)\n");
 
     unsigned long long global_work_size = pass->seer_group->space.count;
 

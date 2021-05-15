@@ -228,8 +228,10 @@ typedef struct __attribute__((packed)) TayAgentTag {\n\
             Space *seen_space = &pass->seen_group->space;
 
             if (seer_space->type == seen_space->type) {
-                if (seer_space->type == TAY_OCL_SIMPLE)
-                    text_length += ocl_simple_add_see_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length);
+                if (seer_space->type == TAY_OCL_SIMPLE) {
+                    int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
+                    text_length += ocl_simple_add_see_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length, min_dims);
+                }
             }
         }
         else if (pass->type == TAY_PASS_ACT) {
@@ -410,4 +412,53 @@ void ocl_add_source(TayState *state, const char *path) {
     }
 
     #endif
+}
+
+const char *ocl_pairing_text(int dims) {
+    if (dims == 1) {
+        return "\n\
+float dx = a_p.x - b_p.x;\n\
+if (dx < -radii.x || dx > radii.x)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else if (dims == 2) {
+        return "\n\
+float dx = a_p.x - b_p.x;\n\
+if (dx < -radii.x || dx > radii.x)\n\
+    goto SKIP_SEE;\n\
+float dy = a_p.y - b_p.y;\n\
+if (dy < -radii.y || dy > radii.y)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else if (dims == 3) {
+        return "\n\
+float dx = a_p.x - b_p.x;\n\
+if (dx < -radii.x || dx > radii.x)\n\
+    goto SKIP_SEE;\n\
+float dy = a_p.y - b_p.y;\n\
+if (dy < -radii.y || dy > radii.y)\n\
+    goto SKIP_SEE;\n\
+float dz = a_p.z - b_p.z;\n\
+if (dz < -radii.z || dz > radii.z)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
+    else {
+        return "\n\
+float dx = a_p.x - b_p.x;\n\
+if (dx < -radii.x || dx > radii.x)\n\
+    goto SKIP_SEE;\n\
+float dy = a_p.y - b_p.y;\n\
+if (dy < -radii.y || dy > radii.y)\n\
+    goto SKIP_SEE;\n\
+float dz = a_p.z - b_p.z;\n\
+if (dz < -radii.z || dz > radii.z)\n\
+    goto SKIP_SEE;\n\
+float dw = a_p.w - b_p.w;\n\
+if (dw < -radii.w || dw > radii.w)\n\
+    goto SKIP_SEE;\n\
+\n";
+    }
 }

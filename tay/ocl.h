@@ -35,4 +35,6 @@ void ocl_on_simulation_end(TayState *state);
 
 void ocl_fetch_agents(TayState *state);
 
+const char *ocl_pairing_text(int dims);
+
 #endif
