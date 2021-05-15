@@ -8,10 +8,28 @@ unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned rema
 
     unsigned length = sprintf_s(text, remaining_space, "\n\
 kernel void %s_kernel(global char *agents_a, global char *agents_b, constant void *c) {\n\
-    global void *a = agents_a + %d * get_global_id(0);\n\
+    unsigned a_i = get_global_id(0);\n\
+    global void *a = agents_a + %d * a_i;\n\
+    float4 a_p = float4_agent_position(a);\n\
+\n\
     for (unsigned b_i = 0; b_i < %d; ++b_i) {\n\
+        if (a_i == b_i)\n\
+            continue;\n\
         global void *b = agents_b + %d * b_i;\n\
+        float4 b_p = float4_agent_position(b);\n\
+\n\
+        float dx = a_p.x - b_p.x;\n\
+        if (dx < -50.0f || dx > 50.0f) \
+            goto SKIP_SEE; \
+        float dy = a_p.y - b_p.y;\n\
+        if (dy < -50.0f || dy > 50.0f) \
+            goto SKIP_SEE; \
+        float dz = a_p.z - b_p.z;\n\
+        if (dz < -50.0f || dz > 50.0f) \
+            goto SKIP_SEE; \
+\n\
         %s(a, b, c);\n\
+        SKIP_SEE:;\n\
     }\n\
 }\n\
 \n",

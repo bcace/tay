@@ -124,15 +124,13 @@ typedef struct TayPass {
     void *context;
     unsigned context_size;
     /* data prepared by the compile step */
-    union {
-        struct { /* cpu pass */
-            SEEN_FUNC seen_func;
-            PAIRING_FUNC pairing_func;
-        };
-        struct { /* ocl pass */
-            void *context_buffer;
-            void *pass_kernel;
-        };
+    struct { /* cpu pass */
+        SEEN_FUNC seen_func;
+        PAIRING_FUNC pairing_func;
+    };
+    struct { /* ocl pass */
+        void *context_buffer;
+        void *pass_kernel;
     };
 } TayPass;
 
