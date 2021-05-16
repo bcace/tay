@@ -7,7 +7,7 @@ unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned rema
     #ifdef TAY_OCL
 
     unsigned length = sprintf_s(text, remaining_space, "\n\
-kernel void %s_kernel(global char *a_agents, global char *b_agents, constant void *c, float4 radii) {\n\
+kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii) {\n\
     unsigned a_i = get_global_id(0);\n\
     unsigned a_size = %d;\n\
     unsigned b_size = %d;\n\
@@ -21,7 +21,7 @@ kernel void %s_kernel(global char *a_agents, global char *b_agents, constant voi
     %s\
 }\n\
 \n",
-    pass->func_name,
+    ocl_get_kernel_name(pass),
     pass->seer_group->agent_size,
     pass->seen_group->agent_size,
     pass->seen_group->space.count,
@@ -42,12 +42,14 @@ unsigned ocl_simple_add_act_kernel_text(TayPass *pass, char *text, unsigned rema
     #ifdef TAY_OCL
 
     unsigned length = sprintf_s(text, remaining_space, "\n\
-kernel void %s_kernel(global char *a, constant void *c) {\n\
+kernel void %s(global char *a, constant void *c) {\n\
     global void *agent = a + %d * get_global_id(0);\n\
     %s(agent, c);\n\
 }\n\
 \n",
-    pass->func_name, pass->act_group->agent_size, pass->func_name);
+    ocl_get_kernel_name(pass),
+    pass->act_group->agent_size,
+    pass->func_name);
 
     return length;
 
@@ -135,11 +137,11 @@ void ocl_simple_run_see_kernel(TayOcl *ocl, TayPass *pass) {
 void ocl_simple_get_kernel(TayOcl *ocl, TayPass *pass) {
     #ifdef TAY_OCL
 
-    char kernel_name[TAY_MAX_FUNC_NAME + 64];
-    sprintf_s(kernel_name, TAY_MAX_FUNC_NAME + 64, "%s_kernel", pass->func_name);
+    // char kernel_name[TAY_MAX_FUNC_NAME + 64];
+    // sprintf_s(kernel_name, TAY_MAX_FUNC_NAME + 64, "%s_kernel", pass->func_name);
 
     cl_int err;
-    pass->pass_kernel = clCreateKernel(ocl->program, kernel_name, &err);
+    pass->pass_kernel = clCreateKernel(ocl->program, ocl_get_kernel_name(pass), &err);
     if (err)
         printf("clCreateKernel error\n");
 

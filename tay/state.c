@@ -13,6 +13,7 @@ TayState *tay_create_state() {
     state->running = TAY_STATE_STATUS_IDLE;
     state->error = TAY_ERROR_NONE;
     state->ms_per_step = 0.0;
+    state->next_group_id = 0;
     ocl_init(state);
     return state;
 }
@@ -65,6 +66,7 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     group->agent_storage[1] = group->sort_storage = calloc(agent_capacity, agent_size);
     group->capacity = agent_capacity;
     group->is_point = is_point;
+    group->id = state->next_group_id++;
 
     /* initialize the group's space */
     Space *space = &group->space;

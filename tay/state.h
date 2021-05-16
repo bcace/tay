@@ -100,6 +100,7 @@ typedef struct TayGroup {
     int capacity; /* max. number of agents */
     int is_point; /* are all agents of this group points */
     Space space;
+    unsigned id;
 } TayGroup;
 
 typedef enum TayPassType {
@@ -147,6 +148,7 @@ typedef struct TayState {
     TayError error;
     double ms_per_step; /* for the last run */
     TayOcl ocl;
+    unsigned next_group_id;
 } TayState;
 
 void state_set_error(TayState *state, TayError error);

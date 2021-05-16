@@ -781,3 +781,12 @@ const char *ocl_pairing_text(int seer_is_point, int seen_is_point, int dims) {
     else
         return (seer_is_point) ? _point_nonpoint(dims) : _nonpoint_point(dims);
 }
+
+char *ocl_get_kernel_name(TayPass *pass) {
+    static char kernel_name[TAY_MAX_FUNC_NAME + 32];
+    if (pass->type == TAY_PASS_SEE)
+        sprintf_s(kernel_name, TAY_MAX_FUNC_NAME + 32, "%s_kernel_%u_%u", pass->func_name, pass->seer_group->id, pass->seen_group->id);
+    else
+        sprintf_s(kernel_name, TAY_MAX_FUNC_NAME + 32, "%s_kernel_%u", pass->func_name, pass->act_group->id);
+    return kernel_name;
+}

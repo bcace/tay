@@ -24,6 +24,7 @@ typedef struct {
 } TayOcl;
 
 typedef struct TayState TayState;
+typedef struct TayPass TayPass;
 
 void ocl_init(TayState *state);
 void ocl_destroy(TayState *state);
@@ -39,5 +40,7 @@ const char *ocl_pairing_prologue(int seer_is_point, int seen_is_point);
 const char *ocl_pairing_epilogue();
 const char *ocl_self_see_text(int same_group, int self_see);
 const char *ocl_pairing_text(int seer_is_point, int seen_is_point, int dims);
+
+char *ocl_get_kernel_name(TayPass *pass);
 
 #endif
