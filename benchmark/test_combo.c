@@ -109,6 +109,11 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
     tay_add_act(tay, group_a, _get_act_func(is_point_a), _get_act_func_name(is_point_a), &act_context, sizeof(act_context));
     tay_add_act(tay, group_b, _get_act_func(is_point_b), _get_act_func_name(is_point_b), &act_context, sizeof(act_context));
 
+    ocl_add_source(tay, "agent.h");
+    ocl_add_source(tay, "taystd.h");
+    ocl_add_source(tay, "agent.c");
+    ocl_add_source(tay, "taystd.c");
+
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);
     if (steps_run == 0)

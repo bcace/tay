@@ -36,6 +36,11 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
                                                float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
                                                min_size, max_size, distr_exp);
 
+    ocl_add_source(tay, "agent.h");
+    ocl_add_source(tay, "taystd.h");
+    ocl_add_source(tay, "agent.c");
+    ocl_add_source(tay, "taystd.c");
+
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);
     if (steps_run == 0)
@@ -89,6 +94,12 @@ void test_nonpoint(Results *results, int steps,
             tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_AABB_TREE));
             for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
                 _test(TAY_CPU_AABB_TREE, steps, see_radius, depth_correction, min_size, max_size, distr_exp, results, file);
+            tay_log(file, "    ],\n");
+        }
+
+        if (space_type_flags & TAY_OCL_SIMPLE) {
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_OCL_SIMPLE));
+            _test(TAY_OCL_SIMPLE, steps, see_radius, 0, min_size, max_size, distr_exp, results, file);
             tay_log(file, "    ],\n");
         }
 
