@@ -35,6 +35,8 @@ void ocl_on_simulation_end(TayState *state);
 
 void ocl_fetch_agents(TayState *state);
 
+const char *ocl_pairing_prologue(int seer_is_point, int seen_is_point);
+const char *ocl_pairing_epilogue();
 const char *ocl_self_see_text(int same_group, int self_see);
 const char *ocl_pairing_text(int seer_is_point, int seen_is_point, int dims);
 

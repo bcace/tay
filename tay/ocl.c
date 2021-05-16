@@ -177,9 +177,13 @@ void ocl_on_simulation_start(TayState *state) {
             pass->type == TAY_PASS_ACT && pass->act_group->space.type == TAY_OCL_SIMPLE) {
             cl_int err;
 
-            pass->context_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_ONLY, pass->context_size, NULL, &err);
-            if (err)
-                printf("clCreateBuffer error (context buffer)\n");
+            if (pass->context_size) {
+                pass->context_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_ONLY, pass->context_size, NULL, &err);
+                if (err)
+                    printf("clCreateBuffer error (context buffer)\n");
+            }
+            else
+                pass->context_buffer = 0;
         }
     }
 
@@ -358,9 +362,11 @@ void ocl_on_run_start(TayState *state) {
             pass->type == TAY_PASS_ACT && pass->act_group->space.type == TAY_OCL_SIMPLE) {
             cl_int err;
 
-            err = clEnqueueWriteBuffer(state->ocl.queue, pass->context_buffer, CL_NON_BLOCKING, 0, pass->context_size, pass->context, 0, 0, 0);
-            if (err)
-                printf("clEnqueueWriteBuffer error (context)\n");
+            if (pass->context_size) {
+                err = clEnqueueWriteBuffer(state->ocl.queue, pass->context_buffer, CL_NON_BLOCKING, 0, pass->context_size, pass->context, 0, 0, 0);
+                if (err)
+                    printf("clEnqueueWriteBuffer error (context)\n");
+            }
         }
     }
 
@@ -414,59 +420,108 @@ void ocl_add_source(TayState *state, const char *path) {
     #endif
 }
 
+const char *ocl_pairing_prologue(int seer_is_point, int seen_is_point) {
+    if (seer_is_point && seen_is_point)
+        return "\n\
+global void *a = a_agents + a_size * a_i;\n\
+float4 a_p = float4_agent_position(a);\n\
+\n\
+for (unsigned b_i = b_beg; b_i < b_end; ++b_i) {\n\
+    global void *b = b_agents + b_size * b_i;\n\
+    float4 b_p = float4_agent_position(b);\n\
+\n";
+    else if (seer_is_point)
+        return "\n\
+global void *a = a_agents + a_size * a_i;\n\
+float4 a_p = float4_agent_position(a);\n\
+\n\
+for (unsigned b_i = b_beg; b_i < b_end; ++b_i) {\n\
+    global void *b = b_agents + b_size * b_i;\n\
+    float4 b_min = float4_agent_min(b);\n\
+    float4 b_max = float4_agent_max(b);\n\
+\n";
+    else if (seen_is_point)
+        return "\n\
+global void *a = a_agents + a_size * a_i;\n\
+float4 a_min = float4_agent_min(a);\n\
+float4 a_max = float4_agent_max(a);\n\
+\n\
+for (unsigned b_i = b_beg; b_i < b_end; ++b_i) {\n\
+    global void *b = b_agents + b_size * b_i;\n\
+    float4 b_p = float4_agent_position(b);\n\
+\n";
+    else
+        return "\n\
+global void *a = a_agents + a_size * a_i;\n\
+float4 a_min = float4_agent_min(a);\n\
+float4 a_max = float4_agent_max(a);\n\
+\n\
+for (unsigned b_i = b_beg; b_i < b_end; ++b_i) {\n\
+    global void *b = b_agents + b_size * b_i;\n\
+    float4 b_min = float4_agent_min(b);\n\
+    float4 b_max = float4_agent_max(b);\n\
+\n";
+}
+
+const char *ocl_pairing_epilogue() {
+    return "\n\
+    SKIP_SEE:;\n\
+}\n";
+}
+
 const char *ocl_self_see_text(int same_group, int self_see) {
     if (same_group && !self_see)
         return "\n\
-if (a_i == b_i)\n\
-    goto SKIP_SEE;\n\
+    if (a_i == b_i)\n\
+        goto SKIP_SEE;\n\
 \n";
 }
 
 const char *_point_point(int dims) {
     if (dims == 1) {
         return "\n\
-float dx = a_p.x - b_p.x;\n\
-if (dx < -radii.x || dx > radii.x)\n\
-    goto SKIP_SEE;\n\
+    float dx = a_p.x - b_p.x;\n\
+    if (dx < -radii.x || dx > radii.x)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else if (dims == 2) {
         return "\n\
-float dx = a_p.x - b_p.x;\n\
-if (dx < -radii.x || dx > radii.x)\n\
-    goto SKIP_SEE;\n\
-float dy = a_p.y - b_p.y;\n\
-if (dy < -radii.y || dy > radii.y)\n\
-    goto SKIP_SEE;\n\
+    float dx = a_p.x - b_p.x;\n\
+    if (dx < -radii.x || dx > radii.x)\n\
+        goto SKIP_SEE;\n\
+    float dy = a_p.y - b_p.y;\n\
+    if (dy < -radii.y || dy > radii.y)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else if (dims == 3) {
         return "\n\
-float dx = a_p.x - b_p.x;\n\
-if (dx < -radii.x || dx > radii.x)\n\
-    goto SKIP_SEE;\n\
-float dy = a_p.y - b_p.y;\n\
-if (dy < -radii.y || dy > radii.y)\n\
-    goto SKIP_SEE;\n\
-float dz = a_p.z - b_p.z;\n\
-if (dz < -radii.z || dz > radii.z)\n\
-    goto SKIP_SEE;\n\
+    float dx = a_p.x - b_p.x;\n\
+    if (dx < -radii.x || dx > radii.x)\n\
+        goto SKIP_SEE;\n\
+    float dy = a_p.y - b_p.y;\n\
+    if (dy < -radii.y || dy > radii.y)\n\
+        goto SKIP_SEE;\n\
+    float dz = a_p.z - b_p.z;\n\
+    if (dz < -radii.z || dz > radii.z)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else {
         return "\n\
-float dx = a_p.x - b_p.x;\n\
-if (dx < -radii.x || dx > radii.x)\n\
-    goto SKIP_SEE;\n\
-float dy = a_p.y - b_p.y;\n\
-if (dy < -radii.y || dy > radii.y)\n\
-    goto SKIP_SEE;\n\
-float dz = a_p.z - b_p.z;\n\
-if (dz < -radii.z || dz > radii.z)\n\
-    goto SKIP_SEE;\n\
-float dw = a_p.w - b_p.w;\n\
-if (dw < -radii.w || dw > radii.w)\n\
-    goto SKIP_SEE;\n\
+    float dx = a_p.x - b_p.x;\n\
+    if (dx < -radii.x || dx > radii.x)\n\
+        goto SKIP_SEE;\n\
+    float dy = a_p.y - b_p.y;\n\
+    if (dy < -radii.y || dy > radii.y)\n\
+        goto SKIP_SEE;\n\
+    float dz = a_p.z - b_p.z;\n\
+    if (dz < -radii.z || dz > radii.z)\n\
+        goto SKIP_SEE;\n\
+    float dw = a_p.w - b_p.w;\n\
+    if (dw < -radii.w || dw > radii.w)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
 }
@@ -474,82 +529,82 @@ if (dw < -radii.w || dw > radii.w)\n\
 const char *_point_nonpoint(int dims) {
     if (dims == 1) {
         return "\n\
-float d;\n\
-d = a_p.x - b_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_min.x - a_p.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = a_p.x - b_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.x - a_p.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else if (dims == 2) {
         return "\n\
-float d;\n\
-d = a_p.x - b_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_min.x - a_p.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = a_p.y - b_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = b_min.y - a_p.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = a_p.x - b_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.x - a_p.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = a_p.y - b_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.y - a_p.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else if (dims == 3) {
         return "\n\
-float d;\n\
-d = a_p.x - b_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_min.x - a_p.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = a_p.y - b_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = b_min.y - a_p.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = a_p.z - b_max.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
-d = b_min.z - a_p.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = a_p.x - b_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.x - a_p.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = a_p.y - b_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.y - a_p.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = a_p.z - b_max.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.z - a_p.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else {
         return "\n\
-float d;\n\
-d = a_p.x - b_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_min.x - a_p.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = a_p.y - b_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = b_min.y - a_p.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = a_p.z - b_max.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
-d = b_min.z - a_p.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
-d = a_p.w - b_max.w;\n\
-if (d > radii.w)\n\
-    goto SKIP_SEE;\n\
-d = b_min.w - a_p.w;\n\
-if (d > radii.w)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = a_p.x - b_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.x - a_p.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = a_p.y - b_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.y - a_p.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = a_p.z - b_max.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.z - a_p.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
+    d = a_p.w - b_max.w;\n\
+    if (d > radii.w)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.w - a_p.w;\n\
+    if (d > radii.w)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
 }
@@ -557,82 +612,82 @@ if (d > radii.w)\n\
 const char *_nonpoint_point(int dims) {
     if (dims == 1) {
         return "\n\
-float d;\n\
-d = b_p.x - a_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = a_min.x - b_p.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = b_p.x - a_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.x - b_p.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else if (dims == 2) {
         return "\n\
-float d;\n\
-d = b_p.x - a_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = a_min.x - b_p.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_p.y - a_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = a_min.y - b_p.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = b_p.x - a_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.x - b_p.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_p.y - a_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.y - b_p.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else if (dims == 3) {
         return "\n\
-float d;\n\
-d = b_p.x - a_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = a_min.x - b_p.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_p.y - a_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = a_min.y - b_p.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = b_p.z - a_max.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
-d = a_min.z - b_p.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = b_p.x - a_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.x - b_p.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_p.y - a_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.y - b_p.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = b_p.z - a_max.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.z - b_p.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else {
         return "\n\
-float d;\n\
-d = b_p.x - a_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = a_min.x - b_p.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_p.y - a_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = a_min.y - b_p.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = b_p.z - a_max.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
-d = a_min.z - b_p.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
-d = b_p.w - a_max.w;\n\
-if (d > radii.w)\n\
-    goto SKIP_SEE;\n\
-d = a_min.w - b_p.w;\n\
-if (d > radii.w)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = b_p.x - a_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.x - b_p.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_p.y - a_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.y - b_p.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = b_p.z - a_max.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.z - b_p.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
+    d = b_p.w - a_max.w;\n\
+    if (d > radii.w)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.w - b_p.w;\n\
+    if (d > radii.w)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
 }
@@ -640,82 +695,82 @@ if (d > radii.w)\n\
 const char *_nonpoint_nonpoint(int dims) {
     if (dims == 1) {
         return "\n\
-float d;\n\
-d = a_min.x - b_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_min.x - a_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = a_min.x - b_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.x - a_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else if (dims == 2) {
         return "\n\
-float d;\n\
-d = a_min.x - b_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_min.x - a_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = a_min.y - b_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = b_min.y - a_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = a_min.x - b_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.x - a_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.y - b_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.y - a_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     if (dims == 1) {
         return "\n\
-float d;\n\
-d = a_min.x - b_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_min.x - a_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = a_min.y - b_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = b_min.y - a_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = a_min.z - b_max.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
-d = b_min.z - a_max.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = a_min.x - b_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.x - a_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.y - b_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.y - a_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.z - b_max.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.z - a_max.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
     else {
         return "\n\
-float d;\n\
-d = a_min.x - b_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = b_min.x - a_max.x;\n\
-if (d > radii.x)\n\
-    goto SKIP_SEE;\n\
-d = a_min.y - b_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = b_min.y - a_max.y;\n\
-if (d > radii.y)\n\
-    goto SKIP_SEE;\n\
-d = a_min.z - b_max.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
-d = b_min.z - a_max.z;\n\
-if (d > radii.z)\n\
-    goto SKIP_SEE;\n\
-d = a_min.w - b_max.w;\n\
-if (d > radii.w)\n\
-    goto SKIP_SEE;\n\
-d = b_min.w - a_max.w;\n\
-if (d > radii.w)\n\
-    goto SKIP_SEE;\n\
+    float d;\n\
+    d = a_min.x - b_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.x - a_max.x;\n\
+    if (d > radii.x)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.y - b_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.y - a_max.y;\n\
+    if (d > radii.y)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.z - b_max.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.z - a_max.z;\n\
+    if (d > radii.z)\n\
+        goto SKIP_SEE;\n\
+    d = a_min.w - b_max.w;\n\
+    if (d > radii.w)\n\
+        goto SKIP_SEE;\n\
+    d = b_min.w - a_max.w;\n\
+    if (d > radii.w)\n\
+        goto SKIP_SEE;\n\
 \n";
     }
 }

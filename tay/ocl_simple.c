@@ -7,33 +7,29 @@ unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned rema
     #ifdef TAY_OCL
 
     unsigned length = sprintf_s(text, remaining_space, "\n\
-kernel void %s_kernel(global char *agents_a, global char *agents_b, constant void *c, float4 radii) {\n\
+kernel void %s_kernel(global char *a_agents, global char *b_agents, constant void *c, float4 radii) {\n\
     unsigned a_i = get_global_id(0);\n\
+    unsigned a_size = %d;\n\
+    unsigned b_size = %d;\n\
+    unsigned b_beg = 0;\n\
+    unsigned b_end = %d;\n\
+    %s\
+    %s\
+    %s\
 \n\
-    global void *a = agents_a + %d * a_i;\n\
-    float4 a_p = float4_agent_position(a);\n\
-\n\
-    for (unsigned b_i = 0; b_i < %d; ++b_i) {\n\
-        global void *b = agents_b + %d * b_i;\n\
-        float4 b_p = float4_agent_position(b);\n\
-\n\
-        %s\
-\n\
-        %s\
-\n\
-        %s(a, b, c);\n\
-\n\
-        SKIP_SEE:;\n\
-    }\n\
+    %s(a, b, c);\n\
+    %s\
 }\n\
 \n",
     pass->func_name,
     pass->seer_group->agent_size,
-    pass->seen_group->space.count,
     pass->seen_group->agent_size,
+    pass->seen_group->space.count,
+    ocl_pairing_prologue(pass->seer_group->is_point, pass->seen_group->is_point),
     ocl_self_see_text(pass->seer_group == pass->seen_group, pass->self_see),
     ocl_pairing_text(pass->seer_group->is_point, pass->seen_group->is_point, dims),
-    pass->func_name);
+    pass->func_name,
+    ocl_pairing_epilogue());
 
     return length;
 
