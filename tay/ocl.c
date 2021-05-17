@@ -854,13 +854,16 @@ void ocl_update_boxes(TayState *state) {
     TayOcl *ocl = &state->ocl;
     cl_int err;
 
+    int wavefronts_count = 8;
+    int threads_count = 64 * wavefronts_count; /* also stride */
+
+    if (threads_count > OCL_MAX_BOX_THREADS)
+        threads_count = OCL_MAX_BOX_THREADS;
+
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
         if (group->space.type == TAY_OCL_SIMPLE) {
-
-            int wavefronts_count = 8;
-            int threads_count = 64 * wavefronts_count; /* also stride */
 
             err = clSetKernelArg(ocl->point_box_kernel_3, 0, sizeof(void *), &group->space.ocl_simple.agent_buffer);
             if (err)
