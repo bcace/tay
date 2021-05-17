@@ -19,6 +19,10 @@ typedef struct {
     void *queue;
     void *program;
 
+    /* used for calculating space bounding box */
+    void *box_buffer;
+    void *point_box_kernel_3;
+
     char sources[OCL_MAX_SOURCES][OCL_MAX_PATH];
     unsigned sources_count;
 } TayOcl;
@@ -42,5 +46,7 @@ const char *ocl_self_see_text(int same_group, int self_see);
 const char *ocl_pairing_text(int seer_is_point, int seen_is_point, int dims);
 
 char *ocl_get_kernel_name(TayPass *pass);
+
+void ocl_update_boxes(TayState *state);
 
 #endif

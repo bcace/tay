@@ -137,9 +137,6 @@ void ocl_simple_run_see_kernel(TayOcl *ocl, TayPass *pass) {
 void ocl_simple_get_kernel(TayOcl *ocl, TayPass *pass) {
     #ifdef TAY_OCL
 
-    // char kernel_name[TAY_MAX_FUNC_NAME + 64];
-    // sprintf_s(kernel_name, TAY_MAX_FUNC_NAME + 64, "%s_kernel", pass->func_name);
-
     cl_int err;
     pass->pass_kernel = clCreateKernel(ocl->program, ocl_get_kernel_name(pass), &err);
     if (err)
