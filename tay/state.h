@@ -72,16 +72,7 @@ typedef struct {
 typedef struct {
     void *agent_buffer;
     unsigned push_agents; /* set this flag if agents have to be pushed to gpu before a run */
-} OclBridge;
-
-typedef struct {
-    OclBridge bridge;
-} OclSimple;
-
-typedef struct {
-    OclBridge bridge;
-} OclGrid;
-
+} OclCommon;
 typedef struct Space {
     int dims;
     float4 min_part_sizes; /* if space is partitioned, these are suggested subdivision sizes */
@@ -94,7 +85,7 @@ typedef struct Space {
         CpuAabbTree cpu_aabb_tree;
         CpuGrid cpu_grid;
         CpuZGrid cpu_z_grid;
-        OclSimple ocl_simple;
+        OclCommon ocl_common;
     };
     void *shared; /* buffer shared internally by all structures in this space */
     int shared_size; /* size of the shared buffer */

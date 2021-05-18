@@ -63,7 +63,7 @@ void ocl_simple_run_act_kernel(TayOcl *ocl, TayPass *pass) {
 
     cl_int err;
 
-    err = clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->act_group->space.ocl_simple.bridge.agent_buffer);
+    err = clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->act_group->space.ocl_common.agent_buffer);
     if (err)
         printf("clSetKernelArg error (agent buffer)\n");
 
@@ -97,11 +97,11 @@ void ocl_simple_run_see_kernel(TayOcl *ocl, TayPass *pass) {
 
     cl_int err;
 
-    err = clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->seer_group->space.ocl_simple.bridge.agent_buffer);
+    err = clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->seer_group->space.ocl_common.agent_buffer);
     if (err)
         printf("clSetKernelArg error (agent buffer)\n");
 
-    err = clSetKernelArg(pass->pass_kernel, 1, sizeof(void *), &pass->seen_group->space.ocl_simple.bridge.agent_buffer);
+    err = clSetKernelArg(pass->pass_kernel, 1, sizeof(void *), &pass->seen_group->space.ocl_common.agent_buffer);
     if (err)
         printf("clSetKernelArg error (agent buffer)\n");
 
