@@ -158,11 +158,11 @@ void ocl_on_simulation_start(TayState *state) {
         if (group->space.type == TAY_OCL_SIMPLE) {
             OclSimple *simple = &group->space.ocl_simple;
 
-            simple->agent_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->capacity * group->agent_size, NULL, &err);
+            simple->bridge.agent_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->capacity * group->agent_size, NULL, &err);
             if (err)
                 printf("clCreateBuffer error (agent buffer)\n");
 
-            simple->push_agents = 1;
+            simple->bridge.push_agents = 1;
         }
     }
 
@@ -364,7 +364,7 @@ void ocl_on_simulation_end(TayState *state) {
             continue;
 
         if (group->space.type == TAY_OCL_SIMPLE)
-            clReleaseMemObject(group->space.ocl_simple.agent_buffer);
+            clReleaseMemObject(group->space.ocl_simple.bridge.agent_buffer);
     }
 
     /* release box buffer */
@@ -400,13 +400,13 @@ void ocl_on_run_start(TayState *state) {
         if (group->space.type == TAY_OCL_SIMPLE) {
             OclSimple *simple = &group->space.ocl_simple;
 
-            if (simple->push_agents) {
+            if (simple->bridge.push_agents) {
 
-                err = clEnqueueWriteBuffer(state->ocl.queue, simple->agent_buffer, CL_NON_BLOCKING, 0, group->space.count * group->agent_size, group->storage, 0, 0, 0);
+                err = clEnqueueWriteBuffer(state->ocl.queue, simple->bridge.agent_buffer, CL_NON_BLOCKING, 0, group->space.count * group->agent_size, group->storage, 0, 0, 0);
                 if (err)
                     printf("clEnqueueWriteBuffer error (agents)\n");
 
-                simple->push_agents = 0;
+                simple->bridge.push_agents = 0;
             }
         }
     }
@@ -453,7 +453,7 @@ void ocl_fetch_agents(TayState *state) {
             OclSimple *simple = &group->space.ocl_simple;
             cl_int err;
 
-            err = clEnqueueReadBuffer(state->ocl.queue, simple->agent_buffer, CL_NON_BLOCKING, 0, group->space.count * group->agent_size, group->storage, 0, 0, 0);
+            err = clEnqueueReadBuffer(state->ocl.queue, simple->bridge.agent_buffer, CL_NON_BLOCKING, 0, group->space.count * group->agent_size, group->storage, 0, 0, 0);
             if (err)
                 printf("clEnqueueReadBuffer error\n");
         }
@@ -865,7 +865,7 @@ void ocl_update_boxes(TayState *state) {
 
         if (group->space.type == TAY_OCL_SIMPLE) {
 
-            err = clSetKernelArg(ocl->point_box_kernel_3, 0, sizeof(void *), &group->space.ocl_simple.agent_buffer);
+            err = clSetKernelArg(ocl->point_box_kernel_3, 0, sizeof(void *), &group->space.ocl_simple.bridge.agent_buffer);
             if (err)
                 printf("clSetKernelArg error (point_box_kernel_3 agent buffer)\n");
 

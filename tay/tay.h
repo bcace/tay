@@ -26,6 +26,7 @@ typedef enum TaySpaceType {
     TAY_CPU_GRID        = 0x08,
     TAY_CPU_Z_GRID      = 0x10,
     TAY_OCL_SIMPLE      = 0x20,
+    TAY_OCL_GRID        = 0x40,
 } TaySpaceType;
 
 typedef enum TayError {
