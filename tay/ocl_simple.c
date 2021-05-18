@@ -38,60 +38,6 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
     #endif
 }
 
-unsigned ocl_simple_add_act_kernel_text(TayPass *pass, char *text, unsigned remaining_space) {
-    #ifdef TAY_OCL
-
-    unsigned length = sprintf_s(text, remaining_space, "\n\
-kernel void %s(global char *a, constant void *c) {\n\
-    global void *agent = a + %d * get_global_id(0);\n\
-    %s(agent, c);\n\
-}\n\
-\n",
-    ocl_get_kernel_name(pass),
-    pass->act_group->agent_size,
-    pass->func_name);
-
-    return length;
-
-    #else
-    return 0u;
-    #endif
-}
-
-void ocl_simple_run_act_kernel(TayOcl *ocl, TayPass *pass) {
-    #ifdef TAY_OCL
-
-    cl_int err;
-
-    err = clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->act_group->space.ocl_common.agent_buffer);
-    if (err)
-        printf("clSetKernelArg error (agent buffer)\n");
-
-    err = clSetKernelArg(pass->pass_kernel, 1, sizeof(void *), &pass->context_buffer);
-    if (err)
-        printf("clSetKernelArg error (context buffer)\n");
-
-    unsigned long long global_work_size = pass->act_group->space.count;
-
-    err = clEnqueueNDRangeKernel(ocl->queue,
-                           pass->pass_kernel,
-                           1,
-                           0,
-                           &global_work_size,
-                           0,
-                           0,
-                           0,
-                           0);
-    if (err)
-        printf("clEnqueueNDRangeKernel error\n");
-
-    err = clFinish(ocl->queue);
-    if (err)
-        printf("clFinish error\n");
-
-    #endif
-}
-
 void ocl_simple_run_see_kernel(TayOcl *ocl, TayPass *pass) {
     #ifdef TAY_OCL
 
@@ -115,32 +61,13 @@ void ocl_simple_run_see_kernel(TayOcl *ocl, TayPass *pass) {
 
     unsigned long long global_work_size = pass->seer_group->space.count;
 
-    err = clEnqueueNDRangeKernel(ocl->queue,
-                           pass->pass_kernel,
-                           1,
-                           0,
-                           &global_work_size,
-                           0,
-                           0,
-                           0,
-                           0);
+    err = clEnqueueNDRangeKernel(ocl->queue, pass->pass_kernel, 1, 0, &global_work_size, 0, 0, 0, 0);
     if (err)
         printf("clEnqueueNDRangeKernel error\n");
 
     err = clFinish(ocl->queue);
     if (err)
         printf("clFinish error\n");
-
-    #endif
-}
-
-void ocl_simple_get_kernel(TayOcl *ocl, TayPass *pass) {
-    #ifdef TAY_OCL
-
-    cl_int err;
-    pass->pass_kernel = clCreateKernel(ocl->program, ocl_get_kernel_name(pass), &err);
-    if (err)
-        printf("clCreateKernel error\n");
 
     #endif
 }

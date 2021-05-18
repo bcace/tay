@@ -154,5 +154,7 @@ void state_set_error(TayState *state, TayError error);
 
 int group_is_active(TayGroup *group);
 int group_is_inactive(TayGroup *group);
+int group_is_ocl(TayGroup *group);
+int pass_is_ocl(TayPass *pass);
 
 #endif

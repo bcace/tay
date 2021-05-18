@@ -113,6 +113,16 @@ int group_is_inactive(TayGroup *group) {
     return group->storage == 0;
 }
 
+int group_is_ocl(TayGroup *group) {
+    return group->space.type == TAY_OCL_SIMPLE ||
+           group->space.type == TAY_OCL_GRID;
+}
+
+int pass_is_ocl(TayPass *pass) {
+    return pass->type == TAY_PASS_SEE && group_is_ocl(pass->seer_group) && group_is_ocl(pass->seen_group) ||
+           pass->type == TAY_PASS_ACT && group_is_ocl(pass->act_group);
+}
+
 void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
@@ -264,8 +274,7 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_sort(group); break;
                 case TAY_CPU_GRID: cpu_grid_sort(group); break;
                 case TAY_CPU_Z_GRID: cpu_z_grid_sort(group); break;
-                case TAY_OCL_SIMPLE: break;
-                default: assert(0);
+                default:; // ERROR: not implemented
             }
         }
 
@@ -303,8 +312,8 @@ int tay_run(TayState *state, int steps) {
                     act_space->type == TAY_CPU_Z_GRID) {
                     space_act(pass);
                 }
-                else if (act_space->type == TAY_OCL_SIMPLE)
-                    ocl_simple_run_act_kernel(&state->ocl, pass);
+                else if (group_is_ocl(pass->act_group))
+                    ocl_run_act_kernel(state, pass);
                 else {
                     state_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
                     return 0;
@@ -325,8 +334,7 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_unsort(group); break;
                 case TAY_CPU_GRID: cpu_grid_unsort(group); break;
                 case TAY_CPU_Z_GRID: cpu_z_grid_unsort(group); break;
-                case TAY_OCL_SIMPLE: break;
-                default: assert(0); /* not implemented */
+                default:; // ERROR: not implemented
             }
         }
 
