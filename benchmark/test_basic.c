@@ -73,7 +73,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
         fprintf(stderr, "error %d\n", tay_get_error(tay));
     tay_log(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
     tay_threads_report_telemetry(0, file);
-    results_write_or_compare(results, tay, group, AGENTS_COUNT, offsetof(Agent, f_buffer), offsetof(Agent, result_index), file);
+    results_write_or_compare(results, tay, group, AGENTS_COUNT, offsetof(Agent, p), offsetof(Agent, result_index), file);
     tay_log(file, "      },\n");
     tay_simulation_end(tay);
 
@@ -129,6 +129,13 @@ void test_basic(Results *results, ModelCase model_case, int steps,
         if (space_type_flags & TAY_OCL_SIMPLE) {
             tay_log(file, "    \"%s\": [\n", space_type_name(TAY_OCL_SIMPLE));
             _test(model_case, TAY_OCL_SIMPLE, see_radius, 0, results, steps, file);
+            tay_log(file, "    ],\n");
+        }
+
+        if (space_type_flags & TAY_OCL_GRID) {
+            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_OCL_GRID));
+            for (int j = beg_depth_correction; j < end_depth_correction; ++j)
+                _test(model_case, TAY_OCL_GRID, see_radius, j, results, steps, file);
             tay_log(file, "    ],\n");
         }
 

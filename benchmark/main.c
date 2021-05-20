@@ -13,18 +13,20 @@ int main() {
 
     Results *results = results_create();
 
-    test_basic(results, MC_UNIFORM, 100,
+    test_basic(results, MC_UNIFORM, 10000,
                0, 1, // see radius
                0, 1, // depth correction
                // TAY_CPU_SIMPLE
                // |
-               TAY_CPU_GRID
-               |
+               // TAY_CPU_GRID
+               // |
                // TAY_CPU_Z_GRID
                // |
                // TAY_CPU_KD_TREE
                // |
-               TAY_OCL_SIMPLE
+               // TAY_OCL_SIMPLE
+               // |
+               TAY_OCL_GRID
     );
 
     // test_nonpoint(results, 100,
