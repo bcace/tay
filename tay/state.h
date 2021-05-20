@@ -71,8 +71,10 @@ typedef struct {
 
 typedef struct {
     void *agent_buffer;
+    void *space_buffer;
     unsigned push_agents; /* set this flag if agents have to be pushed to gpu before a run */
 } OclCommon;
+
 typedef struct Space {
     int dims;
     float4 min_part_sizes; /* if space is partitioned, these are suggested subdivision sizes */

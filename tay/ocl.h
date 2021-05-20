@@ -19,12 +19,11 @@ typedef struct {
     void *queue;
     void *program;
 
-    /* used for calculating space bounding box */
-    void *box_buffer;
-    void *point_box_kernel_3;
-
     char sources[OCL_MAX_SOURCES][OCL_MAX_PATH];
     unsigned sources_count;
+
+    void *grid_sort_kernel;
+    void *grid_sort_kernel_2;
 } TayOcl;
 
 typedef struct TayState TayState;
@@ -50,6 +49,8 @@ const char *ocl_pairing_text(int seer_is_point, int seen_is_point, int dims);
 
 char *ocl_get_kernel_name(TayPass *pass);
 
-void ocl_update_space_box(TayState *state, TayGroup *group);
+unsigned ocl_grid_add_sort_kernel_text(char *text, unsigned remaining_space);
+void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group);
+unsigned ocl_grid_add_see_kernel_text(TayPass *pass, char *text, unsigned remaining_space, int dims);
 
 #endif

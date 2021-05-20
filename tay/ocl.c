@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define OCL_MAX_BOX_THREADS 1024
-
 
 void ocl_init(TayState *state) {
     TayOcl *ocl = &state->ocl;
@@ -180,7 +178,7 @@ void ocl_on_simulation_start(TayState *state) {
     TayOcl *ocl = &state->ocl;
     cl_int err;
 
-    /* create agent buffers */
+    /* create agent and space buffers */
 
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
@@ -194,6 +192,10 @@ void ocl_on_simulation_start(TayState *state) {
             ocl_common->agent_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->capacity * group->agent_size, NULL, &err);
             if (err)
                 printf("clCreateBuffer error (agent buffer)\n");
+
+            ocl_common->space_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->space.shared_size, NULL, &err);
+            if (err)
+                printf("clCreateBuffer error (space buffer)\n");
 
             ocl_common->push_agents = 1;
         }
@@ -214,12 +216,6 @@ void ocl_on_simulation_start(TayState *state) {
                 pass->context_buffer = 0;
         }
     }
-
-    /* create box buffer */
-
-    ocl->box_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, OCL_MAX_BOX_THREADS * sizeof(Box), NULL, &err);
-    if (err)
-        printf("clCreateBuffer error (agent buffer)\n");
 
     /* compose source */
 
@@ -243,58 +239,6 @@ typedef struct __attribute__((packed)) TayAgentTag {\n\
     unsigned part_i;\n\
     unsigned cell_agent_i;\n\
 } TayAgentTag;\n\
-\n\
-typedef struct __attribute__((packed)) Box {\n\
-    float4 min;\n\
-    float4 max;\n\
-} Box;\n\
-\n\
-kernel void point_box_kernel_3(global char *agents, unsigned agent_size, unsigned agents_count, global Box *boxes) {\n\
-    unsigned thread_i = get_global_id(0);\n\
-    unsigned threads_count = get_global_size(0);\n\
-\n\
-    float4 min = {FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX};\n\
-    float4 max = {-FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX};\n\
-    for (unsigned a_i = thread_i; a_i < agents_count; a_i += threads_count) {\n\
-        float4 a_p = float4_agent_position(agents + agent_size * a_i);\n\
-        if (a_p.x < min.x)\n\
-            min.x = a_p.x;\n\
-        if (a_p.x > max.x)\n\
-            max.x = a_p.x;\n\
-        if (a_p.y < min.y)\n\
-            min.y = a_p.y;\n\
-        if (a_p.y > max.y)\n\
-            max.y = a_p.y;\n\
-        if (a_p.z < min.z)\n\
-            min.z = a_p.z;\n\
-        if (a_p.z > max.z)\n\
-            max.z = a_p.z;\n\
-    }\n\
-    boxes[thread_i].min = min;\n\
-    boxes[thread_i].max = max;\n\
-\n\
-    barrier(CLK_GLOBAL_MEM_FENCE);\n\
-\n\
-    if (thread_i == 0) {\n\
-        Box box = boxes[0];\n\
-        for (unsigned thread_i = 1; thread_i < threads_count; ++thread_i) {\n\
-            Box other_box = boxes[thread_i];\n\
-            if (other_box.min.x < box.min.x)\n\
-                box.min.x = other_box.min.x;\n\
-            if (other_box.max.x > box.max.x)\n\
-                box.max.x = other_box.max.x;\n\
-            if (other_box.min.y < box.min.y)\n\
-                box.min.y = other_box.min.y;\n\
-            if (other_box.max.y > box.max.y)\n\
-                box.max.y = other_box.max.y;\n\
-            if (other_box.min.z < box.min.z)\n\
-                box.min.z = other_box.min.z;\n\
-            if (other_box.max.z > box.max.z)\n\
-                box.max.z = other_box.max.z;\n\
-        }\n\
-        boxes[thread_i] = box;\n\
-    }\n\
-}\n\
 \n");
 
     /* add agent model source text */
@@ -309,6 +253,10 @@ kernel void point_box_kernel_3(global char *agents, unsigned agent_size, unsigne
         fclose(file);
         text_length += file_length;
     }
+
+    /* add sort kernel texts */
+
+    text_length += ocl_grid_add_sort_kernel_text(text + text_length, MAX_TEXT_LENGTH - text_length);
 
     /* add space kernel texts */
 
@@ -325,7 +273,7 @@ kernel void point_box_kernel_3(global char *agents, unsigned agent_size, unsigne
                 if (seer_space->type == TAY_OCL_SIMPLE)
                     text_length += ocl_simple_add_see_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length, min_dims);
                 else if (seer_space->type == TAY_OCL_GRID)
-                    ; //text_length += ocl_grid_add_see_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length, min_dims);
+                    text_length += ocl_grid_add_see_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length, min_dims);
                 else
                     ; // ERROR: not implemented
             }
@@ -356,7 +304,7 @@ kernel void point_box_kernel_3(global char *agents, unsigned agent_size, unsigne
 
     free(text);
 
-    /* get kernels from compiled programs */
+    /* get pass kernels from compiled program */
 
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
@@ -380,11 +328,15 @@ kernel void point_box_kernel_3(global char *agents, unsigned agent_size, unsigne
             ; // ERROR: not implemented
     }
 
-    /* get box kernels */
+    /* get other kernels */
 
-    ocl->point_box_kernel_3 = clCreateKernel(ocl->program, "point_box_kernel_3", &err);
+    ocl->grid_sort_kernel = clCreateKernel(ocl->program, "grid_sort_kernel", &err);
     if (err)
-        printf("clCreateKernel error (point_box_kernel_3)\n");
+        printf("clCreateKernel error (grid_sort_kernel)\n");
+
+    ocl->grid_sort_kernel_2 = clCreateKernel(ocl->program, "grid_sort_kernel_2", &err);
+    if (err)
+        printf("clCreateKernel error (grid_sort_kernel_2)\n");
 
     #endif
 }
@@ -396,7 +348,7 @@ void ocl_on_simulation_end(TayState *state) {
 
     clReleaseProgram(ocl->program);
 
-    /* release agent buffers */
+    /* release agent and space buffers */
 
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
@@ -404,13 +356,11 @@ void ocl_on_simulation_end(TayState *state) {
         if (group_is_inactive(group))
             continue;
 
-        if (group_is_ocl(group))
+        if (group_is_ocl(group)) {
             clReleaseMemObject(group->space.ocl_common.agent_buffer);
+            clReleaseMemObject(group->space.ocl_common.space_buffer);
+        }
     }
-
-    /* release box buffer */
-
-    clReleaseMemObject(ocl->box_buffer);
 
     /* release pass context buffers */
 
@@ -598,6 +548,8 @@ const char *ocl_self_see_text(int same_group, int self_see) {
     if (a_i == b_i)\n\
         goto SKIP_SEE;\n\
 \n";
+    else
+        return "";
 }
 
 const char *_point_point(int dims) {
@@ -912,43 +864,4 @@ char *ocl_get_kernel_name(TayPass *pass) {
     else
         sprintf_s(kernel_name, TAY_MAX_FUNC_NAME + 32, "%s_kernel_%u", pass->func_name, pass->act_group->id);
     return kernel_name;
-}
-
-void ocl_update_space_box(TayState *state, TayGroup *group) {
-    #ifdef TAY_OCL
-
-    TayOcl *ocl = &state->ocl;
-    cl_int err;
-
-    int wavefronts_count = 8;
-    int threads_count = 64 * wavefronts_count; /* also stride */
-
-    if (threads_count > OCL_MAX_BOX_THREADS)
-        threads_count = OCL_MAX_BOX_THREADS;
-
-    err = clSetKernelArg(ocl->point_box_kernel_3, 0, sizeof(void *), &group->space.ocl_common.agent_buffer);
-    if (err)
-        printf("clSetKernelArg error (point_box_kernel_3 agent buffer)\n");
-
-    err = clSetKernelArg(ocl->point_box_kernel_3, 1, sizeof(group->agent_size), &group->agent_size);
-    if (err)
-        printf("clSetKernelArg error (point_box_kernel_3 agent size)\n");
-
-    err = clSetKernelArg(ocl->point_box_kernel_3, 2, sizeof(group->space.count), &group->space.count);
-    if (err)
-        printf("clSetKernelArg error (point_box_kernel_3 agents count)\n");
-
-    err = clSetKernelArg(ocl->point_box_kernel_3, 3, sizeof(void *), &ocl->box_buffer);
-    if (err)
-        printf("clSetKernelArg error (point_box_kernel_3 box buffer)\n");
-
-    unsigned long long global_work_size = threads_count;
-
-    err = clEnqueueNDRangeKernel(ocl->queue, ocl->point_box_kernel_3, 1, 0, &global_work_size, 0, 0, 0, 0);
-    if (err)
-        printf("clEnqueueNDRangeKernel error (point_box_kernel_3)\n");
-
-    clFinish(ocl->queue);
-
-    #endif
 }
