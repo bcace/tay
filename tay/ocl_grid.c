@@ -12,6 +12,18 @@ typedef struct {\n\
     float4 max;\n\
 } Box;\n\
 \n\
+typedef struct {\n\
+    uint count;\n\
+    uint offset;\n\
+} OclGridCell;\n\
+\n\
+typedef struct {\n\
+    float4 origin;\n\
+    float4 cell_sizes;\n\
+    int4 cell_counts;\n\
+    OclGridCell cells[];\n\
+} OclGrid;\n\
+\n\
 kernel void grid_sort_kernel(global char *agents, unsigned agent_size, unsigned agents_count, global char *space_buffer, local char *local_buffer) {\n\
     unsigned thread_i = get_global_id(0);\n\
     unsigned threads_count = get_global_size(0);\n\
@@ -63,25 +75,39 @@ kernel void grid_sort_kernel(global char *agents, unsigned agent_size, unsigned 
     }\n\
 }\n\
 \n\
-kernel void grid_sort_kernel_2(global char *space_buffer, unsigned boxes_count) {\n\
-    global Box *boxes = (global Box *)space_buffer;\n\
-    Box box = boxes[0];\n\
+kernel void grid_sort_kernel_2(global void *space_buffer, unsigned boxes_count, int dims, float4 min_part_sizes) {\n\
+    global Box *boxes = space_buffer;\n\
+    float4 min = boxes[0].min;\n\
+    float4 max = boxes[0].max;\n\
     for (unsigned i = 1; i < boxes_count; ++i) {\n\
-        Box other_box = boxes[i];\n\
-        if (other_box.min.x < box.min.x)\n\
-            box.min.x = other_box.min.x;\n\
-        if (other_box.max.x > box.max.x)\n\
-            box.max.x = other_box.max.x;\n\
-        if (other_box.min.y < box.min.y)\n\
-            box.min.y = other_box.min.y;\n\
-        if (other_box.max.y > box.max.y)\n\
-            box.max.y = other_box.max.y;\n\
-        if (other_box.min.z < box.min.z)\n\
-            box.min.z = other_box.min.z;\n\
-        if (other_box.max.z > box.max.z)\n\
-            box.max.z = other_box.max.z;\n\
+        float4 other_min = boxes[i].min;\n\
+        float4 other_max = boxes[i].max;\n\
+        if (other_min.x < min.x)\n\
+            min.x = other_min.x;\n\
+        if (other_max.x > max.x)\n\
+            max.x = other_max.x;\n\
+        if (other_min.y < min.y)\n\
+            min.y = other_min.y;\n\
+        if (other_max.y > max.y)\n\
+            max.y = other_max.y;\n\
+        if (other_min.z < min.z)\n\
+            min.z = other_min.z;\n\
+        if (other_max.z > max.z)\n\
+            max.z = other_max.z;\n\
     }\n\
-    boxes[0] = box;\n\
+    float *min_arr = (float *)&min;\n\
+    float *max_arr = (float *)&max;\n\
+    float *min_part_sizes_arr = (float *)&min_part_sizes;\n\
+    global OclGrid *grid = space_buffer;\n\
+    grid->origin = min;\n\
+    global int *cell_counts = (global int *)&grid->cell_counts;\n\
+    global float *cell_sizes = (global float *)&grid->cell_sizes;\n\
+    for (int i = 0; i < dims; ++i) {\n\
+        float cell_size = min_part_sizes_arr[i];\n\
+        float space_size = max_arr[i] - min_arr[i] + cell_size * 0.001f;\n\
+        cell_counts[i] = (int)floor(space_size / cell_size);\n\
+        cell_sizes[i] = space_size / (float)cell_counts[i];\n\
+    }\n\
 }\n\
 \n");
 
@@ -133,6 +159,14 @@ void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group) {
     err = clSetKernelArg(ocl->grid_sort_kernel_2, 1, sizeof(work_groups_count), &work_groups_count);
     if (err)
         printf("clSetKernelArg error (grid_sort_kernel_2 work_groups_count)\n");
+
+    err = clSetKernelArg(ocl->grid_sort_kernel_2, 2, sizeof(group->space.dims), &group->space.dims);
+    if (err)
+        printf("clSetKernelArg error (grid_sort_kernel_2 dims)\n");
+
+    err = clSetKernelArg(ocl->grid_sort_kernel_2, 3, sizeof(group->space.min_part_sizes), &group->space.min_part_sizes);
+    if (err)
+        printf("clSetKernelArg error (grid_sort_kernel_2 min_part_sizes)\n");
 
     unsigned long long one = 1;
 
