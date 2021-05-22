@@ -3,6 +3,8 @@
 #include <stdio.h>
 
 
+#pragma pack(push, 1)
+
 typedef struct {
     unsigned count;
     unsigned offset;
@@ -12,8 +14,11 @@ typedef struct {
     float4 origin;
     float4 cell_sizes;
     int4 cell_counts;
+    unsigned cells_count;
     OclGridCell cells[];
 } OclGrid;
+
+#pragma pack(pop)
 
 unsigned ocl_grid_add_sort_kernel_text(char *text, unsigned remaining_space) {
     #ifdef TAY_OCL
@@ -33,6 +38,7 @@ typedef struct {\n\
     float4 origin;\n\
     float4 cell_sizes;\n\
     int4 cell_counts;\n\
+    unsigned cells_count;\n\
     OclGridCell cells[];\n\
 } OclGrid;\n\
 \n\
@@ -114,8 +120,11 @@ kernel void grid_sort_kernel_2(global void *space_buffer, unsigned boxes_count, 
     float *min_arr = (float *)&min;\n\
     float *max_arr = (float *)&max;\n\
     float *min_part_sizes_arr = (float *)&min_part_sizes;\n\
+\n\
     global OclGrid *grid = space_buffer;\n\
     grid->origin = min;\n\
+    grid->cells_count = 1;\n\
+\n\
     global int *cell_counts = (global int *)&grid->cell_counts;\n\
     global float *cell_sizes = (global float *)&grid->cell_sizes;\n\
     for (int i = 0; i < dims; ++i) {\n\
@@ -123,6 +132,7 @@ kernel void grid_sort_kernel_2(global void *space_buffer, unsigned boxes_count, 
         float space_size = max_arr[i] - min_arr[i] + cell_size * 0.001f;\n\
         cell_counts[i] = (int)floor(space_size / cell_size);\n\
         cell_sizes[i] = space_size / (float)cell_counts[i];\n\
+        grid->cells_count *= cell_counts[i];\n\
     }\n\
 }\n\
 \n\
@@ -185,6 +195,37 @@ kernel void grid_sort_kernel_3(global char *agents, unsigned agent_size, global 
     a->part_i = cell_i;\n\
     a->cell_agent_i = atomic_inc(&grid->cells[cell_i].count);\n\
 }\n\
+\n\
+kernel void grid_sort_kernel_4(global void *space_buffer, local void *local_buffer) {\n\
+    global OclGrid *grid = space_buffer;\n\
+    unsigned thread_i = get_global_id(0);\n\
+    unsigned threads_count = get_global_size(0);\n\
+\n\
+    unsigned per_thread_count = grid->cells_count / threads_count;\n\
+    unsigned beg = per_thread_count * thread_i;\n\
+    unsigned end = (thread_i < threads_count - 1u) ? beg + per_thread_count : grid->cells_count;\n\
+\n\
+    local unsigned *cell_group_info = local_buffer;\n\
+    unsigned count = 0;\n\
+\n\
+    for (unsigned cell_i = beg; cell_i < end; ++cell_i) {\n\
+        grid->cells[cell_i].offset = count;\n\
+        count += grid->cells[cell_i].count;\n\
+    }\n\
+\n\
+    cell_group_info[thread_i] = count;\n\
+\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    if (thread_i == 0) {\n\
+        for (unsigned i = 1; i < threads_count; ++i)\n\
+            cell_group_info[i] += cell_group_info[i - 1];\n\
+        cell_group_info[0] = 0;\n\
+    }\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+    for (unsigned cell_i = beg; cell_i < end; ++cell_i)\n\
+        grid->cells[cell_i].offset += cell_group_info[thread_i];\n\
+}\n\
 \n");
 
     return length;
@@ -216,12 +257,13 @@ void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group) {
     if (err)
         printf("clSetKernelArg error (grid_sort_kernel space buffer)\n");
 
-    err = clSetKernelArg(ocl->grid_sort_kernel, 4, 64 * sizeof(Box), (void *)NULL);
+    unsigned long long local_work_size = 64;
+
+    err = clSetKernelArg(ocl->grid_sort_kernel, 4, local_work_size * sizeof(Box), (void *)NULL);
     if (err)
         printf("clSetKernelArg error (local buffer)\n");
 
     unsigned long long global_work_size = 1024 * 1;
-    unsigned long long local_work_size = 64;
     unsigned work_groups_count = (unsigned)(global_work_size / local_work_size);
 
     err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernel, 1, 0, &global_work_size, &local_work_size, 0, 0, 0);
@@ -276,9 +318,25 @@ void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group) {
     if (err)
         printf("clEnqueueNDRangeKernel error (grid_sort_kernel_3)\n");
 
+    /* 4 */
+
+    err = clSetKernelArg(ocl->grid_sort_kernel_4, 0, sizeof(void *), &group->space.ocl_common.space_buffer);
+    if (err)
+        printf("clSetKernelArg error (grid_sort_kernel_4 space buffer)\n");
+
+    unsigned long long global_work_size_4 = 64; /* should be a single workgroup and should fit that many unsigneds in local memory */
+
+    err = clSetKernelArg(ocl->grid_sort_kernel_4, 1, global_work_size_4 * sizeof(unsigned), (void *)NULL);
+    if (err)
+        printf("clSetKernelArg error (grid_sort_kernel_4 local buffer)\n");
+
+    err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernel_4, 1, 0, &global_work_size_4, &global_work_size_4, 0, 0, 0);
+    if (err)
+        printf("clEnqueueNDRangeKernel error (grid_sort_kernel_4)\n");
+
     clFinish(ocl->queue);
 
-#if 1
+#if 0
     char buffer[1024];
     OclGrid *grid = (OclGrid *)buffer;
     err = clEnqueueReadBuffer(ocl->queue, group->space.ocl_common.space_buffer, CL_BLOCKING, 0, 1024, grid, 0, 0, 0);

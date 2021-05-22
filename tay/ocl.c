@@ -347,6 +347,10 @@ typedef struct __attribute__((packed)) TayAgentTag {\n\
     if (err)
         printf("clCreateKernel error (grid_sort_kernel_3)\n");
 
+    ocl->grid_sort_kernel_4 = clCreateKernel(ocl->program, "grid_sort_kernel_4", &err);
+    if (err)
+        printf("clCreateKernel error (grid_sort_kernel_4)\n");
+
     #endif
 }
 

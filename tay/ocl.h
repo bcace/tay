@@ -25,6 +25,7 @@ typedef struct {
     void *grid_sort_kernel;
     void *grid_sort_kernel_2;
     void *grid_sort_kernel_3;
+    void *grid_sort_kernel_4;
 } TayOcl;
 
 typedef struct TayState TayState;
