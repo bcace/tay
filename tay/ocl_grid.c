@@ -3,6 +3,18 @@
 #include <stdio.h>
 
 
+typedef struct {
+    unsigned count;
+    unsigned offset;
+} OclGridCell;
+
+typedef struct {
+    float4 origin;
+    float4 cell_sizes;
+    int4 cell_counts;
+    OclGridCell cells[];
+} OclGrid;
+
 unsigned ocl_grid_add_sort_kernel_text(char *text, unsigned remaining_space) {
     #ifdef TAY_OCL
 
@@ -13,8 +25,8 @@ typedef struct {\n\
 } Box;\n\
 \n\
 typedef struct {\n\
-    uint count;\n\
-    uint offset;\n\
+    unsigned count;\n\
+    unsigned offset;\n\
 } OclGridCell;\n\
 \n\
 typedef struct {\n\
@@ -79,9 +91,13 @@ kernel void grid_sort_kernel_2(global void *space_buffer, unsigned boxes_count, 
     global Box *boxes = space_buffer;\n\
     float4 min = boxes[0].min;\n\
     float4 max = boxes[0].max;\n\
+    boxes[0].min = (float4){0.0f, 0.0f, 0.0f, 0.0f};\n\
+    boxes[0].max = (float4){0.0f, 0.0f, 0.0f, 0.0f};\n\
     for (unsigned i = 1; i < boxes_count; ++i) {\n\
         float4 other_min = boxes[i].min;\n\
         float4 other_max = boxes[i].max;\n\
+        boxes[i].min = (float4){0.0f, 0.0f, 0.0f, 0.0f};\n\
+        boxes[i].max = (float4){0.0f, 0.0f, 0.0f, 0.0f};\n\
         if (other_min.x < min.x)\n\
             min.x = other_min.x;\n\
         if (other_max.x > max.x)\n\
@@ -108,6 +124,66 @@ kernel void grid_sort_kernel_2(global void *space_buffer, unsigned boxes_count, 
         cell_counts[i] = (int)floor(space_size / cell_size);\n\
         cell_sizes[i] = space_size / (float)cell_counts[i];\n\
     }\n\
+}\n\
+\n\
+int4 grid_agent_position_to_cell_indices(float4 pos, float4 orig, float4 sizes, int dims) {\n\
+    int4 indices;\n\
+    switch (dims) {\n\
+        case 1: {\n\
+            indices.x = (int)floor((pos.x - orig.x) / sizes.x);\n\
+        } break;\n\
+        case 2: {\n\
+            indices.x = (int)floor((pos.x - orig.x) / sizes.x);\n\
+            indices.y = (int)floor((pos.y - orig.y) / sizes.y);\n\
+        } break;\n\
+        case 3: {\n\
+            indices.x = (int)floor((pos.x - orig.x) / sizes.x);\n\
+            indices.y = (int)floor((pos.y - orig.y) / sizes.y);\n\
+            indices.z = (int)floor((pos.z - orig.z) / sizes.z);\n\
+        } break;\n\
+        default: {\n\
+            indices.x = (int)floor((pos.x - orig.x) / sizes.x);\n\
+            indices.y = (int)floor((pos.y - orig.y) / sizes.y);\n\
+            indices.z = (int)floor((pos.z - orig.z) / sizes.z);\n\
+            indices.w = (int)floor((pos.w - orig.w) / sizes.w);\n\
+        };\n\
+    }\n\
+    return indices;\n\
+}\n\
+\n\
+unsigned grid_cell_indices_to_cell_index(int4 indices, int4 counts, int dims) {\n\
+    switch (dims) {\n\
+        case 1: {\n\
+            return indices.x;\n\
+        } break;\n\
+        case 2: {\n\
+            return indices.y * counts.x +\n\
+                   indices.x;\n\
+        } break;\n\
+        case 3: {\n\
+            return indices.z * counts.x * counts.y +\n\
+                   indices.y * counts.x +\n\
+                   indices.x;\n\
+        } break;\n\
+        default: {\n\
+            return indices.w * counts.x * counts.y * counts.z +\n\
+                   indices.z * counts.x * counts.y +\n\
+                   indices.y * counts.x +\n\
+                   indices.x;\n\
+        };\n\
+    }\n\
+}\n\
+\n\
+kernel void grid_sort_kernel_3(global char *agents, unsigned agent_size, global void *space_buffer, int dims) {\n\
+    global OclGrid *grid = space_buffer;\n\
+    global TayAgentTag *a = (global TayAgentTag *)(agents + get_global_id(0) * agent_size);\n\
+    float4 p = float4_agent_position(a);\n\
+\n\
+    int4 indices = grid_agent_position_to_cell_indices(p, grid->origin, grid->cell_sizes, dims);\n\
+    unsigned cell_i = grid_cell_indices_to_cell_index(indices, grid->cell_counts, dims);\n\
+\n\
+    a->part_i = cell_i;\n\
+    a->cell_agent_i = atomic_inc(&grid->cells[cell_i].count);\n\
 }\n\
 \n");
 
@@ -152,6 +228,8 @@ void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group) {
     if (err)
         printf("clEnqueueNDRangeKernel error (grid_sort_kernel)\n");
 
+    /* 2 */
+
     err = clSetKernelArg(ocl->grid_sort_kernel_2, 0, sizeof(void *), &group->space.ocl_common.space_buffer);
     if (err)
         printf("clSetKernelArg error (grid_sort_kernel_2 space buffer)\n");
@@ -174,7 +252,39 @@ void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group) {
     if (err)
         printf("clEnqueueNDRangeKernel error (grid_sort_kernel_2)\n");
 
+    /* 3 */
+
+    err = clSetKernelArg(ocl->grid_sort_kernel_3, 0, sizeof(void *), &group->space.ocl_common.agent_buffer);
+    if (err)
+        printf("clSetKernelArg error (grid_sort_kernel_3 agent buffer)\n");
+
+    err = clSetKernelArg(ocl->grid_sort_kernel_3, 1, sizeof(group->agent_size), &group->agent_size);
+    if (err)
+        printf("clSetKernelArg error (grid_sort_kernel_3 agent size)\n");
+
+    err = clSetKernelArg(ocl->grid_sort_kernel_3, 2, sizeof(void *), &group->space.ocl_common.space_buffer);
+    if (err)
+        printf("clSetKernelArg error (grid_sort_kernel_3 space buffer)\n");
+
+    err = clSetKernelArg(ocl->grid_sort_kernel_3, 3, sizeof(group->space.dims), &group->space.dims);
+    if (err)
+        printf("clSetKernelArg error (grid_sort_kernel_3 dims)\n");
+
+    unsigned long long global_work_size_3 = group->space.count;
+
+    err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernel_3, 1, 0, &global_work_size_3, 0, 0, 0, 0);
+    if (err)
+        printf("clEnqueueNDRangeKernel error (grid_sort_kernel_3)\n");
+
     clFinish(ocl->queue);
+
+#if 1
+    char buffer[1024];
+    OclGrid *grid = (OclGrid *)buffer;
+    err = clEnqueueReadBuffer(ocl->queue, group->space.ocl_common.space_buffer, CL_BLOCKING, 0, 1024, grid, 0, 0, 0);
+    if (err)
+        printf("clEnqueueReadBuffer error\n");
+#endif
 
     #endif
 }

@@ -197,6 +197,11 @@ void ocl_on_simulation_start(TayState *state) {
             if (err)
                 printf("clCreateBuffer error (space buffer)\n");
 
+            cl_int pattern = 0;
+            err = clEnqueueFillBuffer(ocl->queue, ocl_common->space_buffer, &pattern, sizeof(pattern), 0, group->space.shared_size, 0, 0, 0);
+            if (err)
+                printf("clEnqueueFillBuffer error (space buffer)\n");
+
             ocl_common->push_agents = 1;
         }
     }
@@ -337,6 +342,10 @@ typedef struct __attribute__((packed)) TayAgentTag {\n\
     ocl->grid_sort_kernel_2 = clCreateKernel(ocl->program, "grid_sort_kernel_2", &err);
     if (err)
         printf("clCreateKernel error (grid_sort_kernel_2)\n");
+
+    ocl->grid_sort_kernel_3 = clCreateKernel(ocl->program, "grid_sort_kernel_3", &err);
+    if (err)
+        printf("clCreateKernel error (grid_sort_kernel_3)\n");
 
     #endif
 }
