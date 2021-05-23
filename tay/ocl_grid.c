@@ -507,24 +507,59 @@ unsigned ocl_grid_add_see_kernel_text(TayPass *pass, char *text, unsigned remain
     #ifdef TAY_OCL
 
     unsigned length = sprintf_s(text, remaining_space, "\n\
-kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii) {\n\
+kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii, global OclGrid *seen_grid) {\n\
     unsigned a_i = get_global_id(0);\n\
     unsigned a_size = %d;\n\
     unsigned b_size = %d;\n\
-    unsigned b_beg = 0;\n\
-    unsigned b_end = %d;\n\
-    %s\
-    %s\
-    %s\
+    int dims = %d;\n\
 \n\
-    %s(a, b, c);\n\
-    %s\
+    global void *a = a_agents + a_size * a_i;\n\
+    float4 a_p = float4_agent_position(a);\n\
+    float4 min = a_p - radii;\n\
+    float4 max = a_p + radii;\n\
+\n\
+    int4 min_indices = grid_agent_position_to_cell_indices(min, seen_grid->origin, seen_grid->cell_sizes, dims);\n\
+    int4 max_indices = grid_agent_position_to_cell_indices(max, seen_grid->origin, seen_grid->cell_sizes, dims);\n\
+    int *min_indices_arr = (int *)&min_indices;\n\
+    int *max_indices_arr = (int *)&max_indices;\n\
+    global int *cell_counts_arr = (global int *)&seen_grid->cell_counts;\n\
+\n\
+    for (int i = 0; i < dims; ++i) {\n\
+        if (min_indices_arr[i] < 0)\n\
+            min_indices_arr[i] = 0;\n\
+        if (max_indices_arr[i] < 0)\n\
+            max_indices_arr[i] = 0;\n\
+        if (min_indices_arr[i] >= cell_counts_arr[i])\n\
+            min_indices_arr[i] = cell_counts_arr[i] - 1;\n\
+        if (max_indices_arr[i] >= cell_counts_arr[i])\n\
+            max_indices_arr[i] = cell_counts_arr[i] - 1;\n\
+    }\n\
+\n\
+    int4 indices;\n\
+    for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {\n\
+        for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {\n\
+            for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {\n\
+                unsigned seen_cell_i = grid_cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);\n\
+                global OclGridCell *seen_cell = seen_grid->cells + seen_cell_i;\n\
+\n\
+                unsigned b_beg = seen_cell->offset;\n\
+                unsigned b_end = seen_cell->offset + seen_cell->count;\n\
+\n\
+                %s\
+                %s\
+                %s\
+\n\
+                %s(a, b, c);\n\
+                %s\
+            }\n\
+        }\n\
+    }\n\
 }\n\
 \n",
     ocl_get_kernel_name(pass),
     pass->seer_group->agent_size,
     pass->seen_group->agent_size,
-    pass->seen_group->space.count,
+    dims,
     ocl_pairing_prologue(pass->seer_group->is_point, pass->seen_group->is_point),
     ocl_self_see_text(pass->seer_group == pass->seen_group, pass->self_see),
     ocl_pairing_text(pass->seer_group->is_point, pass->seen_group->is_point, dims),
@@ -535,5 +570,43 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
 
     #else
     return 0u;
+    #endif
+}
+
+void ocl_grid_run_see_kernel(TayOcl *ocl, TayPass *pass) {
+    #ifdef TAY_OCL
+
+    cl_int err;
+
+    err = clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->seer_group->space.ocl_common.agent_buffer);
+    if (err)
+        printf("clSetKernelArg error (agent buffer)\n");
+
+    err = clSetKernelArg(pass->pass_kernel, 1, sizeof(void *), &pass->seen_group->space.ocl_common.agent_buffer);
+    if (err)
+        printf("clSetKernelArg error (agent buffer)\n");
+
+    err = clSetKernelArg(pass->pass_kernel, 2, sizeof(void *), &pass->context_buffer);
+    if (err)
+        printf("clSetKernelArg error (context buffer)\n");
+
+    err = clSetKernelArg(pass->pass_kernel, 3, sizeof(pass->radii), &pass->radii);
+    if (err)
+        printf("clSetKernelArg error (radii)\n");
+
+    err = clSetKernelArg(pass->pass_kernel, 4, sizeof(void *), &pass->seen_group->space.ocl_common.space_buffer);
+    if (err)
+        printf("clSetKernelArg error (space buffer)\n");
+
+    unsigned long long global_work_size = pass->seer_group->space.count;
+
+    err = clEnqueueNDRangeKernel(ocl->queue, pass->pass_kernel, 1, 0, &global_work_size, 0, 0, 0, 0);
+    if (err)
+        printf("clEnqueueNDRangeKernel error\n");
+
+    err = clFinish(ocl->queue);
+    if (err)
+        printf("clFinish error\n");
+
     #endif
 }

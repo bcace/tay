@@ -53,5 +53,7 @@ unsigned ocl_grid_add_kernel_texts(char *text, unsigned remaining_space);
 void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group);
 void ocl_grid_run_unsort_kernel(TayState *state, TayGroup *group);
 unsigned ocl_grid_add_see_kernel_text(TayPass *pass, char *text, unsigned remaining_space, int dims);
+void ocl_grid_get_kernels(TayState *state);
+void ocl_grid_run_see_kernel(TayOcl *ocl, TayPass *pass);
 
 #endif
