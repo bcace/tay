@@ -20,7 +20,7 @@ typedef struct {
 
 #pragma pack(pop)
 
-unsigned ocl_grid_add_sort_kernel_text(char *text, unsigned remaining_space) {
+unsigned ocl_grid_add_kernel_texts(char *text, unsigned remaining_space) {
     #ifdef TAY_OCL
 
     unsigned length = sprintf_s(text, remaining_space, "\n\
@@ -39,10 +39,10 @@ typedef struct {\n\
     float4 cell_sizes;\n\
     int4 cell_counts;\n\
     unsigned cells_count;\n\
-    OclGridCell cells[];\n\
+    OclGridCell cells[1];\n\
 } OclGrid;\n\
 \n\
-kernel void grid_sort_kernel(global char *agents, unsigned agent_size, unsigned agents_count, global char *space_buffer, local char *local_buffer) {\n\
+kernel void grid_sort_kernel_0(global char *agents, unsigned agent_size, unsigned agents_count, global char *space_buffer, local char *local_buffer) {\n\
     unsigned thread_i = get_global_id(0);\n\
     unsigned threads_count = get_global_size(0);\n\
     unsigned loc_i = get_local_id(0);\n\
@@ -93,7 +93,7 @@ kernel void grid_sort_kernel(global char *agents, unsigned agent_size, unsigned 
     }\n\
 }\n\
 \n\
-kernel void grid_sort_kernel_2(global void *space_buffer, unsigned boxes_count, int dims, float4 min_part_sizes) {\n\
+kernel void grid_sort_kernel_1(global void *space_buffer, unsigned boxes_count, int dims, float4 min_part_sizes) {\n\
     global Box *boxes = space_buffer;\n\
     float4 min = boxes[0].min;\n\
     float4 max = boxes[0].max;\n\
@@ -184,8 +184,7 @@ unsigned grid_cell_indices_to_cell_index(int4 indices, int4 counts, int dims) {\
     }\n\
 }\n\
 \n\
-kernel void grid_sort_kernel_3(global char *agents, unsigned agent_size, global void *space_buffer, int dims) {\n\
-    global OclGrid *grid = space_buffer;\n\
+kernel void grid_sort_kernel_2(global char *agents, unsigned agent_size, global OclGrid *grid, int dims) {\n\
     global TayAgentTag *a = (global TayAgentTag *)(agents + get_global_id(0) * agent_size);\n\
     float4 p = float4_agent_position(a);\n\
 \n\
@@ -196,8 +195,7 @@ kernel void grid_sort_kernel_3(global char *agents, unsigned agent_size, global 
     a->cell_agent_i = atomic_inc(&grid->cells[cell_i].count);\n\
 }\n\
 \n\
-kernel void grid_sort_kernel_4(global void *space_buffer, local void *local_buffer) {\n\
-    global OclGrid *grid = space_buffer;\n\
+kernel void grid_sort_kernel_3(global OclGrid *grid) {\n\
     unsigned thread_i = get_global_id(0);\n\
     unsigned threads_count = get_global_size(0);\n\
 \n\
@@ -205,26 +203,57 @@ kernel void grid_sort_kernel_4(global void *space_buffer, local void *local_buff
     unsigned beg = per_thread_count * thread_i;\n\
     unsigned end = (thread_i < threads_count - 1u) ? beg + per_thread_count : grid->cells_count;\n\
 \n\
-    local unsigned *cell_group_info = local_buffer;\n\
     unsigned count = 0;\n\
-\n\
     for (unsigned cell_i = beg; cell_i < end; ++cell_i) {\n\
         grid->cells[cell_i].offset = count;\n\
         count += grid->cells[cell_i].count;\n\
     }\n\
+    grid->cells[beg].offset = count;\n\
+}\n\
 \n\
-    cell_group_info[thread_i] = count;\n\
+kernel void grid_sort_kernel_4(global OclGrid *grid, unsigned threads_count) {\n\
+    unsigned per_thread_count = grid->cells_count / threads_count;\n\
 \n\
-    barrier(CLK_LOCAL_MEM_FENCE);\n\
-    if (thread_i == 0) {\n\
-        for (unsigned i = 1; i < threads_count; ++i)\n\
-            cell_group_info[i] += cell_group_info[i - 1];\n\
-        cell_group_info[0] = 0;\n\
+    unsigned prev_offset = grid->cells[0].offset;\n\
+    grid->cells[0].offset = 0;\n\
+    for (unsigned thread_i = 1; thread_i < threads_count; ++thread_i) {\n\
+        unsigned beg = per_thread_count * thread_i;\n\
+        unsigned offset = grid->cells[beg].offset;\n\
+        grid->cells[beg].offset = prev_offset;\n\
+        prev_offset += offset;\n\
     }\n\
-    barrier(CLK_LOCAL_MEM_FENCE);\n\
+}\n\
+\n\
+kernel void grid_sort_kernel_5(global OclGrid *grid) {\n\
+    unsigned thread_i = get_global_id(0);\n\
+    unsigned threads_count = get_global_size(0);\n\
+\n\
+    unsigned per_thread_count = grid->cells_count / threads_count;\n\
+    unsigned beg = per_thread_count * thread_i;\n\
+    unsigned end = (thread_i < threads_count - 1u) ? beg + per_thread_count : grid->cells_count;\n\
+\n\
+    unsigned beg_offset = grid->cells[beg].offset;\n\
+    for (unsigned cell_i = beg + 1; cell_i < end; ++cell_i)\n\
+        grid->cells[cell_i].offset += beg_offset;\n\
+}\n\
+\n\
+kernel void grid_sort_kernel_6(global char *agent_buffer_a, global char *agent_buffer_b, unsigned agent_size, global OclGrid *grid) {\n\
+    unsigned a_i = get_global_id(0);\n\
+    global TayAgentTag *a = (global TayAgentTag *)(agent_buffer_a + a_i * agent_size);\n\
+    global char *b = agent_buffer_b + (grid->cells[a->part_i].offset + a->cell_agent_i) * agent_size;\n\
+    tay_memcpy(b, (global char *)a, agent_size);\n\
+}\n\
+\n\
+kernel void grid_reset_cells(global OclGrid *grid) {\n\
+    unsigned thread_i = get_global_id(0);\n\
+    unsigned threads_count = get_global_size(0);\n\
+\n\
+    unsigned per_thread_count = grid->cells_count / threads_count;\n\
+    unsigned beg = per_thread_count * thread_i;\n\
+    unsigned end = (thread_i < threads_count - 1u) ? beg + per_thread_count : grid->cells_count;\n\
 \n\
     for (unsigned cell_i = beg; cell_i < end; ++cell_i)\n\
-        grid->cells[cell_i].offset += cell_group_info[thread_i];\n\
+        grid->cells[cell_i].count = 0;\n\
 }\n\
 \n");
 
@@ -235,114 +264,241 @@ kernel void grid_sort_kernel_4(global void *space_buffer, local void *local_buff
     #endif
 }
 
-void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group) {
+void ocl_grid_get_kernels(TayState *state) {
     #ifdef TAY_OCL
 
     TayOcl *ocl = &state->ocl;
     cl_int err;
 
-    err = clSetKernelArg(ocl->grid_sort_kernel, 0, sizeof(void *), &group->space.ocl_common.agent_buffer);
+    ocl->grid_sort_kernels[0] = clCreateKernel(ocl->program, "grid_sort_kernel_0", &err);
     if (err)
-        printf("clSetKernelArg error (grid_sort_kernel agent buffer)\n");
+        printf("clCreateKernel error (grid_sort_kernel_0)\n");
 
-    err = clSetKernelArg(ocl->grid_sort_kernel, 1, sizeof(group->agent_size), &group->agent_size);
+    ocl->grid_sort_kernels[1] = clCreateKernel(ocl->program, "grid_sort_kernel_1", &err);
     if (err)
-        printf("clSetKernelArg error (grid_sort_kernel agent size)\n");
+        printf("clCreateKernel error (grid_sort_kernel_1)\n");
 
-    err = clSetKernelArg(ocl->grid_sort_kernel, 2, sizeof(group->space.count), &group->space.count);
+    ocl->grid_sort_kernels[2] = clCreateKernel(ocl->program, "grid_sort_kernel_2", &err);
     if (err)
-        printf("clSetKernelArg error (grid_sort_kernel agents count)\n");
+        printf("clCreateKernel error (grid_sort_kernel_2)\n");
 
-    err = clSetKernelArg(ocl->grid_sort_kernel, 3, sizeof(void *), &group->space.ocl_common.space_buffer);
+    ocl->grid_sort_kernels[3] = clCreateKernel(ocl->program, "grid_sort_kernel_3", &err);
     if (err)
-        printf("clSetKernelArg error (grid_sort_kernel space buffer)\n");
+        printf("clCreateKernel error (grid_sort_kernel_3)\n");
 
-    unsigned long long local_work_size = 64;
-
-    err = clSetKernelArg(ocl->grid_sort_kernel, 4, local_work_size * sizeof(Box), (void *)NULL);
+    ocl->grid_sort_kernels[4] = clCreateKernel(ocl->program, "grid_sort_kernel_4", &err);
     if (err)
-        printf("clSetKernelArg error (local buffer)\n");
+        printf("clCreateKernel error (grid_sort_kernel_4)\n");
 
-    unsigned long long global_work_size = 1024 * 1;
-    unsigned work_groups_count = (unsigned)(global_work_size / local_work_size);
-
-    err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernel, 1, 0, &global_work_size, &local_work_size, 0, 0, 0);
+    ocl->grid_sort_kernels[5] = clCreateKernel(ocl->program, "grid_sort_kernel_5", &err);
     if (err)
-        printf("clEnqueueNDRangeKernel error (grid_sort_kernel)\n");
+        printf("clCreateKernel error (grid_sort_kernel_5)\n");
 
-    /* 2 */
-
-    err = clSetKernelArg(ocl->grid_sort_kernel_2, 0, sizeof(void *), &group->space.ocl_common.space_buffer);
+    ocl->grid_sort_kernels[6] = clCreateKernel(ocl->program, "grid_sort_kernel_6", &err);
     if (err)
-        printf("clSetKernelArg error (grid_sort_kernel_2 space buffer)\n");
+        printf("clCreateKernel error (grid_sort_kernel_6)\n");
 
-    err = clSetKernelArg(ocl->grid_sort_kernel_2, 1, sizeof(work_groups_count), &work_groups_count);
+    ocl->grid_reset_cells = clCreateKernel(ocl->program, "grid_reset_cells", &err);
     if (err)
-        printf("clSetKernelArg error (grid_sort_kernel_2 work_groups_count)\n");
+        printf("clCreateKernel error (grid_reset_cells)\n");
 
-    err = clSetKernelArg(ocl->grid_sort_kernel_2, 2, sizeof(group->space.dims), &group->space.dims);
-    if (err)
-        printf("clSetKernelArg error (grid_sort_kernel_2 dims)\n");
+    #endif
+}
 
-    err = clSetKernelArg(ocl->grid_sort_kernel_2, 3, sizeof(group->space.min_part_sizes), &group->space.min_part_sizes);
-    if (err)
-        printf("clSetKernelArg error (grid_sort_kernel_2 min_part_sizes)\n");
+void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group) {
+    #ifdef TAY_OCL
 
+    TayOcl *ocl = &state->ocl;
+
+    cl_int err;
     unsigned long long one = 1;
 
-    err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernel_2, 1, 0, &one, 0, 0, 0, 0);
+    /* caculating the space bounding box */
+    {
+        unsigned long long local_work_size = 64;
+        unsigned long long global_work_size = 1024 * 1;
+        unsigned work_groups_count = (unsigned)(global_work_size / local_work_size);
+
+        {
+            err = clSetKernelArg(ocl->grid_sort_kernels[0], 0, sizeof(void *), &group->space.ocl_common.agent_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_0 agent buffer)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[0], 1, sizeof(group->agent_size), &group->agent_size);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_0 agent size)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[0], 2, sizeof(group->space.count), &group->space.count);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_0 agents count)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[0], 3, sizeof(void *), &group->space.ocl_common.space_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_0 space buffer)\n");
+
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[0], 4, local_work_size * sizeof(Box), (void *)NULL);
+            if (err)
+                printf("clSetKernelArg error (local buffer)\n");
+
+            err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernels[0], 1, 0, &global_work_size, &local_work_size, 0, 0, 0);
+            if (err)
+                printf("clEnqueueNDRangeKernel error (grid_sort_kernel_0)\n");
+        }
+
+        {
+            err = clSetKernelArg(ocl->grid_sort_kernels[1], 0, sizeof(void *), &group->space.ocl_common.space_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_1 space buffer)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[1], 1, sizeof(work_groups_count), &work_groups_count);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_1 work_groups_count)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[1], 2, sizeof(group->space.dims), &group->space.dims);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_1 dims)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[1], 3, sizeof(group->space.min_part_sizes), &group->space.min_part_sizes);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_1 min_part_sizes)\n");
+
+            err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernels[1], 1, 0, &one, 0, 0, 0, 0);
+            if (err)
+                printf("clEnqueueNDRangeKernel error (grid_sort_kernel_1)\n");
+        }
+    }
+
+    /* sorting agents into cells */
+    {
+        {
+            err = clSetKernelArg(ocl->grid_sort_kernels[2], 0, sizeof(void *), &group->space.ocl_common.agent_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_2 agent buffer)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[2], 1, sizeof(group->agent_size), &group->agent_size);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_2 agent size)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[2], 2, sizeof(void *), &group->space.ocl_common.space_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_2 space buffer)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[2], 3, sizeof(group->space.dims), &group->space.dims);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_2 dims)\n");
+
+            unsigned long long work_size = group->space.count;
+
+            err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernels[2], 1, 0, &work_size, 0, 0, 0, 0);
+            if (err)
+                printf("clEnqueueNDRangeKernel error (grid_sort_kernel_2)\n");
+        }
+
+        unsigned long long cell_groups = 64;
+
+        {
+            err = clSetKernelArg(ocl->grid_sort_kernels[3], 0, sizeof(void *), &group->space.ocl_common.space_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_3 space buffer)\n");
+
+            err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernels[3], 1, 0, &cell_groups, 0, 0, 0, 0);
+            if (err)
+                printf("clEnqueueNDRangeKernel error (grid_sort_kernel_3)\n");
+        }
+
+        {
+            err = clSetKernelArg(ocl->grid_sort_kernels[4], 0, sizeof(void *), &group->space.ocl_common.space_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_4 space buffer)\n");
+
+            unsigned cell_groups_4 = (unsigned)cell_groups;
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[4], 1, sizeof(cell_groups_4), &cell_groups_4);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_4 cell groups)\n");
+
+            err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernels[4], 1, 0, &one, 0, 0, 0, 0);
+            if (err)
+                printf("clEnqueueNDRangeKernel error (grid_sort_kernel_4)\n");
+        }
+
+        {
+            err = clSetKernelArg(ocl->grid_sort_kernels[5], 0, sizeof(void *), &group->space.ocl_common.space_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_5 space buffer)\n");
+
+            err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernels[5], 1, 0, &cell_groups, 0, 0, 0, 0);
+            if (err)
+                printf("clEnqueueNDRangeKernel error (grid_sort_kernel_5)\n");
+        }
+    }
+
+    /* copy agents to the new buffer */
+    {
+        {
+            err = clSetKernelArg(ocl->grid_sort_kernels[6], 0, sizeof(void *), &group->space.ocl_common.agent_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_6 agent buffer)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[6], 1, sizeof(void *), &group->space.ocl_common.agent_sort_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_6 agent sort buffer)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[6], 2, sizeof(group->agent_size), &group->agent_size);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_6 agent size)\n");
+
+            err = clSetKernelArg(ocl->grid_sort_kernels[6], 3, sizeof(void *), &group->space.ocl_common.space_buffer);
+            if (err)
+                printf("clSetKernelArg error (grid_sort_kernel_6 space buffer)\n");
+
+            unsigned long long work_size = group->space.count;
+
+            err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernels[6], 1, 0, &work_size, 0, 0, 0, 0);
+            if (err)
+                printf("clEnqueueNDRangeKernel error (grid_sort_kernel_6)\n");
+        }
+
+        void *temp = group->space.ocl_common.agent_sort_buffer;
+        group->space.ocl_common.agent_sort_buffer = group->space.ocl_common.agent_buffer;
+        group->space.ocl_common.agent_buffer = temp;
+    }
+
+    err = clFinish(ocl->queue);
     if (err)
-        printf("clEnqueueNDRangeKernel error (grid_sort_kernel_2)\n");
+        printf("clFinish error (grid sort kernels)\n");
 
-    /* 3 */
-
-    err = clSetKernelArg(ocl->grid_sort_kernel_3, 0, sizeof(void *), &group->space.ocl_common.agent_buffer);
-    if (err)
-        printf("clSetKernelArg error (grid_sort_kernel_3 agent buffer)\n");
-
-    err = clSetKernelArg(ocl->grid_sort_kernel_3, 1, sizeof(group->agent_size), &group->agent_size);
-    if (err)
-        printf("clSetKernelArg error (grid_sort_kernel_3 agent size)\n");
-
-    err = clSetKernelArg(ocl->grid_sort_kernel_3, 2, sizeof(void *), &group->space.ocl_common.space_buffer);
-    if (err)
-        printf("clSetKernelArg error (grid_sort_kernel_3 space buffer)\n");
-
-    err = clSetKernelArg(ocl->grid_sort_kernel_3, 3, sizeof(group->space.dims), &group->space.dims);
-    if (err)
-        printf("clSetKernelArg error (grid_sort_kernel_3 dims)\n");
-
-    unsigned long long global_work_size_3 = group->space.count;
-
-    err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernel_3, 1, 0, &global_work_size_3, 0, 0, 0, 0);
-    if (err)
-        printf("clEnqueueNDRangeKernel error (grid_sort_kernel_3)\n");
-
-    /* 4 */
-
-    err = clSetKernelArg(ocl->grid_sort_kernel_4, 0, sizeof(void *), &group->space.ocl_common.space_buffer);
-    if (err)
-        printf("clSetKernelArg error (grid_sort_kernel_4 space buffer)\n");
-
-    unsigned long long global_work_size_4 = 64; /* should be a single workgroup and should fit that many unsigneds in local memory */
-
-    err = clSetKernelArg(ocl->grid_sort_kernel_4, 1, global_work_size_4 * sizeof(unsigned), (void *)NULL);
-    if (err)
-        printf("clSetKernelArg error (grid_sort_kernel_4 local buffer)\n");
-
-    err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_sort_kernel_4, 1, 0, &global_work_size_4, &global_work_size_4, 0, 0, 0);
-    if (err)
-        printf("clEnqueueNDRangeKernel error (grid_sort_kernel_4)\n");
-
-    clFinish(ocl->queue);
-
-#if 0
-    char buffer[1024];
+#if 1
+    char buffer[2024];
     OclGrid *grid = (OclGrid *)buffer;
-    err = clEnqueueReadBuffer(ocl->queue, group->space.ocl_common.space_buffer, CL_BLOCKING, 0, 1024, grid, 0, 0, 0);
+    err = clEnqueueReadBuffer(ocl->queue, group->space.ocl_common.space_buffer, CL_BLOCKING, 0, 2024, grid, 0, 0, 0);
     if (err)
         printf("clEnqueueReadBuffer error\n");
 #endif
+
+    #endif
+}
+
+void ocl_grid_run_unsort_kernel(TayState *state, TayGroup *group) {
+    #ifdef TAY_OCL
+
+    TayOcl *ocl = &state->ocl;
+    cl_int err;
+
+    err = clSetKernelArg(ocl->grid_reset_cells, 0, sizeof(void *), &group->space.ocl_common.space_buffer);
+    if (err)
+        printf("clSetKernelArg error (grid_reset_cells space buffer)\n");
+
+    unsigned long long work_size = 64;
+
+    err = clEnqueueNDRangeKernel(ocl->queue, ocl->grid_reset_cells, 1, 0, &work_size, &work_size, 0, 0, 0);
+    if (err)
+        printf("clEnqueueNDRangeKernel error (grid_reset_cells)\n");
+
+    err = clFinish(ocl->queue);
+    if (err)
+        printf("clFinish error (grid unsort kernels)\n");
 
     #endif
 }

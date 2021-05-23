@@ -193,6 +193,10 @@ void ocl_on_simulation_start(TayState *state) {
             if (err)
                 printf("clCreateBuffer error (agent buffer)\n");
 
+            ocl_common->agent_sort_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->capacity * group->agent_size, NULL, &err);
+            if (err)
+                printf("clCreateBuffer error (agent sort buffer)\n");
+
             ocl_common->space_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->space.shared_size, NULL, &err);
             if (err)
                 printf("clCreateBuffer error (space buffer)\n");
@@ -244,6 +248,18 @@ typedef struct __attribute__((packed)) TayAgentTag {\n\
     unsigned part_i;\n\
     unsigned cell_agent_i;\n\
 } TayAgentTag;\n\
+\n\
+void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
+    unsigned count4 = size / 4;\n\
+    unsigned count1 = size - (count4 * 4);\n\
+    for (unsigned i = 0; i < count4; ++i) {\n\
+        *(global uint *)a = *(global uint *)b;\n\
+        a += 4;\n\
+        b += 4;\n\
+    }\n\
+    for (unsigned i = 0; i < count1; ++i)\n\
+        a[i] = b[i];\n\
+}\n\
 \n");
 
     /* add agent model source text */
@@ -261,7 +277,7 @@ typedef struct __attribute__((packed)) TayAgentTag {\n\
 
     /* add sort kernel texts */
 
-    text_length += ocl_grid_add_sort_kernel_text(text + text_length, MAX_TEXT_LENGTH - text_length);
+    text_length += ocl_grid_add_kernel_texts(text + text_length, MAX_TEXT_LENGTH - text_length);
 
     /* add space kernel texts */
 
@@ -335,21 +351,7 @@ typedef struct __attribute__((packed)) TayAgentTag {\n\
 
     /* get other kernels */
 
-    ocl->grid_sort_kernel = clCreateKernel(ocl->program, "grid_sort_kernel", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel)\n");
-
-    ocl->grid_sort_kernel_2 = clCreateKernel(ocl->program, "grid_sort_kernel_2", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel_2)\n");
-
-    ocl->grid_sort_kernel_3 = clCreateKernel(ocl->program, "grid_sort_kernel_3", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel_3)\n");
-
-    ocl->grid_sort_kernel_4 = clCreateKernel(ocl->program, "grid_sort_kernel_4", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel_4)\n");
+    ocl_grid_get_kernels(state);
 
     #endif
 }
@@ -371,6 +373,7 @@ void ocl_on_simulation_end(TayState *state) {
 
         if (group_is_ocl(group)) {
             clReleaseMemObject(group->space.ocl_common.agent_buffer);
+            clReleaseMemObject(group->space.ocl_common.agent_sort_buffer);
             clReleaseMemObject(group->space.ocl_common.space_buffer);
         }
     }

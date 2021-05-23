@@ -341,6 +341,7 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_unsort(group); break;
                 case TAY_CPU_GRID: cpu_grid_unsort(group); break;
                 case TAY_CPU_Z_GRID: cpu_z_grid_unsort(group); break;
+                case TAY_OCL_GRID: ocl_grid_run_unsort_kernel(state, group); break;
                 default:; // ERROR: not implemented
             }
         }

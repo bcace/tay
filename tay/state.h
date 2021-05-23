@@ -71,6 +71,7 @@ typedef struct {
 
 typedef struct {
     void *agent_buffer;
+    void *agent_sort_buffer;
     void *space_buffer;
     unsigned push_agents; /* set this flag if agents have to be pushed to gpu before a run */
 } OclCommon;
