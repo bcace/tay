@@ -73,7 +73,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
         fprintf(stderr, "error %d\n", tay_get_error(tay));
     tay_log(file, "        \"ms per step\": %g,\n", tay_get_ms_per_step_for_last_run(tay));
     tay_threads_report_telemetry(0, file);
-    results_write_or_compare(results, tay, group, AGENTS_COUNT, offsetof(Agent, p), offsetof(Agent, result_index), file);
+    results_write_or_compare(results, tay, group, AGENTS_COUNT, offsetof(Agent, f_buffer), offsetof(Agent, result_index), file);
     tay_log(file, "      },\n");
     tay_simulation_end(tay);
 
