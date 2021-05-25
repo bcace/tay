@@ -67,6 +67,54 @@ kernel void grid_sort_kernel_0(global char *agents, unsigned agent_size, unsigne
     boxes[thread_i].max = max;\n\
 }\n\
 \n\
+unsigned grid_z_cell_indices_to_cell_index(int4 idx, int dims) {\n\
+    if (dims == 1) {\n\
+        return idx.x;\n\
+    }\n\
+    else if (dims ==  2) { /* 16 bits */\n\
+        unsigned x = idx.x;\n\
+        unsigned y = idx.y;\n\
+\n\
+        x = (x | (x << 8)) & 0x00FF00FF;\n\
+        x = (x | (x << 4)) & 0x0F0F0F0F;\n\
+        x = (x | (x << 2)) & 0x33333333;\n\
+        x = (x | (x << 1)) & 0x55555555;\n\
+\n\
+        y = (y | (y << 8)) & 0x00FF00FF;\n\
+        y = (y | (y << 4)) & 0x0F0F0F0F;\n\
+        y = (y | (y << 2)) & 0x33333333;\n\
+        y = (y | (y << 1)) & 0x55555555;\n\
+\n\
+        return x | (y << 1);\n\
+    }\n\
+    else if (dims == 3) { /* 10 bits */\n\
+        unsigned x = idx.x;\n\
+        unsigned y = idx.y;\n\
+        unsigned z = idx.z;\n\
+\n\
+        x = (x | (x << 16)) & 0x030000FF;\n\
+        x = (x | (x <<  8)) & 0x0300F00F;\n\
+        x = (x | (x <<  4)) & 0x030C30C3;\n\
+        x = (x | (x <<  2)) & 0x09249249;\n\
+\n\
+        y = (y | (y << 16)) & 0x030000FF;\n\
+        y = (y | (y <<  8)) & 0x0300F00F;\n\
+        y = (y | (y <<  4)) & 0x030C30C3;\n\
+        y = (y | (y <<  2)) & 0x09249249;\n\
+\n\
+        z = (z | (z << 16)) & 0x030000FF;\n\
+        z = (z | (z <<  8)) & 0x0300F00F;\n\
+        z = (z | (z <<  4)) & 0x030C30C3;\n\
+        z = (z | (z <<  2)) & 0x09249249;\n\
+\n\
+        return x | (y << 1) | (z << 2);\n\
+    }\n\
+    else {\n\
+        /* not implemented */\n\
+        return 0;\n\
+    }\n\
+}\n\
+\n\
 kernel void grid_sort_kernel_1(global void *space_buffer, unsigned boxes_count, int dims, float4 min_part_sizes) {\n\
     global Box *boxes = space_buffer;\n\
     float4 min = boxes[0].min;\n\
@@ -97,7 +145,7 @@ kernel void grid_sort_kernel_1(global void *space_buffer, unsigned boxes_count, 
 \n\
     global OclGrid *grid = space_buffer;\n\
     grid->origin = min;\n\
-    grid->cells_count = 1;\n\
+    // grid->cells_count = 1;\n\
 \n\
     global int *cell_counts = (global int *)&grid->cell_counts;\n\
     global float *cell_sizes = (global float *)&grid->cell_sizes;\n\
@@ -106,8 +154,9 @@ kernel void grid_sort_kernel_1(global void *space_buffer, unsigned boxes_count, 
         float space_size = max_arr[i] - min_arr[i] + cell_size * 0.001f;\n\
         cell_counts[i] = (int)floor(space_size / cell_size);\n\
         cell_sizes[i] = space_size / (float)cell_counts[i];\n\
-        grid->cells_count *= cell_counts[i];\n\
+        // grid->cells_count *= cell_counts[i];\n\
     }\n\
+    grid->cells_count = grid_z_cell_indices_to_cell_index(grid->cell_counts, dims) + 1;\n\
 }\n\
 \n\
 int4 grid_agent_position_to_cell_indices(float4 pos, float4 orig, float4 sizes, int dims) {\n\
@@ -163,7 +212,7 @@ kernel void grid_sort_kernel_2(global char *agents, unsigned agent_size, global 
     float4 p = float4_agent_position(a);\n\
 \n\
     int4 indices = grid_agent_position_to_cell_indices(p, grid->origin, grid->cell_sizes, dims);\n\
-    unsigned cell_i = grid_cell_indices_to_cell_index(indices, grid->cell_counts, dims);\n\
+    unsigned cell_i = grid_z_cell_indices_to_cell_index(indices, dims);\n\
 \n\
     a->part_i = cell_i;\n\
     a->cell_agent_i = atomic_inc(&grid->cells[cell_i].count);\n\
@@ -283,8 +332,8 @@ void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group) {
     #ifdef TAY_OCL
 
     TayOcl *ocl = &state->ocl;
-
     cl_int err;
+
     unsigned long long one = 1;
 
     /* caculating the space bounding box */
@@ -508,7 +557,7 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
     for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {\n\
         for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {\n\
             for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {\n\
-                unsigned seen_cell_i = grid_cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);\n\
+                unsigned seen_cell_i = grid_z_cell_indices_to_cell_index(indices, dims);\n\
                 global OclGridCell *seen_cell = seen_grid->cells + seen_cell_i;\n\
 \n\
                 unsigned b_beg = seen_cell->offset;\n\
