@@ -22,7 +22,7 @@ typedef struct {
     char sources[OCL_MAX_SOURCES][OCL_MAX_PATH];
     unsigned sources_count;
 
-    void *grid_sort_kernels[7];
+    void *grid_sort_kernels[8];
     void *grid_reset_cells; // TODO: rename to grid_unsort_kernel
 } TayOcl;
 
