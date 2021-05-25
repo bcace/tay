@@ -71,68 +71,31 @@ kernel void grid_sort_kernel_1(global void *space_buffer, unsigned boxes_count, 
     global Box *boxes = space_buffer;\n\
     float4 min = boxes[0].min;\n\
     float4 max = boxes[0].max;\n\
-    boxes[0].min = (float4){0.0f, 0.0f, 0.0f, 0.0f};\n\
-    boxes[0].max = (float4){0.0f, 0.0f, 0.0f, 0.0f};\n\
+    boxes[0].min = (float4)(0.0f);\n\
+    boxes[0].max = (float4)(0.0f);\n\
     for (unsigned i = 1; i < boxes_count; ++i) {\n\
-        float4 other_min = boxes[i].min;\n\
-        float4 other_max = boxes[i].max;\n\
-        boxes[i].min = (float4){0.0f, 0.0f, 0.0f, 0.0f};\n\
-        boxes[i].max = (float4){0.0f, 0.0f, 0.0f, 0.0f};\n\
-        if (other_min.x < min.x)\n\
-            min.x = other_min.x;\n\
-        if (other_max.x > max.x)\n\
-            max.x = other_max.x;\n\
-        if (other_min.y < min.y)\n\
-            min.y = other_min.y;\n\
-        if (other_max.y > max.y)\n\
-            max.y = other_max.y;\n\
-        if (other_min.z < min.z)\n\
-            min.z = other_min.z;\n\
-        if (other_max.z > max.z)\n\
-            max.z = other_max.z;\n\
+        min = fmin(min, boxes[i].min);\n\
+        max = fmax(max, boxes[i].max);\n\
+        boxes[i].min = (float4)(0.0f);\n\
+        boxes[i].max = (float4)(0.0f);\n\
     }\n\
-    float *min_arr = (float *)&min;\n\
-    float *max_arr = (float *)&max;\n\
-    float *min_part_sizes_arr = (float *)&min_part_sizes;\n\
 \n\
     global OclGrid *grid = space_buffer;\n\
     grid->origin = min;\n\
-    grid->cells_count = 1;\n\
 \n\
-    global int *cell_counts = (global int *)&grid->cell_counts;\n\
-    global float *cell_sizes = (global float *)&grid->cell_sizes;\n\
-    for (int i = 0; i < dims; ++i) {\n\
-        float cell_size = min_part_sizes_arr[i];\n\
-        float space_size = max_arr[i] - min_arr[i] + cell_size * 0.001f;\n\
-        cell_counts[i] = (int)floor(space_size / cell_size);\n\
-        cell_sizes[i] = space_size / (float)cell_counts[i];\n\
-        grid->cells_count *= cell_counts[i];\n\
-    }\n\
-}\n\
+    float4 cell_size = min_part_sizes;\n\
+    float4 space_size = max - min + cell_size * 0.001f;\n\
+    grid->cell_counts = convert_int4(floor(space_size / cell_size));\n\
+    grid->cell_sizes = space_size / convert_float4(grid->cell_counts);\n\
 \n\
-int4 grid_agent_position_to_cell_indices(float4 pos, float4 orig, float4 sizes, int dims) {\n\
-    int4 indices;\n\
-    switch (dims) {\n\
-        case 1: {\n\
-            indices.x = (int)floor((pos.x - orig.x) / sizes.x);\n\
-        } break;\n\
-        case 2: {\n\
-            indices.x = (int)floor((pos.x - orig.x) / sizes.x);\n\
-            indices.y = (int)floor((pos.y - orig.y) / sizes.y);\n\
-        } break;\n\
-        case 3: {\n\
-            indices.x = (int)floor((pos.x - orig.x) / sizes.x);\n\
-            indices.y = (int)floor((pos.y - orig.y) / sizes.y);\n\
-            indices.z = (int)floor((pos.z - orig.z) / sizes.z);\n\
-        } break;\n\
-        default: {\n\
-            indices.x = (int)floor((pos.x - orig.x) / sizes.x);\n\
-            indices.y = (int)floor((pos.y - orig.y) / sizes.y);\n\
-            indices.z = (int)floor((pos.z - orig.z) / sizes.z);\n\
-            indices.w = (int)floor((pos.w - orig.w) / sizes.w);\n\
-        };\n\
-    }\n\
-    return indices;\n\
+    if (dims == 1)\n\
+        grid->cells_count = grid->cell_counts.x;\n\
+    else if (dims == 2)\n\
+        grid->cells_count = grid->cell_counts.x * grid->cell_counts.y;\n\
+    else if (dims == 3)\n\
+        grid->cells_count = grid->cell_counts.x * grid->cell_counts.y * grid->cell_counts.z;\n\
+    else\n\
+        grid->cells_count = grid->cell_counts.x * grid->cell_counts.y * grid->cell_counts.z * grid->cell_counts.w;\n\
 }\n\
 \n\
 unsigned grid_cell_indices_to_cell_index(int4 indices, int4 counts, int dims) {\n\
@@ -162,7 +125,7 @@ kernel void grid_sort_kernel_2(global char *agents, unsigned agent_size, global 
     global TayAgentTag *a = (global TayAgentTag *)(agents + get_global_id(0) * agent_size);\n\
     float4 p = float4_agent_position(a);\n\
 \n\
-    int4 indices = grid_agent_position_to_cell_indices(p, grid->origin, grid->cell_sizes, dims);\n\
+    int4 indices = convert_int4(floor((p - grid->origin) / grid->cell_sizes));
     unsigned cell_i = grid_cell_indices_to_cell_index(indices, grid->cell_counts, dims);\n\
 \n\
     a->part_i = cell_i;\n\
@@ -487,8 +450,8 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
     float4 min = a_p - radii;\n\
     float4 max = a_p + radii;\n\
 \n\
-    int4 min_indices = grid_agent_position_to_cell_indices(min, seen_grid->origin, seen_grid->cell_sizes, dims);\n\
-    int4 max_indices = grid_agent_position_to_cell_indices(max, seen_grid->origin, seen_grid->cell_sizes, dims);\n\
+    int4 min_indices = convert_int4(floor((min - seen_grid->origin) / seen_grid->cell_sizes));
+    int4 max_indices = convert_int4(floor((max - seen_grid->origin) / seen_grid->cell_sizes));
     int *min_indices_arr = (int *)&min_indices;\n\
     int *max_indices_arr = (int *)&max_indices;\n\
     global int *cell_counts_arr = (global int *)&seen_grid->cell_counts;\n\
