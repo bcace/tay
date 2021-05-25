@@ -1,5 +1,5 @@
 
-typedef struct Agent {
+typedef struct __attribute__((packed)) Agent {
     TayAgentTag tag;
     float4 p;
     float3 dir;
@@ -11,19 +11,19 @@ typedef struct Agent {
     int separation_count;
 } Agent;
 
-typedef struct ActContext {
+typedef struct __attribute__((packed)) ActContext {
     int dummy;
 } ActContext;
 
-typedef struct SeeContext {
+typedef struct __attribute__((packed)) SeeContext {
     float r;
     float separation_r;
 } SeeContext;
 
-void agent_see(Agent *a, Agent *b, SeeContext *context);
-void agent_act(Agent *a, ActContext *context);
+void agent_see(global Agent *a, global Agent *b, constant SeeContext *context);
+void agent_act(global Agent *a, constant ActContext *context);
 
-typedef struct Ball {
+typedef struct __attribute__((packed)) Ball {
     TayAgentTag tag;
     float4 min;
     float4 max;
@@ -31,18 +31,18 @@ typedef struct Ball {
     float3 f;
 } Ball;
 
-typedef struct SphParticle {
+typedef struct __attribute__((packed)) SphParticle {
     TayAgentTag tag;
     float4 p;
-    float3 pressure_accum;
-    float3 viscosity_accum;
-    float3 vh;
-    float3 v;
+    float4 pressure_accum;
+    float4 viscosity_accum;
+    float4 vh;
+    float4 v;
     float density;
     float pressure;
 } SphParticle;
 
-typedef struct SphContext {
+typedef struct __attribute__((packed)) SphContext {
     float h; /* smoothing (interaction) radius */
     float dynamic_viscosity;
     float dt;
@@ -52,8 +52,8 @@ typedef struct SphContext {
     float K;
     float density;
 
-    float3 min;
-    float3 max;
+    float4 min;
+    float4 max;
 
     float h2;
     float poly6;
@@ -63,8 +63,8 @@ typedef struct SphContext {
     float viscosity;
 } SphContext;
 
-void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c);
-void sph_particle_pressure(SphParticle *a, SphContext *c);
-void sph_force_terms(SphParticle *a, SphParticle *b, SphContext *c);
-void sph_particle_leapfrog(SphParticle *a, SphContext *c);
-void sph_particle_reset(SphParticle *a);
+void sph_particle_density(global SphParticle *a, global SphParticle *b, constant SphContext *c);
+void sph_particle_pressure(global SphParticle *a, constant SphContext *c);
+void sph_force_terms(global SphParticle *a, global SphParticle *b, constant SphContext *c);
+void sph_particle_leapfrog(global SphParticle *a, constant SphContext *c);
+void sph_particle_reset(global SphParticle *a);

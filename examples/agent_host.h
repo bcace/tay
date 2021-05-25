@@ -5,6 +5,7 @@
 
 /* disabling OpenCL-specific stuff */
 #define global
+#define constant
 
 /* disabling non-MSVC packing */
 #ifdef _MSC_VER

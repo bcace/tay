@@ -37,10 +37,10 @@ void flocking_init() {
     see_context.separation_r = radius * 0.5f;
 
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE);
-    tay_configure_space(tay, boids_group, TAY_CPU_GRID, 3, part_sizes, 250);
+    tay_configure_space(tay, boids_group, TAY_OCL_GRID, 3, part_sizes, 250);
 
-    tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context);
-    tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context);
+    tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
+    tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context, sizeof(act_context));
 
     for (int i = 0; i < boids_count; ++i) {
         Agent *boid = tay_get_available_agent(tay, boids_group);
@@ -62,6 +62,11 @@ void flocking_init() {
         boid->separation_count = 0;
         tay_commit_available_agent(tay, boids_group);
     }
+
+    ocl_add_source(demos.tay, "agent.h");
+    ocl_add_source(demos.tay, "taystd.h");
+    ocl_add_source(demos.tay, "agent.c");
+    ocl_add_source(demos.tay, "taystd.c");
 
     /* drawing init */
 

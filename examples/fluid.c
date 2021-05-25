@@ -15,7 +15,7 @@ static TayGroup *particles_group;
 
 static SphContext sph_context;
 
-static int particles_count = 60000;
+static int particles_count = 200000;
 
 // static float sphere[10000];
 // static unsigned sphere_subdivs = 2;
@@ -56,12 +56,12 @@ void fluid_init() {
     sph_context.K = atmospheric_pressure / fluid_density; // from pV=mRT
     sph_context.density = fluid_density;
     sph_context.h = cbrtf(3.0f * (particles_inside_influence_radius * (initial_volume / particles_count)) / (4.0f * F_PI));
-    sph_context.dt = 0.005f;
+    sph_context.dt = 0.004f;
     sph_context.dynamic_viscosity = 3.5f;
     sph_context.surface_tension = 0.0728f;
     sph_context.surface_tension_threshold = 7.065f;
-    sph_context.min = (float3){-1.0f, -1.8f, -1.0f};
-    sph_context.max = (float3){1.0f, 1.8f, 1.0f};
+    sph_context.min = (float4){-2.0f, -1.8f, -1.0f, 0.0f};
+    sph_context.max = (float4){2.0f, 1.8f, 1.0f, 0.0f};
 
     _update_sph_context(&sph_context, particle_m);
 
@@ -69,23 +69,28 @@ void fluid_init() {
     float part_size = h * 1.0f;
 
     particles_group = tay_add_group(demos.tay, sizeof(SphParticle), particles_count, TAY_TRUE);
-    tay_configure_space(demos.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 250);
+    tay_configure_space(demos.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 1000);
 
-    tay_add_see(demos.tay, particles_group, particles_group, sph_particle_density, "sph_particle_density", (float4){h, h, h, h}, TAY_TRUE, &sph_context);
-    tay_add_act(demos.tay, particles_group, sph_particle_pressure, "sph_particle_pressure", &sph_context);
-    tay_add_see(demos.tay, particles_group, particles_group, sph_force_terms, "sph_force_terms", (float4){h, h, h, h}, TAY_FALSE, &sph_context);
-    tay_add_act(demos.tay, particles_group, sph_particle_leapfrog, "sph_particle_leapfrog", &sph_context);
+    tay_add_see(demos.tay, particles_group, particles_group, sph_particle_density, "sph_particle_density", (float4){h, h, h, h}, TAY_TRUE, &sph_context, sizeof(sph_context));
+    tay_add_act(demos.tay, particles_group, sph_particle_pressure, "sph_particle_pressure", &sph_context, sizeof(sph_context));
+    tay_add_see(demos.tay, particles_group, particles_group, sph_force_terms, "sph_force_terms", (float4){h, h, h, h}, TAY_FALSE, &sph_context, sizeof(sph_context));
+    tay_add_act(demos.tay, particles_group, sph_particle_leapfrog, "sph_particle_leapfrog", &sph_context, sizeof(sph_context));
 
     for (int i = 0; i < particles_count; ++i) {
         SphParticle *p = tay_get_available_agent(demos.tay, particles_group);
         p->p.x = _rand(sph_context.min.x, sph_context.min.x + (sph_context.max.x - sph_context.min.x) * 0.5f);
         p->p.y = _rand(sph_context.min.y, sph_context.max.y);
         p->p.z = _rand(sph_context.min.z, sph_context.min.z + (sph_context.max.z - sph_context.min.z) * 0.5f);
-        p->vh = (float3){0.0f, 0.0f, 0.0f};
-        p->v = (float3){0.0f, 0.0f, 0.0f};
+        p->vh = (float4){0.0f, 0.0f, 0.0f, 0.0f};
+        p->v = (float4){0.0f, 0.0f, 0.0f, 0.0f};
         sph_particle_reset(p);
         tay_commit_available_agent(demos.tay, particles_group);
     }
+
+    ocl_add_source(demos.tay, "agent.h");
+    ocl_add_source(demos.tay, "taystd.h");
+    ocl_add_source(demos.tay, "agent.c");
+    ocl_add_source(demos.tay, "taystd.c");
 
     /* drawing init */
 

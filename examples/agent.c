@@ -1,5 +1,5 @@
 
-void agent_see(Agent *a, Agent *b, SeeContext *c) {
+void agent_see(global Agent *a, global Agent *b, constant SeeContext *c) {
     float3 a_p = float3_agent_position(a);
     float3 b_p = float3_agent_position(b);
 
@@ -32,7 +32,7 @@ void agent_see(Agent *a, Agent *b, SeeContext *c) {
     }
 }
 
-void agent_act(Agent *a, ActContext *c) {
+void agent_act(global Agent *a, constant ActContext *c) {
     float3 p = float3_agent_position(a);
     float3 acc = float3_null();
 
@@ -87,7 +87,7 @@ void agent_act(Agent *a, ActContext *c) {
     a->separation_count = 0;
 }
 
-void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c) {
+void sph_particle_density(global SphParticle *a, global SphParticle *b, constant SphContext *c) {
     float dx = b->p.x - a->p.x;
     float dy = b->p.y - a->p.y;
     float dz = b->p.z - a->p.z;
@@ -97,22 +97,22 @@ void sph_particle_density(SphParticle *a, SphParticle *b, SphContext *c) {
         a->density += c->poly6 * z * z * z;
 }
 
-void sph_particle_pressure(SphParticle *a, SphContext *c) {
+void sph_particle_pressure(global SphParticle *a, constant SphContext *c) {
     /* Tait equation more suitable to liquids than state equation */
-    a->pressure = c->K * (powf(a->density / c->density, 7.0f) - 1.0f);
+    a->pressure = c->K * ((float)pow(a->density / c->density, 7.0f) - 1.0f);
 
     /* state equation */
     // a->pressure = c->K * (a->density - c->density);
 }
 
-void sph_force_terms(SphParticle *a, SphParticle *b, SphContext *c) {
-    float3 r;
+void sph_force_terms(global SphParticle *a, global SphParticle *b, constant SphContext *c) {
+    float4 r;
     r.x = b->p.x - a->p.x;
     r.y = b->p.y - a->p.y;
     r.z = b->p.z - a->p.z;
     float r2 = r.x * r.x + r.y * r.y + r.z * r.z;
 
-    float rl = sqrtf(r2);
+    float rl = (float)sqrt(r2);
 
     if (rl < c->h) {
 
@@ -123,29 +123,29 @@ void sph_force_terms(SphParticle *a, SphParticle *b, SphContext *c) {
             spiky_gradient = c->spiky * (c->h - rl) * (c->h - rl);
 
         if (rl > 0.00001f)
-            a->pressure_accum = float3_add(a->pressure_accum, float3_mul_scalar(r, spiky_gradient * (a->pressure + b->pressure) / (2.0f * b->density) / rl));
+            a->pressure_accum = float4_add(a->pressure_accum, float4_mul_scalar(r, spiky_gradient * (a->pressure + b->pressure) / (2.0f * b->density) / rl));
 
-        a->viscosity_accum = float3_add(a->viscosity_accum, float3_mul_scalar(float3_sub(b->v, a->v), c->viscosity * (c->h - rl) / b->density));
+        a->viscosity_accum = float4_add(a->viscosity_accum, float4_mul_scalar(float4_sub(b->v, a->v), c->viscosity * (c->h - rl) / b->density));
     }
 }
 
-void sph_particle_leapfrog(SphParticle *a, SphContext *c) {
+void sph_particle_leapfrog(global SphParticle *a, constant SphContext *c) {
 
     /* calculate internal forces */
 
-    float3 f = float3_add(a->pressure_accum, float3_mul_scalar(a->viscosity_accum, c->dynamic_viscosity));
+    float4 f = float4_add(a->pressure_accum, float4_mul_scalar(a->viscosity_accum, c->dynamic_viscosity));
 
     /* acceleration */
 
-    float3 acc = float3_div_scalar(f, a->density);
+    float4 acc = float4_div_scalar(f, a->density);
     acc.z -= 9.81f;
 
     /* leapfrog */
 
-    a->vh = float3_add(a->vh, float3_mul_scalar(acc, c->dt));
+    a->vh = float4_add(a->vh, float4_mul_scalar(acc, c->dt));
 
-    a->v = float3_add(a->vh, float3_mul_scalar(acc, c->dt * 0.5f));
-    a->p.xyz = float3_add(a->p.xyz, float3_mul_scalar(a->vh, c->dt));
+    a->v = float4_add(a->vh, float4_mul_scalar(acc, c->dt * 0.5f));
+    a->p = float4_add(a->p, float4_mul_scalar(a->vh, c->dt));
 
     const float damp = -0.5f;
 
@@ -188,7 +188,7 @@ void sph_particle_leapfrog(SphParticle *a, SphContext *c) {
     sph_particle_reset(a);
 }
 
-void sph_particle_reset(SphParticle *a) {
+void sph_particle_reset(global SphParticle *a) {
     a->density = 0.0;
     a->pressure_accum.x = 0.0f;
     a->pressure_accum.y = 0.0f;

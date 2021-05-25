@@ -132,3 +132,53 @@ float4 float4_div_scalar(float4 a, float s) {
     r.w = a.w / s;
     return r;
 }
+
+
+float4 float4_mul_scalar(float4 a, float s) {
+    float4 r;
+    r.x = a.x * s;
+    r.y = a.y * s;
+    r.z = a.z * s;
+    return r;
+}
+
+float4 float4_normalize(float4 a) {
+    float l = (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+    float4 r;
+    if (l < 0.000001f) {
+        r.x = 1.0f;
+        r.y = 0.0f;
+        r.z = 0.0f;
+    }
+    else {
+        r.x = a.x / l;
+        r.y = a.y / l;
+        r.z = a.z / l;
+    }
+    return r;
+}
+
+float4 float4_normalize_to(float4 a, float b) {
+    float l = (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+    float4 r;
+    if (l < 0.000001f) {
+        r.x = a.x;
+        r.y = a.y;
+        r.z = a.z;
+    }
+    else {
+        float c = b / l;
+        r.x = a.x * c;
+        r.y = a.y * c;
+        r.z = a.z * c;
+    }
+    return r;
+}
+
+float float4_length(float4 a) {
+    return (float)sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+
+float float4_dot(float4 a, float4 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}

@@ -24,7 +24,7 @@ static void _main_loop_func(GLFWwindow *window) {
     graphics_clear_depth();
     graphics_enable_depth_test(1);
 
-    tay_run(demos.tay, 1);
+    tay_run(demos.tay, 2);
     double ms = tay_get_ms_per_step_for_last_run(demos.tay);
     if ((++step % 50) == 0)
         printf("ms: %.4f\n", ms);
@@ -52,7 +52,7 @@ int main() {
     demos.window_quit = false;
     demos.window_h = 800;
     demos.window_w = 1600;
-    demos.max_agents_count = 200000;
+    demos.max_agents_count = 1000000;
 
     GLFWmonitor *monitor = 0;
     GLFWwindow *window = glfwCreateWindow(demos.window_w, demos.window_h, "Tay", monitor, 0);
@@ -81,7 +81,7 @@ int main() {
     else if (demos.example == FLUID)
         fluid_init();
 
-    platform_sleep(5000);
+    // platform_sleep(5000);
 
     tay_simulation_start(demos.tay);
 
