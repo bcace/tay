@@ -15,7 +15,7 @@ static TayGroup *particles_group;
 
 static SphContext sph_context;
 
-static int particles_count = 200000;
+static int particles_count = 80000;
 
 // static float sphere[10000];
 // static unsigned sphere_subdivs = 2;
@@ -60,8 +60,8 @@ void fluid_init() {
     sph_context.dynamic_viscosity = 3.5f;
     sph_context.surface_tension = 0.0728f;
     sph_context.surface_tension_threshold = 7.065f;
-    sph_context.min = (float4){-2.0f, -1.8f, -1.0f, 0.0f};
-    sph_context.max = (float4){2.0f, 1.8f, 1.0f, 0.0f};
+    sph_context.min = (float4){-2.0f, -1.0f, -1.0f, 0.0f};
+    sph_context.max = (float4){2.0f, 1.0f, 1.0f, 0.0f};
 
     _update_sph_context(&sph_context, particle_m);
 
@@ -69,7 +69,7 @@ void fluid_init() {
     float part_size = h * 1.0f;
 
     particles_group = tay_add_group(demos.tay, sizeof(SphParticle), particles_count, TAY_TRUE);
-    tay_configure_space(demos.tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 1000);
+    tay_configure_space(demos.tay, particles_group, TAY_OCL_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 1000);
 
     tay_add_see(demos.tay, particles_group, particles_group, sph_particle_density, "sph_particle_density", (float4){h, h, h, h}, TAY_TRUE, &sph_context, sizeof(sph_context));
     tay_add_act(demos.tay, particles_group, sph_particle_pressure, "sph_particle_pressure", &sph_context, sizeof(sph_context));

@@ -55,9 +55,9 @@ void flocking_init() {
         boid->dir.y *= l;
         boid->dir.z *= l;
         boid->speed = 1.0f;
-        boid->separation = (float3){0.0f, 0.0f, 0.0f};
-        boid->alignment = (float3){0.0f, 0.0f, 0.0f};
-        boid->cohesion = (float3){0.0f, 0.0f, 0.0f};
+        boid->separation = (float4){0.0f, 0.0f, 0.0f, 0.0f};
+        boid->alignment = (float4){0.0f, 0.0f, 0.0f, 0.0f};
+        boid->cohesion = (float4){0.0f, 0.0f, 0.0f, 0.0f};
         boid->cohesion_count = 0;
         boid->separation_count = 0;
         tay_commit_available_agent(tay, boids_group);

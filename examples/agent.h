@@ -2,11 +2,11 @@
 typedef struct __attribute__((packed)) Agent {
     TayAgentTag tag;
     float4 p;
-    float3 dir;
+    float4 dir;
     float speed;
-    float3 separation;
-    float3 alignment;
-    float3 cohesion;
+    float4 separation;
+    float4 alignment;
+    float4 cohesion;
     int cohesion_count;
     int separation_count;
 } Agent;
@@ -22,14 +22,6 @@ typedef struct __attribute__((packed)) SeeContext {
 
 void agent_see(global Agent *a, global Agent *b, constant SeeContext *context);
 void agent_act(global Agent *a, constant ActContext *context);
-
-typedef struct __attribute__((packed)) Ball {
-    TayAgentTag tag;
-    float4 min;
-    float4 max;
-    float3 v;
-    float3 f;
-} Ball;
 
 typedef struct __attribute__((packed)) SphParticle {
     TayAgentTag tag;

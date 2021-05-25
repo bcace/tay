@@ -42,7 +42,7 @@ static void _main_loop_func(GLFWwindow *window) {
 }
 
 int main() {
-    demos.example = FLUID;
+    demos.example = FLOCKING;
 
     if (!glfwInit()) {
         fprintf(stderr, "Could not initialize GLFW\n");
