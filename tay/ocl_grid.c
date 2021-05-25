@@ -125,7 +125,7 @@ kernel void grid_sort_kernel_2(global char *agents, unsigned agent_size, global 
     global TayAgentTag *a = (global TayAgentTag *)(agents + get_global_id(0) * agent_size);\n\
     float4 p = float4_agent_position(a);\n\
 \n\
-    int4 indices = convert_int4(floor((p - grid->origin) / grid->cell_sizes));
+    int4 indices = convert_int4(floor((p - grid->origin) / grid->cell_sizes));\n\
     unsigned cell_i = grid_cell_indices_to_cell_index(indices, grid->cell_counts, dims);\n\
 \n\
     a->part_i = cell_i;\n\
@@ -447,25 +447,11 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
 \n\
     global void *a = a_agents + a_size * a_i;\n\
     float4 a_p = float4_agent_position(a);\n\
-    float4 min = a_p - radii;\n\
-    float4 max = a_p + radii;\n\
+    float4 box_min = a_p - radii;\n\
+    float4 box_max = a_p + radii;\n\
 \n\
-    int4 min_indices = convert_int4(floor((min - seen_grid->origin) / seen_grid->cell_sizes));
-    int4 max_indices = convert_int4(floor((max - seen_grid->origin) / seen_grid->cell_sizes));
-    int *min_indices_arr = (int *)&min_indices;\n\
-    int *max_indices_arr = (int *)&max_indices;\n\
-    global int *cell_counts_arr = (global int *)&seen_grid->cell_counts;\n\
-\n\
-    for (int i = 0; i < dims; ++i) {\n\
-        if (min_indices_arr[i] < 0)\n\
-            min_indices_arr[i] = 0;\n\
-        if (max_indices_arr[i] < 0)\n\
-            max_indices_arr[i] = 0;\n\
-        if (min_indices_arr[i] >= cell_counts_arr[i])\n\
-            min_indices_arr[i] = cell_counts_arr[i] - 1;\n\
-        if (max_indices_arr[i] >= cell_counts_arr[i])\n\
-            max_indices_arr[i] = cell_counts_arr[i] - 1;\n\
-    }\n\
+    int4 min_indices = max(convert_int4(floor((box_min - seen_grid->origin) / seen_grid->cell_sizes)), (int4)(0));\n\
+    int4 max_indices = min(convert_int4(floor((box_max - seen_grid->origin) / seen_grid->cell_sizes)), seen_grid->cell_counts - 1);\n\
 \n\
     int4 indices;\n\
     for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {\n\
