@@ -441,14 +441,11 @@ unsigned ocl_grid_add_see_kernel_text(TayPass *pass, char *text, unsigned remain
     unsigned length = sprintf_s(text, remaining_space, "\n\
 kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii, global OclGrid *seen_grid) {\n\
     unsigned a_i = get_global_id(0);\n\
-    unsigned a_size = %d;\n\
-    unsigned b_size = %d;\n\
-    int dims = %d;\n\
+    const unsigned a_size = %d;\n\
+    const unsigned b_size = %d;\n\
+    const int dims = %d;\n\
 \n\
-    global void *a = a_agents + a_size * a_i;\n\
-    float4 a_p = float4_agent_position(a);\n\
-    float4 box_min = a_p - radii;\n\
-    float4 box_max = a_p + radii;\n\
+%s\
 \n\
     int4 min_indices = max(convert_int4(floor((box_min - seen_grid->origin) / seen_grid->cell_sizes)), (int4)(0));\n\
     int4 max_indices = min(convert_int4(floor((box_max - seen_grid->origin) / seen_grid->cell_sizes)), seen_grid->cell_counts - 1);\n\
@@ -473,6 +470,7 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
     pass->seer_group->agent_size,
     pass->seen_group->agent_size,
     dims,
+    ocl_get_seer_agent_text(pass),
     ocl_get_coupling_text(pass, dims));
 
     return length;

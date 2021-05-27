@@ -9,13 +9,12 @@ unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned rema
     unsigned length = sprintf_s(text, remaining_space, "\n\
 kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii) {\n\
     unsigned a_i = get_global_id(0);\n\
-    unsigned a_size = %d;\n\
-    unsigned b_size = %d;\n\
-    unsigned b_beg = 0;\n\
-    unsigned b_end = %d;\n\
+    const unsigned a_size = %d;\n\
+    const unsigned b_size = %d;\n\
+    const unsigned b_beg = 0;\n\
+    const unsigned b_end = %d;\n\
 \n\
-    global void *a = a_agents + a_size * a_i;\n\
-    float4 a_p = float4_agent_position(a);\n\
+%s\
 \n\
 %s\
 }\n\
@@ -24,6 +23,7 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
     pass->seer_group->agent_size,
     pass->seen_group->agent_size,
     pass->seen_group->space.count,
+    ocl_get_seer_agent_text(pass),
     ocl_get_coupling_text(pass, dims));
 
     return length;

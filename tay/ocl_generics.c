@@ -2,7 +2,7 @@
 #include "state.h"
 #include <stdio.h>
 
-#define _MAX_COUPLING_TEXT_SIZE 1024
+#define _MAX_GENERICS_TEXT_SIZE 1024
 
 
 const char *_NARROW_POINT_POINT[];
@@ -10,8 +10,32 @@ const char *_NARROW_POINT_NONPOINT[];
 const char *_NARROW_NONPOINT_POINT[];
 const char *_NARROW_NONPOINT_NONPOINT[];
 
+const char *ocl_get_seer_agent_text(TayPass *pass) {
+    #ifdef TAY_OCL
+
+    if (pass->seer_group->is_point)
+        return "\
+    global void *a = a_agents + a_size * a_i;\n\
+    float4 a_p = float4_agent_position(a);\n\
+    float4 box_min = a_p - radii;\n\
+    float4 box_max = a_p + radii;\n";
+    else
+        return "\
+    global void *a = a_agents + a_size * a_i;\n\
+    float4 a_min = float4_agent_min(a);\n\
+    float4 a_max = float4_agent_max(a);\n\
+    float4 box_min = a_min - radii;\n\
+    float4 box_max = a_max + radii;\n";
+
+    #else
+
+    return "";
+
+    #endif
+}
+
 char *ocl_get_coupling_text(TayPass *pass, int dims) {
-    static char text[_MAX_COUPLING_TEXT_SIZE];
+    static char text[_MAX_GENERICS_TEXT_SIZE];
     text[0] = '\0';
 
     #ifdef TAY_OCL
@@ -43,7 +67,7 @@ char *ocl_get_coupling_text(TayPass *pass, int dims) {
     else
         narrow_phase = _NARROW_NONPOINT_NONPOINT[dims - 1];
 
-    unsigned length = sprintf_s(text, _MAX_COUPLING_TEXT_SIZE, "\
+    unsigned length = sprintf_s(text, _MAX_GENERICS_TEXT_SIZE, "\
 /* pairing start */\n\
 for (unsigned b_i = b_beg; b_i < b_end; ++b_i) {\n\
     global void *b = b_agents + b_size * b_i;\n\

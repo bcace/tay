@@ -52,6 +52,7 @@ void ocl_grid_get_kernels(TayState *state);
 void ocl_grid_run_see_kernel(TayOcl *ocl, TayPass *pass);
 
 /* ocl_generics.c */
+const char *ocl_get_seer_agent_text(TayPass *pass);
 char *ocl_get_coupling_text(TayPass *pass, int dims);
 
 #endif
