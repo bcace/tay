@@ -42,11 +42,6 @@ void ocl_simple_get_kernel(TayState *state, TayPass *pass);
 void ocl_run_act_kernel(TayState *state, TayPass *pass);
 void ocl_fetch_agents(TayState *state);
 
-const char *ocl_pairing_prologue(int seer_is_point, int seen_is_point);
-const char *ocl_pairing_epilogue();
-const char *ocl_self_see_text(int same_group, int self_see);
-const char *ocl_pairing_text(int seer_is_point, int seen_is_point, int dims);
-
 char *ocl_get_kernel_name(TayPass *pass);
 
 unsigned ocl_grid_add_kernel_texts(char *text, unsigned remaining_space);
@@ -55,5 +50,8 @@ void ocl_grid_run_unsort_kernel(TayState *state, TayGroup *group);
 unsigned ocl_grid_add_see_kernel_text(TayPass *pass, char *text, unsigned remaining_space, int dims);
 void ocl_grid_get_kernels(TayState *state);
 void ocl_grid_run_see_kernel(TayOcl *ocl, TayPass *pass);
+
+/* ocl_generics.c */
+char *ocl_get_coupling_text(TayPass *pass, int dims);
 
 #endif

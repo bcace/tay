@@ -13,23 +13,18 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
     unsigned b_size = %d;\n\
     unsigned b_beg = 0;\n\
     unsigned b_end = %d;\n\
-    %s\
-    %s\
-    %s\
 \n\
-    %s(a, b, c);\n\
-    %s\
+    global void *a = a_agents + a_size * a_i;\n\
+    float4 a_p = float4_agent_position(a);\n\
+\n\
+%s\
 }\n\
 \n",
     ocl_get_kernel_name(pass),
     pass->seer_group->agent_size,
     pass->seen_group->agent_size,
     pass->seen_group->space.count,
-    ocl_pairing_prologue(pass->seer_group->is_point, pass->seen_group->is_point),
-    ocl_self_see_text(pass->seer_group == pass->seen_group, pass->self_see),
-    ocl_pairing_text(pass->seer_group->is_point, pass->seen_group->is_point, dims),
-    pass->func_name,
-    ocl_pairing_epilogue());
+    ocl_get_coupling_text(pass, dims));
 
     return length;
 

@@ -246,8 +246,8 @@ void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group) {
     #ifdef TAY_OCL
 
     TayOcl *ocl = &state->ocl;
-
     cl_int err;
+
     unsigned long long one = 1;
 
     /* caculating the space bounding box */
@@ -463,12 +463,7 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
                 unsigned b_beg = seen_cell->offset;\n\
                 unsigned b_end = seen_cell->offset + seen_cell->count;\n\
 \n\
-                %s\
-                %s\
-                %s\
-\n\
-                %s(a, b, c);\n\
-                %s\
+%s\
             }\n\
         }\n\
     }\n\
@@ -478,11 +473,7 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
     pass->seer_group->agent_size,
     pass->seen_group->agent_size,
     dims,
-    ocl_pairing_prologue(pass->seer_group->is_point, pass->seen_group->is_point),
-    ocl_self_see_text(pass->seer_group == pass->seen_group, pass->self_see),
-    ocl_pairing_text(pass->seer_group->is_point, pass->seen_group->is_point, dims),
-    pass->func_name,
-    ocl_pairing_epilogue());
+    ocl_get_coupling_text(pass, dims));
 
     return length;
 
