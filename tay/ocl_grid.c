@@ -20,10 +20,10 @@ typedef struct {
 
 #pragma pack(pop)
 
-unsigned ocl_grid_add_kernel_texts(char *text, unsigned remaining_space) {
+void ocl_grid_add_kernel_texts(OclText *text) {
     #ifdef TAY_OCL
 
-    unsigned length = sprintf_s(text, remaining_space, "\n\
+    ocl_text_append(text, "\n\
 typedef struct {\n\
     float4 min;\n\
     float4 max;\n\
@@ -244,10 +244,6 @@ kernel void grid_reset_cells(global OclGrid *grid) {\n\
 }\n\
 \n");
 
-    return length;
-
-    #else
-    return 0u;
     #endif
 }
 
@@ -485,10 +481,10 @@ void ocl_grid_run_unsort_kernel(TayState *state, TayGroup *group) {
     #endif
 }
 
-unsigned ocl_grid_add_see_kernel_text(TayPass *pass, char *text, unsigned remaining_space, int dims) {
+void ocl_grid_add_see_kernel_text(TayPass *pass, OclText *text, int dims) {
     #ifdef TAY_OCL
 
-    unsigned length = sprintf_s(text, remaining_space, "\n\
+    ocl_text_append(text, "\n\
 kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii, global OclGrid *seen_grid) {\n\
     unsigned a_i = get_global_id(0);\n\
     const unsigned a_size = %d;\n\
@@ -524,10 +520,6 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
     ocl_get_seer_agent_text(pass),
     ocl_get_coupling_text(pass, dims));
 
-    return length;
-
-    #else
-    return 0u;
     #endif
 }
 

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 
 void ocl_init(TayState *state) {
@@ -139,10 +140,10 @@ void ocl_destroy(TayState *state) {
     #endif
 }
 
-static unsigned _add_act_kernel_text(TayPass *pass, char *text, unsigned remaining_space) {
+static void _add_act_kernel_text(TayPass *pass, OclText *text) {
     #ifdef TAY_OCL
 
-    unsigned length = sprintf_s(text, remaining_space, "\n\
+    ocl_text_append(text, "\n\
 kernel void %s(global char *a, constant void *c) {\n\
     global void *agent = a + %d * get_global_id(0);\n\
     %s(agent, c);\n\
@@ -152,10 +153,6 @@ kernel void %s(global char *a, constant void *c) {\n\
     pass->act_group->agent_size,
     pass->func_name);
 
-    return length;
-
-    #else
-    return 0u;
     #endif
 }
 
@@ -170,6 +167,34 @@ static void _get_pass_kernel(TayState *state, TayPass *pass) {
         printf("clCreateKernel error\n");
 
     #endif
+}
+
+void ocl_text_init(OclText *text, unsigned max_length) {
+    text->max_length = max_length;
+    text->length = 0;
+    text->text = calloc(1, text->max_length);
+}
+
+void ocl_text_append(OclText *text, char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    text->length += vsnprintf(text->text + text->length, text->max_length - text->length, fmt, ap);
+    va_end(ap);
+}
+
+char *ocl_text_reserve(OclText *text, unsigned length) {
+    char *t = text->text + text->length;
+    text->length += length;
+    return t;
+}
+
+void ocl_text_add_end_of_string(OclText *text) {
+    text->text[text->length] = '\0';
+}
+
+void ocl_text_destroy(OclText *text) {
+    free(text->text);
+    text->text = 0;
 }
 
 void ocl_on_simulation_start(TayState *state) {
@@ -228,11 +253,10 @@ void ocl_on_simulation_start(TayState *state) {
 
     /* compose source */
 
-    const unsigned MAX_TEXT_LENGTH = 100000;
-    unsigned text_length = 0;
-    char *text = calloc(1, MAX_TEXT_LENGTH);
+    OclText text;
+    ocl_text_init(&text, 100000);
 
-    text_length = sprintf_s(text, MAX_TEXT_LENGTH, "\n\
+    ocl_text_append(&text, "\n\
 #define float4_agent_position(__agent_tag__) (*(global float4 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
 #define float3_agent_position(__agent_tag__) (*(global float3 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
 #define float2_agent_position(__agent_tag__) (*(global float2 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
@@ -270,14 +294,13 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
         fseek(file, 0, SEEK_END);
         unsigned file_length = ftell(file);
         fseek(file, 0, SEEK_SET);
-        fread(text + text_length, 1, file_length, file);
+        fread(ocl_text_reserve(&text, file_length), 1, file_length, file);
         fclose(file);
-        text_length += file_length;
     }
 
     /* add sort kernel texts */
 
-    text_length += ocl_grid_add_kernel_texts(text + text_length, MAX_TEXT_LENGTH - text_length);
+    ocl_grid_add_kernel_texts(&text);
 
     /* add space kernel texts */
 
@@ -292,9 +315,9 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
 
             if (seer_space->type == seen_space->type) {
                 if (seer_space->type == TAY_OCL_SIMPLE)
-                    text_length += ocl_simple_add_see_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length, min_dims);
+                    ocl_simple_add_see_kernel_text(pass, &text, min_dims);
                 else if (seer_space->type == TAY_OCL_GRID)
-                    text_length += ocl_grid_add_see_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length, min_dims);
+                    ocl_grid_add_see_kernel_text(pass, &text, min_dims);
                 else
                     ; // ERROR: not implemented
             }
@@ -303,18 +326,17 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
         }
         else if (pass->type == TAY_PASS_ACT) {
             if (group_is_ocl(pass->act_group))
-                text_length += _add_act_kernel_text(pass, text + text_length, MAX_TEXT_LENGTH - text_length);
+                _add_act_kernel_text(pass, &text);
         }
     }
 
-    text[text_length] = '\0';
+    ocl_text_add_end_of_string(&text);
 
     /* create and compile program */
 
-    ocl->program = clCreateProgramWithSource(ocl->context, 1, &text, 0, &err);
-    if (err) {
+    ocl->program = clCreateProgramWithSource(ocl->context, 1, &text.text, 0, &err);
+    if (err)
         printf("clCreateProgramWithSource error\n");
-    }
 
     err = clBuildProgram(ocl->program, 1, &(cl_device_id)ocl->device_id, 0, 0, 0);
     if (err) {
@@ -323,7 +345,7 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
         fprintf(stderr, build_log);
     }
 
-    free(text);
+    ocl_text_destroy(&text);
 
     /* get pass kernels from compiled program */
 

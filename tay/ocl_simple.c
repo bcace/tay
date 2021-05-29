@@ -3,10 +3,10 @@
 #include <stdio.h>
 
 
-unsigned ocl_simple_add_see_kernel_text(TayPass *pass, char *text, unsigned remaining_space, int dims) {
+void ocl_simple_add_see_kernel_text(TayPass *pass, OclText *text, int dims) {
     #ifdef TAY_OCL
 
-    unsigned length = sprintf_s(text, remaining_space, "\n\
+    ocl_text_append(text, "\n\
 kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii) {\n\
     unsigned a_i = get_global_id(0);\n\
     const unsigned a_size = %d;\n\
@@ -26,10 +26,6 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
     ocl_get_seer_agent_text(pass),
     ocl_get_coupling_text(pass, dims));
 
-    return length;
-
-    #else
-    return 0u;
     #endif
 }
 
