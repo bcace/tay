@@ -24,8 +24,8 @@ int main() {
                // |
                // TAY_CPU_KD_TREE
                // |
-               // TAY_OCL_SIMPLE
-               // |
+               TAY_OCL_SIMPLE
+               |
                TAY_OCL_GRID
     );
 

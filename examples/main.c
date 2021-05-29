@@ -24,7 +24,7 @@ static void _main_loop_func(GLFWwindow *window) {
     graphics_clear_depth();
     graphics_enable_depth_test(1);
 
-    tay_run(demos.tay, 2);
+    tay_run(demos.tay, 4);
     double ms = tay_get_ms_per_step_for_last_run(demos.tay);
     if ((++step % 50) == 0)
         printf("ms: %.4f\n", ms);
