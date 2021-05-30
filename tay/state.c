@@ -169,9 +169,60 @@ void *tay_get_agent(TayState *state, TayGroup *group, int index) {
     return group->storage + group->agent_size * index;
 }
 
+static void _compile_passes(TayState *state) {
+
+    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+        TayPass *pass = state->passes + pass_i;
+
+        if (pass->type == TAY_PASS_SEE) {
+            Space *seer_space = &pass->seer_group->space;
+            Space *seen_space = &pass->seen_group->space;
+            int seer_is_point = pass->seer_group->is_point;
+            int seen_is_point = pass->seen_group->is_point;
+
+            if (seer_space->dims == seen_space->dims) {
+
+                if (pass->seer_group == pass->seen_group) {
+                    if (pass->self_see)
+                        pass->pairing_func = (seer_is_point) ? space_see_point_point_self_see : space_see_nonpoint_nonpoint_self_see;
+                    else
+                        pass->pairing_func = (seer_is_point) ? space_see_point_point : space_see_nonpoint_nonpoint;
+                }
+                else {
+                    if (seer_is_point == seen_is_point)
+                        pass->pairing_func = (seer_is_point) ? space_see_point_point_self_see : space_see_nonpoint_nonpoint_self_see;
+                    else
+                        pass->pairing_func = (seer_is_point) ? space_see_point_nonpoint : space_see_nonpoint_point;
+                }
+
+                if (seen_space->type == TAY_CPU_SIMPLE)
+                    pass->seen_func = cpu_simple_see_seen;
+                else if (seen_space->type == TAY_CPU_KD_TREE)
+                    pass->seen_func = cpu_kd_tree_see_seen;
+                else if (seen_space->type == TAY_CPU_AABB_TREE)
+                    pass->seen_func = cpu_aabb_tree_see_seen;
+                else if (seen_space->type == TAY_CPU_GRID)
+                    pass->seen_func = cpu_grid_see_seen;
+                else if (seen_space->type == TAY_CPU_Z_GRID)
+                    pass->seen_func = cpu_z_grid_see_seen;
+                // else
+                //     return TAY_ERROR_NOT_IMPLEMENTED;
+            }
+            else {
+                state_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
+                return;
+            }
+        }
+    }
+}
+
 void tay_simulation_start(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_IDLE); // ERROR: this assert
     state->running = TAY_STATE_STATUS_RUNNING;
+
+    _compile_passes(state);
+    if (tay_get_error(state))
+        return;
 
     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
@@ -191,68 +242,11 @@ void tay_simulation_start(TayState *state) {
     ocl_on_simulation_start(state);
 }
 
-static PAIRING_FUNC _get_many_to_many_pairing_function(int seer_is_point, int seen_is_point, int same_group, int self_see) {
-    if (same_group) {
-        if (self_see)
-            return (seer_is_point) ? space_see_point_point_self_see : space_see_nonpoint_nonpoint_self_see;
-        else
-            return (seer_is_point) ? space_see_point_point : space_see_nonpoint_nonpoint;
-    }
-    else {
-        if (seer_is_point == seen_is_point)
-            return (seer_is_point) ? space_see_point_point_self_see : space_see_nonpoint_nonpoint_self_see;
-        else
-            return (seer_is_point) ? space_see_point_nonpoint : space_see_nonpoint_point;
-    }
-}
-
-static TayError _compile_passes(TayState *state) {
-
-    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
-        TayPass *pass = state->passes + pass_i;
-
-        if (pass->type == TAY_PASS_SEE) {
-            Space *seer_space = &pass->seer_group->space;
-            Space *seen_space = &pass->seen_group->space;
-            int seer_is_point = pass->seer_group->is_point;
-            int seen_is_point = pass->seen_group->is_point;
-
-            if (seer_space->dims == seen_space->dims) {
-
-                pass->pairing_func = _get_many_to_many_pairing_function(seer_is_point, seen_is_point, pass->seer_group == pass->seen_group, pass->self_see);
-
-                if (seen_space->type == TAY_CPU_SIMPLE)
-                    pass->seen_func = cpu_simple_see_seen;
-                else if (seen_space->type == TAY_CPU_KD_TREE)
-                    pass->seen_func = cpu_kd_tree_see_seen;
-                else if (seen_space->type == TAY_CPU_AABB_TREE)
-                    pass->seen_func = cpu_aabb_tree_see_seen;
-                else if (seen_space->type == TAY_CPU_GRID)
-                    pass->seen_func = cpu_grid_see_seen;
-                else if (seen_space->type == TAY_CPU_Z_GRID)
-                    pass->seen_func = cpu_z_grid_see_seen;
-                // else
-                //     return TAY_ERROR_NOT_IMPLEMENTED;
-            }
-            else
-                return TAY_ERROR_NOT_IMPLEMENTED;
-        }
-    }
-
-    return TAY_ERROR_NONE;
-}
-
 /* Returns the number of steps executed */
 int tay_run(TayState *state, int steps) {
 
     if (state->running != TAY_STATE_STATUS_RUNNING) {
         state_set_error(state, TAY_ERROR_STATE_STATUS);
-        return 0;
-    }
-
-    TayError error = _compile_passes(state);
-    if (error) {
-        state_set_error(state, error);
         return 0;
     }
 
