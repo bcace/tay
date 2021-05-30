@@ -322,14 +322,10 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
 
             int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
 
-            if (seer_space->type == seen_space->type) {
-                if (seer_space->type == TAY_OCL_SIMPLE)
-                    ocl_simple_add_see_kernel_text(&text, pass, min_dims);
-                else if (seer_space->type == TAY_OCL_GRID)
-                    ocl_grid_add_see_kernel_text(&text, pass, min_dims);
-                else
-                    ; // ERROR: not implemented
-            }
+            if (seer_space->type == TAY_OCL_SIMPLE)
+                ocl_simple_add_see_kernel_text(&text, pass, min_dims);
+            else if (seer_space->type == TAY_OCL_GRID)
+                ocl_grid_add_see_kernel_text(&text, pass, min_dims);
             else
                 ; // ERROR: not implemented
         }
@@ -364,13 +360,8 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
         if (pass->type == TAY_PASS_SEE) {
             Space *seer_space = &pass->seer_group->space;
             Space *seen_space = &pass->seen_group->space;
-
-            if (seer_space->type == seen_space->type) {
-                if (group_is_ocl(pass->seer_group))
-                    _get_pass_kernel(state, pass);
-            }
-            else
-                ; // ERROR: not implemented
+            if (group_is_ocl(pass->seer_group))
+                _get_pass_kernel(state, pass);
         }
         else if (pass->type == TAY_PASS_ACT) {
             if (group_is_ocl(pass->act_group))

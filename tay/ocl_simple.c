@@ -20,7 +20,7 @@ void ocl_simple_add_see_kernel_text(OclText *text, TayPass *pass, int dims) {
     #ifdef TAY_OCL
 
     ocl_text_append(text, "\n\
-kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii) {\n\
+kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii, global void *space_buffer) {\n\
     const unsigned a_size = %d;\n\
     const unsigned b_size = %d;\n\
     const int dims = %d;\n\
@@ -61,6 +61,10 @@ void ocl_simple_run_see_kernel(TayOcl *ocl, TayPass *pass) {
     err = clSetKernelArg(pass->pass_kernel, 3, sizeof(pass->radii), &pass->radii);
     if (err)
         printf("clSetKernelArg error (radii)\n");
+
+    err = clSetKernelArg(pass->pass_kernel, 4, sizeof(void *), &pass->seen_group->space.ocl_common.space_buffer);
+    if (err)
+        printf("clSetKernelArg error (space buffer)\n");
 
     unsigned long long global_work_size = pass->seer_group->space.count;
 
