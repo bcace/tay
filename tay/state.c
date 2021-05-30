@@ -300,10 +300,8 @@ int tay_run(TayState *state, int steps) {
                     cpu_grid_see(pass);
                 else if (seer_space->type == TAY_CPU_Z_GRID)
                     cpu_z_grid_see(pass);
-                else if (seer_space->type == TAY_OCL_SIMPLE)
-                    ocl_simple_run_see_kernel(&state->ocl, pass);
-                else if (seer_space->type == TAY_OCL_GRID)
-                    ocl_grid_run_see_kernel(&state->ocl, pass);
+                else if (group_is_ocl(pass->act_group))
+                    ocl_run_see_kernel(state, pass);
                 else {
                     state_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
                     return 0;
