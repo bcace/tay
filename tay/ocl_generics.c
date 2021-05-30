@@ -68,8 +68,7 @@ char *ocl_get_coupling_text(TayPass *pass, int dims) {
         narrow_phase = _NARROW_NONPOINT_NONPOINT[dims - 1];
 
     unsigned length = sprintf_s(text, _MAX_GENERICS_TEXT_SIZE, "\
-/* pairing start */\n\
-for (unsigned b_i = b_beg; b_i < b_end; ++b_i) {\n\
+for (unsigned b_i = b_beg; b_i < b_end; ++b_i) { /* pairing loop */\n\
     global void *b = b_agents + b_size * b_i;\n\
 %s\
 %s\
@@ -77,8 +76,7 @@ for (unsigned b_i = b_beg; b_i < b_end; ++b_i) {\n\
     %s(a, b, c);\n\
 \n\
     SKIP_SEE:;\n\
-}\n\
-/* pairing end */\n",
+} /* pairing loop */\n",
     seen_position, self_see, narrow_phase, pass->func_name);
 
     #endif

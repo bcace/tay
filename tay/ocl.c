@@ -197,6 +197,15 @@ void ocl_text_destroy(OclText *text) {
     text->text = 0;
 }
 
+void ocl_add_seen_text(OclText *text, TayPass *pass, int dims) {
+    if (pass->seen_group->space.type == TAY_OCL_SIMPLE)
+        ocl_simple_add_seen_text(text, pass, dims);
+    else if (pass->seen_group->space.type == TAY_OCL_GRID)
+        ocl_grid_add_seen_text(text, pass, dims);
+    else
+        ; // ERROR: not implemented
+}
+
 void ocl_on_simulation_start(TayState *state) {
     #ifdef TAY_OCL
 
@@ -315,9 +324,9 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
 
             if (seer_space->type == seen_space->type) {
                 if (seer_space->type == TAY_OCL_SIMPLE)
-                    ocl_simple_add_see_kernel_text(pass, &text, min_dims);
+                    ocl_simple_add_see_kernel_text(&text, pass, min_dims);
                 else if (seer_space->type == TAY_OCL_GRID)
-                    ocl_grid_add_see_kernel_text(pass, &text, min_dims);
+                    ocl_grid_add_see_kernel_text(&text, pass, min_dims);
                 else
                     ; // ERROR: not implemented
             }

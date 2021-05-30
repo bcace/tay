@@ -44,19 +44,22 @@ void ocl_on_run_start(TayState *state);
 void ocl_on_run_end(TayState *state);
 void ocl_on_simulation_end(TayState *state);
 
-void ocl_simple_get_kernel(TayState *state, TayPass *pass);
 void ocl_run_act_kernel(TayState *state, TayPass *pass);
 void ocl_fetch_agents(TayState *state);
 
 char *ocl_get_kernel_name(TayPass *pass);
 
-void ocl_simple_add_see_kernel_text(TayPass *pass, OclText *text, int dims);
+void ocl_add_seen_text(OclText *text, TayPass *pass, int dims);
+
+void ocl_simple_add_seen_text(OclText *text, TayPass *pass, int dims);
+void ocl_simple_add_see_kernel_text(OclText *text, TayPass *pass, int dims);
 void ocl_simple_run_see_kernel(TayOcl *ocl, TayPass *pass);
 
 void ocl_grid_add_kernel_texts(OclText *text);
 void ocl_grid_run_sort_kernel(TayState *state, TayGroup *group);
 void ocl_grid_run_unsort_kernel(TayState *state, TayGroup *group);
-void ocl_grid_add_see_kernel_text(TayPass *pass, OclText *text, int dims);
+void ocl_grid_add_seen_text(OclText *text, TayPass *pass, int dims);
+void ocl_grid_add_see_kernel_text(OclText *text, TayPass *pass, int dims);
 void ocl_grid_get_kernels(TayState *state);
 void ocl_grid_run_see_kernel(TayOcl *ocl, TayPass *pass);
 

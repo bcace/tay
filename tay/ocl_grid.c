@@ -481,18 +481,11 @@ void ocl_grid_run_unsort_kernel(TayState *state, TayGroup *group) {
     #endif
 }
 
-void ocl_grid_add_see_kernel_text(TayPass *pass, OclText *text, int dims) {
+void ocl_grid_add_seen_text(OclText *text, TayPass *pass, int dims) {
     #ifdef TAY_OCL
 
-    ocl_text_append(text, "\n\
-kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii, global OclGrid *seen_grid) {\n\
-    unsigned a_i = get_global_id(0);\n\
-    const unsigned a_size = %d;\n\
-    const unsigned b_size = %d;\n\
-    const int dims = %d;\n\
-\n\
-%s\
-\n\
+    ocl_text_append(text, "{ /* grid seen loop */\n\
+    global OclGrid *seen_grid = space_buffer;\n\
     int4 min_indices = max(convert_int4(floor((box_min - seen_grid->origin) / seen_grid->cell_sizes)), (int4)(0));\n\
     int4 max_indices = min(convert_int4(floor((box_max - seen_grid->origin) / seen_grid->cell_sizes)), seen_grid->cell_counts - 1);\n\
 \n\
@@ -511,14 +504,32 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
             }\n\
         }\n\
     }\n\
-}\n\
+} /* grid seen loop */\n", ocl_get_coupling_text(pass, dims));
+
+    #endif
+}
+
+void ocl_grid_add_see_kernel_text(OclText *text, TayPass *pass, int dims) {
+    #ifdef TAY_OCL
+
+    ocl_text_append(text, "\n\
+kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii, global void *space_buffer) {\n\
+    unsigned a_i = get_global_id(0);\n\
+    const unsigned a_size = %d;\n\
+    const unsigned b_size = %d;\n\
+    const int dims = %d;\n\
+\n\
+%s\
 \n",
     ocl_get_kernel_name(pass),
     pass->seer_group->agent_size,
     pass->seen_group->agent_size,
     dims,
-    ocl_get_seer_agent_text(pass),
-    ocl_get_coupling_text(pass, dims));
+    ocl_get_seer_agent_text(pass));
+
+    ocl_add_seen_text(text, pass, dims);
+
+    ocl_text_append(text, "}\n");
 
     #endif
 }
