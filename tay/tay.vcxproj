@@ -182,6 +182,7 @@
     <ClCompile Include="ocl_simple.c" />
     <ClCompile Include="space.c" />
     <ClCompile Include="state.c" />
+    <ClCompile Include="state_compile.c" />
     <ClCompile Include="thread.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

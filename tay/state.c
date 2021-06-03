@@ -14,7 +14,7 @@ TayState *tay_create_state() {
     state->error = TAY_ERROR_NONE;
     state->ms_per_step = 0.0;
     state->next_group_id = 0;
-    state->ocl.enabled = 0;
+    ocl_init(state);
     return state;
 }
 
@@ -40,7 +40,7 @@ void tay_destroy_state(TayState *state) {
 }
 
 void tay_state_enable_ocl(TayState *state) {
-    ocl_enable(state);
+    // ocl_enable(state);
 }
 
 TayError tay_get_error(TayState *state) {
@@ -48,6 +48,12 @@ TayError tay_get_error(TayState *state) {
 }
 
 void tay_set_error(TayState *state, TayError error) {
+    fprintf(stderr, "ERROR:\n");
+    state->error = error;
+}
+
+void tay_set_error2(TayState *state, TayError error, const char *message) {
+    fprintf(stderr, "ERROR: %s\n", message);
     state->error = error;
 }
 
@@ -113,10 +119,7 @@ void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_ty
 }
 
 void tay_group_enable_ocl(TayState *state, TayGroup *group) {
-    if (state->ocl.enabled)
-        group->ocl_enabled = 1;
-    else
-        tay_set_error(state, TAY_ERROR_OCL);
+    group->ocl_enabled = 1;
 }
 
 int group_is_active(TayGroup *group) {
@@ -227,6 +230,10 @@ static void _compile_passes(TayState *state) {
 
 void tay_simulation_start(TayState *state) {
     assert(state->running == TAY_STATE_STATUS_IDLE); // ERROR: this assert
+
+    if (!state_compile(state))
+        return;
+
     state->running = TAY_STATE_STATUS_RUNNING;
 
     _compile_passes(state);
@@ -365,7 +372,12 @@ int tay_run(TayState *state, int steps) {
 }
 
 void tay_simulation_end(TayState *state) {
-    assert(state->running == TAY_STATE_STATUS_RUNNING);
+
+    if (state->running != TAY_STATE_STATUS_RUNNING) {
+        tay_set_error(state, TAY_ERROR_STATE_STATUS);
+        return;
+    }
+
     state->running = TAY_STATE_STATUS_IDLE;
     ocl_on_simulation_end(state);
 }

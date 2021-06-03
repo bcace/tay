@@ -155,10 +155,13 @@ typedef struct TayState {
 } TayState;
 
 void tay_set_error(TayState *state, TayError error);
+void tay_set_error2(TayState *state, TayError error, const char *message);
 
 int group_is_active(TayGroup *group);
 int group_is_inactive(TayGroup *group);
 int group_is_ocl(TayGroup *group);
 int pass_is_ocl(TayPass *pass);
+
+int state_compile(TayState *state);
 
 #endif

@@ -6,12 +6,16 @@
 #include <stdarg.h>
 
 
-void ocl_enable(TayState *state) {
+void ocl_init(TayState *state) {
     TayOcl *ocl = &state->ocl;
     ocl->enabled = 0;
     ocl->sources_count = 0;
+}
 
+void ocl_enable(TayState *state) {
     #ifdef TAY_OCL
+
+    TayOcl *ocl = &state->ocl;
 
     cl_uint platforms_count = 0;
     cl_platform_id platform_ids[8];
@@ -138,7 +142,6 @@ void ocl_disable(TayState *state) {
     if (state->ocl.enabled) {
         clReleaseContext(state->ocl.context);
         state->ocl.enabled = 0;
-        state->ocl.sources_count = 0;
     }
 
     #endif

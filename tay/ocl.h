@@ -37,6 +37,7 @@ typedef struct TayGroup TayGroup;
 typedef struct TayPass TayPass;
 typedef enum TaySpaceType TaySpaceType;
 
+void ocl_init(TayState *state);
 void ocl_enable(TayState *state);
 void ocl_disable(TayState *state);
 
