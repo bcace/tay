@@ -47,7 +47,7 @@ TayError tay_get_error(TayState *state) {
     return state->error;
 }
 
-void state_set_error(TayState *state, TayError error) {
+void tay_set_error(TayState *state, TayError error) {
     state->error = error;
 }
 
@@ -59,7 +59,7 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
             break;
 
     if (group_i == TAY_MAX_GROUPS) {
-        state_set_error(state, TAY_ERROR_GROUP_INDEX_OUT_OF_RANGE);
+        tay_set_error(state, TAY_ERROR_GROUP_INDEX_OUT_OF_RANGE);
         return 0;
     }
 
@@ -71,6 +71,7 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     group->capacity = agent_capacity;
     group->is_point = is_point;
     group->id = state->next_group_id++;
+    group->ocl_enabled = 0;
 
     /* initialize the group's space */
     Space *space = &group->space;
@@ -91,13 +92,13 @@ void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_ty
 
     if (group->is_point) {
         if (space_type == TAY_CPU_AABB_TREE) {
-            state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
+            tay_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
             return;
         }
     }
     else {
         if (space_type == TAY_CPU_GRID) {
-            state_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
+            tay_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
             return;
         }
     }
@@ -108,9 +109,14 @@ void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_ty
     space->dims = space_dims;
     space->count = 0;
     space->shared_size = shared_size_in_megabytes * TAY_MB;
+    space->shared = realloc(space->shared, space->shared_size);
+}
 
-    if (!group_is_ocl(group))
-        space->shared = realloc(space->shared, space->shared_size);
+void tay_group_enable_ocl(TayState *state, TayGroup *group) {
+    if (state->ocl.enabled)
+        group->ocl_enabled = 1;
+    else
+        tay_set_error(state, TAY_ERROR_OCL);
 }
 
 int group_is_active(TayGroup *group) {
@@ -122,8 +128,7 @@ int group_is_inactive(TayGroup *group) {
 }
 
 int group_is_ocl(TayGroup *group) {
-    return group->space.type == TAY_OCL_SIMPLE ||
-           group->space.type == TAY_OCL_GRID;
+    return group->ocl_enabled;
 }
 
 int pass_is_ocl(TayPass *pass) {
@@ -211,11 +216,9 @@ static void _compile_passes(TayState *state) {
                     pass->seen_func = cpu_grid_see_seen;
                 else if (seen_space->type == TAY_CPU_Z_GRID)
                     pass->seen_func = cpu_z_grid_see_seen;
-                // else
-                //     return TAY_ERROR_NOT_IMPLEMENTED;
             }
             else {
-                state_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
+                tay_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
                 return;
             }
         }
@@ -233,7 +236,7 @@ void tay_simulation_start(TayState *state) {
     for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group))
+        if (group_is_inactive(group) || group->ocl_enabled)
             continue;
 
         Space *space = &group->space;
@@ -252,7 +255,7 @@ void tay_simulation_start(TayState *state) {
 int tay_run(TayState *state, int steps) {
 
     if (state->running != TAY_STATE_STATUS_RUNNING) {
-        state_set_error(state, TAY_ERROR_STATE_STATUS);
+        tay_set_error(state, TAY_ERROR_STATE_STATUS);
         return 0;
     }
 
@@ -269,7 +272,7 @@ int tay_run(TayState *state, int steps) {
         for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
             TayGroup *group = state->groups + i;
 
-            if (group_is_inactive(group))
+            if (group_is_inactive(group) || group->ocl_enabled)
                 continue;
 
             switch (group->space.type) {
@@ -278,10 +281,11 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_sort(group); break;
                 case TAY_CPU_GRID: cpu_grid_sort(group); break;
                 case TAY_CPU_Z_GRID: cpu_z_grid_sort(group); break;
-                case TAY_OCL_GRID: ocl_grid_run_sort_kernel(state, group); break;
-                default:; // ERROR: not implemented
+                default:;
             }
         }
+
+        ocl_sort(state);
 
         /* do passes */
         for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
@@ -290,7 +294,9 @@ int tay_run(TayState *state, int steps) {
             if (pass->type == TAY_PASS_SEE) {
                 Space *seer_space = &pass->seer_group->space;
 
-                if (seer_space->type == TAY_CPU_SIMPLE)
+                if (pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled)
+                    ocl_run_see_kernel(state, pass);
+                else if (seer_space->type == TAY_CPU_SIMPLE)
                     cpu_simple_see(pass);
                 else if (seer_space->type == TAY_CPU_KD_TREE)
                     cpu_tree_see(pass);
@@ -300,27 +306,25 @@ int tay_run(TayState *state, int steps) {
                     cpu_grid_see(pass);
                 else if (seer_space->type == TAY_CPU_Z_GRID)
                     cpu_z_grid_see(pass);
-                else if (group_is_ocl(pass->act_group))
-                    ocl_run_see_kernel(state, pass);
                 else {
-                    state_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
+                    tay_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
                     return 0;
                 }
             }
             else if (pass->type == TAY_PASS_ACT) {
                 Space *act_space = &pass->act_group->space;
 
-                if (act_space->type == TAY_CPU_SIMPLE ||
+                if (pass->act_group->ocl_enabled)
+                    ocl_run_act_kernel(state, pass);
+                else if (act_space->type == TAY_CPU_SIMPLE ||
                     act_space->type == TAY_CPU_KD_TREE ||
                     act_space->type == TAY_CPU_AABB_TREE ||
                     act_space->type == TAY_CPU_GRID ||
                     act_space->type == TAY_CPU_Z_GRID) {
                     space_act(pass);
                 }
-                else if (group_is_ocl(pass->act_group))
-                    ocl_run_act_kernel(state, pass);
                 else {
-                    state_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
+                    tay_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
                     return 0;
                 }
             }
@@ -330,7 +334,7 @@ int tay_run(TayState *state, int steps) {
         for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
             TayGroup *group = state->groups + i;
 
-            if (group_is_inactive(group))
+            if (group_is_inactive(group) || group->ocl_enabled)
                 continue;
 
             switch (group->space.type) {
@@ -339,10 +343,11 @@ int tay_run(TayState *state, int steps) {
                 case TAY_CPU_AABB_TREE: cpu_aabb_tree_unsort(group); break;
                 case TAY_CPU_GRID: cpu_grid_unsort(group); break;
                 case TAY_CPU_Z_GRID: cpu_z_grid_unsort(group); break;
-                case TAY_OCL_GRID: ocl_grid_run_unsort_kernel(state, group); break;
-                default:; // ERROR: not implemented
+                default:;
             }
         }
+
+        ocl_unsort(state);
 
 #if TAY_TELEMETRY
         tay_threads_update_telemetry();

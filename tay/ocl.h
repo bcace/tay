@@ -35,12 +35,17 @@ typedef struct {
 typedef struct TayState TayState;
 typedef struct TayGroup TayGroup;
 typedef struct TayPass TayPass;
+typedef enum TaySpaceType TaySpaceType;
 
 void ocl_enable(TayState *state);
 void ocl_disable(TayState *state);
 
+TaySpaceType ocl_interpret_space_type(TaySpaceType type);
+
 void ocl_on_simulation_start(TayState *state);
 void ocl_on_run_start(TayState *state);
+void ocl_sort(TayState *state);
+void ocl_unsort(TayState *state);
 void ocl_on_run_end(TayState *state);
 void ocl_on_simulation_end(TayState *state);
 

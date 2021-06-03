@@ -103,6 +103,7 @@ typedef struct TayGroup {
     int is_point; /* are all agents of this group points */
     Space space;
     unsigned id;
+    int ocl_enabled; /* false both if ocl code is excluded from compilation or creating the ocl context failed */
 } TayGroup;
 
 typedef enum TayPassType {
@@ -153,7 +154,7 @@ typedef struct TayState {
     unsigned next_group_id;
 } TayState;
 
-void state_set_error(TayState *state, TayError error);
+void tay_set_error(TayState *state, TayError error);
 
 int group_is_active(TayGroup *group);
 int group_is_inactive(TayGroup *group);

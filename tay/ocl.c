@@ -103,7 +103,7 @@ void ocl_enable(TayState *state) {
 
             if (device_t == CL_DEVICE_TYPE_GPU && device_available && compiler_available && linker_available) {
                 ocl->device_id = device_ids[dev_i];
-                ocl->enabled = 0;
+                ocl->enabled = 1;
                 ocl->global_mem_size = global_mem_size;
                 ocl->local_mem_size = local_mem_size;
                 ocl->max_compute_units = max_compute_units;
@@ -120,13 +120,13 @@ void ocl_enable(TayState *state) {
     ocl->context = clCreateContext(NULL, 1, &(cl_device_id)ocl->device_id, NULL, NULL, &err);
     if (err) {
         ocl->enabled = 0;
-        state_set_error(state, TAY_ERROR_OCL);
+        tay_set_error(state, TAY_ERROR_OCL);
     }
 
     ocl->queue = clCreateCommandQueueWithProperties(ocl->context, ocl->device_id, 0, &err);
     if (err) {
         ocl->enabled = 0;
-        state_set_error(state, TAY_ERROR_OCL);
+        tay_set_error(state, TAY_ERROR_OCL);
     }
 
     #endif
@@ -142,6 +142,15 @@ void ocl_disable(TayState *state) {
     }
 
     #endif
+}
+
+TaySpaceType ocl_interpret_space_type(TaySpaceType type) {
+    if (type == TAY_SPACE_NONE)
+        return type;
+    else if (type == TAY_CPU_GRID)
+        return type;
+    else
+        return TAY_CPU_SIMPLE; /* ocl fallback space type */
 }
 
 static void _add_act_kernel_text(TayPass *pass, OclText *text) {
@@ -202,16 +211,18 @@ void ocl_text_destroy(OclText *text) {
 }
 
 void ocl_add_seen_text(OclText *text, TayPass *pass, int dims) {
-    if (pass->seen_group->space.type == TAY_OCL_SIMPLE)
-        ocl_simple_add_seen_text(text, pass, dims);
-    else if (pass->seen_group->space.type == TAY_OCL_GRID)
+    TaySpaceType seen_type = ocl_interpret_space_type(pass->seen_group->space.type);
+    if (seen_type == TAY_CPU_GRID)
         ocl_grid_add_seen_text(text, pass, dims);
     else
-        ; // ERROR: not implemented
+        ocl_simple_add_seen_text(text, pass, dims);
 }
 
 void ocl_on_simulation_start(TayState *state) {
     #ifdef TAY_OCL
+
+    if (!state->ocl.enabled)
+        return;
 
     TayOcl *ocl = &state->ocl;
     cl_int err;
@@ -221,7 +232,7 @@ void ocl_on_simulation_start(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group))
+        if (group_is_inactive(group) || !group->ocl_enabled)
             continue;
 
         if (group_is_ocl(group)) {
@@ -320,23 +331,23 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
+        if (!pass_is_ocl(pass))
+            continue;
+
         if (pass->type == TAY_PASS_SEE) {
             Space *seer_space = &pass->seer_group->space;
             Space *seen_space = &pass->seen_group->space;
 
             int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
+            TaySpaceType seer_type = ocl_interpret_space_type(seer_space->type);
 
-            if (seer_space->type == TAY_OCL_SIMPLE)
-                ocl_simple_add_see_kernel_text(&text, pass, min_dims);
-            else if (seer_space->type == TAY_OCL_GRID)
+            if (seer_type == TAY_CPU_GRID)
                 ocl_grid_add_see_kernel_text(&text, pass, min_dims);
             else
-                ; // ERROR: not implemented
+                ocl_simple_add_see_kernel_text(&text, pass, min_dims);
         }
-        else if (pass->type == TAY_PASS_ACT) {
-            if (group_is_ocl(pass->act_group))
-                _add_act_kernel_text(pass, &text);
-        }
+        else if (pass->type == TAY_PASS_ACT)
+            _add_act_kernel_text(pass, &text);
     }
 
     ocl_text_add_end_of_string(&text);
@@ -361,18 +372,13 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (pass->type == TAY_PASS_SEE) {
-            Space *seer_space = &pass->seer_group->space;
-            Space *seen_space = &pass->seen_group->space;
-            if (group_is_ocl(pass->seer_group))
-                _get_pass_kernel(state, pass);
-        }
-        else if (pass->type == TAY_PASS_ACT) {
-            if (group_is_ocl(pass->act_group))
-                _get_pass_kernel(state, pass);
-        }
-        else
-            ; // ERROR: not implemented
+        if (!pass_is_ocl(pass))
+            continue;
+
+        if (pass->type == TAY_PASS_SEE)
+            _get_pass_kernel(state, pass);
+        else if (pass->type == TAY_PASS_ACT)
+            _get_pass_kernel(state, pass);
     }
 
     /* get other kernels */
@@ -386,6 +392,8 @@ void ocl_on_simulation_end(TayState *state) {
     #ifdef TAY_OCL
 
     TayOcl *ocl = &state->ocl;
+    if (!ocl->enabled)
+        return;
 
     clReleaseProgram(ocl->program);
 
@@ -418,6 +426,9 @@ void ocl_on_simulation_end(TayState *state) {
 
 void ocl_on_run_start(TayState *state) {
     #ifdef TAY_OCL
+
+    if (!state->ocl.enabled)
+        return;
 
     cl_int err;
 
@@ -470,8 +481,53 @@ void ocl_on_run_end(TayState *state) {
     #endif
 }
 
+void ocl_sort(TayState *state) {
+    #ifdef TAY_OCL
+
+    if (!state->ocl.enabled)
+        return;
+
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+
+        if (group_is_inactive(group) || !group->ocl_enabled)
+            continue;
+
+        TaySpaceType type = ocl_interpret_space_type(group->space.type);
+
+        if (type == TAY_CPU_GRID)
+            ocl_grid_run_sort_kernel(state, group);
+    }
+
+    #endif
+}
+
+void ocl_unsort(TayState *state) {
+    #ifdef TAY_OCL
+
+    if (!state->ocl.enabled)
+        return;
+
+    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
+        TayGroup *group = state->groups + i;
+
+        if (group_is_inactive(group) || !group->ocl_enabled)
+            continue;
+
+        TaySpaceType type = ocl_interpret_space_type(group->space.type);
+
+        if (type == TAY_CPU_GRID)
+            ocl_grid_run_unsort_kernel(state, group);
+    }
+
+    #endif
+}
+
 void ocl_run_see_kernel(TayState *state, TayPass *pass) {
     #ifdef TAY_OCL
+
+    if (!state->ocl.enabled)
+        return;
 
     TayOcl *ocl = &state->ocl;
     cl_int err;
@@ -511,6 +567,9 @@ void ocl_run_see_kernel(TayState *state, TayPass *pass) {
 
 void ocl_run_act_kernel(TayState *state, TayPass *pass) {
     #ifdef TAY_OCL
+
+    if (!state->ocl.enabled)
+        return;
 
     TayOcl *ocl = &state->ocl;
     cl_int err;
