@@ -36,6 +36,7 @@ typedef enum TayError {
     TAY_ERROR_GROUP_INDEX_OUT_OF_RANGE,
     TAY_ERROR_STATE_STATUS,
     TAY_ERROR_NOT_IMPLEMENTED,
+    TAY_ERROR_OCL,
 } TayError;
 
 #pragma pack(push, 1)
@@ -82,17 +83,21 @@ typedef struct TayAgentTag {
 
 typedef struct TayState TayState;
 typedef struct TayGroup TayGroup;
+typedef struct TayPass TayPass;
 
 TayState *tay_create_state();
 void tay_destroy_state(TayState *state);
+void tay_state_enable_ocl(TayState *state);
 
 TayError tay_get_error(TayState *state);
 
 TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point);
 void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_type, int space_dims, float4 min_part_sizes, int shared_size_in_megabytes);
+void tay_group_enable_ocl(TayState *state, TayGroup *group);
 
-void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), char *func_name, float4 radii, int self_see, void *context, unsigned context_size);
-void tay_add_act(TayState *state, TayGroup *act_group, void (*func)(void *, void *), char *func_name, void *context, unsigned context_size);
+TayPass *tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), char *func_name, float4 radii, int self_see, void *context, unsigned context_size);
+TayPass *tay_add_act(TayState *state, TayGroup *act_group, void (*func)(void *, void *), char *func_name, void *context, unsigned context_size);
+void tay_pass_enable_ocl(TayState *state, TayPass *pass, char *func_name, unsigned context_size);
 
 void *tay_get_available_agent(TayState *state, TayGroup *group);
 void tay_commit_available_agent(TayState *state, TayGroup *group);

@@ -6,9 +6,9 @@
 #include <stdarg.h>
 
 
-void ocl_init(TayState *state) {
+void ocl_enable(TayState *state) {
     TayOcl *ocl = &state->ocl;
-    ocl->active = CL_FALSE;
+    ocl->enabled = 0;
     ocl->sources_count = 0;
 
     #ifdef TAY_OCL
@@ -103,7 +103,7 @@ void ocl_init(TayState *state) {
 
             if (device_t == CL_DEVICE_TYPE_GPU && device_available && compiler_available && linker_available) {
                 ocl->device_id = device_ids[dev_i];
-                ocl->active = CL_TRUE;
+                ocl->enabled = 0;
                 ocl->global_mem_size = global_mem_size;
                 ocl->local_mem_size = local_mem_size;
                 ocl->max_compute_units = max_compute_units;
@@ -119,23 +119,27 @@ void ocl_init(TayState *state) {
 
     ocl->context = clCreateContext(NULL, 1, &(cl_device_id)ocl->device_id, NULL, NULL, &err);
     if (err) {
-        ocl->active = 0;
-        printf("clCreateContext error\n");
+        ocl->enabled = 0;
+        state_set_error(state, TAY_ERROR_OCL);
     }
 
     ocl->queue = clCreateCommandQueueWithProperties(ocl->context, ocl->device_id, 0, &err);
     if (err) {
-        ocl->active = 0;
-        printf("clCreateCommandQueueWithProperties error\n");
+        ocl->enabled = 0;
+        state_set_error(state, TAY_ERROR_OCL);
     }
 
     #endif
 }
 
-void ocl_destroy(TayState *state) {
+void ocl_disable(TayState *state) {
     #ifdef TAY_OCL
 
-    clReleaseContext(state->ocl.context);
+    if (state->ocl.enabled) {
+        clReleaseContext(state->ocl.context);
+        state->ocl.enabled = 0;
+        state->ocl.sources_count = 0;
+    }
 
     #endif
 }

@@ -6,7 +6,7 @@
 
 
 typedef struct {
-    unsigned active;
+    unsigned enabled;
     unsigned long long global_mem_size;
     unsigned long long local_mem_size;
     unsigned max_compute_units;
@@ -36,8 +36,8 @@ typedef struct TayState TayState;
 typedef struct TayGroup TayGroup;
 typedef struct TayPass TayPass;
 
-void ocl_init(TayState *state);
-void ocl_destroy(TayState *state);
+void ocl_enable(TayState *state);
+void ocl_disable(TayState *state);
 
 void ocl_on_simulation_start(TayState *state);
 void ocl_on_run_start(TayState *state);

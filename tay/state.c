@@ -14,7 +14,7 @@ TayState *tay_create_state() {
     state->error = TAY_ERROR_NONE;
     state->ms_per_step = 0.0;
     state->next_group_id = 0;
-    ocl_init(state);
+    state->ocl.enabled = 0;
     return state;
 }
 
@@ -35,8 +35,12 @@ static void _clear_group(TayGroup *group) {
 void tay_destroy_state(TayState *state) {
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         _clear_group(state->groups + i);
-    ocl_destroy(state);
+    ocl_disable(state);
     free(state);
+}
+
+void tay_state_enable_ocl(TayState *state) {
+    ocl_enable(state);
 }
 
 TayError tay_get_error(TayState *state) {
@@ -127,7 +131,7 @@ int pass_is_ocl(TayPass *pass) {
            pass->type == TAY_PASS_ACT && group_is_ocl(pass->act_group);
 }
 
-void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
+TayPass *tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
@@ -139,9 +143,10 @@ void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TA
     p->seer_group = seer_group;
     p->seen_group = seen_group;
     strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
+    return p;
 }
 
-void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *func_name, void *context, unsigned context_size) {
+TayPass *tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *func_name, void *context, unsigned context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
@@ -150,6 +155,7 @@ void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *
     p->act = func;
     p->act_group = act_group;
     strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
+    return p;
 }
 
 void *tay_get_available_agent(TayState *state, TayGroup *group) {
