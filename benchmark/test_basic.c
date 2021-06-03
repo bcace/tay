@@ -8,7 +8,7 @@
 #include <math.h>
 
 
-static void _test(ModelCase model_case, TaySpaceType space_type, float see_radius, int depth_correction, Results *results, int steps, FILE *file) {
+static void _test(ModelCase model_case, Config *config, float see_radius, int depth_correction, Results *results, int steps, FILE *file) {
     srand(1);
 
     float4 see_radii = { see_radius, see_radius, see_radius, 0.0f };
@@ -31,8 +31,11 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
     see_context.radii.z = see_radius;
 
     TayState *tay = tay_create_state();
+    tay_state_enable_ocl(tay);
     TayGroup *group = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT, TAY_TRUE);
-    tay_configure_space(tay, group, space_type, 3, part_sizes, 250);
+    tay_configure_space(tay, group, config->a_type, 3, part_sizes, 250);
+    if (config->a_ocl_enabled)
+        tay_group_enable_ocl(tay, group);
 
     tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
     tay_add_act(tay, group, agent_act, "agent_act", &act_context, sizeof(act_context));
@@ -83,7 +86,7 @@ static void _test(ModelCase model_case, TaySpaceType space_type, float see_radiu
 void test_basic(Results *results, ModelCase model_case, int steps,
                 int beg_see_radius, int end_see_radius,
                 int beg_depth_correction, int end_depth_correction,
-                int space_type_flags) {
+                Configs *configs) {
 
     FILE *file;
     #if TAY_TELEMETRY
@@ -99,43 +102,17 @@ void test_basic(Results *results, ModelCase model_case, int steps,
 
         tay_log(file, "  %g: {\n", see_radius);
 
-        if (space_type_flags & TAY_CPU_SIMPLE) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_SIMPLE));
-            _test(model_case, TAY_CPU_SIMPLE, see_radius, 0, results, steps, file);
-            tay_log(file, "    ],\n");
-        }
+        for (unsigned config_i = 0; config_i < configs->count; ++config_i) {
+            Config *config = configs->configs + config_i;
 
-        if (space_type_flags & TAY_CPU_KD_TREE) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_KD_TREE));
-            for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-                _test(model_case, TAY_CPU_KD_TREE, see_radius, j, results, steps, file);
-            tay_log(file, "    ],\n");
-        }
+            tay_log(file, "    \"%s\": [\n", space_label(config));
 
-        if (space_type_flags & TAY_CPU_GRID) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_GRID));
-            for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-                _test(model_case, TAY_CPU_GRID, see_radius, j, results, steps, file);
-            tay_log(file, "    ],\n");
-        }
+            if (space_can_depth_correct(config))
+                for (int j = beg_depth_correction; j < end_depth_correction; ++j)
+                    _test(model_case, config, see_radius, j, results, steps, file);
+            else
+                _test(model_case, config, see_radius, 0, results, steps, file);
 
-        if (space_type_flags & TAY_CPU_Z_GRID) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_Z_GRID));
-            for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-                _test(model_case, TAY_CPU_Z_GRID, see_radius, j, results, steps, file);
-            tay_log(file, "    ],\n");
-        }
-
-        if (space_type_flags & TAY_OCL_SIMPLE) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_OCL_SIMPLE));
-            _test(model_case, TAY_OCL_SIMPLE, see_radius, 0, results, steps, file);
-            tay_log(file, "    ],\n");
-        }
-
-        if (space_type_flags & TAY_OCL_GRID) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_OCL_GRID));
-            for (int j = beg_depth_correction; j < end_depth_correction; ++j)
-                _test(model_case, TAY_OCL_GRID, see_radius, j, results, steps, file);
             tay_log(file, "    ],\n");
         }
 

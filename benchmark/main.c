@@ -13,71 +13,63 @@ int main() {
 
     Results *results = results_create();
 
-#if 0
+    Configs configs;
+
+#if 1
+    spaces_init(&configs);
+    space_add_single(&configs, TAY_CPU_SIMPLE, 0);
+    space_add_single(&configs, TAY_CPU_KD_TREE, 0);
+    space_add_single(&configs, TAY_CPU_GRID, 0);
+    space_add_single(&configs, TAY_CPU_Z_GRID, 0);
+    space_add_single(&configs, TAY_CPU_SIMPLE, 1);
+    space_add_single(&configs, TAY_CPU_GRID, 1);
+
     test_basic(results, MC_UNIFORM, 100,
                0, 1, // see radius
                0, 1, // depth correction
-               // TAY_CPU_SIMPLE
-               // |
-               TAY_CPU_GRID
-               |
-               // TAY_CPU_Z_GRID
-               // |
-               // TAY_CPU_KD_TREE
-               // |
-               TAY_OCL_SIMPLE
-               |
-               TAY_OCL_GRID
-    );
-#endif
-
-#if 0
-    test_nonpoint(results, 100,
-                  0, 1, // see radius
-                  0, 1, // depth correction
-                  // TAY_CPU_SIMPLE
-                  // |
-                  // TAY_CPU_KD_TREE
-                  // |
-                  TAY_CPU_AABB_TREE
-                  |
-                  TAY_OCL_SIMPLE
-    );
+               &configs);
 #endif
 
 #if 1
-    TaySpaceType spec_pairs[] = {
-        // TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,
-        // TAY_CPU_KD_TREE, TAY_CPU_KD_TREE,
-        TAY_CPU_GRID, TAY_CPU_GRID,
-        // TAY_CPU_KD_TREE, TAY_CPU_GRID,
-        // TAY_OCL_SIMPLE, TAY_OCL_SIMPLE,
-        // TAY_OCL_GRID, TAY_OCL_GRID,
-        TAY_OCL_GRID, TAY_OCL_SIMPLE,
-        TAY_SPACE_NONE,
-    };
+    spaces_init(&configs);
+    space_add_single(&configs, TAY_CPU_SIMPLE, 0);
+    space_add_single(&configs, TAY_CPU_KD_TREE, 0);
+    space_add_single(&configs, TAY_CPU_AABB_TREE, 0);
+    space_add_single(&configs, TAY_CPU_SIMPLE, 1);
 
-    test_combo(results, 100, TAY_TRUE, TAY_TRUE,
-                0, 1, // see radius
-                0, 1, // depth correction
-                spec_pairs
-    );
+    test_nonpoint(results, 100,
+                  0, 1, // see radius
+                  0, 1, // depth correction
+                  &configs);
 #endif
 
-#if 0
-    TaySpaceType spec_pairs_nonpoint[] = {
-        // TAY_CPU_SIMPLE, TAY_CPU_SIMPLE,
-        TAY_CPU_KD_TREE, TAY_CPU_KD_TREE,
-        TAY_CPU_AABB_TREE, TAY_CPU_AABB_TREE,
-        TAY_OCL_SIMPLE, TAY_OCL_SIMPLE,
-        TAY_SPACE_NONE,
-    };
+#if 1
+    spaces_init(&configs);
+    space_add_double(&configs, TAY_CPU_SIMPLE, 0, TAY_CPU_SIMPLE, 0);
+    space_add_double(&configs, TAY_CPU_KD_TREE, 0, TAY_CPU_KD_TREE, 0);
+    space_add_double(&configs, TAY_CPU_GRID, 0, TAY_CPU_GRID, 0);
+    space_add_double(&configs, TAY_CPU_KD_TREE, 0, TAY_CPU_GRID, 0);
+    space_add_double(&configs, TAY_CPU_SIMPLE, 1, TAY_CPU_SIMPLE, 1);
+    space_add_double(&configs, TAY_CPU_GRID, 1, TAY_CPU_GRID, 1);
+    space_add_double(&configs, TAY_CPU_GRID, 1, TAY_CPU_SIMPLE, 1);
+
+    test_combo(results, 100, TAY_TRUE, TAY_TRUE,
+               0, 1, // see radius
+               0, 1, // depth correction
+               &configs);
+#endif
+
+#if 1
+    spaces_init(&configs);
+    space_add_double(&configs, TAY_CPU_SIMPLE, 0, TAY_CPU_SIMPLE, 0);
+    space_add_double(&configs, TAY_CPU_KD_TREE, 0, TAY_CPU_KD_TREE, 0);
+    space_add_double(&configs, TAY_CPU_AABB_TREE, 0, TAY_CPU_AABB_TREE, 0);
+    space_add_double(&configs, TAY_CPU_SIMPLE, 1, TAY_CPU_SIMPLE, 1);
 
     test_combo(results, 100, TAY_FALSE, TAY_FALSE,
                 0, 1, // see radius
                 0, 1, // depth correction
-                spec_pairs_nonpoint
-    );
+                &configs);
 #endif
 
     results_destroy(results);

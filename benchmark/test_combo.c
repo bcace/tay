@@ -37,7 +37,7 @@ static char *_get_act_func_name(int is_point) {
         return "box_agent_act";
 }
 
-static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_point_a, int is_point_b, int steps, float see_radius, int part_res_a, int part_res_b, Results *results, FILE *file) {
+static void _test(Config *config, int is_point_a, int is_point_b, int steps, float see_radius, int part_res_a, int part_res_b, Results *results, FILE *file) {
     srand(1);
 
     float4 see_radii = { see_radius, see_radius, see_radius, see_radius };
@@ -61,12 +61,13 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
     float distr_exp = 0.0f;
 
     TayState *tay = tay_create_state();
+    tay_state_enable_ocl(tay);
     TayGroup *group_a;
     TayGroup *group_b;
 
     if (is_point_a) {
         group_a = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_a);
-        tay_configure_space(tay, group_a, space_type_a, 3, part_sizes_a, 250);
+        tay_configure_space(tay, group_a, config->a_type, 3, part_sizes_a, 250);
 
         make_randomized_direction_cluster(tay, group_a, AGENTS_COUNT / 2,
                                           float3_make(0.0f, 0.0f, 0.0f),
@@ -74,17 +75,19 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
     }
     else {
         group_a = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT / 2, is_point_a);
-        tay_configure_space(tay, group_a, space_type_a, 3, part_sizes_a, 250);
+        tay_configure_space(tay, group_a, config->b_type, 3, part_sizes_a, 250);
 
         make_randomized_direction_cluster_nonpoint(tay, group_a, AGENTS_COUNT / 2,
                                                    float3_make(0.0f, 0.0f, 0.0f),
                                                    float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
                                                    min_size, max_size, distr_exp);
     }
+    if (config->a_ocl_enabled)
+        tay_group_enable_ocl(tay, group_a);
 
     if (is_point_b) {
         group_b = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_b);
-        tay_configure_space(tay, group_b, space_type_b, 3, part_sizes_b, 250);
+        tay_configure_space(tay, group_b, config->b_type, 3, part_sizes_b, 250);
 
         make_randomized_direction_cluster(tay,
                                           group_b,
@@ -94,13 +97,15 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
     }
     else {
         group_b = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT / 2, is_point_b);
-        tay_configure_space(tay, group_b, space_type_b, 3, part_sizes_b, 250);
+        tay_configure_space(tay, group_b, config->b_type, 3, part_sizes_b, 250);
 
         make_randomized_direction_cluster_nonpoint(tay, group_b, AGENTS_COUNT / 2,
                                                    float3_make(0.0f, 0.0f, 0.0f),
                                                    float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
                                                    min_size, max_size, distr_exp);
     }
+    if (config->b_ocl_enabled)
+        tay_group_enable_ocl(tay, group_b);
 
     tay_add_see(tay, group_a, group_a, _get_see_func(is_point_a, is_point_b), _get_see_func_name(is_point_a, is_point_b), see_radii, TAY_FALSE, 0, 0);
     tay_add_see(tay, group_a, group_b, _get_see_func(is_point_a, is_point_b), _get_see_func_name(is_point_a, is_point_b), see_radii, TAY_FALSE, 0, 0);
@@ -140,7 +145,7 @@ static void _test(TaySpaceType space_type_a, TaySpaceType space_type_b, int is_p
 void test_combo(Results *results, int steps, int is_point_a, int is_point_b,
                 int beg_see_radius, int end_see_radius,
                 int beg_depth_correction, int end_depth_correction,
-                TaySpaceType *spec_pairs) {
+                Configs *configs) {
 
     FILE *file;
     #if TAY_TELEMETRY
@@ -156,13 +161,17 @@ void test_combo(Results *results, int steps, int is_point_a, int is_point_b,
 
         tay_log(file, "  %g: {\n", see_radius);
 
-        for (int j = 0; spec_pairs[j * 2] != TAY_SPACE_NONE; ++j) {
-            TaySpaceType space_type_a = spec_pairs[j * 2];
-            TaySpaceType space_type_b = spec_pairs[j * 2 + 1];
+        for (unsigned config_i = 0; config_i < configs->count; ++config_i) {
+            Config *config = configs->configs + config_i;
 
-            tay_log(file, "    \"%s-%s\": [\n", space_type_name(space_type_a), space_type_name(space_type_b));
-            for (int k = beg_depth_correction; k < end_depth_correction; ++k)
-                _test(space_type_a, space_type_b, is_point_a, is_point_b, steps, see_radius, k, k, results, file);
+            tay_log(file, "    \"%s\": [\n", space_label(config));
+
+            if (space_can_depth_correct(config))
+                for (int dc_i = beg_depth_correction; dc_i < end_depth_correction; ++dc_i)
+                    _test(config, is_point_a, is_point_b, steps, see_radius, dc_i, dc_i, results, file);
+            else
+                _test(config, is_point_a, is_point_b, steps, see_radius, 0, 0, results, file);
+
             tay_log(file, "    ],\n");
         }
 

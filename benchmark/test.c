@@ -13,17 +13,64 @@ float4 interaction_radii_to_partition_sizes(float4 radii, int level) {
     return (float4){ radii.x * c, radii.y * c, radii.z * c, radii.w * c };
 }
 
-const char *space_type_name(TaySpaceType space_type) {
-    switch (space_type) {
-        case TAY_CPU_SIMPLE: return "CpuSimple";
-        case TAY_CPU_KD_TREE: return "CpuKdTree";
-        case TAY_CPU_AABB_TREE: return "CpuAabbTree";
-        case TAY_CPU_GRID: return "CpuGrid";
-        case TAY_CPU_Z_GRID: return "CpuZGrid";
-        case TAY_OCL_SIMPLE: return "OclSimple";
-        case TAY_OCL_GRID: return "OclGrid";
-        default: return "(None)";
+void spaces_init(Configs *configs) {
+    configs->count = 0;
+}
+
+void space_add_single(Configs *configs, TaySpaceType a_type, int a_ocl_enabled) {
+    Config *config = configs->configs + configs->count++;
+    config->a_type = a_type;
+    config->a_ocl_enabled = a_ocl_enabled;
+    config->b_type = TAY_SPACE_NONE;
+    config->b_ocl_enabled = 0;
+}
+
+void space_add_double(Configs *configs, TaySpaceType a_type, int a_ocl_enabled, TaySpaceType b_type, int b_ocl_enabled) {
+    Config *config = configs->configs + configs->count++;
+    config->a_type = a_type;
+    config->a_ocl_enabled = a_ocl_enabled;
+    config->b_type = b_type;
+    config->b_ocl_enabled = b_ocl_enabled;
+}
+
+int space_can_depth_correct(Config *config) {
+    if (config->b_type == TAY_SPACE_NONE)
+        return config->a_type != TAY_CPU_GRID;
+    else
+        return config->a_type != TAY_CPU_GRID || config->b_type != TAY_CPU_GRID;
+}
+
+const char *_space_type_name(TaySpaceType space_type, int ocl_enabled) {
+    if (space_type == TAY_SPACE_NONE)
+        return "(None)";
+    else if (ocl_enabled) {
+        switch (space_type) {
+            case TAY_CPU_GRID: return "OclGrid";
+            default: return "OclSimple";
+        }
     }
+    else {
+        switch (space_type) {
+            case TAY_CPU_SIMPLE: return "CpuSimple";
+            case TAY_CPU_KD_TREE: return "CpuKdTree";
+            case TAY_CPU_AABB_TREE: return "CpuAabbTree";
+            case TAY_CPU_GRID: return "CpuGrid";
+            case TAY_CPU_Z_GRID: return "CpuZGrid";
+            default: return "(None)";
+        }
+    }
+}
+
+char *space_label(Config *config) {
+    static char buffer[256];
+    buffer[0] = '\0';
+
+    if (config->b_type == TAY_SPACE_NONE)
+        sprintf_s(buffer, 256, "%s", _space_type_name(config->a_type, config->a_ocl_enabled));
+    else
+        sprintf_s(buffer, 256, "%s - %s", _space_type_name(config->a_type, config->a_ocl_enabled), _space_type_name(config->b_type, config->b_ocl_enabled));
+
+    return buffer;
 }
 
 Results *results_create() {

@@ -7,7 +7,7 @@
 #include <math.h>
 
 
-void _test(TaySpaceType space_type, int steps, float see_radius, int depth_correction, float min_size, float max_size, float distr_exp, Results *results, FILE *file) {
+void _test(Config *config, int steps, float see_radius, int depth_correction, float min_size, float max_size, float distr_exp, Results *results, FILE *file) {
     srand(1);
 
     float4 see_radii = { see_radius, see_radius, see_radius, see_radius };
@@ -25,8 +25,11 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
     act_context.max.z = SPACE_SIZE;
 
     TayState *tay = tay_create_state();
+    tay_state_enable_ocl(tay);
     TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT, TAY_FALSE);
-    tay_configure_space(tay, group, space_type, 3, part_sizes, 250);
+    tay_configure_space(tay, group, config->a_type, 3, part_sizes, 250);
+    if (config->a_ocl_enabled)
+        tay_group_enable_ocl(tay, group);
 
     tay_add_see(tay, group, group, box_agent_see, "box_agent_see", see_radii, TAY_FALSE, 0, 0);
     tay_add_act(tay, group, box_agent_act, "box_agent_act", &act_context, sizeof(act_context));
@@ -57,7 +60,7 @@ void _test(TaySpaceType space_type, int steps, float see_radius, int depth_corre
 void test_nonpoint(Results *results, int steps,
                    int beg_see_radius, int end_see_radius,
                    int beg_depth_correction, int end_depth_correction,
-                   int space_type_flags) {
+                   Configs *configs) {
 
     float min_size = 1.0f;
     float max_size = 50.0f;
@@ -72,34 +75,22 @@ void test_nonpoint(Results *results, int steps,
 
     tay_log(file, "data = {\n");
 
-    for (int i = beg_see_radius; i < end_see_radius; ++i) {
-        float see_radius = SMALLEST_SEE_RADIUS * (1 << i);
+    for (int see_radius_i = beg_see_radius; see_radius_i < end_see_radius; ++see_radius_i) {
+        float see_radius = SMALLEST_SEE_RADIUS * (1 << see_radius_i);
 
         tay_log(file, "  %g: {\n", see_radius);
 
-        if (space_type_flags & TAY_CPU_SIMPLE) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_SIMPLE));
-            _test(TAY_CPU_SIMPLE, steps, see_radius, 0, min_size, max_size, distr_exp, results, file);
-            tay_log(file, "    ],\n");
-        }
+        for (unsigned config_i = 0; config_i < configs->count; ++config_i) {
+            Config *config = configs->configs + config_i;
 
-        if (space_type_flags & TAY_CPU_KD_TREE) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_KD_TREE));
-            for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
-                _test(TAY_CPU_KD_TREE, steps, see_radius, depth_correction, min_size, max_size, distr_exp, results, file);
-            tay_log(file, "    ],\n");
-        }
+            tay_log(file, "    \"%s\": [\n", space_label(config));
 
-        if (space_type_flags & TAY_CPU_AABB_TREE) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_CPU_AABB_TREE));
-            for (int depth_correction = beg_depth_correction; depth_correction < end_depth_correction; ++depth_correction)
-                _test(TAY_CPU_AABB_TREE, steps, see_radius, depth_correction, min_size, max_size, distr_exp, results, file);
-            tay_log(file, "    ],\n");
-        }
+            if (space_can_depth_correct(config))
+                for (int dc_i = beg_depth_correction; dc_i < end_depth_correction; ++dc_i)
+                    _test(config, steps, see_radius, dc_i, min_size, max_size, distr_exp, results, file);
+            else
+                _test(config, steps, see_radius, 0, min_size, max_size, distr_exp, results, file);
 
-        if (space_type_flags & TAY_OCL_SIMPLE) {
-            tay_log(file, "    \"%s\": [\n", space_type_name(TAY_OCL_SIMPLE));
-            _test(TAY_OCL_SIMPLE, steps, see_radius, 0, min_size, max_size, distr_exp, results, file);
             tay_log(file, "    ],\n");
         }
 
