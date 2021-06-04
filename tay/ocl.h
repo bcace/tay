@@ -78,6 +78,8 @@ char *ocl_text_reserve(OclText *text, unsigned length);
 void ocl_text_add_end_of_string(OclText *text);
 
 /* OpenCL wrappers */
+void *ocl_create_kernel(TayState *state, char *name);
+void *ocl_create_program(TayState *state, OclText *text);
 void *ocl_create_read_write_buffer(TayState *state, unsigned size);
 void *ocl_create_read_only_buffer(TayState *state, unsigned size);
 int ocl_read_buffer_blocking(TayState *state, void *ocl_buffer, void *buffer, unsigned size);
@@ -89,5 +91,7 @@ int ocl_set_buffer_kernel_arg(TayState *state, unsigned arg_index, void *kernel,
 int ocl_set_value_kernel_arg(TayState *state, unsigned arg_index, void *kernel, void *value, unsigned value_size);
 int ocl_run_kernel(TayState *state, void *kernel, unsigned global_size, unsigned local_size);
 int ocl_finish(TayState *state);
+void ocl_release_program(void *program);
+void ocl_release_buffer(void *buffer);
 
 #endif

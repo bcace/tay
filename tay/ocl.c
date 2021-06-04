@@ -164,22 +164,9 @@ kernel void %s(global char *a, constant void *c) {\n\
 }
 
 int ocl_get_pass_kernel(TayState *state, TayPass *pass) {
-    #ifdef TAY_OCL
-
-    TayOcl *ocl = &state->ocl;
-    cl_int err;
-
-    pass->pass_kernel = clCreateKernel(ocl->program, ocl_get_kernel_name(pass), &err);
-    if (err) {
-        tay_set_error2(state, TAY_ERROR_OCL, "pass kernel clCreateKernel error");
+    pass->pass_kernel = ocl_create_kernel(state, ocl_get_kernel_name(pass));
+    if (!pass->pass_kernel)
         return 0;
-    }
-
-    return 1;
-
-    #else
-    return 0;
-    #endif
 }
 
 void ocl_text_append(OclText *text, char *fmt, ...) {
@@ -250,10 +237,7 @@ int ocl_create_buffers(TayState *state) {
 }
 
 int ocl_compile_program(TayState *state) {
-    #ifdef TAY_OCL
-
     TayOcl *ocl = &state->ocl;
-    cl_int err;
 
     static OclText text;
     if (text.text == 0) { /* alloc once for the entire process and never dealloc */
@@ -334,26 +318,11 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
     ocl_text_add_end_of_string(&text);
 
     /* create and compile program */
-    ocl->program = clCreateProgramWithSource(ocl->context, 1, &text.text, 0, &err);
-    if (err) {
-        tay_set_error2(state, TAY_ERROR_OCL, "OCL program compile clCreateProgramWithSource error");
+    ocl->program = ocl_create_program(state, &text);
+    if (!ocl->program)
         return 0;
-    }
-
-    err = clBuildProgram(ocl->program, 1, &(cl_device_id)ocl->device_id, 0, 0, 0);
-    if (err) {
-        clGetProgramBuildInfo(ocl->program, ocl->device_id, CL_PROGRAM_BUILD_LOG, text.max_length - text.length, text.text + text.length, 0);
-        fprintf(stderr, text.text + text.length);
-
-        tay_set_error2(state, TAY_ERROR_OCL, "OCL program compile clBuildProgram error");
-        return 0;
-    }
 
     return 1;
-
-    #else
-    return 0;
-    #endif
 }
 
 void ocl_on_simulation_end(TayState *state) {
@@ -361,7 +330,7 @@ void ocl_on_simulation_end(TayState *state) {
     if (!ocl->enabled)
         return;
 
-    clReleaseProgram(ocl->program);
+    ocl_release_program(ocl->program);
 
     /* release agent and space buffers */
 
@@ -372,9 +341,9 @@ void ocl_on_simulation_end(TayState *state) {
             continue;
 
         if (group_is_ocl(group)) {
-            clReleaseMemObject(group->space.ocl_common.agent_buffer);
-            clReleaseMemObject(group->space.ocl_common.agent_sort_buffer);
-            clReleaseMemObject(group->space.ocl_common.space_buffer);
+            ocl_release_buffer(group->space.ocl_common.agent_buffer);
+            ocl_release_buffer(group->space.ocl_common.agent_sort_buffer);
+            ocl_release_buffer(group->space.ocl_common.space_buffer);
         }
     }
 
@@ -384,7 +353,7 @@ void ocl_on_simulation_end(TayState *state) {
         TayPass *pass = state->passes + pass_i;
 
         if (pass_is_ocl(pass))
-            clReleaseMemObject(pass->context_buffer);
+            ocl_release_buffer(pass->context_buffer);
     }
 }
 
@@ -517,6 +486,20 @@ char *ocl_get_kernel_name(TayPass *pass) {
 **
 ** If they return 0 that's an error. Mostly they return either a void ptr as buffer or int as a bool.
 */
+
+void *ocl_create_kernel(TayState *state, char *name) {
+#ifdef TAY_OCL
+    cl_int err;
+    void *kernel = clCreateKernel(state->ocl.program, name, &err);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateKernel");
+        return 0;
+    }
+    return kernel;
+#else
+    return 0;
+#endif
+}
 
 int ocl_read_buffer_blocking(TayState *state, void *ocl_buffer, void *buffer, unsigned size) {
 #ifdef TAY_OCL
@@ -664,6 +647,40 @@ void *ocl_create_read_only_buffer(TayState *state, unsigned size) {
         return 0;
     }
     return buffer;
+#else
+    return 0;
+#endif
+}
+
+void ocl_release_program(void *program) {
+#ifdef TAY_OCL
+    clReleaseProgram(program);
+#endif
+}
+
+void ocl_release_buffer(void *buffer) {
+#ifdef TAY_OCL
+    clReleaseMemObject(buffer);
+#endif
+}
+
+void *ocl_create_program(TayState *state, OclText *text) {
+#ifdef TAY_OCL
+    cl_int err;
+    void *program = clCreateProgramWithSource(state->ocl.context, 1, &text->text, 0, &err);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateProgramWithSource");
+        return 0;
+    }
+    err = clBuildProgram(program, 1, &(cl_device_id)state->ocl.device_id, 0, 0, 0);
+    if (err) {
+        clGetProgramBuildInfo(program, state->ocl.device_id, CL_PROGRAM_BUILD_LOG,
+                              text->max_length - text->length, text->text + text->length, 0);
+        fprintf(stderr, text->text + text->length);
+        tay_set_error2(state, TAY_ERROR_OCL, "clGetProgramBuildInfo");
+        return 0;
+    }
+    return program;
 #else
     return 0;
 #endif
