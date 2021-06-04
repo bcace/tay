@@ -247,44 +247,63 @@ kernel void grid_reset_cells(global OclGrid *grid) {\n\
     #endif
 }
 
-void ocl_grid_get_kernels(TayState *state) {
+int ocl_grid_get_kernels(TayState *state) {
     #ifdef TAY_OCL
 
     TayOcl *ocl = &state->ocl;
     cl_int err;
 
     ocl->grid_sort_kernels[0] = clCreateKernel(ocl->program, "grid_sort_kernel_0", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel_0)\n");
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateKernel error (grid_sort_kernel_0)");
+        return 0;
+    }
 
     ocl->grid_sort_kernels[1] = clCreateKernel(ocl->program, "grid_sort_kernel_1", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel_1)\n");
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateKernel error (grid_sort_kernel_1)");
+        return 0;
+    }
 
     ocl->grid_sort_kernels[2] = clCreateKernel(ocl->program, "grid_sort_kernel_2", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel_2)\n");
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateKernel error (grid_sort_kernel_2)");
+        return 0;
+    }
 
     ocl->grid_sort_kernels[3] = clCreateKernel(ocl->program, "grid_sort_kernel_3", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel_3)\n");
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateKernel error (grid_sort_kernel_3)");
+        return 0;
+    }
 
     ocl->grid_sort_kernels[4] = clCreateKernel(ocl->program, "grid_sort_kernel_4", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel_4)\n");
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateKernel error (grid_sort_kernel_4)");
+        return 0;
+    }
 
     ocl->grid_sort_kernels[5] = clCreateKernel(ocl->program, "grid_sort_kernel_5", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel_5)\n");
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateKernel error (grid_sort_kernel_5)");
+        return 0;
+    }
 
     ocl->grid_sort_kernels[6] = clCreateKernel(ocl->program, "grid_sort_kernel_6", &err);
-    if (err)
-        printf("clCreateKernel error (grid_sort_kernel_6)\n");
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateKernel error (grid_sort_kernel_6)");
+        return 0;
+    }
 
     ocl->grid_reset_cells = clCreateKernel(ocl->program, "grid_reset_cells", &err);
-    if (err)
-        printf("clCreateKernel error (grid_reset_cells)\n");
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateKernel error (grid_reset_cells)");
+        return 0;
+    }
 
+    return 1;
+    #else
+    return 0;
     #endif
 }
 

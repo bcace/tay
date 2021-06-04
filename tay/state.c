@@ -135,8 +135,8 @@ int group_is_ocl(TayGroup *group) {
 }
 
 int pass_is_ocl(TayPass *pass) {
-    return pass->type == TAY_PASS_SEE && group_is_ocl(pass->seer_group) && group_is_ocl(pass->seen_group) ||
-           pass->type == TAY_PASS_ACT && group_is_ocl(pass->act_group);
+    return pass->type == TAY_PASS_SEE && pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled ||
+           pass->type == TAY_PASS_ACT && pass->act_group->ocl_enabled;
 }
 
 TayPass *tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
@@ -182,87 +182,23 @@ void *tay_get_agent(TayState *state, TayGroup *group, int index) {
     // ERROR: check group
     return group->storage + group->agent_size * index;
 }
-
-static void _compile_passes(TayState *state) {
-
-    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
-        TayPass *pass = state->passes + pass_i;
-
-        if (pass->type == TAY_PASS_SEE) {
-            Space *seer_space = &pass->seer_group->space;
-            Space *seen_space = &pass->seen_group->space;
-            int seer_is_point = pass->seer_group->is_point;
-            int seen_is_point = pass->seen_group->is_point;
-
-            if (seer_space->dims == seen_space->dims) {
-
-                if (pass->seer_group == pass->seen_group) {
-                    if (pass->self_see)
-                        pass->pairing_func = (seer_is_point) ? space_see_point_point_self_see : space_see_nonpoint_nonpoint_self_see;
-                    else
-                        pass->pairing_func = (seer_is_point) ? space_see_point_point : space_see_nonpoint_nonpoint;
-                }
-                else {
-                    if (seer_is_point == seen_is_point)
-                        pass->pairing_func = (seer_is_point) ? space_see_point_point_self_see : space_see_nonpoint_nonpoint_self_see;
-                    else
-                        pass->pairing_func = (seer_is_point) ? space_see_point_nonpoint : space_see_nonpoint_point;
-                }
-
-                if (seen_space->type == TAY_CPU_SIMPLE)
-                    pass->seen_func = cpu_simple_see_seen;
-                else if (seen_space->type == TAY_CPU_KD_TREE)
-                    pass->seen_func = cpu_kd_tree_see_seen;
-                else if (seen_space->type == TAY_CPU_AABB_TREE)
-                    pass->seen_func = cpu_aabb_tree_see_seen;
-                else if (seen_space->type == TAY_CPU_GRID)
-                    pass->seen_func = cpu_grid_see_seen;
-                else if (seen_space->type == TAY_CPU_Z_GRID)
-                    pass->seen_func = cpu_z_grid_see_seen;
-            }
-            else {
-                tay_set_error(state, TAY_ERROR_NOT_IMPLEMENTED);
-                return;
-            }
-        }
-    }
-}
-
 void tay_simulation_start(TayState *state) {
-    assert(state->running == TAY_STATE_STATUS_IDLE); // ERROR: this assert
+    if (state->running != TAY_STATE_STATUS_IDLE) {
+        tay_set_error2(state, TAY_ERROR_STATE_STATUS, "cannot start simulation if it's already running");
+        return;
+    }
 
     if (!state_compile(state))
         return;
 
     state->running = TAY_STATE_STATUS_RUNNING;
-
-    _compile_passes(state);
-    if (tay_get_error(state))
-        return;
-
-    for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-        TayGroup *group = state->groups + group_i;
-
-        if (group_is_inactive(group) || group->ocl_enabled)
-            continue;
-
-        Space *space = &group->space;
-        if (space->type == TAY_CPU_KD_TREE)
-            cpu_tree_on_simulation_start(space);
-        else if (space->type == TAY_CPU_GRID)
-            cpu_grid_on_simulation_start(space);
-        else if (space->type == TAY_CPU_Z_GRID)
-            cpu_z_grid_on_simulation_start(space);
-    }
-
-    ocl_on_simulation_start(state);
 }
 
 /* Returns the number of steps executed */
 int tay_run(TayState *state, int steps) {
 
     if (state->running != TAY_STATE_STATUS_RUNNING) {
-        tay_set_error(state, TAY_ERROR_STATE_STATUS);
+        tay_set_error2(state, TAY_ERROR_STATE_STATUS, "cannot run simulation steps if simulation is not started");
         return 0;
     }
 

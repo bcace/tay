@@ -172,23 +172,23 @@ kernel void %s(global char *a, constant void *c) {\n\
     #endif
 }
 
-static void _get_pass_kernel(TayState *state, TayPass *pass) {
+int ocl_get_pass_kernel(TayState *state, TayPass *pass) {
     #ifdef TAY_OCL
 
     TayOcl *ocl = &state->ocl;
     cl_int err;
 
     pass->pass_kernel = clCreateKernel(ocl->program, ocl_get_kernel_name(pass), &err);
-    if (err)
-        printf("clCreateKernel error\n");
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "pass kernel clCreateKernel error");
+        return 0;
+    }
 
+    return 1;
+
+    #else
+    return 0;
     #endif
-}
-
-void ocl_text_init(OclText *text, unsigned max_length) {
-    text->max_length = max_length;
-    text->length = 0;
-    text->text = calloc(1, text->max_length);
 }
 
 void ocl_text_append(OclText *text, char *fmt, ...) {
@@ -205,12 +205,7 @@ char *ocl_text_reserve(OclText *text, unsigned length) {
 }
 
 void ocl_text_add_end_of_string(OclText *text) {
-    text->text[text->length] = '\0';
-}
-
-void ocl_text_destroy(OclText *text) {
-    free(text->text);
-    text->text = 0;
+    text->text[text->length++] = '\0';
 }
 
 void ocl_add_seen_text(OclText *text, TayPass *pass, int dims) {
@@ -221,67 +216,85 @@ void ocl_add_seen_text(OclText *text, TayPass *pass, int dims) {
         ocl_simple_add_seen_text(text, pass, dims);
 }
 
-void ocl_on_simulation_start(TayState *state) {
+int ocl_create_buffers(TayState *state) {
     #ifdef TAY_OCL
-
-    if (!state->ocl.enabled)
-        return;
 
     TayOcl *ocl = &state->ocl;
     cl_int err;
 
     /* create agent and space buffers */
-
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
         if (group_is_inactive(group) || !group->ocl_enabled)
             continue;
 
-        if (group_is_ocl(group)) {
-            OclCommon *ocl_common = &group->space.ocl_common;
+        OclCommon *ocl_common = &group->space.ocl_common;
 
-            ocl_common->agent_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->capacity * group->agent_size, NULL, &err);
-            if (err)
-                printf("clCreateBuffer error (agent buffer)\n");
-
-            ocl_common->agent_sort_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->capacity * group->agent_size, NULL, &err);
-            if (err)
-                printf("clCreateBuffer error (agent sort buffer)\n");
-
-            ocl_common->space_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->space.shared_size, NULL, &err);
-            if (err)
-                printf("clCreateBuffer error (space buffer)\n");
-
-            cl_int pattern = 0;
-            err = clEnqueueFillBuffer(ocl->queue, ocl_common->space_buffer, &pattern, sizeof(pattern), 0, group->space.shared_size, 0, 0, 0);
-            if (err)
-                printf("clEnqueueFillBuffer error (space buffer)\n");
-
-            ocl_common->push_agents = 1;
+        ocl_common->agent_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->capacity * group->agent_size, NULL, &err);
+        if (err) {
+            tay_set_error2(state, TAY_ERROR_OCL, "clCreateBuffer error (agent buffer)");
+            return 0;
         }
+
+        ocl_common->agent_sort_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->capacity * group->agent_size, NULL, &err);
+        if (err) {
+            tay_set_error2(state, TAY_ERROR_OCL, "clCreateBuffer error (agent sort buffer)");
+            return 0;
+        }
+
+        ocl_common->space_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->space.shared_size, NULL, &err);
+        if (err) {
+            tay_set_error2(state, TAY_ERROR_OCL, "clCreateBuffer error (space buffer)");
+            return 0;
+        }
+
+        cl_int pattern = 0;
+        err = clEnqueueFillBuffer(ocl->queue, ocl_common->space_buffer, &pattern, sizeof(pattern), 0, group->space.shared_size, 0, 0, 0);
+        if (err) {
+            tay_set_error2(state, TAY_ERROR_OCL, "clEnqueueFillBuffer error (space buffer)");
+            return 0;
+        }
+
+        ocl_common->push_agents = 1;
     }
 
     /* create pass context buffers */
-
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
         if (pass_is_ocl(pass)) {
             if (pass->context_size) {
                 pass->context_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_ONLY, pass->context_size, NULL, &err);
-                if (err)
-                    printf("clCreateBuffer error (context buffer)\n");
+                if (err) {
+                    tay_set_error2(state, TAY_ERROR_OCL, "clCreateBuffer error (context buffer)\n");
+                    return 0;
+                }
             }
             else
                 pass->context_buffer = 0;
         }
     }
 
-    /* compose source */
+    return 1;
+    #else
+    return 0;
+    #endif
+}
 
-    OclText text;
-    ocl_text_init(&text, 100000);
+int ocl_compile_program(TayState *state) {
+    #ifdef TAY_OCL
+
+    TayOcl *ocl = &state->ocl;
+    cl_int err;
+
+    static OclText text;
+    if (text.text == 0) { /* alloc once for the entire process and never dealloc */
+        text.max_length = 100000;
+        text.text = calloc(1, text.max_length);
+    }
+    text.text[0] = '\0';
+    text.length = 0;
 
     ocl_text_append(&text, "\n\
 #define float4_agent_position(__agent_tag__) (*(global float4 *)((global TayAgentTag *)(__agent_tag__) + 1))\n\
@@ -314,7 +327,6 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
 \n");
 
     /* add agent model source text */
-
     for (unsigned source_i = 0; source_i < ocl->sources_count; ++source_i) {
         FILE *file;
         fopen_s(&file, ocl->sources[source_i], "rb");
@@ -326,11 +338,11 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
     }
 
     /* add sort kernel texts */
-
-    ocl_grid_add_kernel_texts(&text);
+    {
+        ocl_grid_add_kernel_texts(&text);
+    }
 
     /* add space kernel texts */
-
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
@@ -356,38 +368,25 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
     ocl_text_add_end_of_string(&text);
 
     /* create and compile program */
-
     ocl->program = clCreateProgramWithSource(ocl->context, 1, &text.text, 0, &err);
-    if (err)
-        printf("clCreateProgramWithSource error\n");
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "OCL program compile clCreateProgramWithSource error");
+        return 0;
+    }
 
     err = clBuildProgram(ocl->program, 1, &(cl_device_id)ocl->device_id, 0, 0, 0);
     if (err) {
-        static char build_log[10024];
-        clGetProgramBuildInfo(ocl->program, ocl->device_id, CL_PROGRAM_BUILD_LOG, 10024, build_log, 0);
-        fprintf(stderr, build_log);
+        clGetProgramBuildInfo(ocl->program, ocl->device_id, CL_PROGRAM_BUILD_LOG, text.max_length - text.length, text.text + text.length, 0);
+        fprintf(stderr, text.text + text.length);
+
+        tay_set_error2(state, TAY_ERROR_OCL, "OCL program compile clBuildProgram error");
+        return 0;
     }
 
-    ocl_text_destroy(&text);
+    return 1;
 
-    /* get pass kernels from compiled program */
-
-    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
-        TayPass *pass = state->passes + pass_i;
-
-        if (!pass_is_ocl(pass))
-            continue;
-
-        if (pass->type == TAY_PASS_SEE)
-            _get_pass_kernel(state, pass);
-        else if (pass->type == TAY_PASS_ACT)
-            _get_pass_kernel(state, pass);
-    }
-
-    /* get other kernels */
-
-    ocl_grid_get_kernels(state);
-
+    #else
+    return 0;
     #endif
 }
 
