@@ -11,6 +11,5 @@
 
 /* switches */
 #define TAY_TELEMETRY   0
-#define TAY_OCL
 
 #endif

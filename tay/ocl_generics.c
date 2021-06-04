@@ -11,8 +11,6 @@ const char *_NARROW_NONPOINT_POINT[];
 const char *_NARROW_NONPOINT_NONPOINT[];
 
 const char *ocl_get_seer_agent_text(TayPass *pass) {
-    #ifdef TAY_OCL
-
     if (pass->seer_group->is_point)
         return "\
     global void *a = a_agents + a_size * a_i;\n\
@@ -26,19 +24,11 @@ const char *ocl_get_seer_agent_text(TayPass *pass) {
     float4 a_max = float4_agent_max(a);\n\
     float4 box_min = a_min - radii;\n\
     float4 box_max = a_max + radii;\n";
-
-    #else
-
-    return "";
-
-    #endif
 }
 
 char *ocl_get_coupling_text(TayPass *pass, int dims) {
     static char text[_MAX_GENERICS_TEXT_SIZE];
     text[0] = '\0';
-
-    #ifdef TAY_OCL
 
     const char *seen_position;
     if (pass->seen_group->is_point)
@@ -78,8 +68,6 @@ for (unsigned b_i = b_beg; b_i < b_end; ++b_i) { /* pairing loop */\n\
     SKIP_SEE:;\n\
 } /* pairing loop */\n",
     seen_position, self_see, narrow_phase, pass->func_name);
-
-    #endif
 
     return text;
 }

@@ -14,10 +14,14 @@ typedef struct {
     unsigned long long max_work_item_sizes[4];
     unsigned long long max_workgroup_size;
 
-    void *device_id;
+    void *device;
     void *context;
     void *queue;
     void *program;
+} OclDevice;
+
+typedef struct {
+    OclDevice device;
 
     char sources[OCL_MAX_SOURCES][OCL_MAX_PATH];
     unsigned sources_count;
@@ -72,14 +76,14 @@ int ocl_grid_get_kernels(TayState *state);
 /* ocl_generics.c */
 const char *ocl_get_seer_agent_text(TayPass *pass);
 char *ocl_get_coupling_text(TayPass *pass, int dims);
-
 void ocl_text_append(OclText *text, char *fmt, ...);
 char *ocl_text_reserve(OclText *text, unsigned length);
 void ocl_text_add_end_of_string(OclText *text);
 
-/* OpenCL wrappers */
-void *ocl_create_kernel(TayState *state, char *name);
+/* ocl_wrappers.c */
+int ocl_find_device(OclDevice *device);
 void *ocl_create_program(TayState *state, OclText *text);
+void *ocl_create_kernel(TayState *state, char *name);
 void *ocl_create_read_write_buffer(TayState *state, unsigned size);
 void *ocl_create_read_only_buffer(TayState *state, unsigned size);
 int ocl_read_buffer_blocking(TayState *state, void *ocl_buffer, void *buffer, unsigned size);

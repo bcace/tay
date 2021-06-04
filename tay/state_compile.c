@@ -19,10 +19,10 @@ int state_compile(TayState *state) {
                 ++ocl_groups_count;
         }
 
-        if (ocl_groups_count && !state->ocl.enabled) {
+        if (ocl_groups_count && !state->ocl.device.enabled) {
             ocl_enable(state);
 
-            if (!state->ocl.enabled) {
+            if (!state->ocl.device.enabled) {
                 tay_set_error2(state, TAY_ERROR_OCL, "found an OCL structure, but the OCL context is disabled");
                 return 0;
             }
