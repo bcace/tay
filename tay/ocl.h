@@ -41,8 +41,6 @@ void ocl_init(TayState *state);
 void ocl_enable(TayState *state);
 void ocl_disable(TayState *state);
 
-TaySpaceType ocl_interpret_space_type(TaySpaceType type);
-
 int ocl_get_pass_kernel(TayState *state, TayPass *pass);
 
 int ocl_create_buffers(TayState *state);
@@ -78,5 +76,13 @@ char *ocl_get_coupling_text(TayPass *pass, int dims);
 void ocl_text_append(OclText *text, char *fmt, ...);
 char *ocl_text_reserve(OclText *text, unsigned length);
 void ocl_text_add_end_of_string(OclText *text);
+
+/* OpenCL wrappers */
+int ocl_read_buffer_blocking(TayState *state, void *ocl_buffer, void *buffer, unsigned size);
+int ocl_read_buffer_non_blocking(TayState *state, void *ocl_buffer, void *buffer, unsigned size);
+int ocl_set_buffer_kernel_arg(TayState *state, unsigned arg_index, void *kernel, void **buffer);
+int ocl_set_value_kernel_arg(TayState *state, unsigned arg_index, void *kernel, void *value, unsigned value_size);
+int ocl_run_kernel(TayState *state, void *kernel, unsigned global_size, unsigned local_size);
+int ocl_finish(TayState *state);
 
 #endif

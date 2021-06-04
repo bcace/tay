@@ -147,15 +147,6 @@ void ocl_disable(TayState *state) {
     #endif
 }
 
-TaySpaceType ocl_interpret_space_type(TaySpaceType type) {
-    if (type == TAY_SPACE_NONE)
-        return type;
-    else if (type == TAY_CPU_GRID)
-        return type;
-    else
-        return TAY_CPU_SIMPLE; /* ocl fallback space type */
-}
-
 static void _add_act_kernel_text(TayPass *pass, OclText *text) {
     #ifdef TAY_OCL
 
@@ -209,8 +200,7 @@ void ocl_text_add_end_of_string(OclText *text) {
 }
 
 void ocl_add_seen_text(OclText *text, TayPass *pass, int dims) {
-    TaySpaceType seen_type = ocl_interpret_space_type(pass->seen_group->space.type);
-    if (seen_type == TAY_CPU_GRID)
+    if (pass->seen_group->space.type == TAY_CPU_GRID)
         ocl_grid_add_seen_text(text, pass, dims);
     else
         ocl_simple_add_seen_text(text, pass, dims);
@@ -354,9 +344,8 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
             Space *seen_space = &pass->seen_group->space;
 
             int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
-            TaySpaceType seer_type = ocl_interpret_space_type(seer_space->type);
 
-            if (seer_type == TAY_CPU_GRID)
+            if (seer_space->type == TAY_CPU_GRID)
                 ocl_grid_add_see_kernel_text(&text, pass, min_dims);
             else
                 ocl_simple_add_see_kernel_text(&text, pass, min_dims);
@@ -484,8 +473,6 @@ void ocl_on_run_end(TayState *state) {
 }
 
 void ocl_sort(TayState *state) {
-    #ifdef TAY_OCL
-
     if (!state->ocl.enabled)
         return;
 
@@ -495,18 +482,12 @@ void ocl_sort(TayState *state) {
         if (group_is_inactive(group) || !group->ocl_enabled)
             continue;
 
-        TaySpaceType type = ocl_interpret_space_type(group->space.type);
-
-        if (type == TAY_CPU_GRID)
+        if (group->space.type == TAY_CPU_GRID)
             ocl_grid_run_sort_kernel(state, group);
     }
-
-    #endif
 }
 
 void ocl_unsort(TayState *state) {
-    #ifdef TAY_OCL
-
     if (!state->ocl.enabled)
         return;
 
@@ -516,123 +497,60 @@ void ocl_unsort(TayState *state) {
         if (group_is_inactive(group) || !group->ocl_enabled)
             continue;
 
-        TaySpaceType type = ocl_interpret_space_type(group->space.type);
-
-        if (type == TAY_CPU_GRID)
+        if (group->space.type == TAY_CPU_GRID)
             ocl_grid_run_unsort_kernel(state, group);
     }
-
-    #endif
 }
 
 void ocl_run_see_kernel(TayState *state, TayPass *pass) {
-    #ifdef TAY_OCL
-
     if (!state->ocl.enabled)
         return;
-
-    TayOcl *ocl = &state->ocl;
-    cl_int err;
-
-    err = clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->seer_group->space.ocl_common.agent_buffer);
-    if (err)
-        printf("clSetKernelArg error (agent buffer)\n");
-
-    err = clSetKernelArg(pass->pass_kernel, 1, sizeof(void *), &pass->seen_group->space.ocl_common.agent_buffer);
-    if (err)
-        printf("clSetKernelArg error (agent buffer)\n");
-
-    err = clSetKernelArg(pass->pass_kernel, 2, sizeof(void *), &pass->context_buffer);
-    if (err)
-        printf("clSetKernelArg error (context buffer)\n");
-
-    err = clSetKernelArg(pass->pass_kernel, 3, sizeof(pass->radii), &pass->radii);
-    if (err)
-        printf("clSetKernelArg error (radii)\n");
-
-    err = clSetKernelArg(pass->pass_kernel, 4, sizeof(void *), &pass->seen_group->space.ocl_common.space_buffer);
-    if (err)
-        printf("clSetKernelArg error (space buffer)\n");
-
-    unsigned long long global_work_size = pass->seer_group->space.count;
-
-    err = clEnqueueNDRangeKernel(ocl->queue, pass->pass_kernel, 1, 0, &global_work_size, 0, 0, 0, 0);
-    if (err)
-        printf("clEnqueueNDRangeKernel error\n");
-
-    err = clFinish(ocl->queue);
-    if (err)
-        printf("clFinish error\n");
-
-    #endif
+    if (!ocl_set_buffer_kernel_arg(state, 0, pass->pass_kernel, &pass->seer_group->space.ocl_common.agent_buffer))
+        return;
+    if (!ocl_set_buffer_kernel_arg(state, 1, pass->pass_kernel, &pass->seen_group->space.ocl_common.agent_buffer))
+        return;
+    if (!ocl_set_buffer_kernel_arg(state, 2, pass->pass_kernel, &pass->context_buffer))
+        return;
+    if (!ocl_set_value_kernel_arg(state, 3, pass->pass_kernel, &pass->radii, sizeof(pass->radii)))
+        return;
+    if (!ocl_set_buffer_kernel_arg(state, 4, pass->pass_kernel, &pass->seen_group->space.ocl_common.space_buffer))
+        return;
+    if (!ocl_run_kernel(state, pass->pass_kernel, pass->seer_group->space.count, 0))
+        return;
+    ocl_finish(state);
 }
 
 void ocl_run_act_kernel(TayState *state, TayPass *pass) {
-    #ifdef TAY_OCL
-
-    if (!state->ocl.enabled)
+    if (!state->ocl.enabled) // TODO: we shouldn't have to check this, compile step should take care of this
         return;
-
-    TayOcl *ocl = &state->ocl;
-    cl_int err;
-
-    err = clSetKernelArg(pass->pass_kernel, 0, sizeof(void *), &pass->act_group->space.ocl_common.agent_buffer);
-    if (err)
-        printf("clSetKernelArg error (agent buffer)\n");
-
-    err = clSetKernelArg(pass->pass_kernel, 1, sizeof(void *), &pass->context_buffer);
-    if (err)
-        printf("clSetKernelArg error (context buffer)\n");
-
-    unsigned long long global_work_size = pass->act_group->space.count;
-
-    err = clEnqueueNDRangeKernel(ocl->queue, pass->pass_kernel, 1, 0, &global_work_size, 0, 0, 0, 0);
-    if (err)
-        printf("clEnqueueNDRangeKernel error\n");
-
-    err = clFinish(ocl->queue);
-    if (err)
-        printf("clFinish error\n");
-
-    #endif
+    if (!ocl_set_buffer_kernel_arg(state, 0, pass->pass_kernel, &pass->act_group->space.ocl_common.agent_buffer))
+        return;
+    if (!ocl_set_buffer_kernel_arg(state, 1, pass->pass_kernel, &pass->context_buffer))
+        return;
+    if (!ocl_run_kernel(state, pass->pass_kernel, pass->act_group->space.count, 0))
+        return;
+    ocl_finish(state);
 }
 
 void ocl_fetch_agents(TayState *state) {
-    #ifdef TAY_OCL
-
-    cl_int err;
-
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group))
+        if (group_is_inactive(group) || !group->ocl_enabled)
             continue;
 
-        if (group_is_ocl(group)) {
-            OclCommon *ocl_common = &group->space.ocl_common;
-
-            err = clEnqueueReadBuffer(state->ocl.queue, ocl_common->agent_buffer, CL_NON_BLOCKING, 0, group->space.count * group->agent_size, group->storage, 0, 0, 0);
-            if (err)
-                printf("clEnqueueReadBuffer error\n");
-        }
+        ocl_read_buffer_non_blocking(state, group->space.ocl_common.agent_buffer, group->storage, group->space.count * group->agent_size);
     }
 
-    clFinish(state->ocl.queue);
-
-    #endif
+    ocl_finish(state);
 }
 
 void ocl_add_source(TayState *state, const char *path) {
-    #ifdef TAY_OCL
-
     TayOcl *ocl = &state->ocl;
-
     if (ocl->sources_count < OCL_MAX_SOURCES) {
         strcpy_s(ocl->sources[ocl->sources_count], OCL_MAX_PATH, path);
         ++ocl->sources_count;
     }
-
-    #endif
 }
 
 char *ocl_get_kernel_name(TayPass *pass) {
@@ -643,3 +561,96 @@ char *ocl_get_kernel_name(TayPass *pass) {
         sprintf_s(kernel_name, TAY_MAX_FUNC_NAME + 32, "%s_kernel_%u", pass->func_name, pass->act_group->id);
     return kernel_name;
 }
+
+/*
+** OpenCL wrappers
+**
+** If they return 0 that's an error. Mostly they return either a void ptr as buffer or int as a bool.
+*/
+
+int ocl_read_buffer_blocking(TayState *state, void *ocl_buffer, void *buffer, unsigned size) {
+#ifdef TAY_OCL
+    cl_int err = clEnqueueReadBuffer(state->ocl.queue, ocl_buffer, CL_BLOCKING, 0, size, buffer, 0, 0, 0);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clEnqueueReadBuffer");
+        return 0;
+    }
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ocl_read_buffer_non_blocking(TayState *state, void *ocl_buffer, void *buffer, unsigned size) {
+#ifdef TAY_OCL
+    cl_int err = clEnqueueReadBuffer(state->ocl.queue, ocl_buffer, CL_NON_BLOCKING, 0, size, buffer, 0, 0, 0);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clEnqueueReadBuffer");
+        return 0;
+    }
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ocl_finish(TayState *state) {
+#ifdef TAY_OCL
+    cl_int err = clFinish(state->ocl.queue);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clFinish");
+        return 0;
+    }
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ocl_set_buffer_kernel_arg(TayState *state, unsigned arg_index, void *kernel, void **buffer) {
+#ifdef TAY_OCL
+    cl_int err = clSetKernelArg(kernel, arg_index, sizeof(void *), buffer);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clSetKernelArg");
+        return 0;
+    }
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ocl_set_value_kernel_arg(TayState *state, unsigned arg_index, void *kernel, void *value, unsigned value_size) {
+#ifdef TAY_OCL
+    cl_int err = clSetKernelArg(kernel, arg_index, value_size, value);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clSetKernelArg");
+        return 0;
+    }
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ocl_run_kernel(TayState *state, void *kernel, unsigned global_size, unsigned local_size) {
+#ifdef TAY_OCL
+    static unsigned long long global_size_l;
+    global_size_l = global_size;
+    static unsigned long long local_size_l;
+    local_size_l = local_size;
+    cl_int err = clEnqueueNDRangeKernel(state->ocl.queue, kernel, 1, 0, &global_size_l, local_size ? &local_size_l : 0, 0, 0, 0);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clEnqueueNDRangeKernel");
+        return 0;
+    }
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+    // err = clSetKernelArg(pass->pass_kernel, 3, sizeof(pass->radii), &pass->radii);
+    // if (err)
+    //     printf("clSetKernelArg error (radii)\n");
+
