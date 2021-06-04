@@ -207,10 +207,6 @@ void ocl_add_seen_text(OclText *text, TayPass *pass, int dims) {
 }
 
 int ocl_create_buffers(TayState *state) {
-    #ifdef TAY_OCL
-
-    TayOcl *ocl = &state->ocl;
-    cl_int err;
 
     /* create agent and space buffers */
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
@@ -221,31 +217,17 @@ int ocl_create_buffers(TayState *state) {
 
         OclCommon *ocl_common = &group->space.ocl_common;
 
-        ocl_common->agent_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->capacity * group->agent_size, NULL, &err);
-        if (err) {
-            tay_set_error2(state, TAY_ERROR_OCL, "clCreateBuffer error (agent buffer)");
+        ocl_common->agent_buffer = ocl_create_read_write_buffer(state, group->capacity * group->agent_size);
+        if (!ocl_common->agent_buffer)
             return 0;
-        }
-
-        ocl_common->agent_sort_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->capacity * group->agent_size, NULL, &err);
-        if (err) {
-            tay_set_error2(state, TAY_ERROR_OCL, "clCreateBuffer error (agent sort buffer)");
+        ocl_common->agent_sort_buffer = ocl_create_read_write_buffer(state, group->capacity * group->agent_size);
+        if (!ocl_common->agent_sort_buffer)
             return 0;
-        }
-
-        ocl_common->space_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_WRITE, group->space.shared_size, NULL, &err);
-        if (err) {
-            tay_set_error2(state, TAY_ERROR_OCL, "clCreateBuffer error (space buffer)");
+        ocl_common->space_buffer = ocl_create_read_write_buffer(state, group->space.shared_size);
+        if (!ocl_common->space_buffer)
             return 0;
-        }
-
-        cl_int pattern = 0;
-        err = clEnqueueFillBuffer(ocl->queue, ocl_common->space_buffer, &pattern, sizeof(pattern), 0, group->space.shared_size, 0, 0, 0);
-        if (err) {
-            tay_set_error2(state, TAY_ERROR_OCL, "clEnqueueFillBuffer error (space buffer)");
+        if (!ocl_fill_buffer(state, ocl_common->space_buffer, group->space.shared_size, 0))
             return 0;
-        }
-
         ocl_common->push_agents = 1;
     }
 
@@ -255,11 +237,9 @@ int ocl_create_buffers(TayState *state) {
 
         if (pass_is_ocl(pass)) {
             if (pass->context_size) {
-                pass->context_buffer = clCreateBuffer(ocl->context, CL_MEM_READ_ONLY, pass->context_size, NULL, &err);
-                if (err) {
-                    tay_set_error2(state, TAY_ERROR_OCL, "clCreateBuffer error (context buffer)\n");
+                pass->context_buffer = ocl_create_read_only_buffer(state, pass->context_size);
+                if (!pass->context_buffer)
                     return 0;
-                }
             }
             else
                 pass->context_buffer = 0;
@@ -267,9 +247,6 @@ int ocl_create_buffers(TayState *state) {
     }
 
     return 1;
-    #else
-    return 0;
-    #endif
 }
 
 int ocl_compile_program(TayState *state) {
@@ -380,8 +357,6 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
 }
 
 void ocl_on_simulation_end(TayState *state) {
-    #ifdef TAY_OCL
-
     TayOcl *ocl = &state->ocl;
     if (!ocl->enabled)
         return;
@@ -411,65 +386,40 @@ void ocl_on_simulation_end(TayState *state) {
         if (pass_is_ocl(pass))
             clReleaseMemObject(pass->context_buffer);
     }
-
-    #endif
 }
 
 void ocl_on_run_start(TayState *state) {
-    #ifdef TAY_OCL
-
     if (!state->ocl.enabled)
         return;
 
-    cl_int err;
-
     /* push agents if they have been modified (push_agents flag) */
-
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group))
+        if (group_is_inactive(group) || !group->ocl_enabled)
             continue;
 
-        if (group_is_ocl(group)) {
-            OclCommon *ocl_common = &group->space.ocl_common;
+        OclCommon *ocl_common = &group->space.ocl_common;
 
-            if (ocl_common->push_agents) {
-
-                err = clEnqueueWriteBuffer(state->ocl.queue, ocl_common->agent_buffer, CL_NON_BLOCKING, 0, group->space.count * group->agent_size, group->storage, 0, 0, 0);
-                if (err)
-                    printf("clEnqueueWriteBuffer error (agents)\n");
-
-                ocl_common->push_agents = 0;
-            }
+        if (ocl_common->push_agents) {
+            ocl_write_buffer_non_blocking(state, ocl_common->agent_buffer, group->storage, group->space.count * group->agent_size);
+            ocl_common->push_agents = 0;
         }
     }
 
     /* push pass contexts */
-
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (pass_is_ocl(pass)) {
-            if (pass->context_size) {
-                err = clEnqueueWriteBuffer(state->ocl.queue, pass->context_buffer, CL_NON_BLOCKING, 0, pass->context_size, pass->context, 0, 0, 0);
-                if (err)
-                    printf("clEnqueueWriteBuffer error (context)\n");
-            }
-        }
+        if (pass_is_ocl(pass) && pass->context_size)
+            ocl_write_buffer_non_blocking(state, pass->context_buffer, pass->context, pass->context_size);
     }
 
-    clFinish(state->ocl.queue);
-
-    #endif
+    ocl_finish(state);
 }
 
 void ocl_on_run_end(TayState *state) {
-    #ifdef TAY_OCL
-
     ocl_fetch_agents(state);
-
-    #endif
 }
 
 void ocl_sort(TayState *state) {
@@ -594,6 +544,47 @@ int ocl_read_buffer_non_blocking(TayState *state, void *ocl_buffer, void *buffer
 #endif
 }
 
+int ocl_write_buffer_blocking(TayState *state, void *ocl_buffer, void *buffer, unsigned size) {
+#ifdef TAY_OCL
+    cl_int err = clEnqueueWriteBuffer(state->ocl.queue, ocl_buffer, CL_BLOCKING, 0, size, buffer, 0, 0, 0);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clEnqueueWriteBuffer");
+        return 0;
+    }
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ocl_write_buffer_non_blocking(TayState *state, void *ocl_buffer, void *buffer, unsigned size) {
+#ifdef TAY_OCL
+    cl_int err = clEnqueueWriteBuffer(state->ocl.queue, ocl_buffer, CL_NON_BLOCKING, 0, size, buffer, 0, 0, 0);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clEnqueueWriteBuffer");
+        return 0;
+    }
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ocl_fill_buffer(TayState *state, void *buffer, unsigned size, int pattern) {
+#ifdef TAY_OCL
+    static int pattern_l;
+    pattern_l = pattern;
+    cl_int err = clEnqueueFillBuffer(state->ocl.queue, buffer, &pattern_l, sizeof(pattern_l), 0, size, 0, 0, 0);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clEnqueueFillBuffer");
+        return 0;
+    }
+    return 1;
+#else
+    return 0;
+#endif
+}
+
 int ocl_finish(TayState *state) {
 #ifdef TAY_OCL
     cl_int err = clFinish(state->ocl.queue);
@@ -650,7 +641,30 @@ int ocl_run_kernel(TayState *state, void *kernel, unsigned global_size, unsigned
 #endif
 }
 
-    // err = clSetKernelArg(pass->pass_kernel, 3, sizeof(pass->radii), &pass->radii);
-    // if (err)
-    //     printf("clSetKernelArg error (radii)\n");
+void *ocl_create_read_write_buffer(TayState *state, unsigned size) {
+#ifdef TAY_OCL
+    cl_int err;
+    void *buffer = clCreateBuffer(state->ocl.context, CL_MEM_READ_WRITE, size, NULL, &err);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateBuffer");
+        return 0;
+    }
+    return buffer;
+#else
+    return 0;
+#endif
+}
 
+void *ocl_create_read_only_buffer(TayState *state, unsigned size) {
+#ifdef TAY_OCL
+    cl_int err;
+    void *buffer = clCreateBuffer(state->ocl.context, CL_MEM_READ_ONLY, size, NULL, &err);
+    if (err) {
+        tay_set_error2(state, TAY_ERROR_OCL, "clCreateBuffer");
+        return 0;
+    }
+    return buffer;
+#else
+    return 0;
+#endif
+}
