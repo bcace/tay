@@ -4,21 +4,15 @@
 
 
 void ocl_simple_add_seen_text(OclText *text, TayPass *pass, int dims) {
-    #ifdef TAY_OCL
-
     ocl_text_append(text, "{ /* simple seen loop */\n\
     const unsigned b_beg = 0;\n\
     const unsigned b_end = %d;\n\
 \n\
 %s\
 } /* simple seen loop */\n", pass->seen_group->space.count, ocl_get_coupling_text(pass, dims));
-
-    #endif
 }
 
 void ocl_simple_add_see_kernel_text(OclText *text, TayPass *pass, int dims) {
-    #ifdef TAY_OCL
-
     ocl_text_append(text, "\n\
 kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii, global void *space_buffer) {\n\
     const unsigned a_size = %d;\n\
@@ -35,8 +29,5 @@ kernel void %s(global char *a_agents, global char *b_agents, constant void *c, f
     ocl_get_seer_agent_text(pass));
 
     ocl_add_seen_text(text, pass, dims);
-
     ocl_text_append(text, "}\n");
-
-    #endif
 }

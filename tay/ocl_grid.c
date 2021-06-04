@@ -407,7 +407,6 @@ void ocl_grid_run_unsort_kernel(TayState *state, TayGroup *group) {
 }
 
 void ocl_grid_add_seen_text(OclText *text, TayPass *pass, int dims) {
-
     ocl_text_append(text, "{ /* grid seen loop */\n\
     global OclGrid *seen_grid = space_buffer;\n\
     int4 min_indices = max(convert_int4(floor((box_min - seen_grid->origin) / seen_grid->cell_sizes)), (int4)(0));\n\
@@ -432,7 +431,6 @@ void ocl_grid_add_seen_text(OclText *text, TayPass *pass, int dims) {
 }
 
 void ocl_grid_add_see_kernel_text(OclText *text, TayPass *pass, int dims) {
-
     ocl_text_append(text, "\n\
 kernel void %s(global char *a_agents, global char *b_agents, constant void *c, float4 radii, global void *space_buffer) {\n\
     unsigned a_i = get_global_id(0);\n\
