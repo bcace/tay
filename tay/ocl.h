@@ -45,14 +45,14 @@ int ocl_get_pass_kernel(TayState *state, TayPass *pass);
 
 int ocl_create_buffers(TayState *state);
 int ocl_compile_program(TayState *state);
-void ocl_on_run_start(TayState *state);
-void ocl_sort(TayState *state);
-void ocl_unsort(TayState *state);
-void ocl_on_run_end(TayState *state);
 void ocl_on_simulation_end(TayState *state);
 
 void ocl_run_see_kernel(TayState *state, TayPass *pass);
 void ocl_run_act_kernel(TayState *state, TayPass *pass);
+
+int ocl_has_ocl_enabled_groups(TayState *state);
+void ocl_push_agents_non_blocking(TayState *state);
+void ocl_push_pass_contexts_non_blocking(TayState *state);
 void ocl_fetch_agents(TayState *state);
 
 char *ocl_get_kernel_name(TayPass *pass);

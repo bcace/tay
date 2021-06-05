@@ -213,73 +213,6 @@ void ocl_on_simulation_end(TayState *state) {
     }
 }
 
-void ocl_on_run_start(TayState *state) {
-    if (!state->ocl.device.enabled)
-        return;
-
-    /* push agents if they have been modified (push_agents flag) */
-    for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-        TayGroup *group = state->groups + group_i;
-
-        if (group_is_inactive(group) || !group->ocl_enabled)
-            continue;
-
-        OclCommon *ocl_common = &group->space.ocl_common;
-
-        if (ocl_common->push_agents) {
-            ocl_write_buffer_non_blocking(state, ocl_common->agent_buffer, group->storage, group->space.count * group->agent_size);
-            ocl_common->push_agents = 0;
-        }
-    }
-
-    /* push pass contexts */
-    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
-        TayPass *pass = state->passes + pass_i;
-
-        if (pass_is_ocl(pass) && pass->context_size)
-            ocl_write_buffer_non_blocking(state, pass->context_buffer, pass->context, pass->context_size);
-    }
-
-    ocl_finish(state);
-}
-
-void ocl_on_run_end(TayState *state) {
-    if (!state->ocl.device.enabled)
-        return;
-
-    ocl_fetch_agents(state);
-}
-
-void ocl_sort(TayState *state) {
-    if (!state->ocl.device.enabled)
-        return;
-
-    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-        TayGroup *group = state->groups + i;
-
-        if (group_is_inactive(group) || !group->ocl_enabled)
-            continue;
-
-        if (group->space.type == TAY_CPU_GRID)
-            ocl_grid_run_sort_kernel(state, group);
-    }
-}
-
-void ocl_unsort(TayState *state) {
-    if (!state->ocl.device.enabled)
-        return;
-
-    for (int i = 0; i < TAY_MAX_GROUPS; ++i) {
-        TayGroup *group = state->groups + i;
-
-        if (group_is_inactive(group) || !group->ocl_enabled)
-            continue;
-
-        if (group->space.type == TAY_CPU_GRID)
-            ocl_grid_run_unsort_kernel(state, group);
-    }
-}
-
 void ocl_run_see_kernel(TayState *state, TayPass *pass) {
     if (!state->ocl.device.enabled)
         return;
@@ -308,6 +241,43 @@ void ocl_run_act_kernel(TayState *state, TayPass *pass) {
     if (!ocl_run_kernel(state, pass->pass_kernel, pass->act_group->space.count, 0))
         return;
     ocl_finish(state);
+}
+
+int ocl_has_ocl_enabled_groups(TayState *state) {
+    if (!state->ocl.device.enabled)
+        return 0;
+
+    for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+        TayGroup *group = state->groups + group_i;
+
+        if (group_is_active(group) && group->ocl_enabled)
+            return 1;
+    }
+
+    return 0;
+}
+
+void ocl_push_agents_non_blocking(TayState *state) {
+    for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+        TayGroup *group = state->groups + group_i;
+
+        if (group_is_inactive(group) || !group->ocl_enabled)
+            continue;
+
+        if (group->space.ocl_common.push_agents) {
+            ocl_write_buffer_non_blocking(state, group->space.ocl_common.agent_buffer, group->storage, group->space.count * group->agent_size);
+            group->space.ocl_common.push_agents = 0;
+        }
+    }
+}
+
+void ocl_push_pass_contexts_non_blocking(TayState *state) {
+    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+        TayPass *pass = state->passes + pass_i;
+
+        if (pass_is_ocl(pass) && pass->context_size)
+            ocl_write_buffer_non_blocking(state, pass->context_buffer, pass->context, pass->context_size);
+    }
 }
 
 void ocl_fetch_agents(TayState *state) {
