@@ -78,7 +78,7 @@ int ocl_create_buffers(TayState *state) {
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (pass_is_ocl(pass)) {
+        if (pass_is_ocl_enabled(pass)) {
             if (pass->context_size) {
                 pass->context_buffer = ocl_create_read_only_buffer(state, pass->context_size);
                 if (!pass->context_buffer)
@@ -153,7 +153,7 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (!pass_is_ocl(pass))
+        if (!pass_is_ocl_enabled(pass))
             continue;
 
         if (pass->type == TAY_PASS_SEE) {
@@ -193,14 +193,12 @@ void ocl_on_simulation_end(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group))
+        if (group_is_inactive(group) || !group->ocl_enabled)
             continue;
 
-        if (group_is_ocl(group)) {
-            ocl_release_buffer(group->space.ocl_common.agent_buffer);
-            ocl_release_buffer(group->space.ocl_common.agent_sort_buffer);
-            ocl_release_buffer(group->space.ocl_common.space_buffer);
-        }
+        ocl_release_buffer(group->space.ocl_common.agent_buffer);
+        ocl_release_buffer(group->space.ocl_common.agent_sort_buffer);
+        ocl_release_buffer(group->space.ocl_common.space_buffer);
     }
 
     /* release pass context buffers */
@@ -208,7 +206,7 @@ void ocl_on_simulation_end(TayState *state) {
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (pass_is_ocl(pass))
+        if (pass_is_ocl_enabled(pass))
             ocl_release_buffer(pass->context_buffer);
     }
 }
@@ -275,7 +273,7 @@ void ocl_push_pass_contexts_non_blocking(TayState *state) {
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (pass_is_ocl(pass) && pass->context_size)
+        if (pass_is_ocl_enabled(pass) && pass->context_size)
             ocl_write_buffer_non_blocking(state, pass->context_buffer, pass->context, pass->context_size);
     }
 }

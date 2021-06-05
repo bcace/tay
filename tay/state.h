@@ -122,10 +122,11 @@ typedef struct TayPass {
         TAY_SEE_FUNC see;
         TAY_ACT_FUNC act;
     };
-    char func_name[TAY_MAX_FUNC_NAME];
     float4 radii;
     int self_see;
     void *context;
+    /* ocl-specific data */
+    char func_name[TAY_MAX_FUNC_NAME];
     unsigned context_size;
     /* data prepared by the compile step */
     struct { /* cpu pass */
@@ -159,8 +160,7 @@ void tay_set_error2(TayState *state, TayError error, const char *message);
 
 int group_is_active(TayGroup *group);
 int group_is_inactive(TayGroup *group);
-int group_is_ocl(TayGroup *group);
-int pass_is_ocl(TayPass *pass);
+int pass_is_ocl_enabled(TayPass *pass);
 
 int state_compile(TayState *state);
 

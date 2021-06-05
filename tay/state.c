@@ -127,13 +127,12 @@ int group_is_inactive(TayGroup *group) {
     return group->storage == 0;
 }
 
-int group_is_ocl(TayGroup *group) {
-    return group->ocl_enabled;
-}
-
-int pass_is_ocl(TayPass *pass) {
-    return pass->type == TAY_PASS_SEE && pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled ||
-           pass->type == TAY_PASS_ACT && pass->act_group->ocl_enabled;
+int pass_is_ocl_enabled(TayPass *pass) {
+    if (pass->type == TAY_PASS_SEE)
+        return pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled;
+    else if (pass->type == TAY_PASS_ACT)
+        return pass->act_group->ocl_enabled;
+    return 0;
 }
 
 TayPass *tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
