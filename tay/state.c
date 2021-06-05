@@ -14,7 +14,8 @@ TayState *tay_create_state() {
     state->error = TAY_ERROR_NONE;
     state->ms_per_step = 0.0;
     state->next_group_id = 0;
-    ocl_init(state);
+    state->ocl.device.enabled = 0;
+    state->ocl.sources_count = 0;
     return state;
 }
 
@@ -35,12 +36,8 @@ static void _clear_group(TayGroup *group) {
 void tay_destroy_state(TayState *state) {
     for (int i = 0; i < TAY_MAX_GROUPS; ++i)
         _clear_group(state->groups + i);
-    ocl_disable(state);
+    ocl_release_context(&state->ocl.device);
     free(state);
-}
-
-void tay_state_enable_ocl(TayState *state) {
-    // ocl_enable(state);
 }
 
 TayError tay_get_error(TayState *state) {

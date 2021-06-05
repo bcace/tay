@@ -41,10 +41,6 @@ typedef struct TayGroup TayGroup;
 typedef struct TayPass TayPass;
 typedef enum TaySpaceType TaySpaceType;
 
-void ocl_init(TayState *state);
-void ocl_enable(TayState *state);
-void ocl_disable(TayState *state);
-
 int ocl_get_pass_kernel(TayState *state, TayPass *pass);
 
 int ocl_create_buffers(TayState *state);
@@ -81,7 +77,8 @@ char *ocl_text_reserve(OclText *text, unsigned length);
 void ocl_text_add_end_of_string(OclText *text);
 
 /* ocl_wrappers.c */
-int ocl_find_device(OclDevice *device);
+int ocl_init_context(TayState *state, OclDevice *device);
+void ocl_release_context(OclDevice *device);
 void *ocl_create_program(TayState *state, OclText *text);
 void *ocl_create_kernel(TayState *state, char *name);
 void *ocl_create_read_write_buffer(TayState *state, unsigned size);

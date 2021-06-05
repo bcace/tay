@@ -3,37 +3,29 @@
 
 
 int state_compile(TayState *state) {
-    unsigned groups_count = 0;
-    unsigned ocl_groups_count = 0;
+    int has_ocl_enabled_groups = 0;
 
     /* check OCL state */
     {
         for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
             TayGroup *group = state->groups + group_i;
 
-            if (group_is_inactive(group))
-                continue;
-
-            ++groups_count;
-            if (group->ocl_enabled)
-                ++ocl_groups_count;
+            if (group_is_active(group) && group->ocl_enabled) {
+                has_ocl_enabled_groups = 1;
+                break;
+            }
         }
 
-        if (ocl_groups_count && !state->ocl.device.enabled) {
-            ocl_enable(state);
-
-            if (!state->ocl.device.enabled) {
-                tay_set_error2(state, TAY_ERROR_OCL, "found an OCL structure, but the OCL context is disabled");
+        if (has_ocl_enabled_groups && !state->ocl.device.enabled) {
+            if (!ocl_init_context(state, &state->ocl.device))
                 return 0;
-            }
         }
     }
 
     /* compose and compile OCL program */
-    if (ocl_groups_count) {
+    if (has_ocl_enabled_groups)
         if (!ocl_compile_program(state))
             return 0;
-    }
 
     /* check passes */
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
@@ -121,12 +113,12 @@ int state_compile(TayState *state) {
     }
 
     /* get built-in OCL kernels */
-    if (ocl_groups_count)
+    if (has_ocl_enabled_groups)
         if (!ocl_grid_get_kernels(state))
             return 0;
 
     /* create OCL buffers */
-    if (ocl_groups_count)
+    if (has_ocl_enabled_groups)
         if (!ocl_create_buffers(state))
             return 0;
 

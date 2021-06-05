@@ -6,43 +6,6 @@
 #include <stdarg.h>
 
 
-void ocl_init(TayState *state) {
-    TayOcl *ocl = &state->ocl;
-    ocl->device.enabled = 0;
-    ocl->sources_count = 0;
-}
-
-void ocl_enable(TayState *state) {
-    TayOcl *ocl = &state->ocl;
-
-    if (!ocl_find_device(&ocl->device)) {
-        tay_set_error2(state, TAY_ERROR_OCL, "could not find an active OpenCL device");
-        return;
-    }
-
-    cl_int err;
-
-    ocl->device.context = clCreateContext(NULL, 1, &(cl_device_id)ocl->device.device, NULL, NULL, &err);
-    if (err) {
-        ocl->device.enabled = 0;
-        tay_set_error(state, TAY_ERROR_OCL);
-        return;
-    }
-
-    ocl->device.queue = clCreateCommandQueueWithProperties(ocl->device.context, ocl->device.device, 0, &err);
-    if (err) {
-        ocl->device.enabled = 0;
-        tay_set_error(state, TAY_ERROR_OCL);
-    }
-}
-
-void ocl_disable(TayState *state) {
-    if (state->ocl.device.enabled) {
-        clReleaseContext(state->ocl.device.context);
-        state->ocl.device.enabled = 0;
-    }
-}
-
 static void _add_act_kernel_text(TayPass *pass, OclText *text) {
     ocl_text_append(text, "\n\
 kernel void %s(global char *a, constant void *c) {\n\
@@ -281,6 +244,9 @@ void ocl_on_run_start(TayState *state) {
 }
 
 void ocl_on_run_end(TayState *state) {
+    if (!state->ocl.device.enabled)
+        return;
+
     ocl_fetch_agents(state);
 }
 

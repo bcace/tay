@@ -210,7 +210,7 @@ void *ocl_create_program(TayState *state, OclText *text) {
 #endif
 }
 
-int ocl_find_device(OclDevice *device) {
+int ocl_init_context(TayState *state, OclDevice *device) {
     device->enabled = 0;
 
 #ifdef TAY_OCL
@@ -320,6 +320,32 @@ int ocl_find_device(OclDevice *device) {
             }
         }
     }
+
+    if (!device->enabled)
+        tay_set_error2(state, TAY_ERROR_OCL, "device not found");
+    else {
+        cl_int err;
+        device->context = clCreateContext(NULL, 1, &(cl_device_id)device->device, NULL, NULL, &err);
+        if (err) {
+            device->enabled = 0;
+            tay_set_error2(state, TAY_ERROR_OCL, "clCreateContext");
+        }
+        else {
+            device->queue = clCreateCommandQueueWithProperties(device->context, device->device, 0, &err);
+            if (err) {
+                device->enabled = 0;
+                tay_set_error2(state, TAY_ERROR_OCL, "clCreateCommandQueueWithProperties");
+            }
+        }
+    }
+
 #endif
     return device->enabled;
+}
+
+void ocl_release_context(OclDevice *device) {
+    if (device->enabled) {
+        clReleaseContext(device->context);
+        device->enabled = 0;
+    }
 }
