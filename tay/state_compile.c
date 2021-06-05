@@ -3,27 +3,85 @@
 
 
 int state_compile(TayState *state) {
-    int has_ocl_enabled_groups = 0;
+    int has_ocl_work = 0;
 
-    /* check OCL state */
-    {
-        for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-            TayGroup *group = state->groups + group_i;
+    /* check basic group settings */
+    for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+        TayGroup *group = state->groups + group_i;
 
-            if (group_is_active(group) && group->ocl_enabled) {
-                has_ocl_enabled_groups = 1;
-                break;
+        if (group_is_inactive(group))
+            continue;
+
+        if (group->is_point) {
+            if (group->space.type == TAY_CPU_AABB_TREE) {
+                tay_set_error2(state, TAY_ERROR_OCL, "aabb tree structure can only contain non-point agents");
+                return 0;
             }
         }
-
-        if (has_ocl_enabled_groups && !state->ocl.device.enabled) {
-            if (!ocl_init_context(state, &state->ocl.device))
+        else {
+            if (group->space.type == TAY_CPU_GRID || group->space.type == TAY_CPU_Z_GRID) {
+                tay_set_error2(state, TAY_ERROR_OCL, "grid structure can only contain point agents");
                 return 0;
+            }
         }
     }
 
+    /* check basic pass settings */
+    for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
+        TayPass *pass = state->passes + pass_i;
+
+        int is_ocl_pass = 0;
+
+        if (pass->type == TAY_PASS_SEE) {
+            if (pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled) {
+                is_ocl_pass = 1;
+            }
+            else {
+                if (pass->see == 0) {
+                    tay_set_error2(state, TAY_ERROR_OCL, "cpu pass with no see func set");
+                    return 0;
+                }
+            }
+        }
+        else if (pass->type == TAY_PASS_ACT) {
+            if (pass->act_group->ocl_enabled) {
+                is_ocl_pass = 1;
+            }
+            else {
+                if (pass->see == 0) {
+                    tay_set_error2(state, TAY_ERROR_OCL, "cpu pass with no act func set");
+                    return 0;
+                }
+            }
+        }
+
+        if (is_ocl_pass) {
+            if (pass->context != 0 && pass->context_size == 0) {
+                tay_set_error2(state, TAY_ERROR_OCL, "ocl pass context set but context size is 0");
+                return 0;
+            }
+            else if (pass->context == 0 && pass->context_size != 0) {
+                tay_set_error2(state, TAY_ERROR_OCL, "ocl pass context not set but context size is not 0");
+                return 0;
+            }
+
+            if (pass->func_name[0] == '\0') {
+                tay_set_error2(state, TAY_ERROR_OCL, "ocl pass with no func name set");
+                return 0;
+            }
+
+            has_ocl_work = 1;
+        }
+    }
+
+    /* initialize ocl context if there's something to be done on the GPU and it was not yet initialized */
+    if (has_ocl_work && !state->ocl.device.enabled) {
+        if (!ocl_init_context(state, &state->ocl.device))
+            return 0;
+    }
+
     /* compose and compile OCL program */
-    if (has_ocl_enabled_groups)
+    if (has_ocl_work)
         if (!ocl_compile_program(state))
             return 0;
 
@@ -113,12 +171,12 @@ int state_compile(TayState *state) {
     }
 
     /* get built-in OCL kernels */
-    if (has_ocl_enabled_groups)
+    if (has_ocl_work)
         if (!ocl_grid_get_kernels(state))
             return 0;
 
     /* create OCL buffers */
-    if (has_ocl_enabled_groups)
+    if (has_ocl_work)
         if (!ocl_create_buffers(state))
             return 0;
 
