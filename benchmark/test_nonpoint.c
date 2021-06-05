@@ -25,7 +25,6 @@ void _test(Config *config, int steps, float see_radius, int depth_correction, fl
     act_context.max.z = SPACE_SIZE;
 
     TayState *tay = tay_create_state();
-    tay_state_enable_ocl(tay);
     TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT, TAY_FALSE);
     tay_configure_space(tay, group, config->a_type, 3, part_sizes, 250);
     if (config->a_ocl_enabled)

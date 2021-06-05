@@ -61,7 +61,6 @@ static void _test(Config *config, int is_point_a, int is_point_b, int steps, flo
     float distr_exp = 0.0f;
 
     TayState *tay = tay_create_state();
-    tay_state_enable_ocl(tay);
     TayGroup *group_a;
     TayGroup *group_b;
 

@@ -31,7 +31,6 @@ static void _test(ModelCase model_case, Config *config, float see_radius, int de
     see_context.radii.z = see_radius;
 
     TayState *tay = tay_create_state();
-    tay_state_enable_ocl(tay);
     TayGroup *group = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT, TAY_TRUE);
     tay_configure_space(tay, group, config->a_type, 3, part_sizes, 250);
     if (config->a_ocl_enabled)
