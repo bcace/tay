@@ -90,6 +90,7 @@ TayError tay_get_error(TayState *state);
 
 TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_capacity, int is_point);
 void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_type, int space_dims, float4 min_part_sizes, int shared_size_in_megabytes);
+void tay_fix_space_box(TayState *state, TayGroup *group, float4 min, float4 max);
 void tay_group_enable_ocl(TayState *state, TayGroup *group);
 
 void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), char *func_name, float4 radii, int self_see, void *context, unsigned context_size);

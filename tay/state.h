@@ -82,6 +82,7 @@ typedef struct Space {
     TaySpaceType type;
     unsigned count; /* number of agents */
     Box box;
+    int is_box_fixed;
     union {
         CpuSimple cpu_simple;
         CpuKdTree cpu_kd_tree;

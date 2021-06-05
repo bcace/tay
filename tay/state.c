@@ -91,21 +91,6 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
 }
 
 void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_type, int space_dims, float4 min_part_sizes, int shared_size_in_megabytes) {
-    // ERROR: check arguments
-
-    if (group->is_point) {
-        if (space_type == TAY_CPU_AABB_TREE) {
-            tay_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
-            return;
-        }
-    }
-    else {
-        if (space_type == TAY_CPU_GRID) {
-            tay_set_error(state, TAY_ERROR_POINT_NONPOINT_MISMATCH);
-            return;
-        }
-    }
-
     Space *space = &group->space;
     space->type = space_type;
     space->min_part_sizes = min_part_sizes;
@@ -113,6 +98,14 @@ void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_ty
     space->count = 0;
     space->shared_size = shared_size_in_megabytes * TAY_MB;
     space->shared = realloc(space->shared, space->shared_size);
+    space->is_box_fixed = 0;
+}
+
+void tay_fix_space_box(TayState *state, TayGroup *group, float4 min, float4 max) {
+    Space *space = &group->space;
+    space->box.min = min;
+    space->box.max = max;
+    space->is_box_fixed = 1;
 }
 
 void tay_group_enable_ocl(TayState *state, TayGroup *group) {
