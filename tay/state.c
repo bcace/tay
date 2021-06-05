@@ -135,7 +135,7 @@ int pass_is_ocl_enabled(TayPass *pass) {
     return 0;
 }
 
-TayPass *tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
+void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
@@ -147,10 +147,9 @@ TayPass *tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group
     p->seer_group = seer_group;
     p->seen_group = seen_group;
     strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
-    return p;
 }
 
-TayPass *tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *func_name, void *context, unsigned context_size) {
+void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *func_name, void *context, unsigned context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
@@ -159,7 +158,6 @@ TayPass *tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, ch
     p->act = func;
     p->act_group = act_group;
     strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
-    return p;
 }
 
 void *tay_get_available_agent(TayState *state, TayGroup *group) {
