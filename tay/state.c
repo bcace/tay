@@ -222,15 +222,13 @@ int tay_run(TayState *state, int steps) {
                     ocl_grid_run_sort_kernel(state, group);
             }
             else {
-                if (group->space.type == TAY_CPU_SIMPLE)
-                    cpu_simple_sort(group);
                 if (group->space.type == TAY_CPU_KD_TREE)
                     cpu_tree_sort(group);
-                if (group->space.type == TAY_CPU_AABB_TREE)
+                else if (group->space.type == TAY_CPU_AABB_TREE)
                     cpu_aabb_tree_sort(group);
-                if (group->space.type == TAY_CPU_GRID)
+                else if (group->space.type == TAY_CPU_GRID)
                     cpu_grid_sort(group);
-                if (group->space.type == TAY_CPU_Z_GRID)
+                else if (group->space.type == TAY_CPU_Z_GRID)
                     cpu_z_grid_sort(group);
             }
         }
@@ -290,15 +288,13 @@ int tay_run(TayState *state, int steps) {
                     ocl_grid_run_unsort_kernel(state, group);
             }
             else {
-                if (group->space.type == TAY_CPU_SIMPLE)
-                    cpu_simple_unsort(group);
                 if (group->space.type == TAY_CPU_KD_TREE)
                     cpu_tree_unsort(group);
-                if (group->space.type == TAY_CPU_AABB_TREE)
+                else if (group->space.type == TAY_CPU_AABB_TREE)
                     cpu_aabb_tree_unsort(group);
-                if (group->space.type == TAY_CPU_GRID)
+                else if (group->space.type == TAY_CPU_GRID)
                     cpu_grid_unsort(group);
-                if (group->space.type == TAY_CPU_Z_GRID)
+                else if (group->space.type == TAY_CPU_Z_GRID)
                     cpu_z_grid_unsort(group);
             }
         }

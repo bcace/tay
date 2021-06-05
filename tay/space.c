@@ -36,10 +36,14 @@ void box_reset(Box *box, int dims) {
 
 void space_update_box(TayGroup *group) {
     Space *space = &group->space;
-    box_reset(&space->box, space->dims);
-    for (unsigned i = 0; i < space->count; ++i) {
-        char *agent = group->storage + group->agent_size * i;
-        box_update_from_agent(&space->box, agent, space->dims, group->is_point);
+
+    if (!space->is_box_fixed) {
+        box_reset(&space->box, space->dims);
+
+        for (unsigned i = 0; i < space->count; ++i) {
+            char *agent = group->storage + group->agent_size * i;
+            box_update_from_agent(&space->box, agent, space->dims, group->is_point);
+        }
     }
 }
 

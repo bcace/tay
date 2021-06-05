@@ -15,8 +15,6 @@ void space_see_point_nonpoint(AgentsSlice seer_slice, AgentsSlice seen_slice, TA
 void space_see_nonpoint_nonpoint(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 void space_see_nonpoint_nonpoint_self_see(AgentsSlice seer_slice, AgentsSlice seen_slice, TAY_SEE_FUNC func, float4 radii, int dims, struct TayThreadContext *thread_context);
 
-void cpu_simple_sort(TayGroup *group);
-void cpu_simple_unsort(TayGroup *group);
 void cpu_simple_see(TayPass *pass);
 void cpu_simple_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, struct TayThreadContext *thread_context);
 

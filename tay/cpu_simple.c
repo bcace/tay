@@ -40,9 +40,3 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
 void cpu_simple_see(TayPass *pass) {
     space_run_thread_tasks(pass, _see_func);
 }
-
-void cpu_simple_sort(TayGroup *group) {
-}
-
-void cpu_simple_unsort(TayGroup *group) {
-}
