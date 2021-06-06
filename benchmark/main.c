@@ -17,9 +17,9 @@ int main() {
 
 #if 1
     spaces_init(&configs);
-    // space_add_single(&configs, TAY_CPU_SIMPLE, 0);
-    // space_add_single(&configs, TAY_CPU_KD_TREE, 0);
-    // space_add_single(&configs, TAY_CPU_GRID, 0);
+    space_add_single(&configs, TAY_CPU_SIMPLE, 0);
+    space_add_single(&configs, TAY_CPU_KD_TREE, 0);
+    space_add_single(&configs, TAY_CPU_GRID, 0);
     space_add_single(&configs, TAY_CPU_Z_GRID, 0);
     space_add_single(&configs, TAY_CPU_SIMPLE, 1);
     space_add_single(&configs, TAY_CPU_GRID, 1);
@@ -30,7 +30,7 @@ int main() {
                &configs);
 #endif
 
-#if 0
+#if 1
     spaces_init(&configs);
     space_add_single(&configs, TAY_CPU_SIMPLE, 0);
     space_add_single(&configs, TAY_CPU_KD_TREE, 0);
@@ -43,7 +43,7 @@ int main() {
                   &configs);
 #endif
 
-#if 0
+#if 1
     spaces_init(&configs);
     space_add_double(&configs, TAY_CPU_SIMPLE, 0, TAY_CPU_SIMPLE, 0);
     space_add_double(&configs, TAY_CPU_KD_TREE, 0, TAY_CPU_KD_TREE, 0);
@@ -59,7 +59,7 @@ int main() {
                &configs);
 #endif
 
-#if 0
+#if 1
     spaces_init(&configs);
     space_add_double(&configs, TAY_CPU_SIMPLE, 0, TAY_CPU_SIMPLE, 0);
     space_add_double(&configs, TAY_CPU_KD_TREE, 0, TAY_CPU_KD_TREE, 0);
