@@ -112,7 +112,6 @@ unsigned grid_z_cell_indices_to_cell_index(int4 idx, int dims) {\n\
     }\n\
 }\n\
 \n\
-\n\
 kernel void grid_sort_kernel_1(global void *space_buffer, unsigned boxes_count, int dims, float4 min_part_sizes) {\n\
     global Box *boxes = space_buffer;\n\
     float4 min = boxes[0].min;\n\
@@ -134,38 +133,7 @@ kernel void grid_sort_kernel_1(global void *space_buffer, unsigned boxes_count, 
     grid->cell_counts = convert_int4(floor(space_size / cell_size));\n\
     grid->cell_sizes = space_size / convert_float4(grid->cell_counts);\n\
 \n\
-    // grid->cells_count = grid_z_cell_indices_to_cell_index(grid->cell_counts, dims) + 1;\n\
-    if (dims == 1)\n\
-        grid->cells_count = grid->cell_counts.x;\n\
-    else if (dims == 2)\n\
-        grid->cells_count = grid->cell_counts.x * grid->cell_counts.y;\n\
-    else if (dims == 3)\n\
-        grid->cells_count = grid->cell_counts.x * grid->cell_counts.y * grid->cell_counts.z;\n\
-    else\n\
-        grid->cells_count = grid->cell_counts.x * grid->cell_counts.y * grid->cell_counts.z * grid->cell_counts.w;\n\
-}\n\
-\n\
-unsigned grid_cell_indices_to_cell_index(int4 indices, int4 counts, int dims) {\n\
-    switch (dims) {\n\
-        case 1: {\n\
-            return indices.x;\n\
-        } break;\n\
-        case 2: {\n\
-            return indices.y * counts.x +\n\
-                   indices.x;\n\
-        } break;\n\
-        case 3: {\n\
-            return indices.z * counts.x * counts.y +\n\
-                   indices.y * counts.x +\n\
-                   indices.x;\n\
-        } break;\n\
-        default: {\n\
-            return indices.w * counts.x * counts.y * counts.z +\n\
-                   indices.z * counts.x * counts.y +\n\
-                   indices.y * counts.x +\n\
-                   indices.x;\n\
-        };\n\
-    }\n\
+    grid->cells_count = grid_z_cell_indices_to_cell_index(grid->cell_counts, dims) + 1;\n\
 }\n\
 \n\
 kernel void grid_sort_kernel_2(global char *agents, unsigned agent_size, global OclGrid *grid, int dims) {\n\
@@ -173,8 +141,7 @@ kernel void grid_sort_kernel_2(global char *agents, unsigned agent_size, global 
     float4 p = float4_agent_position(a);\n\
 \n\
     int4 indices = convert_int4(floor((p - grid->origin) / grid->cell_sizes));\n\
-    // unsigned cell_i = grid_z_cell_indices_to_cell_index(indices, dims);\n\
-    unsigned cell_i = grid_cell_indices_to_cell_index(indices, grid->cell_counts, dims);\n\
+    unsigned cell_i = grid_z_cell_indices_to_cell_index(indices, dims);\n\
 \n\
     a->part_i = cell_i;\n\
     a->cell_agent_i = atomic_inc(&grid->cells[cell_i].count);\n\
@@ -416,8 +383,7 @@ void ocl_grid_add_seen_text(OclText *text, TayPass *pass, int dims) {
     for (indices.x = min_indices.x; indices.x <= max_indices.x; ++indices.x) {\n\
         for (indices.y = min_indices.y; indices.y <= max_indices.y; ++indices.y) {\n\
             for (indices.z = min_indices.z; indices.z <= max_indices.z; ++indices.z) {\n\
-                // unsigned seen_cell_i = grid_z_cell_indices_to_cell_index(indices, dims);\n\
-                unsigned seen_cell_i = grid_cell_indices_to_cell_index(indices, seen_grid->cell_counts, dims);\n\
+                unsigned seen_cell_i = grid_z_cell_indices_to_cell_index(indices, dims);\n\
                 global OclGridCell *seen_cell = seen_grid->cells + seen_cell_i;\n\
 \n\
                 unsigned b_beg = seen_cell->offset;\n\
