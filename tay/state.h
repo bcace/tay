@@ -33,6 +33,15 @@ typedef struct {
 } int4;
 
 typedef struct {
+    union {
+        struct {
+            unsigned x, y, z, w;
+        };
+        unsigned arr[4];
+    };
+} uint4;
+
+typedef struct {
     TayAgentTag **first; /* first[thread] */
 } CpuSimple;
 
@@ -75,6 +84,14 @@ typedef struct {
     void *space_buffer;
     unsigned push_agents; /* set this flag if agents have to be pushed to gpu before a run */
 } OclCommon;
+
+typedef struct TayPicGrid {
+    char *node_storage;
+    unsigned nodes_count;
+    unsigned nodes_capacity;
+    uint4 node_counts;
+    unsigned node_size; /* user-defined node struct size in bytes */
+} TayPicGrid;
 
 typedef struct Space {
     int dims;
@@ -149,6 +166,8 @@ typedef struct TayState {
     TayGroup groups[TAY_MAX_GROUPS];
     TayPass passes[TAY_MAX_PASSES];
     unsigned passes_count;
+    TayPicGrid pics[TAY_MAX_PICS];
+    unsigned pics_count;
     TayStateStatus running;
     TayError error;
     double ms_per_step; /* for the last run */

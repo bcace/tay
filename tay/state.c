@@ -112,6 +112,22 @@ void tay_group_enable_ocl(TayState *state, TayGroup *group) {
     group->ocl_enabled = 1;
 }
 
+TayPicGrid *tay_add_pic_grid(TayState *state, unsigned node_size, unsigned node_capacity) {
+
+    if (state->pics_count == TAY_MAX_PICS) {
+        tay_set_error2(state, TAY_ERROR_INDEX_OUT_OF_RANGE, "maximum number of PIC grids exceeded");
+        return 0;
+    }
+
+    TayPicGrid *pic = state->pics + state->pics_count++;
+    pic->node_size = node_size;
+    pic->nodes_capacity = node_capacity;
+    pic->node_storage = calloc(node_capacity, node_size);
+    pic->nodes_count = 0;
+
+    return pic;
+}
+
 int group_is_active(TayGroup *group) {
     return group->storage != 0;
 }

@@ -32,6 +32,7 @@ typedef enum TayError {
     TAY_ERROR_POINT_NONPOINT_MISMATCH,
     TAY_ERROR_SPACE_INDEX_OUT_OF_RANGE,
     TAY_ERROR_GROUP_INDEX_OUT_OF_RANGE,
+    TAY_ERROR_INDEX_OUT_OF_RANGE,
     TAY_ERROR_STATE_STATUS,
     TAY_ERROR_NOT_IMPLEMENTED,
     TAY_ERROR_OCL,
@@ -81,7 +82,7 @@ typedef struct TayAgentTag {
 
 typedef struct TayState TayState;
 typedef struct TayGroup TayGroup;
-typedef struct TayPass TayPass;
+typedef struct TayPicGrid TayPicGrid;
 
 TayState *tay_create_state();
 void tay_destroy_state(TayState *state);
@@ -92,6 +93,8 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
 void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_type, int space_dims, float4 min_part_sizes, int shared_size_in_megabytes);
 void tay_fix_space_box(TayState *state, TayGroup *group, float4 min, float4 max);
 void tay_group_enable_ocl(TayState *state, TayGroup *group);
+
+TayPicGrid *tay_add_pic_grid(TayState *state, unsigned node_size, unsigned node_capacity);
 
 void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), char *func_name, float4 radii, int self_see, void *context, unsigned context_size);
 void tay_add_act(TayState *state, TayGroup *act_group, void (*func)(void *, void *), char *func_name, void *context, unsigned context_size);
