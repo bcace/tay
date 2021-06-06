@@ -89,8 +89,12 @@ typedef struct TayPicGrid {
     char *node_storage;
     unsigned nodes_count;
     unsigned nodes_capacity;
-    uint4 node_counts;
     unsigned node_size; /* user-defined node struct size in bytes */
+    /* calculated later at each run step */
+    int active;
+    Box box;
+    float4 cell_sizes;
+    uint4 node_counts;
 } TayPicGrid;
 
 typedef struct Space {
@@ -129,13 +133,26 @@ typedef enum TayPassType {
     TAY_PASS_ACT,
 } TayPassType;
 
+typedef enum TayPassPicType {
+    TAY_NOT_PIC = 0,
+    TAY_PIC_SEER,
+    TAY_PIC_SEEN,
+    TAY_PIC_ACT,
+} TayPassPicType;
+
 typedef struct TayPass {
     TayPassType type;
+    TayPassPicType pic_type;
     union {
         TayGroup *act_group;
         TayGroup *seer_group;
+        TayPicGrid *act_pic;
+        TayPicGrid *seer_pic;
     };
-    TayGroup *seen_group;
+    union {
+        TayGroup *seen_group;
+        TayPicGrid *seen_pic;
+    };
     union {
         TAY_SEE_FUNC see;
         TAY_ACT_FUNC act;

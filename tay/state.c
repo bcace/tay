@@ -145,9 +145,9 @@ int pass_is_ocl_enabled(TayPass *pass) {
 }
 
 void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
-    assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
+    p->pic_type = TAY_NOT_PIC;
     p->context = context;
     p->context_size = context_size;
     p->see = func;
@@ -159,14 +159,43 @@ void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TA
 }
 
 void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *func_name, void *context, unsigned context_size) {
-    assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
+    p->pic_type = TAY_NOT_PIC;
     p->context = context;
     p->context_size = context_size;
     p->act = func;
     p->act_group = act_group;
     strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
+}
+
+void tay_add_pic_node_agent_see(TayState *state, TayPicGrid *seer_pic, TayGroup *seen_group, void (*func)(void *, void *, void *), void *context) {
+    TayPass *p = state->passes + state->passes_count++;
+    p->type = TAY_PASS_SEE;
+    p->pic_type = TAY_PIC_SEER;
+    p->context = context;
+    p->see = func;
+    p->seer_pic = seer_pic;
+    p->seen_group = seen_group;
+}
+
+void tay_add_agent_pic_node_see(TayState *state, TayGroup *seer_group, TayPicGrid *seen_pic, void (*func)(void *, void *, void *), void *context) {
+    TayPass *p = state->passes + state->passes_count++;
+    p->type = TAY_PASS_SEE;
+    p->pic_type = TAY_PIC_SEEN;
+    p->context = context;
+    p->see = func;
+    p->seer_group = seer_group;
+    p->seen_pic = seen_pic;
+}
+
+void tay_add_pic_agent_act(TayState *state, TayPicGrid *act_pic, void (*func)(void *, void *), void *context) {
+    TayPass *p = state->passes + state->passes_count++;
+    p->type = TAY_PASS_ACT;
+    p->pic_type = TAY_PIC_ACT;
+    p->context = context;
+    p->act = func;
+    p->act_pic = act_pic;
 }
 
 void *tay_get_available_agent(TayState *state, TayGroup *group) {
