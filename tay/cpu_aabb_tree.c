@@ -218,8 +218,6 @@ void cpu_aabb_tree_sort(TayGroup *group) {
     group->sort_storage = storage;
 }
 
-void cpu_aabb_tree_unsort(TayGroup *group) {}
-
 static void _node_see_func(TayPass *pass, AgentsSlice seer_slice, Box seer_box, TreeNode *seen_node, int dims, TayThreadContext *thread_context) {
     for (int i = 0; i < dims; ++i)
         if (seer_box.max.arr[i] < seen_node->box.min.arr[i] || seer_box.min.arr[i] > seen_node->box.max.arr[i])

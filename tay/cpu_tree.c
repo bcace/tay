@@ -243,9 +243,6 @@ void cpu_tree_sort(TayGroup *group) {
     group->sort_storage = storage;
 }
 
-void cpu_tree_unsort(TayGroup *group) {
-}
-
 static void _thread_traverse_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, TreeCell *seen_cell, int dims, TayThreadContext *thread_context) {
     for (int i = 0; i < dims; ++i)
         if (seer_box.min.arr[i] > seen_cell->box.max.arr[i] || seer_box.max.arr[i] < seen_cell->box.min.arr[i])

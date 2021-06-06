@@ -288,11 +288,7 @@ int tay_run(TayState *state, int steps) {
                     ocl_grid_run_unsort_kernel(state, group);
             }
             else {
-                if (group->space.type == TAY_CPU_KD_TREE)
-                    cpu_tree_unsort(group);
-                else if (group->space.type == TAY_CPU_AABB_TREE)
-                    cpu_aabb_tree_unsort(group);
-                else if (group->space.type == TAY_CPU_GRID)
+                if (group->space.type == TAY_CPU_GRID)
                     cpu_grid_unsort(group);
                 else if (group->space.type == TAY_CPU_Z_GRID)
                     cpu_z_grid_unsort(group);

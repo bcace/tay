@@ -20,12 +20,10 @@ void cpu_simple_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, in
 
 void cpu_tree_on_simulation_start(Space *space);
 void cpu_tree_sort(TayGroup *group);
-void cpu_tree_unsort(TayGroup *group);
 void cpu_tree_see(TayPass *pass);
 void cpu_kd_tree_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, struct TayThreadContext *thread_context);
 
 void cpu_aabb_tree_sort(TayGroup *group);
-void cpu_aabb_tree_unsort(TayGroup *group);
 void cpu_aabb_tree_see(TayPass *pass);
 void cpu_aabb_tree_see_seen(TayPass *pass, AgentsSlice seer_slice, Box seer_box, int dims, struct TayThreadContext *thread_context);
 
