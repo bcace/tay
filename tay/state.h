@@ -197,6 +197,7 @@ void tay_set_error2(TayState *state, TayError error, const char *message);
 int group_is_active(TayGroup *group);
 int group_is_inactive(TayGroup *group);
 int pass_is_ocl_enabled(TayPass *pass);
+int pic_is_active(TayPicGrid *pic);
 
 int state_compile(TayState *state);
 
