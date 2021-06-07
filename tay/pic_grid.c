@@ -23,18 +23,20 @@ static inline void _include_box(Box *a, Box *b) {
 
 /* NOTE: this must be called at the beginning of each step and after agent groups
 have updated their boxes. */
-int pic_prepare_grids(TayState *state) {
+int pic_prepare_grids(TayState *state, int dims) {
 
     /* if there are no pics there's nothing to prepare */
     if (state->pics_count == 0)
         return 0;
 
-    /* reset pic grid boxes */
+    Box pic_boxes[TAY_MAX_PICS];
+
+    /* reset pic boxes */
     for (unsigned pic_i = 0; pic_i < state->pics_count; ++pic_i) {
         TayPicGrid *pic = state->pics + pic_i;
 
-        pic->box.min = (float4){FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX};
-        pic->box.max = (float4){-FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX};
+        pic_boxes[pic_i].min = (float4){FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX};
+        pic_boxes[pic_i].max = (float4){-FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX};
 
         pic->nodes_count = 0; /* mark pic as not active yet */
     }
@@ -64,16 +66,27 @@ int pic_prepare_grids(TayState *state) {
             simple_spaces_boxes_updated[group - state->groups] = 1;
         }
 
-        _include_box(&pic->box, &group->space.box);
-        pic->nodes_count = 1; /* mark pic as active since it interacts with a group */
+        _include_box(pic_boxes + (pic - state->pics), &group->space.box);
+        pic->nodes_count = 1; /* mark pic as active since it interacts with a group, keep it 1 because there's *= later */
     }
 
-    /* active grids (nodes_count set to 1) calculate their origins, cell sizes and node counts */
+    /* active grids (nodes_count set to 1) calculate their origins and node counts */
     for (unsigned pic_i = 0; pic_i < state->pics_count; ++pic_i) {
         TayPicGrid *pic = state->pics + pic_i;
 
         if (pic_is_active(pic)) {
-            // ...
+
+            for (int dim_i = 0; dim_i > dims; ++dim_i) {
+
+                float box_side = pic_boxes[pic_i].max.arr[dim_i] - pic_boxes[pic_i].min.arr[dim_i];
+                unsigned count = (unsigned)ceil(box_side / pic->cell_sizes.arr[dim_i]);
+                float grid_side = count * pic->cell_sizes.arr[dim_i];
+                float margin = (grid_side - box_side) * 0.5f;
+
+                pic->nodes_count *= count;
+                pic->node_counts.arr[dim_i] = count;
+                pic->origin.arr[dim_i] = pic_boxes[pic_i].min.arr[dim_i] - margin;
+            }
         }
     }
 

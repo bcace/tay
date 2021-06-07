@@ -90,9 +90,9 @@ typedef struct TayPicGrid {
     unsigned nodes_count;
     unsigned nodes_capacity;
     unsigned node_size; /* user-defined node struct size in bytes */
-    /* calculated later at each run step */
-    Box box;
     float4 cell_sizes;
+    /* calculated later at each run step */
+    float4 origin;
     uint4 node_counts;
 } TayPicGrid;
 
@@ -200,5 +200,7 @@ int pass_is_ocl_enabled(TayPass *pass);
 int pic_is_active(TayPicGrid *pic);
 
 int state_compile(TayState *state);
+
+int pic_prepare_grids(TayState *state, int dims);
 
 #endif
