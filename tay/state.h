@@ -90,7 +90,7 @@ typedef struct TayPicGrid {
     unsigned nodes_count;
     unsigned nodes_capacity;
     unsigned node_size; /* user-defined node struct size in bytes */
-    float4 cell_sizes;
+    float cell_size;
     /* calculated later at each run step */
     float4 origin;
     uint4 node_counts;
@@ -132,25 +132,17 @@ typedef enum TayPassType {
     TAY_PASS_ACT,
 } TayPassType;
 
-typedef enum TayPassPicType {
-    TAY_NOT_PIC = 0,
-    TAY_PIC_SEER,
-    TAY_PIC_SEEN,
-    TAY_PIC_ACT,
-} TayPassPicType;
-
 typedef struct TayPass {
     TayPassType type;
-    TayPassPicType pic_type;
+    int is_pic;
     union {
         TayGroup *act_group;
         TayGroup *seer_group;
-        TayPicGrid *act_pic;
-        TayPicGrid *seer_pic;
+        TayGroup *pic_group;
     };
     union {
         TayGroup *seen_group;
-        TayPicGrid *seen_pic;
+        TayPicGrid *pic;
     };
     union {
         TAY_SEE_FUNC see;
@@ -201,6 +193,8 @@ int pic_is_active(TayPicGrid *pic);
 
 int state_compile(TayState *state);
 
-int pic_prepare_grids(TayState *state, int dims);
+int pic_prepare_grids(TayState *state);
+void pic_run_see_pass(TayPass *pass);
+void pic_run_act_pass(TayPass *pass);
 
 #endif

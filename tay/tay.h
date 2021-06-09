@@ -36,6 +36,7 @@ typedef enum TayError {
     TAY_ERROR_STATE_STATUS,
     TAY_ERROR_NOT_IMPLEMENTED,
     TAY_ERROR_OCL,
+    TAY_ERROR_PIC,
 } TayError;
 
 #pragma pack(push, 1)
@@ -75,7 +76,7 @@ typedef struct {
 
 typedef struct TayAgentTag {
     unsigned part_i;
-    unsigned cell_agent_i;
+    unsigned cell_agent_i; // TODO: rename to part_agent_i
 } TayAgentTag;
 
 #pragma pack(pop)
@@ -94,14 +95,13 @@ void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_ty
 void tay_fix_space_box(TayState *state, TayGroup *group, float4 min, float4 max);
 void tay_group_enable_ocl(TayState *state, TayGroup *group);
 
-TayPicGrid *tay_add_pic_grid(TayState *state, unsigned node_size, unsigned node_capacity, float4 cell_sizes);
+TayPicGrid *tay_add_pic_grid(TayState *state, unsigned node_size, unsigned node_capacity, float cell_sizes);
 
 void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), char *func_name, float4 radii, int self_see, void *context, unsigned context_size);
 void tay_add_act(TayState *state, TayGroup *act_group, void (*func)(void *, void *), char *func_name, void *context, unsigned context_size);
 
-void tay_add_pic_node_agent_see(TayState *state, TayPicGrid *seer_pic, TayGroup *seen_group, void (*func)(void *, void *, void *), void *context);
-void tay_add_agent_pic_node_see(TayState *state, TayGroup *seer_group, TayPicGrid *seen_pic, void (*func)(void *, void *, void *), void *context);
-void tay_add_pic_agent_act(TayState *state, TayPicGrid *act_pic, void (*func)(void *, void *), void *context);
+void tay_add_pic_see(TayState *state, TayGroup *group, TayPicGrid *pic, void (*func)(void *, void *, void *), float4 radii, void *context);
+void tay_add_pic_act(TayState *state, TayPicGrid *pic, void (*func)(void *, void *), void *context);
 
 void *tay_get_available_agent(TayState *state, TayGroup *group);
 void tay_commit_available_agent(TayState *state, TayGroup *group);

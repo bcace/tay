@@ -181,6 +181,7 @@
     <ClCompile Include="ocl_grid.c" />
     <ClCompile Include="ocl_simple.c" />
     <ClCompile Include="ocl_wrappers.c" />
+    <ClCompile Include="pic_grid.c" />
     <ClCompile Include="space.c" />
     <ClCompile Include="state.c" />
     <ClCompile Include="state_compile.c" />

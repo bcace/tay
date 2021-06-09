@@ -112,7 +112,7 @@ void tay_group_enable_ocl(TayState *state, TayGroup *group) {
     group->ocl_enabled = 1;
 }
 
-TayPicGrid *tay_add_pic_grid(TayState *state, unsigned node_size, unsigned node_capacity, float4 cell_sizes) {
+TayPicGrid *tay_add_pic_grid(TayState *state, unsigned node_size, unsigned node_capacity, float cell_size) {
 
     if (state->pics_count == TAY_MAX_PICS) {
         tay_set_error2(state, TAY_ERROR_INDEX_OUT_OF_RANGE, "maximum number of PIC grids exceeded");
@@ -124,7 +124,7 @@ TayPicGrid *tay_add_pic_grid(TayState *state, unsigned node_size, unsigned node_
     pic->nodes_capacity = node_capacity;
     pic->node_storage = calloc(node_capacity, node_size);
     pic->nodes_count = 0;
-    pic->cell_sizes = cell_sizes;
+    pic->cell_size = cell_size;
 
     return pic;
 }
@@ -152,7 +152,7 @@ int pic_is_active(TayPicGrid *pic) {
 void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
-    p->pic_type = TAY_NOT_PIC;
+    p->is_pic = 0;
     p->context = context;
     p->context_size = context_size;
     p->see = func;
@@ -166,7 +166,7 @@ void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TA
 void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *func_name, void *context, unsigned context_size) {
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
-    p->pic_type = TAY_NOT_PIC;
+    p->is_pic = 0;
     p->context = context;
     p->context_size = context_size;
     p->act = func;
@@ -174,33 +174,24 @@ void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *
     strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
 }
 
-void tay_add_pic_node_agent_see(TayState *state, TayPicGrid *seer_pic, TayGroup *seen_group, void (*func)(void *, void *, void *), void *context) {
+void tay_add_pic_see(TayState *state, TayGroup *group, TayPicGrid *pic, void (*func)(void *, void *, void *), float4 radii, void *context) {
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
-    p->pic_type = TAY_PIC_SEER;
+    p->is_pic = 1;
     p->context = context;
     p->see = func;
-    p->seer_pic = seer_pic;
-    p->seen_group = seen_group;
+    p->pic_group = group;
+    p->pic = pic;
+    p->radii = radii;
 }
 
-void tay_add_agent_pic_node_see(TayState *state, TayGroup *seer_group, TayPicGrid *seen_pic, void (*func)(void *, void *, void *), void *context) {
-    TayPass *p = state->passes + state->passes_count++;
-    p->type = TAY_PASS_SEE;
-    p->pic_type = TAY_PIC_SEEN;
-    p->context = context;
-    p->see = func;
-    p->seer_group = seer_group;
-    p->seen_pic = seen_pic;
-}
-
-void tay_add_pic_agent_act(TayState *state, TayPicGrid *act_pic, void (*func)(void *, void *), void *context) {
+void tay_add_pic_act(TayState *state, TayPicGrid *pic, void (*func)(void *, void *), void *context) {
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_ACT;
-    p->pic_type = TAY_PIC_ACT;
+    p->is_pic = 1;
     p->context = context;
     p->act = func;
-    p->act_pic = act_pic;
+    p->pic = pic;
 }
 
 void *tay_get_available_agent(TayState *state, TayGroup *group) {
@@ -283,6 +274,9 @@ int tay_run(TayState *state, int steps) {
             }
         }
 
+        /* prepare pic grids */
+        pic_prepare_grids(state);
+
         /* do passes */
         for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
             TayPass *pass = state->passes + pass_i;
@@ -290,7 +284,9 @@ int tay_run(TayState *state, int steps) {
             if (pass->type == TAY_PASS_SEE) {
                 Space *seer_space = &pass->seer_group->space;
 
-                if (pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled)
+                if (pass->is_pic)
+                    pic_run_see_pass(pass);
+                else if (pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled)
                     ocl_run_see_kernel(state, pass);
                 else if (seer_space->type == TAY_CPU_SIMPLE)
                     cpu_simple_see(pass);
@@ -310,7 +306,9 @@ int tay_run(TayState *state, int steps) {
             else if (pass->type == TAY_PASS_ACT) {
                 Space *act_space = &pass->act_group->space;
 
-                if (pass->act_group->ocl_enabled)
+                if (pass->is_pic)
+                    pic_run_act_pass(pass);
+                else if (pass->act_group->ocl_enabled)
                     ocl_run_act_kernel(state, pass);
                 else if (act_space->type == TAY_CPU_SIMPLE ||
                     act_space->type == TAY_CPU_KD_TREE ||
