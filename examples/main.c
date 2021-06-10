@@ -42,7 +42,7 @@ static void _main_loop_func(GLFWwindow *window) {
 }
 
 int main() {
-    demos.example = FLUID;
+    demos.example = PIC_FLOCKING;
 
     if (!glfwInit()) {
         fprintf(stderr, "Could not initialize GLFW\n");
@@ -78,6 +78,8 @@ int main() {
 
     if (demos.example == FLOCKING)
         flocking_init();
+    else if (demos.example == PIC_FLOCKING)
+        pic_flocking_init();
     else if (demos.example == FLUID)
         fluid_init();
 

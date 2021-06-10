@@ -6,6 +6,7 @@
 
 typedef enum {
     FLOCKING,
+    PIC_FLOCKING,
     FLUID,
 } Examples;
 
@@ -24,6 +25,8 @@ Global demos;
 
 void flocking_init();
 void flocking_draw();
+
+void pic_flocking_init();
 
 void fluid_init();
 void fluid_draw();

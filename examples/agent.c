@@ -197,3 +197,29 @@ void sph_particle_reset(global SphParticle *a) {
     a->viscosity_accum.y = 0.0f;
     a->viscosity_accum.z = 0.0f;
 }
+
+/*
+** Particle-in-cell flocking
+*/
+
+void pic_reset_node(global PicBoidNode *n, global void *c) {
+    n->p_sum.x = 0.0f;
+    n->p_sum.y = 0.0f;
+    n->p_sum.z = 0.0f;
+    n->v_sum.x = 0.0f;
+    n->v_sum.y = 0.0f;
+    n->v_sum.z = 0.0f;
+}
+
+void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, PicFlockingContext *c) {
+    float4 d = float4_sub(n->p, a->p);
+    float dl = float4_length(d);
+
+    if (dl >= c->radius || dl < 0.00001f)
+        return;
+
+    float w = 1.0f - dl / c->radius;
+
+    n->p_sum = float4_add(n->p_sum, float4_mul_scalar(a->p, w));
+    n->v_sum = float4_add(n->v_sum, float4_mul_scalar(a->v, w));
+}

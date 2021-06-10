@@ -157,6 +157,7 @@
     <ClCompile Include="graphics.c" />
     <ClCompile Include="graphics\glad.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="pic_flocking.c" />
     <ClCompile Include="platform.c" />
     <ClCompile Include="shaders.c" />
     <ClCompile Include="shapes.c" />

@@ -60,3 +60,22 @@ void sph_particle_pressure(global SphParticle *a, constant SphContext *c);
 void sph_force_terms(global SphParticle *a, global SphParticle *b, constant SphContext *c);
 void sph_particle_leapfrog(global SphParticle *a, constant SphContext *c);
 void sph_particle_reset(global SphParticle *a);
+
+typedef struct __attribute__((packed)) PicBoid {
+    TayAgentTag tag;
+    float4 p;
+    float4 v;
+} PicBoid;
+
+typedef struct __attribute__((packed)) PicBoidNode {
+    float4 p;
+    float4 p_sum;
+    float4 v_sum;
+} PicBoidNode;
+
+typedef struct __attribute__((packing)) PicFlockingContext {
+    float radius;
+} PicFlockingContext;
+
+void pic_reset_node(global PicBoidNode *n, global void *c);
+void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, PicFlockingContext *c);
