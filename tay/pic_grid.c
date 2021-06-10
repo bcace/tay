@@ -65,7 +65,7 @@ int pic_prepare_grids(TayState *state) {
         pic->nodes_count = 1; /* mark pic as active since it interacts with a group, keep it 1 because there's *= later */
     }
 
-    /* active grids (nodes_count set to 1) calculate their origins and node counts */
+    /* calculate their origins and node counts for active grids (nodes_count set to 1) */
     for (unsigned pic_i = 0; pic_i < state->pics_count; ++pic_i) {
         TayPicGrid *pic = state->pics + pic_i;
 
@@ -88,6 +88,54 @@ int pic_prepare_grids(TayState *state) {
             if (pic->nodes_count > pic->nodes_capacity) {
                 tay_set_error2(state, TAY_ERROR_PIC, "not enough storage allocated for required number of pic grid nodes");
                 return 0;
+            }
+
+            /* set node positions */
+            if (dims == 1) {
+                float4 *node_p = (float4 *)(pic->node_storage);
+                for (unsigned i = 0; i < pic->node_counts.x; ++i) {
+                    node_p->x = pic->origin.x + i * pic->cell_size;
+                    node_p = (float4 *)((char *)node_p + pic->node_size);
+                }
+            }
+            else if (dims == 2) {
+                float4 *node_p = (float4 *)(pic->node_storage);
+                for (unsigned j = 0; j < pic->node_counts.y; ++j) {
+                    node_p->y = pic->origin.y + j * pic->cell_size;
+                    for (unsigned i = 0; i < pic->node_counts.x; ++i) {
+                        node_p->x = pic->origin.x + i * pic->cell_size;
+                        node_p = (float4 *)((char *)node_p + pic->node_size);
+                    }
+                }
+            }
+            else if (dims == 3) {
+                float4 *node_p = (float4 *)(pic->node_storage);
+                for (unsigned k = 0; k < pic->node_counts.z; ++k) {
+                    node_p->z = pic->origin.z + k * pic->cell_size;
+                    for (unsigned j = 0; j < pic->node_counts.y; ++j) {
+                        node_p->y = pic->origin.y + j * pic->cell_size;
+                        for (unsigned i = 0; i < pic->node_counts.x; ++i) {
+                            node_p->x = pic->origin.x + i * pic->cell_size;
+                            node_p = (float4 *)((char *)node_p + pic->node_size);
+                        }
+                    }
+                }
+            }
+            else {
+                float4 *node_p = (float4 *)(pic->node_storage);
+                for (unsigned l = 0; l < pic->node_counts.w; ++l) {
+                    node_p->w = pic->origin.w + l * pic->cell_size;
+                    for (unsigned k = 0; k < pic->node_counts.z; ++k) {
+                        node_p->z = pic->origin.z + k * pic->cell_size;
+                        for (unsigned j = 0; j < pic->node_counts.y; ++j) {
+                            node_p->y = pic->origin.y + j * pic->cell_size;
+                            for (unsigned i = 0; i < pic->node_counts.x; ++i) {
+                                node_p->x = pic->origin.x + i * pic->cell_size;
+                                node_p = (float4 *)((char *)node_p + pic->node_size);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
