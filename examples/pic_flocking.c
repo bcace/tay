@@ -22,4 +22,6 @@ void pic_flocking_init() {
 
     tay_add_pic_act(tay, pic, pic_reset_node, 0);
     tay_add_pic_see(tay, boids_group, pic, pic_transfer_boid_to_node, (float4){pic_transfer_r, pic_transfer_r, pic_transfer_r, pic_transfer_r}, &context);
+    tay_add_pic_see(tay, boids_group, pic, pic_transfer_node_to_boids, (float4){pic_transfer_r, pic_transfer_r, pic_transfer_r, pic_transfer_r}, &context);
+    tay_add_act(tay, boids_group, pic_boid_action, "pic_boid_action", 0, 0);
 }

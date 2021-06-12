@@ -65,6 +65,7 @@ typedef struct __attribute__((packed)) PicBoid {
     TayAgentTag tag;
     float4 p;
     float4 v;
+    float4 f;
 } PicBoid;
 
 typedef struct __attribute__((packed)) PicBoidNode {
@@ -79,3 +80,5 @@ typedef struct __attribute__((packing)) PicFlockingContext {
 
 void pic_reset_node(global PicBoidNode *n, global void *c);
 void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, PicFlockingContext *c);
+void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, PicFlockingContext *c);
+void pic_boid_action(global PicBoid *a, global void *c);

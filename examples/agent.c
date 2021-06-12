@@ -220,6 +220,29 @@ void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, PicFloc
 
     float w = 1.0f - dl / c->radius;
 
+    // TODO: should be atomic!
     n->p_sum = float4_add(n->p_sum, float4_mul_scalar(a->p, w));
     n->v_sum = float4_add(n->v_sum, float4_mul_scalar(a->v, w));
+}
+
+void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, PicFlockingContext *c) {
+    float4 d = float4_sub(n->p, a->p);
+    float dl = float4_length(d);
+
+    if (dl >= c->radius || dl < 0.00001f)
+        return;
+
+    // TODO: create force from node values
+}
+
+void pic_boid_action(global PicBoid *a, global void *c) {
+    // TODO: move agent wrt force
+
+    a->p.x += a->v.x;
+    a->p.y += a->v.y;
+    a->p.z += a->v.z;
+
+    a->f.x = 0.0f;
+    a->f.y = 0.0f;
+    a->f.z = 0.0f;
 }
