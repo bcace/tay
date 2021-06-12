@@ -1,5 +1,6 @@
 #include "space.h"
 #include <float.h>
+#include <math.h>
 
 
 static inline void _include_box(Box *a, Box *b) {
@@ -49,7 +50,7 @@ int pic_prepare_grids(TayState *state) {
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (!pass->is_pic)
+        if (!pass->is_pic || pass->type != TAY_PASS_SEE)
             continue;
 
         TayPicGrid *pic = pass->pic;
@@ -72,7 +73,7 @@ int pic_prepare_grids(TayState *state) {
         if (pic_is_active(pic)) {
 
             /* calculate origin and node counts */
-            for (int dim_i = 0; dim_i > dims; ++dim_i) {
+            for (int dim_i = 0; dim_i < dims; ++dim_i) {
 
                 float box_side = pic_boxes[pic_i].max.arr[dim_i] - pic_boxes[pic_i].min.arr[dim_i];
                 unsigned count = (unsigned)ceil(box_side / pic->cell_size);
@@ -101,9 +102,10 @@ int pic_prepare_grids(TayState *state) {
             else if (dims == 2) {
                 float4 *node_p = (float4 *)(pic->node_storage);
                 for (unsigned j = 0; j < pic->node_counts.y; ++j) {
-                    node_p->y = pic->origin.y + j * pic->cell_size;
+                    float y = pic->origin.y + j * pic->cell_size;
                     for (unsigned i = 0; i < pic->node_counts.x; ++i) {
                         node_p->x = pic->origin.x + i * pic->cell_size;
+                        node_p->y = y;
                         node_p = (float4 *)((char *)node_p + pic->node_size);
                     }
                 }
@@ -111,11 +113,13 @@ int pic_prepare_grids(TayState *state) {
             else if (dims == 3) {
                 float4 *node_p = (float4 *)(pic->node_storage);
                 for (unsigned k = 0; k < pic->node_counts.z; ++k) {
-                    node_p->z = pic->origin.z + k * pic->cell_size;
+                    float z = pic->origin.z + k * pic->cell_size;
                     for (unsigned j = 0; j < pic->node_counts.y; ++j) {
-                        node_p->y = pic->origin.y + j * pic->cell_size;
+                        float y = pic->origin.y + j * pic->cell_size;
                         for (unsigned i = 0; i < pic->node_counts.x; ++i) {
                             node_p->x = pic->origin.x + i * pic->cell_size;
+                            node_p->y = y;
+                            node_p->z = z;
                             node_p = (float4 *)((char *)node_p + pic->node_size);
                         }
                     }
@@ -124,13 +128,16 @@ int pic_prepare_grids(TayState *state) {
             else {
                 float4 *node_p = (float4 *)(pic->node_storage);
                 for (unsigned l = 0; l < pic->node_counts.w; ++l) {
-                    node_p->w = pic->origin.w + l * pic->cell_size;
+                    float w = pic->origin.w + l * pic->cell_size;
                     for (unsigned k = 0; k < pic->node_counts.z; ++k) {
-                        node_p->z = pic->origin.z + k * pic->cell_size;
+                        float z = pic->origin.z + k * pic->cell_size;
                         for (unsigned j = 0; j < pic->node_counts.y; ++j) {
-                            node_p->y = pic->origin.y + j * pic->cell_size;
+                            float y = pic->origin.y + j * pic->cell_size;
                             for (unsigned i = 0; i < pic->node_counts.x; ++i) {
                                 node_p->x = pic->origin.x + i * pic->cell_size;
+                                node_p->y = y;
+                                node_p->z = z;
+                                node_p->w = w;
                                 node_p = (float4 *)((char *)node_p + pic->node_size);
                             }
                         }
@@ -159,8 +166,8 @@ void pic_run_see_pass(TayPass *pass) {
     float4 kernel_radii = pass->radii;
     float cell_size = pic->cell_size;
 
-    for (unsigned a_i = 0; a_i < pass->seen_group->space.count; ++a_i) {
-        void *agent = pass->seen_group->storage + a_i * pass->seen_group->agent_size;
+    for (unsigned a_i = 0; a_i < pass->pic_group->space.count; ++a_i) {
+        void *agent = pass->pic_group->storage + a_i * pass->pic_group->agent_size;
         float4 agent_p = float4_agent_position(agent);
 
         if (dims == 1) {}

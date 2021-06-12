@@ -1,4 +1,5 @@
 
+- Don't update grid if all interacting structure boxes are fixed
 - Report errors when combining pic and ocl
 
 - Make tay_fix_space_box work with ocl grid

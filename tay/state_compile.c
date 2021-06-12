@@ -33,7 +33,10 @@ int state_compile(TayState *state) {
         int is_ocl_pass = 0;
 
         if (pass->type == TAY_PASS_SEE) {
-            if (pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled) {
+            if (pass->is_pic) {
+                // ...
+            }
+            else if (pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled) {
                 is_ocl_pass = 1;
             }
             else {
@@ -44,7 +47,10 @@ int state_compile(TayState *state) {
             }
         }
         else if (pass->type == TAY_PASS_ACT) {
-            if (pass->act_group->ocl_enabled) {
+            if (pass->is_pic) {
+                // ...
+            }
+            else if (pass->act_group->ocl_enabled) {
                 is_ocl_pass = 1;
             }
             else {
@@ -97,12 +103,15 @@ int state_compile(TayState *state) {
             int seer_is_ocl = pass->seer_group->ocl_enabled;
             int seen_is_ocl = pass->seen_group->ocl_enabled;
 
-            if (seer_space->dims != seen_space->dims) {
+            if (!pass->is_pic && seer_space->dims != seen_space->dims) {
                 tay_set_error2(state, TAY_ERROR_NOT_IMPLEMENTED, "groups with different numbers of dimensions not supported");
                 return 0;
             }
 
-            if (seer_is_ocl && seen_is_ocl) { /* both groups must be ocl enabled to have an ocl pass */
+            if (pass->is_pic) {
+                // ...
+            }
+            else if (seer_is_ocl && seen_is_ocl) { /* both groups must be ocl enabled to have an ocl pass */
                 if (seer_space->type != TAY_CPU_SIMPLE && seer_space->type != TAY_CPU_GRID) {
                     tay_set_error2(state, TAY_ERROR_OCL, "unhandled OCL see pass seer type");
                     return 0;
@@ -147,7 +156,10 @@ int state_compile(TayState *state) {
             }
         }
         else if (pass->type == TAY_PASS_ACT) {
-            if (pass->act_group->ocl_enabled) {
+            if (pass->is_pic) {
+                // ...
+            }
+            else if (pass->act_group->ocl_enabled) {
                 if (!ocl_get_pass_kernel(state, pass))
                     return 0;
             }
