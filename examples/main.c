@@ -24,7 +24,7 @@ static void _main_loop_func(GLFWwindow *window) {
     graphics_clear_depth();
     graphics_enable_depth_test(1);
 
-    tay_run(demos.tay, 4);
+    tay_run(demos.tay, 1);
     double ms = tay_get_ms_per_step_for_last_run(demos.tay);
     if ((++step % 1) == 0)
         printf("ms: %.4f\n", ms);
@@ -33,6 +33,8 @@ static void _main_loop_func(GLFWwindow *window) {
     /* drawing */
     if (demos.example == FLOCKING)
         flocking_draw();
+    else if (demos.example == PIC_FLOCKING)
+        pic_flocking_draw();
     else if (demos.example == FLUID)
         fluid_draw();
 

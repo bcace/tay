@@ -27,6 +27,7 @@ void flocking_init();
 void flocking_draw();
 
 void pic_flocking_init();
+void pic_flocking_draw();
 
 void fluid_init();
 void fluid_draw();

@@ -203,15 +203,12 @@ void sph_particle_reset(global SphParticle *a) {
 */
 
 void pic_reset_node(global PicBoidNode *n, global void *c) {
-    n->p_sum.x = 0.0f;
-    n->p_sum.y = 0.0f;
-    n->p_sum.z = 0.0f;
-    n->v_sum.x = 0.0f;
-    n->v_sum.y = 0.0f;
-    n->v_sum.z = 0.0f;
+    n->dir_sum.x = 0.0f;
+    n->dir_sum.y = 0.0f;
+    n->dir_sum.z = 0.0f;
 }
 
-void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, PicFlockingContext *c) {
+void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c) {
     float4 d = float4_sub(n->p, a->p);
     float dl = float4_length(d);
 
@@ -221,28 +218,58 @@ void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, PicFloc
     float w = 1.0f - dl / c->radius;
 
     // TODO: should be atomic!
-    n->p_sum = float4_add(n->p_sum, float4_mul_scalar(a->p, w));
-    n->v_sum = float4_add(n->v_sum, float4_mul_scalar(a->v, w));
+    n->dir_sum = float4_add(n->dir_sum, float4_mul_scalar(a->dir, w));
 }
 
-void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, PicFlockingContext *c) {
+void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c) {
     float4 d = float4_sub(n->p, a->p);
     float dl = float4_length(d);
 
     if (dl >= c->radius || dl < 0.00001f)
         return;
 
-    // TODO: create force from node values
+    float w = 1.0f - dl / c->radius;
+
+    a->dir_sum = float4_add(a->dir_sum, float4_mul_scalar(n->dir_sum, w));
 }
 
-void pic_boid_action(global PicBoid *a, global void *c) {
-    // TODO: move agent wrt force
+void pic_boid_action(global PicBoid *a, constant PicFlockingContext *c) {
 
-    a->p.x += a->v.x;
-    a->p.y += a->v.y;
-    a->p.z += a->v.z;
+    const float speed = 1.0f;
+    const float alignment = 0.5f;
 
-    a->f.x = 0.0f;
-    a->f.y = 0.0f;
-    a->f.z = 0.0f;
+    float dir_sum_length = float4_length(a->dir_sum);
+    if (dir_sum_length > 0.00001f) {
+        a->dir = float4_add(a->dir, float4_mul_scalar(a->dir_sum, alignment / float4_length(a->dir_sum)));
+        a->dir = float4_normalize(a->dir);
+    }
+
+    a->p = float4_add(a->p, float4_mul_scalar(a->dir, speed));
+    a->dir_sum = float4_null();
+
+    if (a->p.x < c->min.x) {
+        a->p.x = c->min.x;
+        a->dir.x = -a->dir.x;
+    }
+    if (a->p.y < c->min.y) {
+        a->p.y = c->min.y;
+        a->dir.y = -a->dir.y;
+    }
+    if (a->p.z < c->min.z) {
+        a->p.z = c->min.z;
+        a->dir.z = -a->dir.z;
+    }
+
+    if (a->p.x > c->max.x) {
+        a->p.x = c->max.x;
+        a->dir.x = -a->dir.x;
+    }
+    if (a->p.y > c->max.y) {
+        a->p.y = c->max.y;
+        a->dir.y = -a->dir.y;
+    }
+    if (a->p.z > c->max.z) {
+        a->p.z = c->max.z;
+        a->dir.z = -a->dir.z;
+    }
 }

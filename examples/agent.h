@@ -64,21 +64,22 @@ void sph_particle_reset(global SphParticle *a);
 typedef struct __attribute__((packed)) PicBoid {
     TayAgentTag tag;
     float4 p;
-    float4 v;
-    float4 f;
+    float4 dir;
+    float4 dir_sum;
 } PicBoid;
 
 typedef struct __attribute__((packed)) PicBoidNode {
     float4 p;
-    float4 p_sum;
-    float4 v_sum;
+    float4 dir_sum;
 } PicBoidNode;
 
 typedef struct __attribute__((packing)) PicFlockingContext {
     float radius;
+    float4 min;
+    float4 max;
 } PicFlockingContext;
 
 void pic_reset_node(global PicBoidNode *n, global void *c);
-void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, PicFlockingContext *c);
-void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, PicFlockingContext *c);
-void pic_boid_action(global PicBoid *a, global void *c);
+void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c);
+void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c);
+void pic_boid_action(global PicBoid *a, constant PicFlockingContext *c);
