@@ -210,7 +210,7 @@ void pic_reset_node(global PicBoidNode *n, global void *c) {
 }
 
 void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c) {
-    float4 d = float4_sub(n->p, a->p);
+    float4 d = float4_sub(a->p, n->p);
     float dl = float4_length(d);
 
     if (dl >= c->radius || dl < 0.00001f)
@@ -218,26 +218,23 @@ void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, constan
 
     float w = 1.0f - dl / c->radius;
 
-    // TODO: should be atomic!
-    // n->p_sum = float4_add(n->p_sum, d);
-    // n->dir_sum = float4_add(n->dir_sum, float4_mul_scalar(a->dir, w));
-    // n->density += w;
-    // n->count++;
-
     tay_atomic_add_float(&n->p_sum.x, d.x);
     tay_atomic_add_float(&n->p_sum.y, d.y);
     tay_atomic_add_float(&n->p_sum.z, d.z);
 
-    float4 dir_w = float4_mul_scalar(a->dir, w);
-    tay_atomic_add_float(&n->dir_sum.x, dir_w.x);
-    tay_atomic_add_float(&n->dir_sum.y, dir_w.y);
-    tay_atomic_add_float(&n->dir_sum.z, dir_w.z);
+    tay_atomic_add_float(&n->dir_sum.x, a->dir.x);
+    tay_atomic_add_float(&n->dir_sum.y, a->dir.y);
+    tay_atomic_add_float(&n->dir_sum.z, a->dir.z);
+    // float4 dir_w = float4_mul_scalar(a->dir, w);
+    // tay_atomic_add_float(&n->dir_sum.x, dir_w.x);
+    // tay_atomic_add_float(&n->dir_sum.y, dir_w.y);
+    // tay_atomic_add_float(&n->dir_sum.z, dir_w.z);
 
     tay_atomic_add_float(&n->count, 1.0f);
 }
 
 void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c) {
-    float4 d = float4_sub(n->p, a->p);
+    float4 d = float4_sub(a->p, n->p);
     float dl = float4_length(d);
 
     if (dl >= c->radius || dl < 0.00001f)
@@ -247,10 +244,10 @@ void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, consta
 
     a->dir_sum = float4_add(a->dir_sum, float4_mul_scalar(n->dir_sum, w));
 
-    const float separation_r = 5.0f;
+    float separation_r = c->radius * 0.5f;
 
     float4 n_avg_p = float4_add(float4_div_scalar(n->p_sum, n->count), n->p);
-    float4 dp = float4_sub(n_avg_p, a->p);
+    float4 dp = float4_sub(a->p, n_avg_p);
     float dpl = float4_length(dp);
 
     if (dpl < separation_r && dpl > 0.00001f)
@@ -263,13 +260,13 @@ void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, consta
 void pic_boid_action(global PicBoid *a, constant PicFlockingContext *c) {
     const float speed = 1.0f;
 
-    const float alignment = 0.5f;
+    const float alignment = 0.02f;
 
     float dir_sum_length = float4_length(a->dir_sum);
     if (dir_sum_length > 0.00001f)
         a->dir = float4_add(a->dir, float4_mul_scalar(a->dir_sum, alignment / dir_sum_length));
 
-    const float separation = 0.99f;
+    const float separation = 0.01f;
 
     float sep_f_l = float4_length(a->sep_f);
     if (sep_f_l > 0.00001f)

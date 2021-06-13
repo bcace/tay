@@ -7,9 +7,9 @@
 #include <math.h>
 
 
-static int boids_count = 40000;
+static int boids_count = 30000;
 static float pic_cell_size = 20.0f;
-static float pic_transfer_r = 40.0f;
+static float pic_transfer_r = 20.0f;
 
 static TayGroup *boids_group;
 static TayPicGrid *pic;
