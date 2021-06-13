@@ -203,9 +203,10 @@ void sph_particle_reset(global SphParticle *a) {
 */
 
 void pic_reset_node(global PicBoidNode *n, global void *c) {
-    n->dir_sum.x = 0.0f;
-    n->dir_sum.y = 0.0f;
-    n->dir_sum.z = 0.0f;
+    n->p_sum = float4_null();
+    n->dir_sum = float4_null();
+    n->density = 0.0f;
+    n->count = 0.0f;
 }
 
 void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c) {
@@ -218,7 +219,21 @@ void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, constan
     float w = 1.0f - dl / c->radius;
 
     // TODO: should be atomic!
-    n->dir_sum = float4_add(n->dir_sum, float4_mul_scalar(a->dir, w));
+    // n->p_sum = float4_add(n->p_sum, d);
+    // n->dir_sum = float4_add(n->dir_sum, float4_mul_scalar(a->dir, w));
+    // n->density += w;
+    // n->count++;
+
+    tay_atomic_add_float(&n->p_sum.x, d.x);
+    tay_atomic_add_float(&n->p_sum.y, d.y);
+    tay_atomic_add_float(&n->p_sum.z, d.z);
+
+    float4 dir_w = float4_mul_scalar(a->dir, w);
+    tay_atomic_add_float(&n->dir_sum.x, dir_w.x);
+    tay_atomic_add_float(&n->dir_sum.y, dir_w.y);
+    tay_atomic_add_float(&n->dir_sum.z, dir_w.z);
+
+    tay_atomic_add_float(&n->count, 1.0f);
 }
 
 void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c) {
@@ -231,21 +246,48 @@ void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, consta
     float w = 1.0f - dl / c->radius;
 
     a->dir_sum = float4_add(a->dir_sum, float4_mul_scalar(n->dir_sum, w));
+
+    const float separation_r = 5.0f;
+
+    float4 n_avg_p = float4_add(float4_div_scalar(n->p_sum, n->count), n->p);
+    float4 dp = float4_sub(n_avg_p, a->p);
+    float dpl = float4_length(dp);
+
+    if (dpl < separation_r && dpl > 0.00001f)
+        a->sep_f = float4_add(a->sep_f, float4_div_scalar(dp, dpl));
+
+    a->coh_p = float4_add(a->coh_p, dp);
+    ++a->coh_count;
 }
 
 void pic_boid_action(global PicBoid *a, constant PicFlockingContext *c) {
-
     const float speed = 1.0f;
+
     const float alignment = 0.5f;
 
     float dir_sum_length = float4_length(a->dir_sum);
-    if (dir_sum_length > 0.00001f) {
-        a->dir = float4_add(a->dir, float4_mul_scalar(a->dir_sum, alignment / float4_length(a->dir_sum)));
-        a->dir = float4_normalize(a->dir);
-    }
+    if (dir_sum_length > 0.00001f)
+        a->dir = float4_add(a->dir, float4_mul_scalar(a->dir_sum, alignment / dir_sum_length));
+
+    const float separation = 0.99f;
+
+    float sep_f_l = float4_length(a->sep_f);
+    if (sep_f_l > 0.00001f)
+        a->dir = float4_add(a->dir, float4_mul_scalar(a->sep_f, separation / sep_f_l));
+
+    const float cohesion = -0.01f;
+
+    float coh_p_l = float4_length(a->coh_p);
+    if (coh_p_l > 0.00001f)
+        a->dir = float4_add(a->dir, float4_mul_scalar(a->coh_p, cohesion / coh_p_l));
+
+    a->dir = float4_normalize(a->dir);
 
     a->p = float4_add(a->p, float4_mul_scalar(a->dir, speed));
     a->dir_sum = float4_null();
+    a->sep_f = float4_null();
+    a->coh_p = float4_null();
+    a->coh_count = 0;
 
     if (a->p.x < c->min.x) {
         a->p.x = c->min.x;

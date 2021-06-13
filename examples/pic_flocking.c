@@ -7,9 +7,9 @@
 #include <math.h>
 
 
-static int boids_count = 80000;
+static int boids_count = 40000;
 static float pic_cell_size = 20.0f;
-static float pic_transfer_r = 20.0f;
+static float pic_transfer_r = 40.0f;
 
 static TayGroup *boids_group;
 static TayPicGrid *pic;
@@ -50,7 +50,10 @@ void pic_flocking_init() {
         boid->dir.x *= l;
         boid->dir.y *= l;
         boid->dir.z *= l;
+        boid->sep_f = (float4){0.0f, 0.0f, 0.0f, 0.0f};
         boid->dir_sum = (float4){0.0f, 0.0f, 0.0f, 0.0f};
+        boid->coh_p = (float4){0.0f, 0.0f, 0.0f, 0.0f};
+        boid->coh_count = 0;
         tay_commit_available_agent(tay, boids_group);
     }
 

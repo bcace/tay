@@ -66,11 +66,17 @@ typedef struct __attribute__((packed)) PicBoid {
     float4 p;
     float4 dir;
     float4 dir_sum;
+    float4 sep_f;
+    float4 coh_p;
+    unsigned coh_count;
 } PicBoid;
 
 typedef struct __attribute__((packed)) PicBoidNode {
     float4 p;
+    float4 p_sum;
     float4 dir_sum;
+    float density;
+    float count;
 } PicBoidNode;
 
 typedef struct __attribute__((packing)) PicFlockingContext {
