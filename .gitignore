@@ -3,7 +3,7 @@ Debug
 Release
 preproc/__pycache__
 examples/graphics
-todo_private
+scratch
 benchmark/*.py
 *.log
 *.filters

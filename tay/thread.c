@@ -204,9 +204,11 @@ void tay_log(void *file, char *fmt, ...) {
 
     fflush(stdout);
 
-    va_start(ap, fmt);
-    vfprintf(file, fmt, ap);
-    va_end(ap);
+    if (file) {
+        va_start(ap, fmt);
+        vfprintf(file, fmt, ap);
+        va_end(ap);
+    }
 }
 
 void tay_threads_report_telemetry(unsigned steps_between_reports, void *file) {
@@ -219,15 +221,13 @@ void tay_threads_report_telemetry(unsigned steps_between_reports, void *file) {
     TayTelemetryResults res;
     tay_threads_get_telemetry_results(&res);
 
-    if (file) {
-        tay_log(file, "        \"thread balancing (%%)\": %g,\n", 100.0f - res.mean_relative_deviation_averaged);
-        tay_log(file, "        \"mean relative deviation averaged\": %g,\n", res.mean_relative_deviation_averaged);
-        tay_log(file, "        \"max relative deviation averaged\": %g,\n", res.max_relative_deviation_averaged);
-        tay_log(file, "        \"max relative deviation\": %g,\n", res.max_relative_deviation);
-        tay_log(file, "        \"neighbor-finding efficiency (%%)\": %g,\n", res.see_culling_efficiency);
-        tay_log(file, "        \"mean see interactions per step\": %g,\n", res.mean_see_interactions_per_step);
-        tay_log(file, "        \"grid kernel rebuilds\": %g,\n", isnan(res.grid_kernel_rebuilds) ? 0.0f : res.grid_kernel_rebuilds);
-    }
+    tay_log(file, "        \"thread balancing (%%)\": %g,\n", 100.0f - res.mean_relative_deviation_averaged);
+    tay_log(file, "        \"mean relative deviation averaged\": %g,\n", res.mean_relative_deviation_averaged);
+    tay_log(file, "        \"max relative deviation averaged\": %g,\n", res.max_relative_deviation_averaged);
+    tay_log(file, "        \"max relative deviation\": %g,\n", res.max_relative_deviation);
+    tay_log(file, "        \"neighbor-finding efficiency (%%)\": %g,\n", res.see_culling_efficiency);
+    tay_log(file, "        \"mean see interactions per step\": %g,\n", res.mean_see_interactions_per_step);
+    tay_log(file, "        \"grid kernel rebuilds\": %g,\n", isnan(res.grid_kernel_rebuilds) ? 0.0f : res.grid_kernel_rebuilds);
 
     _reset_telemetry();
 #endif
