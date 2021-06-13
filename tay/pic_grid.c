@@ -1,4 +1,5 @@
 #include "space.h"
+#include "thread.h"
 #include <float.h>
 #include <math.h>
 
@@ -158,7 +159,8 @@ static inline int _max(int a, int b) {
     return (a > b) ? a : b;
 }
 
-void pic_run_see_pass(TayPass *pass) {
+static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
+    TayPass *pass = task->pass;
     TayPicGrid *pic = pass->pic;
     TayGroup *group = pass->pic_group;
 
@@ -166,7 +168,9 @@ void pic_run_see_pass(TayPass *pass) {
     float4 kernel_radii = pass->radii;
     float cell_size = pic->cell_size;
 
-    for (unsigned a_i = 0; a_i < pass->pic_group->space.count; ++a_i) {
+    TayRange agents_range = tay_threads_range(group->space.count, task->thread_i);
+
+    for (unsigned a_i = agents_range.beg; a_i < agents_range.end; ++a_i) {
         void *agent = pass->pic_group->storage + a_i * pass->pic_group->agent_size;
         float4 agent_p = float4_agent_position(agent);
 
@@ -197,12 +201,22 @@ void pic_run_see_pass(TayPass *pass) {
     }
 }
 
-void pic_run_act_pass(TayPass *pass) {
+void pic_run_see_pass(TayPass *pass) {
+    space_run_thread_tasks(pass, _see_func);
+}
+
+static void _act_func(TayThreadTask *task, TayThreadContext *thread_context) {
+    TayPass *pass = task->pass;
     TayPicGrid *pic = pass->pic;
 
-    for (unsigned node_i = 0; node_i < pic->nodes_count; ++node_i) {
-        void *node = pic->node_storage + node_i * pic->node_size;
+    TayRange nodes_range = tay_threads_range(pic->nodes_count, task->thread_i);
 
+    for (unsigned node_i = nodes_range.beg; node_i < nodes_range.end; ++node_i) {
+        void *node = pic->node_storage + node_i * pic->node_size;
         pass->act(node, pass->context);
     }
+}
+
+void pic_run_act_pass(TayPass *pass) {
+    space_run_thread_tasks(pass, _act_func);
 }
