@@ -77,7 +77,7 @@ int pic_prepare_grids(TayState *state) {
             for (int dim_i = 0; dim_i < dims; ++dim_i) {
 
                 float box_side = pic_boxes[pic_i].max.arr[dim_i] - pic_boxes[pic_i].min.arr[dim_i];
-                unsigned count = (unsigned)ceil(box_side / pic->cell_size);
+                unsigned count = (unsigned)ceilf(box_side * 1.001f / pic->cell_size);
                 float grid_side = count * pic->cell_size;
                 float margin = (grid_side - box_side) * 0.5f;
 
@@ -178,19 +178,19 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
         else if (dims == 2) {}
         else if (dims == 3) {
 
-            int min_x = _max((int)floorf((agent_p.x - kernel_radii.x - pic->origin.x) / cell_size), 0);
-            int min_y = _max((int)floorf((agent_p.y - kernel_radii.y - pic->origin.y) / cell_size), 0);
-            int min_z = _max((int)floorf((agent_p.z - kernel_radii.z - pic->origin.z) / cell_size), 0);
-            int max_x = _min((int)ceilf((agent_p.x + kernel_radii.x - pic->origin.x) / cell_size), pic->node_counts.x - 1);
-            int max_y = _min((int)ceilf((agent_p.y + kernel_radii.y - pic->origin.y) / cell_size), pic->node_counts.y - 1);
-            int max_z = _min((int)ceilf((agent_p.z + kernel_radii.z - pic->origin.z) / cell_size), pic->node_counts.z - 1);
+            int min_x = _max((int)ceilf((agent_p.x - kernel_radii.x * 1.1f - pic->origin.x) / cell_size), 0);
+            int min_y = _max((int)ceilf((agent_p.y - kernel_radii.y * 1.1f - pic->origin.y) / cell_size), 0);
+            int min_z = _max((int)ceilf((agent_p.z - kernel_radii.z * 1.1f - pic->origin.z) / cell_size), 0);
+            int max_x = _min((int)ceilf((agent_p.x + kernel_radii.x * 1.1f - pic->origin.x) / cell_size), pic->node_counts.x);
+            int max_y = _min((int)ceilf((agent_p.y + kernel_radii.y * 1.1f - pic->origin.y) / cell_size), pic->node_counts.y);
+            int max_z = _min((int)ceilf((agent_p.z + kernel_radii.z * 1.1f - pic->origin.z) / cell_size), pic->node_counts.z);
 
-            for (int z = min_z; z <= max_z; ++z) {
-                int _z = z * pic->node_counts.x * pic->node_counts.y;
-                for (int y = min_y; y <= max_y; ++y) {
-                    int _y = _z + y * pic->node_counts.x;
-                    for (int x = min_x; x <= max_x; ++x) {
-                        void *node = pic->node_storage + (_y + x) * pic->node_size;
+            for (int z = min_z; z < max_z; ++z) {
+                int z_base = z * pic->node_counts.x * pic->node_counts.y;
+                for (int y = min_y; y < max_y; ++y) {
+                    int y_base = y * pic->node_counts.x;
+                    for (int x = min_x; x < max_x; ++x) {
+                        void *node = pic->node_storage + (z_base + y_base + x) * pic->node_size;
 
                         pass->see(agent, node, pass->context);
                     }
