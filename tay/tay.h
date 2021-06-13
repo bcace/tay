@@ -116,4 +116,6 @@ void tay_log(void *file, char *fmt, ...);
 
 void ocl_add_source(TayState *state, const char *path);
 
+void tay_atomic_add_float(float *o, float v);
+
 #endif

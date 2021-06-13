@@ -171,6 +171,7 @@
     <ClInclude Include="thread.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="atomic.c" />
     <ClCompile Include="cpu_aabb_tree.c" />
     <ClCompile Include="cpu_grid.c" />
     <ClCompile Include="cpu_simple.c" />
