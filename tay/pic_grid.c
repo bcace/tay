@@ -165,25 +165,40 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
     TayGroup *group = pass->pic_group;
 
     int dims = group->space.dims;
-    float4 kernel_radii = pass->radii;
-    float cell_size = pic->cell_size;
+    unsigned kernel_size = pass->kernel_size;
+    float base_offset = (kernel_size - 2) * 0.5f;
 
     TayRange agents_range = tay_threads_range(group->space.count, task->thread_i);
 
     for (unsigned a_i = agents_range.beg; a_i < agents_range.end; ++a_i) {
         void *agent = pass->pic_group->storage + a_i * pass->pic_group->agent_size;
-        float4 agent_p = float4_agent_position(agent);
+        float4 p = float4_agent_position(agent);
 
         if (dims == 1) {}
         else if (dims == 2) {}
         else if (dims == 3) {
 
-            int min_x = _max((int)ceilf((agent_p.x - kernel_radii.x * 1.1f - pic->origin.x) / cell_size), 0);
-            int min_y = _max((int)ceilf((agent_p.y - kernel_radii.y * 1.1f - pic->origin.y) / cell_size), 0);
-            int min_z = _max((int)ceilf((agent_p.z - kernel_radii.z * 1.1f - pic->origin.z) / cell_size), 0);
-            int max_x = _min((int)ceilf((agent_p.x + kernel_radii.x * 1.1f - pic->origin.x) / cell_size), pic->node_counts.x);
-            int max_y = _min((int)ceilf((agent_p.y + kernel_radii.y * 1.1f - pic->origin.y) / cell_size), pic->node_counts.y);
-            int max_z = _min((int)ceilf((agent_p.z + kernel_radii.z * 1.1f - pic->origin.z) / cell_size), pic->node_counts.z);
+            /* calculate min and max pic grid node indices [min, max> */
+            int min_x = (int)floorf((p.x - pic->origin.x) / pic->cell_size - base_offset);
+            int min_y = (int)floorf((p.y - pic->origin.y) / pic->cell_size - base_offset);
+            int min_z = (int)floorf((p.z - pic->origin.z) / pic->cell_size - base_offset);
+            int max_x = min_x + kernel_size;
+            int max_y = min_y + kernel_size;
+            int max_z = min_z + kernel_size;
+
+            /* clamp pic grid node indices [0, count> */
+            if (min_x < 0)
+                min_x = 0;
+            if (min_y < 0)
+                min_y = 0;
+            if (min_z < 0)
+                min_z = 0;
+            if (max_x > (int)pic->node_counts.x)
+                max_x = pic->node_counts.x;
+            if (max_y > (int)pic->node_counts.y)
+                max_y = pic->node_counts.y;
+            if (max_z > (int)pic->node_counts.z)
+                max_z = pic->node_counts.z;
 
             for (int z = min_z; z < max_z; ++z) {
                 int z_base = z * pic->node_counts.x * pic->node_counts.y;

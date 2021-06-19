@@ -148,8 +148,15 @@ typedef struct TayPass {
         TAY_SEE_FUNC see;
         TAY_ACT_FUNC act;
     };
-    float4 radii;
-    int self_see;
+    union {
+        struct { /* agent see */
+            float4 radii;
+            int self_see;
+        };
+        struct { /* pic see */
+            unsigned kernel_size;
+        };
+    };
     void *context;
     /* ocl-specific data */
     char func_name[TAY_MAX_FUNC_NAME];

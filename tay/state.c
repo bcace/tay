@@ -174,7 +174,7 @@ void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *
     strcpy_s(p->func_name, TAY_MAX_FUNC_NAME, func_name);
 }
 
-void tay_add_pic_see(TayState *state, TayGroup *group, TayPicGrid *pic, void (*func)(void *, void *, void *), float4 radii, void *context) {
+void tay_add_pic_see(TayState *state, TayGroup *group, TayPicGrid *pic, void (*func)(void *, void *, void *), unsigned kernel_size, void *context) {
     TayPass *p = state->passes + state->passes_count++;
     p->type = TAY_PASS_SEE;
     p->is_pic = 1;
@@ -182,7 +182,7 @@ void tay_add_pic_see(TayState *state, TayGroup *group, TayPicGrid *pic, void (*f
     p->see = func;
     p->pic_group = group;
     p->pic = pic;
-    p->radii = radii;
+    p->kernel_size = kernel_size;
 }
 
 void tay_add_pic_act(TayState *state, TayPicGrid *pic, void (*func)(void *, void *), void *context) {

@@ -100,7 +100,7 @@ TayPicGrid *tay_add_pic_grid(TayState *state, unsigned node_size, unsigned node_
 void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), char *func_name, float4 radii, int self_see, void *context, unsigned context_size);
 void tay_add_act(TayState *state, TayGroup *act_group, void (*func)(void *, void *), char *func_name, void *context, unsigned context_size);
 
-void tay_add_pic_see(TayState *state, TayGroup *group, TayPicGrid *pic, void (*func)(void *, void *, void *), float4 radii, void *context);
+void tay_add_pic_see(TayState *state, TayGroup *group, TayPicGrid *pic, void (*func)(void *, void *, void *), unsigned kernel_size, void *context);
 void tay_add_pic_act(TayState *state, TayPicGrid *pic, void (*func)(void *, void *), void *context);
 
 void *tay_get_available_agent(TayState *state, TayGroup *group);
