@@ -37,6 +37,8 @@ static void _main_loop_func(GLFWwindow *window) {
         pic_flocking_draw();
     else if (demos.example == FLUID)
         fluid_draw();
+    else if (demos.example == TAICHI_2D)
+        taichi_2D_draw();
 
     glfwSwapBuffers(window);
     // platform_sleep(10);
@@ -44,7 +46,7 @@ static void _main_loop_func(GLFWwindow *window) {
 }
 
 int main() {
-    demos.example = PIC_FLOCKING;
+    demos.example = TAICHI_2D;
 
     if (!glfwInit()) {
         fprintf(stderr, "Could not initialize GLFW\n");
@@ -84,6 +86,8 @@ int main() {
         pic_flocking_init();
     else if (demos.example == FLUID)
         fluid_init();
+    else if (demos.example == TAICHI_2D)
+        taichi_2D_init();
 
     // platform_sleep(5000);
 

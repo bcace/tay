@@ -8,6 +8,7 @@ typedef enum {
     FLOCKING,
     PIC_FLOCKING,
     FLUID,
+    TAICHI_2D,
 } Examples;
 
 typedef struct Global {
@@ -31,6 +32,9 @@ void pic_flocking_draw();
 
 void fluid_init();
 void fluid_draw();
+
+void taichi_2D_init();
+void taichi_2D_draw();
 
 float PYRAMID_VERTS[];
 int PYRAMID_VERTS_COUNT;

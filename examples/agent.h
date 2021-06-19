@@ -92,3 +92,13 @@ void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, constan
 void pic_normalize_node(global PicBoidNode *n, constant PicFlockingContext *c);
 void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c);
 void pic_boid_action(global PicBoid *a, constant PicFlockingContext *c);
+
+typedef struct __attribute__((packing))  Taichi2DParticle {
+    TayAgentTag tag;
+    float4 p;
+    int color;
+} Taichi2DParticle;
+
+typedef struct __attribute__((packing)) Taichi2DNode {
+    float4 p;
+} Taichi2DNode;
