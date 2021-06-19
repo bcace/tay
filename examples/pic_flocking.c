@@ -9,7 +9,7 @@
 
 static int boids_count = 30000;
 static float pic_cell_size = 20.0f;
-static float pic_transfer_r = 20.0f;
+static float boid_see_r = 20.0f;
 
 static TayGroup *boids_group;
 static TayPicGrid *pic;
@@ -27,15 +27,18 @@ void pic_flocking_init() {
     TayState *tay = demos.tay;
 
     boids_group = tay_add_group(tay, sizeof(PicBoid), boids_count, TAY_TRUE);
-    pic = tay_add_pic_grid(tay, sizeof(PicBoidNode), 1000000, pic_cell_size);
+    pic = tay_add_pic_grid(tay, sizeof(PicBoidNode), 10000000, pic_cell_size);
 
-    context.radius = pic_transfer_r;
+    context.r = boid_see_r;
+    context.separation_r = context.r * 0.5f;
+    context.cell_size = pic_cell_size;
     context.min = (float4){-500.0f, -500.0f, -500.0f, -500.0f};
     context.max = (float4){ 500.0f,  500.0f,  500.0f,  500.0f};
 
     tay_add_pic_act(tay, pic, pic_reset_node, 0);
-    tay_add_pic_see(tay, boids_group, pic, pic_transfer_boid_to_node, (float4){pic_transfer_r, pic_transfer_r, pic_transfer_r, pic_transfer_r}, &context);
-    tay_add_pic_see(tay, boids_group, pic, pic_transfer_node_to_boids, (float4){pic_transfer_r, pic_transfer_r, pic_transfer_r, pic_transfer_r}, &context);
+    tay_add_pic_see(tay, boids_group, pic, pic_transfer_boid_to_node, 2, &context);
+    tay_add_pic_act(tay, pic, pic_normalize_node, 0);
+    tay_add_pic_see(tay, boids_group, pic, pic_transfer_node_to_boids, 2, &context);
     tay_add_act(tay, boids_group, pic_boid_action, "pic_boid_action", &context, sizeof(context));
 
     for (int i = 0; i < boids_count; ++i) {
@@ -50,10 +53,11 @@ void pic_flocking_init() {
         boid->dir.x *= l;
         boid->dir.y *= l;
         boid->dir.z *= l;
-        boid->sep_f = (float4){0.0f, 0.0f, 0.0f, 0.0f};
-        boid->dir_sum = (float4){0.0f, 0.0f, 0.0f, 0.0f};
-        boid->coh_p = (float4){0.0f, 0.0f, 0.0f, 0.0f};
-        boid->coh_count = 0;
+        boid->separation = (float4){0.0f, 0.0f, 0.0f, 0.0f};
+        boid->alignment = (float4){0.0f, 0.0f, 0.0f, 0.0f};
+        boid->cohesion = (float4){0.0f, 0.0f, 0.0f, 0.0f};
+        boid->cohesion_count = 0;
+        boid->separation_count = 0;
         tay_commit_available_agent(tay, boids_group);
     }
 

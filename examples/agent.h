@@ -65,27 +65,30 @@ typedef struct __attribute__((packed)) PicBoid {
     TayAgentTag tag;
     float4 p;
     float4 dir;
-    float4 dir_sum;
-    float4 sep_f;
-    float4 coh_p;
-    unsigned coh_count;
+    float4 separation;
+    float4 alignment;
+    float4 cohesion;
+    int cohesion_count;
+    int separation_count;
 } PicBoid;
 
 typedef struct __attribute__((packed)) PicBoidNode {
     float4 p;
     float4 p_sum;
     float4 dir_sum;
-    float density;
-    float count;
+    float4 w_sum;
 } PicBoidNode;
 
 typedef struct __attribute__((packing)) PicFlockingContext {
-    float radius;
+    float r;
+    float separation_r;
+    float cell_size;
     float4 min;
     float4 max;
 } PicFlockingContext;
 
 void pic_reset_node(global PicBoidNode *n, global void *c);
 void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c);
+void pic_normalize_node(global PicBoidNode *n, constant PicFlockingContext *c);
 void pic_transfer_node_to_boids(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c);
 void pic_boid_action(global PicBoid *a, constant PicFlockingContext *c);
