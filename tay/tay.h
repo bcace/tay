@@ -79,6 +79,11 @@ typedef struct TayAgentTag {
     unsigned cell_agent_i; // TODO: rename to part_agent_i
 } TayAgentTag;
 
+typedef struct TayPicKernel {
+    unsigned size;
+    void **nodes;
+} TayPicKernel;
+
 #pragma pack(pop)
 
 typedef struct TayState TayState;

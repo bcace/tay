@@ -170,12 +170,43 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
 
     TayRange agents_range = tay_threads_range(group->space.count, task->thread_i);
 
+    TayPicKernel kernel;
+    kernel.size = kernel_size;
+    kernel.nodes = thread_context->storage;
+
     for (unsigned a_i = agents_range.beg; a_i < agents_range.end; ++a_i) {
         void *agent = pass->pic_group->storage + a_i * pass->pic_group->agent_size;
         float4 p = float4_agent_position(agent);
 
         if (dims == 1) {}
-        else if (dims == 2) {}
+        else if (dims == 2) {
+
+            /* calculate min and max pic grid node indices [min, max> */
+            int min_x = (int)floorf((p.x - pic->origin.x) / pic->cell_size - base_offset);
+            int min_y = (int)floorf((p.y - pic->origin.y) / pic->cell_size - base_offset);
+            int max_x = min_x + kernel_size;
+            int max_y = min_y + kernel_size;
+
+            /* clamp pic grid node indices [0, count> */
+            if (min_x < 0)
+                min_x = 0;
+            if (min_y < 0)
+                min_y = 0;
+            if (max_x > (int)pic->node_counts.x)
+                max_x = pic->node_counts.x;
+            if (max_y > (int)pic->node_counts.y)
+                max_y = pic->node_counts.y;
+
+            int node_i = 0;
+            for (int y = min_y; y < max_y; ++y) {
+                int y_base = y * pic->node_counts.x;
+                for (int x = min_x; x < max_x; ++x) {
+                    kernel.nodes[node_i++] = pic->node_storage + (y_base + x) * pic->node_size;
+                }
+            }
+
+            pass->see(agent, &kernel, pass->context);
+        }
         else if (dims == 3) {
 
             /* calculate min and max pic grid node indices [min, max> */
@@ -200,17 +231,18 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
             if (max_z > (int)pic->node_counts.z)
                 max_z = pic->node_counts.z;
 
+            int node_i = 0;
             for (int z = min_z; z < max_z; ++z) {
                 int z_base = z * pic->node_counts.x * pic->node_counts.y;
                 for (int y = min_y; y < max_y; ++y) {
                     int y_base = y * pic->node_counts.x;
                     for (int x = min_x; x < max_x; ++x) {
-                        void *node = pic->node_storage + (z_base + y_base + x) * pic->node_size;
-
-                        pass->see(agent, node, pass->context);
+                        kernel.nodes[node_i++] = pic->node_storage + (z_base + y_base + x) * pic->node_size;
                     }
                 }
             }
+
+            pass->see(agent, &kernel, pass->context);
         }
         else {}
     }

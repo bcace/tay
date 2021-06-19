@@ -1,6 +1,14 @@
 #include "state.h"
 #include "space.h"
+#include "thread.h"
 
+
+static inline unsigned _powu(unsigned v, unsigned e) {
+    unsigned r = v;
+    for (unsigned i = 1; i < e; ++i)
+        r *= v;
+    return r;
+}
 
 int state_compile(TayState *state) {
     int has_ocl_work = 0;
@@ -34,7 +42,10 @@ int state_compile(TayState *state) {
 
         if (pass->type == TAY_PASS_SEE) {
             if (pass->is_pic) {
-                // ...
+                if (runner.thread_storage_size < _powu(sizeof(void *), 4)) { // TODO: fix dims argument of _powu, the worst case scenario
+                    tay_set_error2(state, TAY_ERROR_PIC, "thread storage size is not large enough for PIC kernel");
+                    return 0;
+                }
             }
             else if (pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled) {
                 is_ocl_pass = 1;
