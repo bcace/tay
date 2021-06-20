@@ -41,6 +41,15 @@ typedef enum TayError {
 
 #pragma pack(push, 1)
 
+typedef struct {
+    union {
+        struct {
+            unsigned x, y, z, w;
+        };
+        unsigned arr[4];
+    };
+} uint4;
+
 typedef struct float3 {
     union {
         struct {
@@ -80,8 +89,9 @@ typedef struct TayAgentTag {
 } TayAgentTag;
 
 typedef struct TayPicKernel {
-    unsigned size; /* number of grid nodes in each dimension */
+    uint4 sizes; /* number of grid nodes in each dimension (can vary near the grid sides) */
     float cell_size;
+    float4 agent_offset;
     void **nodes;
 } TayPicKernel;
 

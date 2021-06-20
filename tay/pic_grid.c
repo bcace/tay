@@ -115,7 +115,6 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
     TayRange agents_range = tay_threads_range(group->space.count, task->thread_i);
 
     TayPicKernel kernel;
-    kernel.size = kernel_size;
     kernel.cell_size = pic->cell_size;
     kernel.nodes = thread_context->storage;
 
@@ -134,6 +133,8 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
                 min_x = 0;
             if (max_x > (int)pic->node_counts.x)
                 max_x = pic->node_counts.x;
+
+            kernel.sizes.x = max_x - min_x;
 
             int node_i = 0;
             for (int x = min_x; x < max_x; ++x) {
@@ -159,6 +160,9 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
                 max_x = pic->node_counts.x;
             if (max_y > (int)pic->node_counts.y)
                 max_y = pic->node_counts.y;
+
+            kernel.sizes.x = max_x - min_x;
+            kernel.sizes.y = max_y - min_y;
 
             int node_i = 0;
             for (int y = min_y; y < max_y; ++y) {
@@ -193,6 +197,10 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
                 max_y = pic->node_counts.y;
             if (max_z > (int)pic->node_counts.z)
                 max_z = pic->node_counts.z;
+
+            kernel.sizes.x = max_x - min_x;
+            kernel.sizes.y = max_y - min_y;
+            kernel.sizes.z = max_z - min_z;
 
             int node_i = 0;
             for (int z = min_z; z < max_z; ++z) {
@@ -236,6 +244,11 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
                 max_z = pic->node_counts.z;
             if (max_w > (int)pic->node_counts.w)
                 max_w = pic->node_counts.w;
+
+            kernel.sizes.x = max_x - min_x;
+            kernel.sizes.y = max_y - min_y;
+            kernel.sizes.z = max_z - min_z;
+            kernel.sizes.w = max_w - min_w;
 
             int node_i = 0;
             for (int w = min_w; w < max_w; ++w) {
