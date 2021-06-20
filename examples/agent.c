@@ -385,7 +385,7 @@ void taichi_2D_init_particle(Taichi2DParticle *p) {
     p->Jp = 1.0f;
 }
 
-void taichi_2D_reset_node(global Taichi2DNode *n, constant void *c) {
+void taichi_2D_reset_node(global Taichi2DNode *n, constant Taichi2DContext *c) {
     n->v = float2_null();
     n->m = 0.0f;
 }
@@ -407,7 +407,7 @@ static void _polar_decomp(float4 m, float4 *R, float4 *S) {
   *S = float2x2_multiply(float2x2_transpose(*R), m);
 }
 
-void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel *k, constant void *c) {
+void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel *k, constant Taichi2DContext *c) {
     global Taichi2DNode **nodes = (global Taichi2DNode **)k->nodes;
     float4 base = nodes[0]->p;
     float inv_cell_size = 1.0f / k->cell_size;
@@ -431,8 +431,6 @@ void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel 
             0.5f * _square(fx.y - 0.5f),
         },
     };
-
-    const float dt = 1e-4f;
 
     // Snow material properties
     const float particle_mass = 1.0f;
@@ -462,7 +460,7 @@ void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel 
     float4 PF = float2x2_add_scalar(float2x2_multiply_scalar(float2x2_multiply(float2x2_subtract(p->F, r), float2x2_transpose(p->F)), 2.0f * mu), lambda * (J - 1.0f) * J);
 
     // Cauchy stress times dt and inv_dx
-    float4 stress = float2x2_multiply_scalar(PF, -dt * vol * Dinv);
+    float4 stress = float2x2_multiply_scalar(PF, -c->dt * vol * Dinv);
 
     // Fused APIC momentum + MLS-MPM stress contribution
     // See http://taichi.graphics/wp-content/uploads/2019/03/mls-mpm-cpic.pdf
@@ -488,10 +486,56 @@ void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel 
     }
 }
 
-void taichi_2D_node(global Taichi2DNode *n, constant void *c) {
-
+static float _max(float a, float b) {
+    return a > b ? a : b;
 }
 
-void taichi_2D_node_to_particle(global Taichi2DParticle *p, global TayPicKernel *k, constant void *c) {
+void taichi_2D_node(global Taichi2DNode *n, constant Taichi2DContext *c) {
+    // No need for epsilon here
+    if (n->m > 0) {
+        // Normalize by mass
+        n->v.x /= n->m;
+        n->v.y /= n->m;
+        n->m = 1.0f;
+        // Gravity
+        n->v.y += c->dt * -200.0f;
 
+        // boundary thickness
+        const float boundary = 0.05f;
+
+        // Sticky boundary
+        if (n->p.x < boundary || n->p.x > 1-boundary || n->p.y > 1-boundary) {
+            n->v = float2_null();
+        }
+        // Separate boundary
+        if (n->p.y < boundary) {
+            n->v.y = _max(0.0f, n->v.y);
+        }
+    }
+}
+
+void taichi_2D_node_to_particle(global Taichi2DParticle *p, global TayPicKernel *k, constant Taichi2DContext *c) {
+    global Taichi2DNode **nodes = (global Taichi2DNode **)k->nodes;
+    float4 base = nodes[0]->p;
+    float inv_cell_size = 1.0f / k->cell_size;
+
+    float2 fx = {
+        (p->p.x - base.x) * inv_cell_size,
+        (p->p.y - base.y) * inv_cell_size,
+    };
+
+    float2 w[3] = {
+        {
+            0.5f * _square(1.5f - fx.x),
+            0.5f * _square(1.5f - fx.y),
+        },
+        {
+            0.75f - _square(fx.x - 1.0f),
+            0.75f - _square(fx.y - 1.0f),
+        },
+        {
+            0.5f * _square(fx.x - 0.5f),
+            0.5f * _square(fx.y - 0.5f),
+        },
+    };
 }

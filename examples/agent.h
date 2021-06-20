@@ -109,10 +109,14 @@ typedef struct __attribute__((packing)) Taichi2DNode {
     float m;
 } Taichi2DNode;
 
+typedef struct __attribute__((packing)) Taichi2DContext {
+    float dt;
+} Taichi2DContext;
+
 /* host only */
 void taichi_2D_init_particle(Taichi2DParticle *p);
 
-void taichi_2D_reset_node(global Taichi2DNode *n, constant void *c);
-void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel *k, constant void *c);
-void taichi_2D_node(global Taichi2DNode *n, constant void *c);
-void taichi_2D_node_to_particle(global Taichi2DParticle *p, global TayPicKernel *k, constant void *c);
+void taichi_2D_reset_node(global Taichi2DNode *n, constant Taichi2DContext *c);
+void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel *k, constant Taichi2DContext *c);
+void taichi_2D_node(global Taichi2DNode *n, constant Taichi2DContext *c);
+void taichi_2D_node_to_particle(global Taichi2DParticle *p, global TayPicKernel *k, constant Taichi2DContext *c);

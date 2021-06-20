@@ -13,6 +13,8 @@ static float grid_resolution = 80; /* cells per side */
 static TayGroup *group;
 static TayPicGrid *pic;
 
+static Taichi2DContext context;
+
 static Program program;
 
 
@@ -44,10 +46,12 @@ void taichi_2D_init() {
     _add_object(tay, 0.45f - r, 0.65f - r, 0.45f + r, 0.65f + r, particles_count / 3, 1);
     _add_object(tay, 0.55f - r, 0.85f - r, 0.55f + r, 0.85f + r, particles_count / 3, 2);
 
-    tay_add_pic_act(tay, pic, taichi_2D_reset_node, 0);
-    tay_add_pic_see(tay, group, pic, taichi_2D_particle_to_node, 3, 0);
-    tay_add_pic_act(tay, pic, taichi_2D_node, 0);
-    tay_add_pic_see(tay, group, pic, taichi_2D_node_to_particle, 3, 0);
+    context.dt = 1e-4f;
+
+    tay_add_pic_act(tay, pic, taichi_2D_reset_node, &context);
+    tay_add_pic_see(tay, group, pic, taichi_2D_particle_to_node, 3, &context);
+    tay_add_pic_act(tay, pic, taichi_2D_node, &context);
+    tay_add_pic_see(tay, group, pic, taichi_2D_node_to_particle, 3, &context);
 
     /* drawing init */
 
