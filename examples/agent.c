@@ -209,26 +209,26 @@ void pic_reset_node(global PicBoidNode *n, global void *c) {
 }
 
 void pic_transfer_boid_to_node(global PicBoid *a, global PicBoidNode *n, constant PicFlockingContext *c) {
-    float4 d = float4_sub(a->p, n->p);
+    // float4 d = float4_sub(a->p, n->p);
 
-    float4 w = {
-        1.0f - d.x / c->cell_size,
-        1.0f - d.y / c->cell_size,
-        1.0f - d.z / c->cell_size,
-        0.0f
-    };
+    // float4 w = {
+    //     1.0f - d.x / c->cell_size,
+    //     1.0f - d.y / c->cell_size,
+    //     1.0f - d.z / c->cell_size,
+    //     0.0f
+    // };
 
-    tay_atomic_add_float(&n->p_sum.x, d.x * w.x + n->p.x);
-    tay_atomic_add_float(&n->p_sum.y, d.y * w.y + n->p.y);
-    tay_atomic_add_float(&n->p_sum.z, d.z * w.z + n->p.z);
+    // tay_atomic_add_float(&n->p_sum.x, d.x * w.x + n->p.x);
+    // tay_atomic_add_float(&n->p_sum.y, d.y * w.y + n->p.y);
+    // tay_atomic_add_float(&n->p_sum.z, d.z * w.z + n->p.z);
 
-    tay_atomic_add_float(&n->dir_sum.x, a->dir.x * w.x);
-    tay_atomic_add_float(&n->dir_sum.y, a->dir.y * w.y);
-    tay_atomic_add_float(&n->dir_sum.z, a->dir.z * w.z);
+    // tay_atomic_add_float(&n->dir_sum.x, a->dir.x * w.x);
+    // tay_atomic_add_float(&n->dir_sum.y, a->dir.y * w.y);
+    // tay_atomic_add_float(&n->dir_sum.z, a->dir.z * w.z);
 
-    tay_atomic_add_float(&n->w_sum.x, w.x);
-    tay_atomic_add_float(&n->w_sum.y, w.y);
-    tay_atomic_add_float(&n->w_sum.z, w.z);
+    // tay_atomic_add_float(&n->w_sum.x, w.x);
+    // tay_atomic_add_float(&n->w_sum.y, w.y);
+    // tay_atomic_add_float(&n->w_sum.z, w.z);
 }
 
 void pic_normalize_node(global PicBoidNode *n, constant PicFlockingContext *c) {

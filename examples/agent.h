@@ -73,7 +73,6 @@ typedef struct __attribute__((packed)) PicBoid {
 } PicBoid;
 
 typedef struct __attribute__((packed)) PicBoidNode {
-    float4 p;
     float4 p_sum;
     float4 dir_sum;
     float4 w_sum;
@@ -100,7 +99,6 @@ typedef struct __attribute__((packing))  Taichi2DParticle {
 } Taichi2DParticle;
 
 typedef struct __attribute__((packing)) Taichi2DNode {
-    float4 p;
     float4 v;
     float m;
 } Taichi2DNode;
