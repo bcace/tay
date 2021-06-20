@@ -91,7 +91,6 @@ typedef struct TayAgentTag {
 typedef struct TayPicKernel {
     uint4 sizes; /* number of grid nodes in each dimension (can vary near the grid sides) */
     float cell_size;
-    float4 agent_offset;
     void **nodes;
 } TayPicKernel;
 
