@@ -73,6 +73,7 @@ typedef struct __attribute__((packed)) PicBoid {
 } PicBoid;
 
 typedef struct __attribute__((packed)) PicBoidNode {
+    float4 p;
     float4 p_sum;
     float4 dir_sum;
     float4 w_sum;
@@ -95,13 +96,21 @@ void pic_boid_action(global PicBoid *a, constant PicFlockingContext *c);
 typedef struct __attribute__((packing))  Taichi2DParticle {
     TayAgentTag tag;
     float4 p;
+    float2 v;
+    float4 F; // Deformation gradient
+    float4 C; // Affine momentum from APIC
+    float Jp; // Determinant of the deformation gradient (i.e. volume)
     int color;
 } Taichi2DParticle;
 
 typedef struct __attribute__((packing)) Taichi2DNode {
-    float4 v;
+    float4 p;
+    float2 v;
     float m;
 } Taichi2DNode;
+
+/* host only */
+void taichi_2D_init_particle(Taichi2DParticle *p);
 
 void taichi_2D_reset_node(global Taichi2DNode *n, constant void *c);
 void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel *k, constant void *c);

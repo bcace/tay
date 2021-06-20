@@ -378,16 +378,114 @@ void pic_boid_action(global PicBoid *a, constant PicFlockingContext *c) {
 }
 
 
+void taichi_2D_init_particle(Taichi2DParticle *p) {
+    p->F = float2x2_make(1.0f);
+    p->C = float2x2_make(0.0f);
+    p->v = float2_null();
+    p->Jp = 1.0f;
+}
+
 void taichi_2D_reset_node(global Taichi2DNode *n, constant void *c) {
-    n->v = float4_null();
+    n->v = float2_null();
     n->m = 0.0f;
+}
+
+static float _square(float v) {
+    return v * v;
+}
+
+static void _polar_decomp(float4 m, float4 *R, float4 *S) {
+  float x = m.x + m.w;
+  float y = m.z - m.y;
+  float scale = 1.0f / sqrtf(x * x + y * y);
+  float c = x * scale;
+  float s = y * scale;
+  R->x = c;
+  R->y = -s;
+  R->z = s;
+  R->w = c;
+  *S = float2x2_multiply(float2x2_transpose(*R), m);
 }
 
 void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel *k, constant void *c) {
     global Taichi2DNode **nodes = (global Taichi2DNode **)k->nodes;
-    // float4 fx = {
+    float4 base = nodes[0]->p;
+    float inv_cell_size = 1.0f / k->cell_size;
 
-    // };
+    float2 fx = {
+        (p->p.x - base.x) * inv_cell_size,
+        (p->p.y - base.y) * inv_cell_size,
+    };
+
+    float2 w[3] = {
+        {
+            0.5f * _square(1.5f - fx.x),
+            0.5f * _square(1.5f - fx.y),
+        },
+        {
+            0.75f - _square(fx.x - 1.0f),
+            0.75f - _square(fx.y - 1.0f),
+        },
+        {
+            0.5f * _square(fx.x - 0.5f),
+            0.5f * _square(fx.y - 0.5f),
+        },
+    };
+
+    const float dt = 1e-4f;
+
+    // Snow material properties
+    const float particle_mass = 1.0f;
+    const float vol = 1.0f;        // Particle Volume
+    const float hardening = 10.0f;  // Snow hardening factor
+    const float E = 1.0e4f;         // Young's Modulus
+    const float nu = 0.2f;          // Poisson ratio
+
+    // Initial Lamé parameters
+    const float mu_0 = E / (2 * (1 + nu));
+    const float lambda_0 = E * nu / ((1+nu) * (1 - 2 * nu));
+
+    float e = expf(hardening * (1.0f - p->Jp));
+    float mu = mu_0 * e;
+    float lambda = lambda_0 * e;
+
+    // Current volume
+    float J = float2x2_determinant(p->F);
+
+    // Polar decomposition for fixed corotated model
+    float4 r, s;
+    _polar_decomp(p->F, &r, &s);
+
+    // [http://mpm.graphics Paragraph after Eqn. 176]
+    float Dinv = 4.0f * inv_cell_size * inv_cell_size;
+    // [http://mpm.graphics Eqn. 52]
+    float4 PF = float2x2_add_scalar(float2x2_multiply_scalar(float2x2_multiply(float2x2_subtract(p->F, r), float2x2_transpose(p->F)), 2.0f * mu), lambda * (J - 1.0f) * J);
+
+    // Cauchy stress times dt and inv_dx
+    float4 stress = float2x2_multiply_scalar(PF, -dt * vol * Dinv);
+
+    // Fused APIC momentum + MLS-MPM stress contribution
+    // See http://taichi.graphics/wp-content/uploads/2019/03/mls-mpm-cpic.pdf
+    // Eqn 29
+    float4 affine = float2x2_add(stress, float2x2_multiply_scalar(p->C, particle_mass));
+
+    // P2G
+    for (unsigned i = 0; i < k->sizes.x; i++) {
+        for (unsigned j = 0; j < k->sizes.y; j++) {
+            global Taichi2DNode *node = (global Taichi2DNode *)k->nodes[j * k->sizes.x + i];
+            float2 dpos = {
+                node->p.x - p->p.x,
+                node->p.y - p->p.y,
+            };
+
+            // Translational momentum
+            float2 s = float2x2_multiply_vector(affine, dpos);
+            float ws = w[i].x * w[j].y;
+            node->v.x += p->v.x * particle_mass + s.x * ws;
+            node->v.y += p->v.y * particle_mass + s.y * ws;
+            node->m += particle_mass * ws;
+        }
+    }
 }
 
 void taichi_2D_node(global Taichi2DNode *n, constant void *c) {

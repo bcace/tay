@@ -20,3 +20,15 @@ float4 float4_normalize(float4 a);
 float4 float4_normalize_to(float4 a, float b);
 float float4_length(float4 a);
 float float4_dot(float4 a, float4 b);
+
+float4 float2x2_make(float v);
+float4 float2x2_add_scalar(float4 m, float s);
+float4 float2x2_multiply_scalar(float4 m, float s);
+float2 float2x2_multiply_vector(float4 m, float2 v);
+float4 float2x2_add(float4 a, float4 b);
+float4 float2x2_subtract(float4 a, float4 b);
+float4 float2x2_multiply(float4 a, float4 b);
+float float2x2_determinant(float4 m);
+float4 float2x2_transpose(float4 m);
+
+float2 float2_null();

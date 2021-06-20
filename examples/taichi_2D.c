@@ -26,6 +26,7 @@ static void _add_object(TayState *tay, float min_x, float min_y, float max_x, fl
         p->p.x = _rand(min_x, max_x);
         p->p.y = _rand(min_y, max_y);
         p->color = color;
+        taichi_2D_init_particle(p);
         tay_commit_available_agent(tay, group);
     }
 }

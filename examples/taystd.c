@@ -182,3 +182,81 @@ float float4_length(float4 a) {
 float float4_dot(float4 a, float4 b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
+
+float4 float2x2_make(float v) {
+    return (float4) {
+        v,
+        0.0f,
+        0.0f,
+        v,
+    };
+}
+
+float4 float2x2_add_scalar(float4 m, float s) {
+    return (float4) {
+        m.x + s,
+        m.y + s,
+        m.z + s,
+        m.w + s,
+    };
+}
+
+float4 float2x2_multiply_scalar(float4 m, float s) {
+    return (float4) {
+        m.x * s,
+        m.y * s,
+        m.z * s,
+        m.w * s,
+    };
+}
+
+float2 float2x2_multiply_vector(float4 m, float2 v) {
+    return (float2) {
+        m.x * v.x + m.y * v.y,
+        m.z * v.x + m.w * v.y,
+    };
+}
+
+float4 float2x2_add(float4 a, float4 b) {
+    return (float4) {
+        a.x + b.x,
+        a.y + b.y,
+        a.z + b.z,
+        a.w + b.w,
+    };
+}
+
+float4 float2x2_subtract(float4 a, float4 b) {
+    return (float4) {
+        a.x - b.x,
+        a.y - b.y,
+        a.z - b.z,
+        a.w - b.w,
+    };
+}
+
+float float2x2_determinant(float4 m) {
+    return m.x * m.w - m.y * m.z;
+}
+
+float4 float2x2_transpose(float4 m) {
+    return (float4) {
+        m.x,
+        m.z,
+        m.y,
+        m.w,
+    };
+}
+
+float4 float2x2_multiply(float4 a, float4 b) {
+    return (float4) {
+        a.x * b.x + a.y * b.z,
+        a.x * b.y + a.y * b.w,
+        a.z * b.x + a.w * b.z,
+        a.z * b.y + a.w * b.w,
+    };
+}
+
+float2 float2_null() {
+    return (float2) { 0.0f, 0.0f };
+}
