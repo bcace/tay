@@ -89,60 +89,6 @@ int pic_prepare_grids(TayState *state) {
                 tay_set_error2(state, TAY_ERROR_PIC, "not enough storage allocated for required number of pic grid nodes");
                 return 0;
             }
-
-            /* set node positions */
-            if (pic->dims == 1) {
-                float4 *node_p = (float4 *)(pic->node_storage);
-                for (unsigned i = 0; i < pic->node_counts.x; ++i) {
-                    node_p->x = pic->origin.x + i * pic->cell_size;
-                    node_p = (float4 *)((char *)node_p + pic->node_size);
-                }
-            }
-            else if (pic->dims == 2) {
-                float4 *node_p = (float4 *)(pic->node_storage);
-                for (unsigned j = 0; j < pic->node_counts.y; ++j) {
-                    float y = pic->origin.y + j * pic->cell_size;
-                    for (unsigned i = 0; i < pic->node_counts.x; ++i) {
-                        node_p->x = pic->origin.x + i * pic->cell_size;
-                        node_p->y = y;
-                        node_p = (float4 *)((char *)node_p + pic->node_size);
-                    }
-                }
-            }
-            else if (pic->dims == 3) {
-                float4 *node_p = (float4 *)(pic->node_storage);
-                for (unsigned k = 0; k < pic->node_counts.z; ++k) {
-                    float z = pic->origin.z + k * pic->cell_size;
-                    for (unsigned j = 0; j < pic->node_counts.y; ++j) {
-                        float y = pic->origin.y + j * pic->cell_size;
-                        for (unsigned i = 0; i < pic->node_counts.x; ++i) {
-                            node_p->x = pic->origin.x + i * pic->cell_size;
-                            node_p->y = y;
-                            node_p->z = z;
-                            node_p = (float4 *)((char *)node_p + pic->node_size);
-                        }
-                    }
-                }
-            }
-            else {
-                float4 *node_p = (float4 *)(pic->node_storage);
-                for (unsigned l = 0; l < pic->node_counts.w; ++l) {
-                    float w = pic->origin.w + l * pic->cell_size;
-                    for (unsigned k = 0; k < pic->node_counts.z; ++k) {
-                        float z = pic->origin.z + k * pic->cell_size;
-                        for (unsigned j = 0; j < pic->node_counts.y; ++j) {
-                            float y = pic->origin.y + j * pic->cell_size;
-                            for (unsigned i = 0; i < pic->node_counts.x; ++i) {
-                                node_p->x = pic->origin.x + i * pic->cell_size;
-                                node_p->y = y;
-                                node_p->z = z;
-                                node_p->w = w;
-                                node_p = (float4 *)((char *)node_p + pic->node_size);
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -170,13 +116,32 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
 
     TayPicKernel kernel;
     kernel.size = kernel_size;
+    kernel.cell_size = pic->cell_size;
     kernel.nodes = thread_context->storage;
 
     for (unsigned a_i = agents_range.beg; a_i < agents_range.end; ++a_i) {
         void *agent = pass->pic_group->storage + a_i * pass->pic_group->agent_size;
         float4 p = float4_agent_position(agent);
 
-        if (dims == 1) {}
+        if (dims == 1) {
+
+            /* calculate min and max pic grid node indices [min, max> */
+            int min_x = (int)floorf((p.x - pic->origin.x) / pic->cell_size - base_offset);
+            int max_x = min_x + kernel_size;
+
+            /* clamp pic grid node indices [0, count> */
+            if (min_x < 0)
+                min_x = 0;
+            if (max_x > (int)pic->node_counts.x)
+                max_x = pic->node_counts.x;
+
+            int node_i = 0;
+            for (int x = min_x; x < max_x; ++x) {
+                kernel.nodes[node_i++] = pic->node_storage + x * pic->node_size;
+            }
+
+            pass->see(agent, &kernel, pass->context);
+        }
         else if (dims == 2) {
 
             /* calculate min and max pic grid node indices [min, max> */
@@ -242,7 +207,52 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
 
             pass->see(agent, &kernel, pass->context);
         }
-        else {}
+        else {
+
+            /* calculate min and max pic grid node indices [min, max> */
+            int min_x = (int)floorf((p.x - pic->origin.x) / pic->cell_size - base_offset);
+            int min_y = (int)floorf((p.y - pic->origin.y) / pic->cell_size - base_offset);
+            int min_z = (int)floorf((p.z - pic->origin.z) / pic->cell_size - base_offset);
+            int min_w = (int)floorf((p.w - pic->origin.w) / pic->cell_size - base_offset);
+            int max_x = min_x + kernel_size;
+            int max_y = min_y + kernel_size;
+            int max_z = min_z + kernel_size;
+            int max_w = min_w + kernel_size;
+
+            /* clamp pic grid node indices [0, count> */
+            if (min_x < 0)
+                min_x = 0;
+            if (min_y < 0)
+                min_y = 0;
+            if (min_z < 0)
+                min_z = 0;
+            if (min_w < 0)
+                min_w = 0;
+            if (max_x > (int)pic->node_counts.x)
+                max_x = pic->node_counts.x;
+            if (max_y > (int)pic->node_counts.y)
+                max_y = pic->node_counts.y;
+            if (max_z > (int)pic->node_counts.z)
+                max_z = pic->node_counts.z;
+            if (max_w > (int)pic->node_counts.w)
+                max_w = pic->node_counts.w;
+
+            int node_i = 0;
+            for (int w = min_w; w < max_w; ++w) {
+                int w_base = w * pic->node_counts.x * pic->node_counts.y * pic->node_counts.z;
+                for (int z = min_z; z < max_z; ++z) {
+                    int z_base = z * pic->node_counts.x * pic->node_counts.y;
+                    for (int y = min_y; y < max_y; ++y) {
+                        int y_base = y * pic->node_counts.x;
+                        for (int x = min_x; x < max_x; ++x) {
+                            kernel.nodes[node_i++] = pic->node_storage + (w_base + z_base + y_base + x) * pic->node_size;
+                        }
+                    }
+                }
+            }
+
+            pass->see(agent, &kernel, pass->context);
+        }
     }
 }
 

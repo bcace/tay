@@ -80,7 +80,8 @@ typedef struct TayAgentTag {
 } TayAgentTag;
 
 typedef struct TayPicKernel {
-    unsigned size;
+    unsigned size; /* number of grid nodes in each dimension */
+    float cell_size;
     void **nodes;
 } TayPicKernel;
 
