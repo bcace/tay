@@ -42,7 +42,7 @@ int state_compile(TayState *state) {
 
         if (pass->type == TAY_PASS_SEE) {
             if (pass->is_pic) {
-                if (runner.thread_storage_size < _powu(sizeof(void *), 4)) { // TODO: fix dims argument of _powu, the worst case scenario
+                if (runner.thread_storage_size < _powu(sizeof(void *), pass->pic->dims)) {
                     tay_set_error2(state, TAY_ERROR_PIC, "thread storage size is not large enough for PIC kernel");
                     return 0;
                 }

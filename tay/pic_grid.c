@@ -27,8 +27,6 @@ static inline void _include_box(Box *a, Box *b) {
 have updated their boxes. */
 int pic_prepare_grids(TayState *state) {
 
-    int dims = 3; // TODO: fix this!!!!!!!!!!!!!
-
     /* if there are no pics there's nothing to prepare */
     if (state->pics_count == 0)
         return 1;
@@ -74,7 +72,7 @@ int pic_prepare_grids(TayState *state) {
         if (pic_is_active(pic)) {
 
             /* calculate origin and node counts */
-            for (int dim_i = 0; dim_i < dims; ++dim_i) {
+            for (int dim_i = 0; dim_i < pic->dims; ++dim_i) {
 
                 float box_side = pic_boxes[pic_i].max.arr[dim_i] - pic_boxes[pic_i].min.arr[dim_i];
                 unsigned count = (unsigned)ceilf(box_side * 1.001f / pic->cell_size);
@@ -93,14 +91,14 @@ int pic_prepare_grids(TayState *state) {
             }
 
             /* set node positions */
-            if (dims == 1) {
+            if (pic->dims == 1) {
                 float4 *node_p = (float4 *)(pic->node_storage);
                 for (unsigned i = 0; i < pic->node_counts.x; ++i) {
                     node_p->x = pic->origin.x + i * pic->cell_size;
                     node_p = (float4 *)((char *)node_p + pic->node_size);
                 }
             }
-            else if (dims == 2) {
+            else if (pic->dims == 2) {
                 float4 *node_p = (float4 *)(pic->node_storage);
                 for (unsigned j = 0; j < pic->node_counts.y; ++j) {
                     float y = pic->origin.y + j * pic->cell_size;
@@ -111,7 +109,7 @@ int pic_prepare_grids(TayState *state) {
                     }
                 }
             }
-            else if (dims == 3) {
+            else if (pic->dims == 3) {
                 float4 *node_p = (float4 *)(pic->node_storage);
                 for (unsigned k = 0; k < pic->node_counts.z; ++k) {
                     float z = pic->origin.z + k * pic->cell_size;

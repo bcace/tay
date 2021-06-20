@@ -91,6 +91,7 @@ typedef struct TayPicGrid {
     unsigned nodes_capacity;
     unsigned node_size; /* user-defined node struct size in bytes */
     float cell_size;
+    int dims;
     /* calculated later at each run step */
     float4 origin;
     uint4 node_counts;
