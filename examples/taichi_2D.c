@@ -34,7 +34,7 @@ void taichi_2D_init() {
     TayState *tay = demos.tay;
 
     group = tay_add_group(tay, sizeof(Taichi2DParticle), particles_count, TAY_TRUE);
-    pic = tay_add_pic_grid(tay, sizeof(Taichi2DNode), 10000000, 1.0f / grid_resolution);
+    pic = tay_add_pic_grid(tay, sizeof(Taichi2DNode), 10000000, 1.0f / grid_resolution, 2);
 
     tay_configure_space(tay, group, TAY_CPU_SIMPLE, 2, (float4){0.0f}, 0);
 

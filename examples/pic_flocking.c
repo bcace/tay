@@ -27,7 +27,7 @@ void pic_flocking_init() {
     TayState *tay = demos.tay;
 
     boids_group = tay_add_group(tay, sizeof(PicBoid), boids_count, TAY_TRUE);
-    pic = tay_add_pic_grid(tay, sizeof(PicBoidNode), 10000000, pic_cell_size);
+    pic = tay_add_pic_grid(tay, sizeof(PicBoidNode), 10000000, pic_cell_size, 3);
 
     context.r = boid_see_r;
     context.separation_r = context.r * 0.5f;
