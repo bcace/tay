@@ -538,4 +538,7 @@ void taichi_2D_node_to_particle(global Taichi2DParticle *p, global TayPicKernel 
             0.5f * _square(fx.y - 0.5f),
         },
     };
+
+    p->C = float4_null();
+    p->v = float2_null();
 }
