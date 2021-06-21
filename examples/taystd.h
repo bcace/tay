@@ -32,3 +32,6 @@ float float2x2_determinant(float4 m);
 float4 float2x2_transpose(float4 m);
 
 float2 float2_null();
+float2 float2_add(float2 a, float2 b);
+float2 float2_mul_scalar(float2 a, float s);
+float4 float2_outer_product(float2 a, float2 b);

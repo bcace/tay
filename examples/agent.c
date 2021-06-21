@@ -478,10 +478,10 @@ void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel 
 
             // Translational momentum
             float2 s = float2x2_multiply_vector(affine, dpos);
-            float ws = w[i].x * w[j].y;
-            node->v.x += p->v.x * particle_mass + s.x * ws;
-            node->v.y += p->v.y * particle_mass + s.y * ws;
-            node->m += particle_mass * ws;
+            float weight = w[i].x * w[j].y;
+            node->v.x += p->v.x * particle_mass + s.x * weight;
+            node->v.y += p->v.y * particle_mass + s.y * weight;
+            node->m += particle_mass * weight;
         }
     }
 }
@@ -514,6 +514,49 @@ void taichi_2D_node(global Taichi2DNode *n, constant Taichi2DContext *c) {
     }
 }
 
+inline void svd(float4 m, float4 *U, float4 *sig, float4 *V) {
+    float4 S;
+    _polar_decomp(m, U, &S);
+    float c, s;
+    if (fabsf(S.y) < 1e-6f) {
+        *sig = S;
+        c = 1.0f;
+        s = 0.0f;
+    } else {
+        float tao = 0.5f * (S.x - S.w);
+        float w = sqrtf(tao * tao + S.y * S.z);
+        float t = tao > 0.0f ? S.y / (tao + w) : S.y / (tao - w);
+        c = 1.0f / sqrtf(t * t + 1.0f);
+        s = -t * c;
+        sig->x = c * c * S.x - 2.0f * c * s * S.y + s * s * S.w;
+        sig->w = s * s * S.x + 2.0f * c * s * S.y + c * c * S.w;
+    }
+    if (sig->x < sig->w) {
+        float temp = sig->x;
+        sig->x = sig->w;
+        sig->w = temp;
+        V->x = -s;
+        V->y = -c;
+        V->z = c;
+        V->w = -s;
+    } else {
+        V->x = c;
+        V->y = -s;
+        V->z = s;
+        V->w = c;
+    }
+    *V = float2x2_transpose(*V);
+    *U = float2x2_multiply(*U, *V);
+}
+
+static float _clamp(float v, float min, float max) {
+    if (v < min)
+        return min;
+    if (v > max)
+        return max;
+    return v;
+}
+
 void taichi_2D_node_to_particle(global Taichi2DParticle *p, global TayPicKernel *k, constant Taichi2DContext *c) {
     global Taichi2DNode **nodes = (global Taichi2DNode **)k->nodes;
     float4 base = nodes[0]->p;
@@ -541,4 +584,51 @@ void taichi_2D_node_to_particle(global Taichi2DParticle *p, global TayPicKernel 
 
     p->C = float4_null();
     p->v = float2_null();
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            global Taichi2DNode *node = (global Taichi2DNode *)k->nodes[j * k->sizes.x + i];
+            float2 dpos = {
+                (node->p.x - p->p.x) * inv_cell_size,
+                (node->p.y - p->p.y) * inv_cell_size,
+            };
+
+            float2 grid_v = node->v;
+            float weight = w[i].x * w[j].y;
+
+            // Velocity
+            p->v = float2_add(p->v, float2_mul_scalar(grid_v, weight));
+            // APIC C
+            p->C = float2x2_add(p->C, float2x2_multiply_scalar(float2_outer_product(float2_mul_scalar(grid_v, weight), dpos), 4 * inv_cell_size));
+        }
+    }
+
+    // Advection
+    p->p.x += c->dt * p->v.x;
+    p->p.y += c->dt * p->v.y;
+
+    // MLS-MPM F-update
+    float4 F = {
+        (1.0f + c->dt * p->C.x) * p->F.x,
+        (1.0f + c->dt * p->C.y) * p->F.y,
+        (1.0f + c->dt * p->C.z) * p->F.z,
+        (1.0f + c->dt * p->C.w) * p->F.w,
+    };
+
+    float4 svd_u, sig, svd_v;
+    svd(F, &svd_u, &sig, &svd_v);
+
+    // Snow Plasticity
+    if (c->plastic) {
+        sig.x = _clamp(sig.x, 1.0f - 2.5e-2f, 1.0f + 7.5e-3f);
+        sig.w = _clamp(sig.w, 1.0f - 2.5e-2f, 1.0f + 7.5e-3f);
+    }
+
+    float oldJ = float2x2_determinant(F);
+    F = float2x2_multiply(float2x2_multiply(svd_u, sig), float2x2_transpose(svd_v));
+
+    float Jp_new = _clamp(p->Jp * oldJ / float2x2_determinant(F), 0.6f, 20.0f);
+
+    p->Jp = Jp_new;
+    p->F = F;
 }

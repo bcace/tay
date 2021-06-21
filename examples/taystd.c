@@ -260,3 +260,26 @@ float4 float2x2_multiply(float4 a, float4 b) {
 float2 float2_null() {
     return (float2) { 0.0f, 0.0f };
 }
+
+float2 float2_add(float2 a, float2 b) {
+    return (float2) {
+        a.x + b.x,
+        a.y + b.y,
+    };
+}
+
+float2 float2_mul_scalar(float2 a, float s) {
+    return (float2) {
+        a.x * s,
+        a.y * s,
+    };
+}
+
+float4 float2_outer_product(float2 a, float2 b) {
+    return (float4) {
+        a.x * b.x,
+        a.x * b.y,
+        a.y * b.x,
+        a.y * b.y,
+    };
+}

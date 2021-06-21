@@ -111,6 +111,7 @@ typedef struct __attribute__((packing)) Taichi2DNode {
 
 typedef struct __attribute__((packing)) Taichi2DContext {
     float dt;
+    int plastic;
 } Taichi2DContext;
 
 /* host only */

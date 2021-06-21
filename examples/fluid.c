@@ -60,8 +60,8 @@ void fluid_init() {
     sph_context.dynamic_viscosity = 3.5f;
     sph_context.surface_tension = 0.0728f;
     sph_context.surface_tension_threshold = 7.065f;
-    sph_context.min = (float4){-3.0f, -2.0f, -1.0f, 0.0f};
-    sph_context.max = (float4){3.0f, 2.0f, 1.0f, 0.0f};
+    sph_context.min = (float4){-1.0f, -1.0f, -1.0f, 0.0f};
+    sph_context.max = (float4){1.0f, 1.0f, 1.0f, 0.0f};
 
     _update_sph_context(&sph_context, particle_m);
 
