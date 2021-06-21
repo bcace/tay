@@ -167,6 +167,7 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
     int dims = group->space.dims;
     unsigned kernel_size = pass->kernel_size;
     float base_offset = (kernel_size - 2) * 0.5f;
+    float inv_cell_size = 1.0f / pic->cell_size;
 
     TayRange agents_range = tay_threads_range(group->space.count, task->thread_i);
 
@@ -181,7 +182,7 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
         if (dims == 1) {
 
             /* calculate min and max pic grid node indices [min, max> */
-            int min_x = (int)floorf((p.x - pic->origin.x) / pic->cell_size - base_offset);
+            int min_x = (int)floorf((p.x - pic->origin.x) * inv_cell_size - base_offset);
             int max_x = min_x + kernel_size;
 
             /* clamp pic grid node indices [0, count> */
@@ -202,8 +203,8 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
         else if (dims == 2) {
 
             /* calculate min and max pic grid node indices [min, max> */
-            int min_x = (int)floorf((p.x - pic->origin.x) / pic->cell_size - base_offset);
-            int min_y = (int)floorf((p.y - pic->origin.y) / pic->cell_size - base_offset);
+            int min_x = (int)floorf((p.x - pic->origin.x) * inv_cell_size - base_offset);
+            int min_y = (int)floorf((p.y - pic->origin.y) * inv_cell_size - base_offset);
             int max_x = min_x + kernel_size;
             int max_y = min_y + kernel_size;
 
@@ -233,9 +234,9 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
         else if (dims == 3) {
 
             /* calculate min and max pic grid node indices [min, max> */
-            int min_x = (int)floorf((p.x - pic->origin.x) / pic->cell_size - base_offset);
-            int min_y = (int)floorf((p.y - pic->origin.y) / pic->cell_size - base_offset);
-            int min_z = (int)floorf((p.z - pic->origin.z) / pic->cell_size - base_offset);
+            int min_x = (int)floorf((p.x - pic->origin.x) * inv_cell_size - base_offset);
+            int min_y = (int)floorf((p.y - pic->origin.y) * inv_cell_size - base_offset);
+            int min_z = (int)floorf((p.z - pic->origin.z) * inv_cell_size - base_offset);
             int max_x = min_x + kernel_size;
             int max_y = min_y + kernel_size;
             int max_z = min_z + kernel_size;
@@ -274,10 +275,10 @@ static void _see_func(TayThreadTask *task, TayThreadContext *thread_context) {
         else {
 
             /* calculate min and max pic grid node indices [min, max> */
-            int min_x = (int)floorf((p.x - pic->origin.x) / pic->cell_size - base_offset);
-            int min_y = (int)floorf((p.y - pic->origin.y) / pic->cell_size - base_offset);
-            int min_z = (int)floorf((p.z - pic->origin.z) / pic->cell_size - base_offset);
-            int min_w = (int)floorf((p.w - pic->origin.w) / pic->cell_size - base_offset);
+            int min_x = (int)floorf((p.x - pic->origin.x) * inv_cell_size - base_offset);
+            int min_y = (int)floorf((p.y - pic->origin.y) * inv_cell_size - base_offset);
+            int min_z = (int)floorf((p.z - pic->origin.z) * inv_cell_size - base_offset);
+            int min_w = (int)floorf((p.w - pic->origin.w) * inv_cell_size - base_offset);
             int max_x = min_x + kernel_size;
             int max_y = min_y + kernel_size;
             int max_z = min_z + kernel_size;
