@@ -443,7 +443,7 @@ void taichi_2D_node(global Taichi2DNode *n, constant Taichi2DContext *c) {
         n->v.y /= n->m;
         n->m = 1.0f;
         // Gravity
-        n->v.y += c->dt * -200.0f;
+        n->v.y -= c->dt * 200.0f;
 
         // boundary thickness
         const float boundary = 0.05f;
@@ -451,6 +451,7 @@ void taichi_2D_node(global Taichi2DNode *n, constant Taichi2DContext *c) {
         // Sticky boundary
         if (n->p.x < boundary || n->p.x > 1-boundary || n->p.y > 1-boundary) {
             n->v = float2_null();
+            n->m = 0.0f;
         }
         // Separate boundary
         if (n->p.y < boundary) {
@@ -469,8 +470,8 @@ inline void svd(float4 m, float4 *U, float4 *sig, float4 *V) {
         s = 0.0f;
     } else {
         float tao = 0.5f * (S.x - S.w);
-        float w = sqrtf(tao * tao + S.y * S.z);
-        float t = tao > 0.0f ? S.y / (tao + w) : S.y / (tao - w);
+        float w = sqrtf(tao * tao + S.y * S.y);
+        float t = (tao > 0.0f) ? (S.y / (tao + w)) : (S.y / (tao - w));
         c = 1.0f / sqrtf(t * t + 1.0f);
         s = -t * c;
         sig->x = c * c * S.x - 2.0f * c * s * S.y + s * s * S.w;
@@ -552,13 +553,7 @@ void taichi_2D_node_to_particle(global Taichi2DParticle *p, global TayPicKernel 
     p->p.x += c->dt * p->v.x;
     p->p.y += c->dt * p->v.y;
 
-    // MLS-MPM F-update
-    float4 F = {
-        (1.0f + c->dt * p->C.x) * p->F.x,
-        (1.0f + c->dt * p->C.y) * p->F.y,
-        (1.0f + c->dt * p->C.z) * p->F.z,
-        (1.0f + c->dt * p->C.w) * p->F.w,
-    };
+    float4 F = float2x2_multiply(float2x2_add(float2x2_make(1.0f), float2x2_multiply_scalar(p->C, c->dt)), p->F);
 
     float4 svd_u, sig, svd_v;
     svd(F, &svd_u, &sig, &svd_v);

@@ -7,7 +7,7 @@
 #include <math.h>
 
 
-static int particles_count = 200000;
+static int particles_count = 300000;
 static float grid_resolution = 80; /* cells per side */
 
 static TayGroup *group;
@@ -40,6 +40,7 @@ void taichi_2D_init() {
     pic = tay_add_pic_grid(tay, sizeof(Taichi2DNode), 10000000, 1.0f / grid_resolution, 2);
 
     tay_configure_space(tay, group, TAY_CPU_SIMPLE, 2, (float4){0.0f}, 0);
+    tay_fix_space_box(tay, group, (float4){0.0f, 0.0f, 0.0f, 0.0f}, (float4){1.0f, 1.0f, 1.0f, 1.0f});
 
     const float r = 0.08f;
     _add_object(tay, 0.55f - r, 0.45f - r, 0.55f + r, 0.45f + r, particles_count / 3, 0);
