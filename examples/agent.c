@@ -320,61 +320,6 @@ void pic_boid_action(global PicBoid *a, constant PicFlockingContext *c) {
     a->cohesion = float4_null();
     a->cohesion_count = 0;
     a->separation_count = 0;
-
-
-
-
-    // const float alignment = 0.02f;
-
-    // float dir_sum_length = float4_length(a->dir_sum);
-    // if (dir_sum_length > 0.00001f)
-    //     a->dir = float4_add(a->dir, float4_mul_scalar(a->dir_sum, alignment / dir_sum_length));
-
-    // const float separation = 0.01f;
-
-    // float sep_f_l = float4_length(a->sep_f);
-    // if (sep_f_l > 0.00001f)
-    //     a->dir = float4_add(a->dir, float4_mul_scalar(a->sep_f, separation / sep_f_l));
-
-    // const float cohesion = -0.01f;
-
-    // float coh_p_l = float4_length(a->coh_p);
-    // if (coh_p_l > 0.00001f)
-    //     a->dir = float4_add(a->dir, float4_mul_scalar(a->coh_p, cohesion / coh_p_l));
-
-    // a->dir = float4_normalize(a->dir);
-
-    // a->p = float4_add(a->p, float4_mul_scalar(a->dir, speed));
-    // a->dir_sum = float4_null();
-    // a->sep_f = float4_null();
-    // a->coh_p = float4_null();
-    // a->coh_count = 0;
-
-    // if (a->p.x < c->min.x) {
-    //     a->p.x = c->min.x;
-    //     a->dir.x = -a->dir.x;
-    // }
-    // if (a->p.y < c->min.y) {
-    //     a->p.y = c->min.y;
-    //     a->dir.y = -a->dir.y;
-    // }
-    // if (a->p.z < c->min.z) {
-    //     a->p.z = c->min.z;
-    //     a->dir.z = -a->dir.z;
-    // }
-
-    // if (a->p.x > c->max.x) {
-    //     a->p.x = c->max.x;
-    //     a->dir.x = -a->dir.x;
-    // }
-    // if (a->p.y > c->max.y) {
-    //     a->p.y = c->max.y;
-    //     a->dir.y = -a->dir.y;
-    // }
-    // if (a->p.z > c->max.z) {
-    //     a->p.z = c->max.z;
-    //     a->dir.z = -a->dir.z;
-    // }
 }
 
 
@@ -457,7 +402,7 @@ void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel 
     // [http://mpm.graphics Paragraph after Eqn. 176]
     float Dinv = 4.0f * inv_cell_size * inv_cell_size;
     // [http://mpm.graphics Eqn. 52]
-    float4 PF = float2x2_add_scalar(float2x2_multiply_scalar(float2x2_multiply(float2x2_subtract(p->F, r), float2x2_transpose(p->F)), 2.0f * mu), lambda * (J - 1.0f) * J);
+    float4 PF = float2x2_add_scalar(float2x2_multiply(float2x2_multiply_scalar(float2x2_subtract(p->F, r), 2.0f * mu), float2x2_transpose(p->F)), lambda * (J - 1.0f) * J);
 
     // Cauchy stress times dt and inv_dx
     float4 stress = float2x2_multiply_scalar(PF, -c->dt * vol * Dinv);
@@ -479,8 +424,8 @@ void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel 
             // Translational momentum
             float2 s = float2x2_multiply_vector(affine, dpos);
             float weight = w[i].x * w[j].y;
-            node->v.x += p->v.x * particle_mass + s.x * weight;
-            node->v.y += p->v.y * particle_mass + s.y * weight;
+            node->v.x += (p->v.x * particle_mass + s.x) * weight;
+            node->v.y += (p->v.y * particle_mass + s.y) * weight;
             node->m += particle_mass * weight;
         }
     }
