@@ -7,7 +7,7 @@
 #include <math.h>
 
 
-static int particles_count = 300000;
+static int particles_count = 3000;
 static float grid_resolution = 80; /* cells per side */
 
 static TayGroup *group;

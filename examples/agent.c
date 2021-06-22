@@ -424,9 +424,9 @@ void taichi_2D_particle_to_node(global Taichi2DParticle *p, global TayPicKernel 
             // Translational momentum
             float2 s = float2x2_multiply_vector(affine, dpos);
             float weight = w[i].x * w[j].y;
-            node->v.x += (p->v.x * particle_mass + s.x) * weight;
-            node->v.y += (p->v.y * particle_mass + s.y) * weight;
-            node->m += particle_mass * weight;
+            tay_atomic_add_float(&node->v.x, (p->v.x * particle_mass + s.x) * weight);
+            tay_atomic_add_float(&node->v.y, (p->v.y * particle_mass + s.y) * weight);
+            tay_atomic_add_float(&node->m, particle_mass * weight);
         }
     }
 }
