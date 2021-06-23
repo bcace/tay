@@ -3,6 +3,7 @@ Debug
 Release
 preproc/__pycache__
 examples/graphics
+entorama/graphics
 scratch
 benchmark/*.py
 *.log
