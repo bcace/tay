@@ -14,6 +14,7 @@ static void _close_callback(GLFWwindow *window) {
 }
 
 int main() {
+
     if (!glfwInit()) {
         fprintf(stderr, "Could not initialize GLFW\n");
         return 1;
