@@ -1,9 +1,13 @@
+#include "main.h"
+#include "graphics.h"
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include <stdio.h>
 
 
 static int quit = 0;
+static int window_w = 1600;
+static int window_h = 800;
 
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
@@ -29,6 +33,9 @@ int main() {
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress); /* load extensions */
 
     while (!quit) {
+        graphics_viewport(0, 0, window_w, window_h);
+        vec4 bg = color_bg();
+        graphics_clear(bg.x, bg.y, bg.z);
 
         glfwSwapBuffers(window);
         // platform_sleep(10);

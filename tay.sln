@@ -16,6 +16,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "examples", "examples\exampl
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "entorama", "entorama\entorama.vcxproj", "{C3BADB4B-2C39-4AF8-A648-6CC232CB14E7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A8C095EE-0453-4F68-AAFE-EFADF868005B} = {A8C095EE-0453-4F68-AAFE-EFADF868005B}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
