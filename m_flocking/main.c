@@ -10,13 +10,13 @@ static TayGroup *boids_group;
 static ActContext act_context;
 static SeeContext see_context;
 
-static int boids_count = 80000;
+static int boids_count = 60000;
 
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
 }
 
-int entorama_init(TayState *tay) {
+int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
     const float radius = 20.0f;
     const float avoidance_r = 100.0f;
     const float4 see_radii = { radius, radius, radius, radius };
@@ -30,6 +30,10 @@ int entorama_init(TayState *tay) {
     see_context.separation_r = radius * 0.5f;
 
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE);
+    EntoramaGroupInfo *group_info = info->groups + info->groups_count++;
+    group_info->group = boids_group;
+    group_info->max_agents = boids_count;
+
     tay_configure_space(tay, boids_group, TAY_CPU_GRID, 3, part_sizes, 250);
 
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
