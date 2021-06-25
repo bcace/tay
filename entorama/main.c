@@ -33,6 +33,8 @@ int main() {
     glfwSetWindowCloseCallback(window, _close_callback);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress); /* load extensions */
 
+    model_load("m_flocking.dll");
+
     while (!quit) {
         graphics_viewport(0, 0, window_w, window_h);
         vec4 bg = color_bg();
