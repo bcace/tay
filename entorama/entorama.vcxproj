@@ -150,12 +150,15 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="model.c" />
     <ClCompile Include="platform.c" />
+    <ClCompile Include="shaders.c" />
+    <ClCompile Include="shapes.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="entorama.h" />
     <ClInclude Include="graphics.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="platform.h" />
+    <ClInclude Include="shaders.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

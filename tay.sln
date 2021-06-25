@@ -22,6 +22,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "entorama", "entorama\entora
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m_flocking", "m_flocking\m_flocking.vcxproj", "{D7229568-8F7F-44E0-B2B2-D35EF476D0E5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A8C095EE-0453-4F68-AAFE-EFADF868005B} = {A8C095EE-0453-4F68-AAFE-EFADF868005B}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
