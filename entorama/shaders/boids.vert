@@ -10,6 +10,7 @@ out vec3 _light;
 out vec3 _pos;
 
 uniform mat4 projection;
+uniform mat4 modelview;
 
 
 vec4 rotation_between_vectors(vec3 v1, vec3 v2) {
@@ -71,13 +72,13 @@ void main(void) {
     vec4 rot1 = rotation_between_vectors(vec3(0.0f, 0.0f, 1.0f), inst_dir);
     vec3 rot_pos = quat_rotate(rot1, pos);
 
-    vec3 actual_pos = rot_pos + inst_pos;
-    gl_Position = projection * vec4(actual_pos, 1.0);
+    vec4 actual_pos = modelview * vec4(rot_pos + inst_pos, 1.0);
+    gl_Position = projection * actual_pos;
 
     if (inst_shd == 0.0)
         _color = vec4(0.4, 0.4, 0.4, 1.0);
     else
         _color = vec4(1.0, 0.0, 0.0, 1.0);
-    _light = normalize(actual_pos - vec3(1000, -1000, 1000));
-    _pos = actual_pos;
+    _light = normalize(actual_pos.xyz - vec3(1000, -1000, 1000));
+    _pos = actual_pos.xyz;
 }

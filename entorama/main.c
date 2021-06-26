@@ -15,6 +15,11 @@ static int quit = 0;
 static int window_w = 1600;
 static int window_h = 800;
 
+static float view_pan_x = 0.0f;
+static float view_pan_y = 0.0f;
+static float view_rot_x = 0.0f;
+static float view_rot_y = 0.0f;
+
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
 }
@@ -120,6 +125,7 @@ int main() {
     shader_program_define_instanced_in_float(&program, 3); /* instance direction */
     shader_program_define_instanced_in_float(&program, 1); /* instance shade */
     shader_program_define_uniform(&program, "projection");
+    shader_program_define_uniform(&program, "modelview");
 
     EntoramaModelInfo model_info;
     model_info.init = 0;
@@ -151,9 +157,12 @@ int main() {
     vec3 camera_pos;
     vec3 camera_fwd;
     vec3 camera_up;
+    int camera_type = 0;
 
-    /* floating camera */
-    {
+    if (camera_type == 0) { /* modeller camera */
+
+    }
+    else { /* floating camera */
         camera_fov = 1.2f;
         camera_near = 0.1f;
 
@@ -184,14 +193,37 @@ int main() {
             graphics_clear_depth();
             graphics_enable_depth_test(1);
 
-            mat4 perspective;
-            graphics_perspective(&perspective, camera_fov, (float)window_w / (float)window_h, camera_near, camera_far);
-
-            mat4 lookat;
-            graphics_lookat(&lookat, camera_pos, camera_fwd, camera_up);
-
             mat4 projection;
-            mat4_multiply(&projection, &perspective, &lookat);
+            mat4 modelview;
+
+            if (camera_type == 0) { /* modeller camera */
+                float zoom = 0.2f;
+
+                graphics_frustum(&projection,
+                     0.00001f * zoom * (view_pan_x - window_w * 0.5f),
+                     0.00001f * zoom * (view_pan_x + window_w * 0.5f),
+                     0.00001f * zoom * (view_pan_y - window_h * 0.5f),
+                     0.00001f * zoom * (view_pan_y + window_h * 0.5f),
+                     0.001f, 200.0f);
+
+                mat4_set_identity(&modelview);
+                mat4_translate(&modelview, 0.0f, 0.0f, -100.0f);
+                mat4_rotate(&modelview, view_rot_x, 1.0f, 0.0f, 0.0f);
+                mat4_rotate(&modelview, view_rot_y, 0.0f, 0.0f, 1.0f);
+                mat4_scale(&modelview, 50.0f / model_info.radius);
+                mat4_translate(&modelview, -model_info.origin_x, -model_info.origin_y, -model_info.origin_z);
+            }
+            else { /* floating camera */
+                mat4 perspective;
+                graphics_perspective(&perspective, camera_fov, (float)window_w / (float)window_h, camera_near, camera_far);
+
+                mat4 lookat;
+                graphics_lookat(&lookat, camera_pos, camera_fwd, camera_up);
+
+                mat4_multiply(&projection, &perspective, &lookat);
+
+                mat4_set_identity(&modelview);
+            }
 
             for (unsigned group_i = 0; group_i < sim_info.groups_count; ++group_i) {
                 EntoramaGroupInfo *group_info = sim_info.groups + group_i;
@@ -199,6 +231,7 @@ int main() {
                 /* different agent types might use different shaders, if not move this out */
                 shader_program_use(&program);
                 shader_program_set_uniform_mat4(&program, 0, &projection);
+                shader_program_set_uniform_mat4(&program, 1, &modelview);
 
                 vec3 *inst_pos = inst_vec3_buffers[0];
                 vec3 *inst_dir = inst_vec3_buffers[1];
