@@ -18,6 +18,8 @@ typedef int (*ENTORAMA_INIT)(EntoramaSimulationInfo *info, struct TayState *);
 
 typedef struct EntoramaModelInfo {
     ENTORAMA_INIT init;
+    float origin_x, origin_y, origin_z;
+    float radius;
 } EntoramaModelInfo;
 
 typedef int (*ENTORAMA_MAIN)(EntoramaModelInfo *);

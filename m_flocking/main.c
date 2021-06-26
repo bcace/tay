@@ -10,7 +10,7 @@ static TayGroup *boids_group;
 static ActContext act_context;
 static SeeContext see_context;
 
-static int boids_count = 60000;
+static int boids_count = 30000;
 
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
@@ -70,5 +70,9 @@ int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
 
 __declspec(dllexport) int entorama_main(EntoramaModelInfo *info) {
     info->init = entorama_init;
+    info->origin_x = 0.0f;
+    info->origin_y = 0.0f;
+    info->origin_z = 0.0f;
+    info->radius = 400.0f;
     return 0;
 }

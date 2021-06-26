@@ -8,6 +8,7 @@
 #include "GLFW/glfw3.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 
 static int quit = 0;
@@ -16,6 +17,74 @@ static int window_h = 800;
 
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
+}
+
+static void _scroll_callback(GLFWwindow *glfw_window, double x, double y) {
+    // graph_editor_mouse_scroll(&graph_editor, (float)y);
+}
+
+static void _mousebutton_callback(GLFWwindow *glfw_window, int button, int action, int mods) {
+    // if (action == GLFW_PRESS) {
+    //     if (button == GLFW_MOUSE_BUTTON_LEFT)
+    //         mouse.l_button = 1;
+    //     if (button == GLFW_MOUSE_BUTTON_RIGHT)
+    //         mouse.r_button = 1;
+    // }
+    // else if (action == GLFW_RELEASE) {
+    //     if (button == GLFW_MOUSE_BUTTON_LEFT)
+    //         mouse.l_button = 0;
+    //     if (button == GLFW_MOUSE_BUTTON_RIGHT)
+    //         mouse.r_button = 0;
+    // }
+
+    // mouse.travel = 0;
+    // mouse.l_button_doubleclick = (glfwGetTime() - mouse.l_button_ts) < 0.5;
+    // mouse.l_button_ts = glfwGetTime();
+
+    // if (action == GLFW_PRESS)
+    //     mouse.action = MOUSE_PRESS;
+    // else if (action == GLFW_RELEASE)
+    //     mouse.action = MOUSE_RELEASE;
+    // else
+    //     mouse.action = MOUSE_REPEAT;
+
+    // if (button == GLFW_MOUSE_BUTTON_LEFT)
+    //     mouse.button = MOUSE_LEFT;
+    // else if (button == GLFW_MOUSE_BUTTON_RIGHT)
+    //     mouse.button = MOUSE_RIGHT;
+    // else if (button == GLFW_MOUSE_BUTTON_MIDDLE)
+    //     mouse.button = MOUSE_MIDDLE;
+
+    // if (mods & GLFW_MOD_CONTROL)
+    //     mouse.ctrl = 1;
+    // else
+    //     mouse.ctrl = 0;
+
+    // if (repo.visible)
+    //     repo_mouse_button(&repo, &mouse, &workspace);
+    // else {
+    //     viewport_pane_mouse_button(&viewport_pane, &mouse, &workspace);
+    //     graph_editor_mouse_button(&graph_editor, &mouse, &workspace);
+    // }
+}
+
+static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
+    // mouse.prev_x = mouse.x;
+    // mouse.prev_y = mouse.y;
+    // mouse.x = (float)x;
+    // mouse.y = window.h - (float)y;
+    // ++mouse.travel;
+    // if (repo.visible)
+    //     repo_mouse_move(&repo, &mouse);
+    // else {
+    //     viewport_pane_mouse_move(&viewport_pane, &mouse, &workspace);
+    //     graph_editor_mouse_move(&graph_editor, &mouse, &workspace, &flat_program);
+    // }
+}
+
+static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action, int mods) {
+    if (key == GLFW_KEY_Q && mods & GLFW_MOD_CONTROL)
+        quit = 1;
 }
 
 int main() {
@@ -36,6 +105,11 @@ int main() {
 
     glfwMakeContextCurrent(window);
     glfwSetWindowCloseCallback(window, _close_callback);
+    glfwSetScrollCallback(window, _scroll_callback);
+    glfwSetCursorPosCallback(window, _mousepos_callback);
+    glfwSetMouseButtonCallback(window, _mousebutton_callback);
+    glfwSetKeyCallback(window, _key_callback);
+
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress); /* load extensions */
 
     Program program;
@@ -71,33 +145,50 @@ int main() {
         malloc(sizeof(float) * max_agents_count),
     };
 
+    float camera_fov;
+    float camera_near;
+    float camera_far;
+    vec3 camera_pos;
+    vec3 camera_fwd;
+    vec3 camera_up;
+
+    /* floating camera */
+    {
+        camera_fov = 1.2f;
+        camera_near = 0.1f;
+
+        camera_pos.x = model_info.origin_x;
+        camera_pos.y = model_info.origin_y;
+        camera_pos.z = model_info.origin_z + model_info.radius * 4.0f;
+
+        camera_fwd.x = 0.0f;
+        camera_fwd.y = 0.0f;
+        camera_fwd.z = -1.0;
+
+        camera_up.x = 0.0f;
+        camera_up.y = 1.0f;
+        camera_up.z = 0.0f;
+
+        camera_far = model_info.radius * 6.0f;
+    }
+
     while (!quit) {
-        graphics_viewport(0, 0, window_w, window_h);
-        vec4 bg = color_bg();
-        graphics_clear(bg.x, bg.y, bg.z);
-        graphics_clear_depth();
-        graphics_enable_depth_test(1);
 
         tay_run(tay, 1);
 
         /* drawing */
         {
-            mat4 perspective;
-            graphics_perspective(&perspective, 1.2f, (float)window_w / (float)window_h, 1.0f, 4000.0f);
+            graphics_viewport(0, 0, window_w, window_h);
+            vec4 bg = color_bg();
+            graphics_clear(bg.x, bg.y, bg.z);
+            graphics_clear_depth();
+            graphics_enable_depth_test(1);
 
-            vec3 pos, fwd, up;
-            pos.x = -2000.0f;
-            pos.y = 0.0f;
-            pos.z = 0.0f;
-            fwd.x = 1.0f;
-            fwd.y = 0.0f;
-            fwd.z = 0.0f;
-            up.x = 0.0f;
-            up.y = 0.0f;
-            up.z = 1.0f;
+            mat4 perspective;
+            graphics_perspective(&perspective, camera_fov, (float)window_w / (float)window_h, camera_near, camera_far);
 
             mat4 lookat;
-            graphics_lookat(&lookat, pos, fwd, up);
+            graphics_lookat(&lookat, camera_pos, camera_fwd, camera_up);
 
             mat4 projection;
             mat4_multiply(&projection, &perspective, &lookat);
@@ -124,7 +215,6 @@ int main() {
                 shader_program_set_data_float(&program, 1, group_info->max_agents, 3, inst_pos);
                 shader_program_set_data_float(&program, 2, group_info->max_agents, 3, inst_dir);
                 shader_program_set_data_float(&program, 3, group_info->max_agents, 1, inst_shd);
-
                 graphics_draw_triangles_instanced(PYRAMID_VERTS_COUNT, group_info->max_agents);
             }
 

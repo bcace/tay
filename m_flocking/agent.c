@@ -68,16 +68,7 @@ void agent_act(global Agent *a, constant ActContext *c) {
 
     /* update */
 
-    // const float min_speed = 0.2f;
-    // const float max_speed = 0.4f;
-
     a->dir = float4_normalize(float4_add(a->dir, acc));
-    // float dir_acc = float4_dot(a->dir, acc) * 0.01f;
-    // a->speed += dir_acc;
-    // if (a->speed < min_speed)
-    //     a->speed = min_speed;
-    // else if (a->speed > max_speed)
-    //     a->speed = max_speed;
     float4_agent_position(a) = float4_add(p, float4_mul_scalar(a->dir, a->speed));
 
     a->separation = float4_null();
