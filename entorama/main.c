@@ -12,6 +12,7 @@
 
 
 static int quit = 0;
+static int paused = 1;
 static int window_w = 1600;
 static int window_h = 800;
 
@@ -99,6 +100,8 @@ static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
 static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action, int mods) {
     if (key == GLFW_KEY_Q && mods & GLFW_MOD_CONTROL)
         quit = 1;
+    else if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
+        paused = !paused;
 }
 
 static void _init_simulation_info(EntoramaSimulationInfo *info) {
@@ -216,7 +219,8 @@ int main() {
 
     while (!quit) {
 
-        tay_run(tay, 1);
+        if (!paused)
+            tay_run(tay, 1);
 
         /* drawing */
         {
