@@ -116,6 +116,19 @@ static void _init_simulation_info(EntoramaSimulationInfo *info) {
     }
 }
 
+static void _init_shader_program(Program *prog, const char *vert_defines) {
+    shader_program_init(prog, agent_vert, "agent.vert", vert_defines, agent_frag, "agent.frag", "#version 450\n");
+    shader_program_define_in_float(prog, 3);            /* vertex position */
+    shader_program_define_instanced_in_float(prog, 3);  /* instance position */
+    shader_program_define_instanced_in_float(prog, 3);  /* instance direction fwd */
+    shader_program_define_instanced_in_float(prog, 4);  /* instance color */
+    shader_program_define_instanced_in_float(prog, 3);  /* instance size */
+    shader_program_define_uniform(prog, "projection");
+    shader_program_define_uniform(prog, "modelview");
+    shader_program_define_uniform(prog, "uniform_color");
+    shader_program_define_uniform(prog, "uniform_size");
+}
+
 int main() {
 
     if (!glfwInit()) {
@@ -141,21 +154,10 @@ int main() {
 
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress); /* load extensions */
 
-    Program program;
-
-    const char vert_defines[] = "#version 450\n#define ENTORAMA_DIRECTION_FWD\n";
-    const char frag_defines[] = "#version 450\n";
-
-    shader_program_init(&program, agent_vert, "agent.vert", vert_defines, agent_frag, "agent.frag", frag_defines);
-    shader_program_define_in_float(&program, 3);            /* vertex position */
-    shader_program_define_instanced_in_float(&program, 3);  /* instance position */
-    shader_program_define_instanced_in_float(&program, 3);  /* instance direction fwd */
-    shader_program_define_instanced_in_float(&program, 4);  /* instance color */
-    shader_program_define_instanced_in_float(&program, 3);  /* instance size */
-    shader_program_define_uniform(&program, "projection");
-    shader_program_define_uniform(&program, "modelview");
-    shader_program_define_uniform(&program, "uniform_color");
-    shader_program_define_uniform(&program, "uniform_size");
+    Program program_basic;
+    Program program_directed;
+    _init_shader_program(&program_basic, "#version 450\n");
+    _init_shader_program(&program_directed, "#version 450\n#define ENTORAMA_DIRECTION_FWD\n");
 
     EntoramaModelInfo model_info;
     model_info.init = 0;
@@ -206,6 +208,8 @@ int main() {
         camera_far = model_info.radius * 6.0f;
     }
 
+    Program *prev_prog = 0;
+
     while (!quit) {
 
         tay_run(tay, 1);
@@ -252,29 +256,51 @@ int main() {
             for (unsigned group_i = 0; group_i < sim_info.groups_count; ++group_i) {
                 EntoramaGroupInfo *group_info = sim_info.groups + group_i;
 
-                /* different agent types might use different shaders, if not move this out */
-                shader_program_use(&program);
-                shader_program_set_uniform_mat4(&program, 0, &projection);
-                shader_program_set_uniform_mat4(&program, 1, &modelview);
+                Program *prog;
+                if (group_info->direction_source)
+                    prog = &program_directed;
+                else
+                    prog = &program_basic;
+
+                if (prog != prev_prog) {
+                    shader_program_use(prog);
+                    prev_prog = prog;
+                }
+
+                shader_program_set_uniform_mat4(prog, 0, &projection);
+                shader_program_set_uniform_mat4(prog, 1, &modelview);
 
                 vec4 uniform_color = color_fg();
                 vec3 uniform_size = {1.0f, 1.0f, 1.0f};
 
-                shader_program_set_uniform_vec4(&program, 2, &uniform_color);
-                shader_program_set_uniform_vec3(&program, 3, &uniform_size);
+                shader_program_set_uniform_vec4(prog, 2, &uniform_color);
+                shader_program_set_uniform_vec3(prog, 3, &uniform_size);
 
-                for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
-                    char *agent = tay_get_agent(tay, group_info->group, agent_i);
-                    inst_pos[agent_i] = *(vec3 *)(agent + sizeof(TayAgentTag));
-                    inst_dir_fwd[agent_i] = *(vec3 *)(agent + sizeof(TayAgentTag) + sizeof(float4));
-                    // inst_shd[agent_i] = 0.0f;
+                if (group_info->direction_source) {
+                    for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
+                        char *data = (char *)tay_get_agent(tay, group_info->group, agent_i) + sizeof(TayAgentTag);
+                        inst_pos[agent_i].x = *(float *)(data + group_info->position_x_offset);
+                        inst_pos[agent_i].y = *(float *)(data + group_info->position_y_offset);
+                        inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
+                        inst_dir_fwd[agent_i].x = *(float *)(data + group_info->direction_fwd_x_offset);
+                        inst_dir_fwd[agent_i].y = *(float *)(data + group_info->direction_fwd_y_offset);
+                        inst_dir_fwd[agent_i].z = *(float *)(data + group_info->direction_fwd_z_offset);
+                    }
+                }
+                else {
+                    for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
+                        char *data = (char *)tay_get_agent(tay, group_info->group, agent_i) + sizeof(TayAgentTag);
+                        inst_pos[agent_i].x = *(float *)(data + group_info->position_x_offset);
+                        inst_pos[agent_i].y = *(float *)(data + group_info->position_y_offset);
+                        inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
+                    }
                 }
 
-                shader_program_set_data_float(&program, 0, PYRAMID_VERTS_COUNT, 3, PYRAMID_VERTS);
-                shader_program_set_data_float(&program, 1, group_info->max_agents, 3, inst_pos);
-                shader_program_set_data_float(&program, 2, group_info->max_agents, 3, inst_dir_fwd);
-                shader_program_set_data_float(&program, 3, group_info->max_agents, 4, inst_color);
-                shader_program_set_data_float(&program, 4, group_info->max_agents, 3, inst_color);
+                shader_program_set_data_float(prog, 0, PYRAMID_VERTS_COUNT, 3, PYRAMID_VERTS);
+                shader_program_set_data_float(prog, 1, group_info->max_agents, 3, inst_pos);
+                shader_program_set_data_float(prog, 2, group_info->max_agents, 3, inst_dir_fwd);
+                shader_program_set_data_float(prog, 3, group_info->max_agents, 4, inst_color);
+                shader_program_set_data_float(prog, 4, group_info->max_agents, 3, inst_color);
                 graphics_draw_triangles_instanced(PYRAMID_VERTS_COUNT, group_info->max_agents);
             }
 

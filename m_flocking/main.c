@@ -33,6 +33,10 @@ int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
     EntoramaGroupInfo *group_info = info->groups + info->groups_count++;
     group_info->group = boids_group;
     group_info->max_agents = boids_count;
+    group_info->direction_source = ENTORAMA_DIRECTION_FWD;
+    group_info->direction_fwd_x_offset = 16;
+    group_info->direction_fwd_y_offset = 20;
+    group_info->direction_fwd_z_offset = 24;
 
     tay_configure_space(tay, boids_group, TAY_CPU_GRID, 3, part_sizes, 250);
 
