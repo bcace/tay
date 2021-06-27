@@ -17,7 +17,7 @@ static int window_h = 800;
 
 static float view_pan_x = 0.0f;
 static float view_pan_y = 0.0f;
-static float view_rot_x = 0.0f;
+static float view_rot_x = -1.0f;
 static float view_rot_y = 0.0f;
 static float view_zoom = 0.2f;
 
@@ -131,6 +131,21 @@ static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action
         quit = 1;
 }
 
+static void _init_simulation_info(EntoramaSimulationInfo *info) {
+    info->groups_count = 0;
+    for (unsigned i = 0; i < ENTORAMA_MAX_GROUPS; ++i) {
+        EntoramaGroupInfo *group = info->groups + i;
+        group->group = 0;
+        group->max_agents = 0;
+        group->position_x_offset = 0;
+        group->position_y_offset = 4;
+        group->position_z_offset = 8;
+        group->direction_source = ENTORAMA_DIRECTION_AUTO;
+        group->color_source = ENTORAMA_COLOR_AUTO;
+        group->size_source = ENTORAMA_SIZE_AUTO;
+    }
+}
+
 int main() {
 
     if (!glfwInit()) {
@@ -173,7 +188,7 @@ int main() {
     TayState *tay = tay_create_state();
 
     EntoramaSimulationInfo sim_info;
-    sim_info.groups_count = 0;
+    _init_simulation_info(&sim_info);
     model_info.init(&sim_info, tay);
 
     tay_threads_start(100000); // TODO: remove this!!!
