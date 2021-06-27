@@ -43,14 +43,14 @@ static void _close_callback(GLFWwindow *window) {
 static void _scroll_callback(GLFWwindow *glfw_window, double x, double y) {
     if (camera_type == CAMERA_MODELING) {
         if (y > 0.0) {
-            view_zoom *= 0.9f;
-            view_pan_x /= 0.9f;
-            view_pan_y /= 0.9f;
+            view_zoom *= 0.95f;
+            view_pan_x /= 0.95f;
+            view_pan_y /= 0.95f;
         }
         else if (y < 0.0) {
-            view_zoom /= 0.9f;
-            view_pan_x *= 0.9f;
-            view_pan_y *= 0.9f;
+            view_zoom /= 0.95f;
+            view_pan_x *= 0.95f;
+            view_pan_y *= 0.95f;
         }
     }
 }
@@ -156,8 +156,12 @@ int main() {
 
     Program program_basic;
     Program program_directed;
+    Program program_color;
+    Program program_color_directed;
     _init_shader_program(&program_basic, "#version 450\n");
     _init_shader_program(&program_directed, "#version 450\n#define ENTORAMA_DIRECTION_FWD\n");
+    _init_shader_program(&program_color, "#version 450\n#define ENTORAMA_COLOR_AGENT\n");
+    _init_shader_program(&program_color_directed, "#version 450\n#define ENTORAMA_COLOR_AGENT\n#define ENTORAMA_DIRECTION_FWD\n");
 
     EntoramaModelInfo model_info;
     model_info.init = 0;
@@ -257,10 +261,18 @@ int main() {
                 EntoramaGroupInfo *group_info = sim_info.groups + group_i;
 
                 Program *prog;
-                if (group_info->direction_source)
-                    prog = &program_directed;
-                else
-                    prog = &program_basic;
+                if (group_info->direction_source) {
+                    if (group_info->color_source == ENTORAMA_COLOR_AGENT_PALETTE || group_info->color_source == ENTORAMA_COLOR_AGENT_RGB)
+                        prog = &program_color_directed;
+                    else
+                        prog = &program_directed;
+                }
+                else {
+                    if (group_info->color_source == ENTORAMA_COLOR_AGENT_PALETTE || group_info->color_source == ENTORAMA_COLOR_AGENT_RGB)
+                        prog = &program_color;
+                    else
+                        prog = &program_basic;
+                }
 
                 if (prog != prev_prog) {
                     shader_program_use(prog);
@@ -270,29 +282,61 @@ int main() {
                 shader_program_set_uniform_mat4(prog, 0, &projection);
                 shader_program_set_uniform_mat4(prog, 1, &modelview);
 
-                vec4 uniform_color = color_fg();
+                vec4 uniform_color;
+                if (group_info->color_source == ENTORAMA_COLOR_UNIFORM_PALETTE)
+                    uniform_color = color_palette(group_info->palette_index % 4);
+                else if (group_info->color_source == ENTORAMA_COLOR_UNIFORM_RGB)
+                    uniform_color = (vec4){group_info->red, group_info->green, group_info->blue, 1.0f};
+                else
+                    uniform_color = color_palette(group_i % 4);
+
                 vec3 uniform_size = {1.0f, 1.0f, 1.0f};
 
                 shader_program_set_uniform_vec4(prog, 2, &uniform_color);
                 shader_program_set_uniform_vec3(prog, 3, &uniform_size);
 
                 if (group_info->direction_source) {
-                    for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group_info->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group_info->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group_info->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
-                        inst_dir_fwd[agent_i].x = *(float *)(data + group_info->direction_fwd_x_offset);
-                        inst_dir_fwd[agent_i].y = *(float *)(data + group_info->direction_fwd_y_offset);
-                        inst_dir_fwd[agent_i].z = *(float *)(data + group_info->direction_fwd_z_offset);
+                    if (group_info->color_source == ENTORAMA_COLOR_AGENT_PALETTE) {
+                        for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
+                            char *data = (char *)tay_get_agent(tay, group_info->group, agent_i) + sizeof(TayAgentTag);
+                            inst_pos[agent_i].x = *(float *)(data + group_info->position_x_offset);
+                            inst_pos[agent_i].y = *(float *)(data + group_info->position_y_offset);
+                            inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
+                            inst_dir_fwd[agent_i].x = *(float *)(data + group_info->direction_fwd_x_offset);
+                            inst_dir_fwd[agent_i].y = *(float *)(data + group_info->direction_fwd_y_offset);
+                            inst_dir_fwd[agent_i].z = *(float *)(data + group_info->direction_fwd_z_offset);
+                            inst_color[agent_i] = color_palette(*(unsigned *)(data + group_info->color_palette_index_offset) % 4);
+                        }
+                    }
+                    else {
+                        for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
+                            char *data = (char *)tay_get_agent(tay, group_info->group, agent_i) + sizeof(TayAgentTag);
+                            inst_pos[agent_i].x = *(float *)(data + group_info->position_x_offset);
+                            inst_pos[agent_i].y = *(float *)(data + group_info->position_y_offset);
+                            inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
+                            inst_dir_fwd[agent_i].x = *(float *)(data + group_info->direction_fwd_x_offset);
+                            inst_dir_fwd[agent_i].y = *(float *)(data + group_info->direction_fwd_y_offset);
+                            inst_dir_fwd[agent_i].z = *(float *)(data + group_info->direction_fwd_z_offset);
+                        }
                     }
                 }
                 else {
-                    for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group_info->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group_info->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group_info->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
+                    if (group_info->color_source == ENTORAMA_COLOR_AGENT_PALETTE) {
+                        for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
+                            char *data = (char *)tay_get_agent(tay, group_info->group, agent_i) + sizeof(TayAgentTag);
+                            inst_pos[agent_i].x = *(float *)(data + group_info->position_x_offset);
+                            inst_pos[agent_i].y = *(float *)(data + group_info->position_y_offset);
+                            inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
+                            inst_color[agent_i] = color_palette(*(unsigned *)(data + group_info->color_palette_index_offset) % 4);
+                        }
+                    }
+                    else {
+                        for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
+                            char *data = (char *)tay_get_agent(tay, group_info->group, agent_i) + sizeof(TayAgentTag);
+                            inst_pos[agent_i].x = *(float *)(data + group_info->position_x_offset);
+                            inst_pos[agent_i].y = *(float *)(data + group_info->position_y_offset);
+                            inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
+                        }
                     }
                 }
 
@@ -300,7 +344,7 @@ int main() {
                 shader_program_set_data_float(prog, 1, group_info->max_agents, 3, inst_pos);
                 shader_program_set_data_float(prog, 2, group_info->max_agents, 3, inst_dir_fwd);
                 shader_program_set_data_float(prog, 3, group_info->max_agents, 4, inst_color);
-                shader_program_set_data_float(prog, 4, group_info->max_agents, 3, inst_color);
+                shader_program_set_data_float(prog, 4, group_info->max_agents, 3, inst_size);
                 graphics_draw_triangles_instanced(PYRAMID_VERTS_COUNT, group_info->max_agents);
             }
 

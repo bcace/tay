@@ -3,6 +3,7 @@ typedef struct __attribute__((packed)) Agent {
     TayAgentTag tag;
     float4 p;
     float4 dir;
+    unsigned color;
     float speed;
     float4 separation;
     float4 alignment;

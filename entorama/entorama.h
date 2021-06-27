@@ -42,7 +42,7 @@ typedef struct EntoramaGroupInfo {
 
     EntoramaColorSource color_source;
     union {
-        float palette_index;                    /* ENTORAMA_COLOR_UNIFORM_PALETTE */
+        unsigned palette_index;                 /* ENTORAMA_COLOR_UNIFORM_PALETTE */
         struct {                                /* ENTORAMA_COLOR_UNIFORM_RGB */
             float red, green, blue;
         };

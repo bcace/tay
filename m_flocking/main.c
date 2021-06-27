@@ -37,6 +37,8 @@ int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
     group_info->direction_fwd_x_offset = 16;
     group_info->direction_fwd_y_offset = 20;
     group_info->direction_fwd_z_offset = 24;
+    group_info->color_source = ENTORAMA_COLOR_AGENT_PALETTE;
+    group_info->color_palette_index_offset = 32;
 
     tay_configure_space(tay, boids_group, TAY_CPU_GRID, 3, part_sizes, 250);
 
@@ -55,6 +57,14 @@ int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
         boid->dir.x *= l;
         boid->dir.y *= l;
         boid->dir.z *= l;
+        if (boid->p.x < 0 && boid->p.y < 0)
+            boid->color = 0;
+        else if (boid->p.x < 0)
+            boid->color = 2;
+        else if (boid->p.y < 0)
+            boid->color = 1;
+        else
+            boid->color = 3;
         boid->speed = 1.0f;
         boid->separation = (float4){0.0f, 0.0f, 0.0f, 0.0f};
         boid->alignment = (float4){0.0f, 0.0f, 0.0f, 0.0f};
@@ -77,6 +87,6 @@ __declspec(dllexport) int entorama_main(EntoramaModelInfo *info) {
     info->origin_x = 0.0f;
     info->origin_y = 0.0f;
     info->origin_z = 0.0f;
-    info->radius = 400.0f;
+    info->radius = 500.0f;
     return 0;
 }

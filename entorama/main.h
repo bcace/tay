@@ -5,6 +5,7 @@
 /* colors.c */
 struct vec4 color_bg();
 struct vec4 color_fg();
+struct vec4 color_palette(int index);
 
 /* model.c */
 void model_load(struct EntoramaModelInfo *info, char *path);
