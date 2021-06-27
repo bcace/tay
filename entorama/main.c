@@ -19,6 +19,7 @@ static float view_pan_x = 0.0f;
 static float view_pan_y = 0.0f;
 static float view_rot_x = 0.0f;
 static float view_rot_y = 0.0f;
+static float view_zoom = 0.2f;
 
 static int mouse_started_moving = 0;
 static int mouse_l = 0;
@@ -33,12 +34,25 @@ typedef enum {
     CAMERA_FLOATING,
 } CameraType;
 
+CameraType camera_type = CAMERA_MODELING;
+
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
 }
 
 static void _scroll_callback(GLFWwindow *glfw_window, double x, double y) {
-    // graph_editor_mouse_scroll(&graph_editor, (float)y);
+    if (camera_type == CAMERA_MODELING) {
+        if (y > 0.0) {
+            view_zoom *= 0.9f;
+            view_pan_x /= 0.9f;
+            view_pan_y /= 0.9f;
+        }
+        else if (y < 0.0) {
+            view_zoom /= 0.9f;
+            view_pan_x *= 0.9f;
+            view_pan_y *= 0.9f;
+        }
+    }
 }
 
 static void _mousebutton_callback(GLFWwindow *glfw_window, int button, int action, int mods) {
@@ -100,14 +114,15 @@ static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
     mouse_x = (float)x;
     mouse_y = (float)y;
 
-
-    if (mouse_l) {
-        view_rot_x -= mouse_dy * 0.001f;
-        view_rot_y += mouse_dx * 0.001f;
-    }
-    else if (mouse_r) {
-        view_pan_x -= mouse_dx;
-        view_pan_y -= mouse_dy;
+    if (camera_type == CAMERA_MODELING) {
+        if (mouse_l) {
+            view_rot_x -= mouse_dy * 0.001f;
+            view_rot_y += mouse_dx * 0.001f;
+        }
+        else if (mouse_r) {
+            view_pan_x -= mouse_dx;
+            view_pan_y -= mouse_dy;
+        }
     }
 }
 
@@ -182,8 +197,6 @@ int main() {
     vec3 camera_fwd;
     vec3 camera_up;
 
-    CameraType camera_type = CAMERA_MODELING;
-
     if (camera_type == CAMERA_MODELING) {
 
     }
@@ -222,13 +235,12 @@ int main() {
             mat4 modelview;
 
             if (camera_type == CAMERA_MODELING) {
-                float zoom = 0.2f;
 
                 graphics_frustum(&projection,
-                     0.00001f * zoom * (view_pan_x - window_w * 0.5f),
-                     0.00001f * zoom * (view_pan_x + window_w * 0.5f),
-                     0.00001f * zoom * (view_pan_y - window_h * 0.5f),
-                     0.00001f * zoom * (view_pan_y + window_h * 0.5f),
+                     0.00001f * view_zoom * (view_pan_x - window_w * 0.5f),
+                     0.00001f * view_zoom * (view_pan_x + window_w * 0.5f),
+                     0.00001f * view_zoom * (view_pan_y - window_h * 0.5f),
+                     0.00001f * view_zoom * (view_pan_y + window_h * 0.5f),
                      0.001f, 200.0f);
 
                 mat4_set_identity(&modelview);
