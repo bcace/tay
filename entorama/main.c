@@ -20,6 +20,19 @@ static float view_pan_y = 0.0f;
 static float view_rot_x = 0.0f;
 static float view_rot_y = 0.0f;
 
+static int mouse_started_moving = 0;
+static int mouse_l = 0;
+static int mouse_r = 0;
+static float mouse_x;
+static float mouse_y;
+static float mouse_dx = 0.0f;
+static float mouse_dy = 0.0f;
+
+typedef enum {
+    CAMERA_MODELING,
+    CAMERA_FLOATING,
+} CameraType;
+
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
 }
@@ -29,18 +42,18 @@ static void _scroll_callback(GLFWwindow *glfw_window, double x, double y) {
 }
 
 static void _mousebutton_callback(GLFWwindow *glfw_window, int button, int action, int mods) {
-    // if (action == GLFW_PRESS) {
-    //     if (button == GLFW_MOUSE_BUTTON_LEFT)
-    //         mouse.l_button = 1;
-    //     if (button == GLFW_MOUSE_BUTTON_RIGHT)
-    //         mouse.r_button = 1;
-    // }
-    // else if (action == GLFW_RELEASE) {
-    //     if (button == GLFW_MOUSE_BUTTON_LEFT)
-    //         mouse.l_button = 0;
-    //     if (button == GLFW_MOUSE_BUTTON_RIGHT)
-    //         mouse.r_button = 0;
-    // }
+    if (action == GLFW_PRESS) {
+        if (button == GLFW_MOUSE_BUTTON_LEFT)
+            mouse_l = 1;
+        if (button == GLFW_MOUSE_BUTTON_RIGHT)
+            mouse_r = 1;
+    }
+    else if (action == GLFW_RELEASE) {
+        if (button == GLFW_MOUSE_BUTTON_LEFT)
+            mouse_l = 0;
+        if (button == GLFW_MOUSE_BUTTON_RIGHT)
+            mouse_r = 0;
+    }
 
     // mouse.travel = 0;
     // mouse.l_button_doubleclick = (glfwGetTime() - mouse.l_button_ts) < 0.5;
@@ -74,17 +87,28 @@ static void _mousebutton_callback(GLFWwindow *glfw_window, int button, int actio
 }
 
 static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
-    // mouse.prev_x = mouse.x;
-    // mouse.prev_y = mouse.y;
-    // mouse.x = (float)x;
-    // mouse.y = window.h - (float)y;
-    // ++mouse.travel;
-    // if (repo.visible)
-    //     repo_mouse_move(&repo, &mouse);
-    // else {
-    //     viewport_pane_mouse_move(&viewport_pane, &mouse, &workspace);
-    //     graph_editor_mouse_move(&graph_editor, &mouse, &workspace, &flat_program);
-    // }
+    y = window_h - y;
+    if (mouse_started_moving) {
+        mouse_dx = (float)x - mouse_x;
+        mouse_dy = (float)y - mouse_y;
+    }
+    else {
+        mouse_dx = 0.0f;
+        mouse_dy = 0.0f;
+        mouse_started_moving = 1;
+    }
+    mouse_x = (float)x;
+    mouse_y = (float)y;
+
+
+    if (mouse_l) {
+        view_rot_x -= mouse_dy * 0.001f;
+        view_rot_y += mouse_dx * 0.001f;
+    }
+    else if (mouse_r) {
+        view_pan_x -= mouse_dx;
+        view_pan_y -= mouse_dy;
+    }
 }
 
 static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action, int mods) {
@@ -157,12 +181,13 @@ int main() {
     vec3 camera_pos;
     vec3 camera_fwd;
     vec3 camera_up;
-    int camera_type = 0;
 
-    if (camera_type == 0) { /* modeller camera */
+    CameraType camera_type = CAMERA_MODELING;
+
+    if (camera_type == CAMERA_MODELING) {
 
     }
-    else { /* floating camera */
+    else {
         camera_fov = 1.2f;
         camera_near = 0.1f;
 
@@ -196,7 +221,7 @@ int main() {
             mat4 projection;
             mat4 modelview;
 
-            if (camera_type == 0) { /* modeller camera */
+            if (camera_type == CAMERA_MODELING) {
                 float zoom = 0.2f;
 
                 graphics_frustum(&projection,
@@ -213,7 +238,7 @@ int main() {
                 mat4_scale(&modelview, 50.0f / model_info.radius);
                 mat4_translate(&modelview, -model_info.origin_x, -model_info.origin_y, -model_info.origin_z);
             }
-            else { /* floating camera */
+            else {
                 mat4 perspective;
                 graphics_perspective(&perspective, camera_fov, (float)window_w / (float)window_h, camera_near, camera_far);
 
