@@ -7,10 +7,10 @@
 #include <assert.h>
 
 
-void _create_shader(GLuint program, const char *text, const char *title, GLenum type) {
+void _create_shader(GLuint program, const char *text, const char *title, const char *defines, GLenum type) {
     GLuint shader = glCreateShader(type);
-    const GLchar *sources[1] = { text };
-    glShaderSource(shader, 1, sources, 0);
+    const GLchar *sources[] = {defines, text};
+    glShaderSource(shader, 2, sources, 0);
     glCompileShader(shader);
     GLint status;
     GLchar error_message[1024];
@@ -22,12 +22,12 @@ void _create_shader(GLuint program, const char *text, const char *title, GLenum 
     glAttachShader(program, shader);
 }
 
-void shader_program_init(Program *p, const char *vert_src, const char *vert_title, const char *frag_src, const char *frag_title) {
+void shader_program_init(Program *p, const char *vert_src, const char *vert_title, const char *vert_defines, const char *frag_src, const char *frag_title, const char *frag_defines) {
     p->vbo_count = 0;
     p->uniforms_count = 0;
     p->prog = glCreateProgram();
-    _create_shader(p->prog, vert_src, vert_title, GL_VERTEX_SHADER);
-    _create_shader(p->prog, frag_src, frag_title, GL_FRAGMENT_SHADER);
+    _create_shader(p->prog, vert_src, vert_title, vert_defines, GL_VERTEX_SHADER);
+    _create_shader(p->prog, frag_src, frag_title, frag_defines, GL_FRAGMENT_SHADER);
     glLinkProgram(p->prog);
     glGenVertexArrays(1, &p->vao);
     glBindVertexArray(p->vao);
@@ -52,6 +52,11 @@ void shader_program_set_uniform_mat4(Program *p, int uniform_index, mat4 *mat) {
 void shader_program_set_uniform_vec4(Program *p, int uniform_index, vec4 *vec) {
     assert(uniform_index < p->uniforms_count);
     glUniform4f(p->uniforms[uniform_index], vec->x, vec->y, vec->z, vec->w);
+}
+
+void shader_program_set_uniform_vec3(Program *p, int uniform_index, vec3 *vec) {
+    assert(uniform_index < p->uniforms_count);
+    glUniform3f(p->uniforms[uniform_index], vec->x, vec->y, vec->z);
 }
 
 void shader_program_define_in_float(Program *p, int components) {

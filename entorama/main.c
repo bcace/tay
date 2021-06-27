@@ -68,36 +68,6 @@ static void _mousebutton_callback(GLFWwindow *glfw_window, int button, int actio
         if (button == GLFW_MOUSE_BUTTON_RIGHT)
             mouse_r = 0;
     }
-
-    // mouse.travel = 0;
-    // mouse.l_button_doubleclick = (glfwGetTime() - mouse.l_button_ts) < 0.5;
-    // mouse.l_button_ts = glfwGetTime();
-
-    // if (action == GLFW_PRESS)
-    //     mouse.action = MOUSE_PRESS;
-    // else if (action == GLFW_RELEASE)
-    //     mouse.action = MOUSE_RELEASE;
-    // else
-    //     mouse.action = MOUSE_REPEAT;
-
-    // if (button == GLFW_MOUSE_BUTTON_LEFT)
-    //     mouse.button = MOUSE_LEFT;
-    // else if (button == GLFW_MOUSE_BUTTON_RIGHT)
-    //     mouse.button = MOUSE_RIGHT;
-    // else if (button == GLFW_MOUSE_BUTTON_MIDDLE)
-    //     mouse.button = MOUSE_MIDDLE;
-
-    // if (mods & GLFW_MOD_CONTROL)
-    //     mouse.ctrl = 1;
-    // else
-    //     mouse.ctrl = 0;
-
-    // if (repo.visible)
-    //     repo_mouse_button(&repo, &mouse, &workspace);
-    // else {
-    //     viewport_pane_mouse_button(&viewport_pane, &mouse, &workspace);
-    //     graph_editor_mouse_button(&graph_editor, &mouse, &workspace);
-    // }
 }
 
 static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
@@ -173,13 +143,19 @@ int main() {
 
     Program program;
 
-    shader_program_init(&program, boids_vert, "boids.vert", boids_frag, "boids.frag");
-    shader_program_define_in_float(&program, 3); /* vertex position */
-    shader_program_define_instanced_in_float(&program, 3); /* instance position */
-    shader_program_define_instanced_in_float(&program, 3); /* instance direction */
-    shader_program_define_instanced_in_float(&program, 1); /* instance shade */
+    const char vert_defines[] = "#version 450\n#define ENTORAMA_DIRECTION_FWD\n";
+    const char frag_defines[] = "#version 450\n";
+
+    shader_program_init(&program, agent_vert, "agent.vert", vert_defines, agent_frag, "agent.frag", frag_defines);
+    shader_program_define_in_float(&program, 3);            /* vertex position */
+    shader_program_define_instanced_in_float(&program, 3);  /* instance position */
+    shader_program_define_instanced_in_float(&program, 3);  /* instance direction fwd */
+    shader_program_define_instanced_in_float(&program, 4);  /* instance color */
+    shader_program_define_instanced_in_float(&program, 3);  /* instance size */
     shader_program_define_uniform(&program, "projection");
     shader_program_define_uniform(&program, "modelview");
+    shader_program_define_uniform(&program, "uniform_color");
+    shader_program_define_uniform(&program, "uniform_size");
 
     EntoramaModelInfo model_info;
     model_info.init = 0;
@@ -196,14 +172,10 @@ int main() {
 
     const int max_agents_count = 1000000; // TODO: adapt this to the actual inited model!
 
-    vec3 *inst_vec3_buffers[] = {
-        malloc(sizeof(vec3) * max_agents_count),
-        malloc(sizeof(vec3) * max_agents_count),
-    };
-    float *inst_float_buffers[] = {
-        malloc(sizeof(float) * max_agents_count),
-        malloc(sizeof(float) * max_agents_count),
-    };
+    vec3 *inst_pos = malloc(sizeof(vec3) * max_agents_count);
+    vec3 *inst_dir_fwd = malloc(sizeof(vec3) * max_agents_count);
+    vec4 *inst_color = malloc(sizeof(vec4) * max_agents_count);
+    vec3 *inst_size = malloc(sizeof(vec3) * max_agents_count);
 
     float camera_fov;
     float camera_near;
@@ -285,21 +257,24 @@ int main() {
                 shader_program_set_uniform_mat4(&program, 0, &projection);
                 shader_program_set_uniform_mat4(&program, 1, &modelview);
 
-                vec3 *inst_pos = inst_vec3_buffers[0];
-                vec3 *inst_dir = inst_vec3_buffers[1];
-                float *inst_shd = inst_float_buffers[0];
+                vec4 uniform_color = color_fg();
+                vec3 uniform_size = {1.0f, 1.0f, 1.0f};
+
+                shader_program_set_uniform_vec4(&program, 2, &uniform_color);
+                shader_program_set_uniform_vec3(&program, 3, &uniform_size);
 
                 for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
                     char *agent = tay_get_agent(tay, group_info->group, agent_i);
                     inst_pos[agent_i] = *(vec3 *)(agent + sizeof(TayAgentTag));
-                    inst_dir[agent_i] = *(vec3 *)(agent + sizeof(TayAgentTag) + sizeof(float4));
-                    inst_shd[agent_i] = 0.0f;
+                    inst_dir_fwd[agent_i] = *(vec3 *)(agent + sizeof(TayAgentTag) + sizeof(float4));
+                    // inst_shd[agent_i] = 0.0f;
                 }
 
                 shader_program_set_data_float(&program, 0, PYRAMID_VERTS_COUNT, 3, PYRAMID_VERTS);
                 shader_program_set_data_float(&program, 1, group_info->max_agents, 3, inst_pos);
-                shader_program_set_data_float(&program, 2, group_info->max_agents, 3, inst_dir);
-                shader_program_set_data_float(&program, 3, group_info->max_agents, 1, inst_shd);
+                shader_program_set_data_float(&program, 2, group_info->max_agents, 3, inst_dir_fwd);
+                shader_program_set_data_float(&program, 3, group_info->max_agents, 4, inst_color);
+                shader_program_set_data_float(&program, 4, group_info->max_agents, 3, inst_color);
                 graphics_draw_triangles_instanced(PYRAMID_VERTS_COUNT, group_info->max_agents);
             }
 

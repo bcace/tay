@@ -37,11 +37,12 @@ typedef struct Program {
     int uniforms_count;
 } Program;
 
-void shader_program_init(Program *p, const char *vert_src, const char *vert_title, const char *frag_src, const char *frag_title);
+void shader_program_init(Program *p, const char *vert_src, const char *vert_title, const char *vert_defines, const char *frag_src, const char *frag_title, const char *frag_defines);
 void shader_program_use(Program *p);
 void shader_program_define_uniform(Program *p, const char *name);
 void shader_program_set_uniform_mat4(Program *p, int uniform_index, mat4 *mat);
 void shader_program_set_uniform_vec4(Program *p, int uniform_index, vec4 *vec);
+void shader_program_set_uniform_vec3(Program *p, int uniform_index, vec3 *vec);
 
 void shader_program_define_in_float(Program *p, int components);
 void shader_program_define_instanced_in_float(Program *p, int components);
