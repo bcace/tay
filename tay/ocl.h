@@ -2,7 +2,6 @@
 #define ocl_h
 
 #define OCL_MAX_SOURCES     16
-#define OCL_MAX_PATH        512
 
 
 typedef struct {
@@ -23,7 +22,7 @@ typedef struct {
 typedef struct {
     OclDevice device;
 
-    char sources[OCL_MAX_SOURCES][OCL_MAX_PATH];
+    char *sources[OCL_MAX_SOURCES];
     unsigned sources_count;
 
     void *grid_sort_kernels[8];
@@ -40,6 +39,8 @@ typedef struct TayState TayState;
 typedef struct TayGroup TayGroup;
 typedef struct TayPass TayPass;
 typedef enum TaySpaceType TaySpaceType;
+
+void ocl_init(TayOcl *ocl);
 
 int ocl_get_pass_kernel(TayState *state, TayPass *pass);
 

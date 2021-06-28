@@ -14,8 +14,7 @@ TayState *tay_create_state() {
     state->error = TAY_ERROR_NONE;
     state->ms_per_step = 0.0;
     state->next_group_id = 0;
-    state->ocl.device.enabled = 0;
-    state->ocl.sources_count = 0;
+    ocl_init(&state->ocl);
     return state;
 }
 

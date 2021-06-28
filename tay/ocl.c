@@ -6,6 +6,13 @@
 #include <stdarg.h>
 
 
+void ocl_init(TayOcl *ocl) {
+    ocl->device.enabled = 0;
+    ocl->sources_count = 0;
+    for (unsigned i = 0; i < OCL_MAX_SOURCES; ++i)
+        ocl->sources[i] = 0;
+}
+
 static void _add_act_kernel_text(TayPass *pass, OclText *text) {
     ocl_text_append(text, "\n\
 kernel void %s(global char *a, constant void *c) {\n\
@@ -134,15 +141,8 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
 \n");
 
     /* add agent model source text */
-    for (unsigned source_i = 0; source_i < ocl->sources_count; ++source_i) {
-        FILE *file;
-        fopen_s(&file, ocl->sources[source_i], "rb");
-        fseek(file, 0, SEEK_END);
-        unsigned file_length = ftell(file);
-        fseek(file, 0, SEEK_SET);
-        fread(ocl_text_reserve(&text, file_length), 1, file_length, file);
-        fclose(file);
-    }
+    for (unsigned source_i = 0; source_i < ocl->sources_count; ++source_i)
+        ocl_text_append(&text, ocl->sources[source_i]);
 
     /* add sort kernel texts */
     {
@@ -291,10 +291,12 @@ void ocl_fetch_agents(TayState *state) {
     ocl_finish(state);
 }
 
-void ocl_add_source(TayState *state, const char *path) {
+void ocl_add_source(TayState *state, const char *source) {
     TayOcl *ocl = &state->ocl;
     if (ocl->sources_count < OCL_MAX_SOURCES) {
-        strcpy_s(ocl->sources[ocl->sources_count], OCL_MAX_PATH, path);
+        unsigned length = (unsigned)strlen(source);
+        ocl->sources[ocl->sources_count] = realloc(ocl->sources[ocl->sources_count], length + 1);
+        strcpy_s(ocl->sources[ocl->sources_count], length + 1, source);
         ++ocl->sources_count;
     }
 }
