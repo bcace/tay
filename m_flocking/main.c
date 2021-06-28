@@ -1,6 +1,7 @@
 #include "entorama.h"
 #include "tay.h"
 #include "agent_host.h"
+#include "agent_ocl.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -10,7 +11,7 @@ static TayGroup *boids_group;
 static ActContext act_context;
 static SeeContext see_context;
 
-static int boids_count = 30000;
+static int boids_count = 200000;
 
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
@@ -41,6 +42,7 @@ int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
     group_info->color_palette_index_offset = 32;
 
     tay_configure_space(tay, boids_group, TAY_CPU_GRID, 3, part_sizes, 250);
+    tay_group_enable_ocl(tay, boids_group);
 
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
     tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context, sizeof(act_context));
@@ -74,10 +76,10 @@ int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
         tay_commit_available_agent(tay, boids_group);
     }
 
-    // ocl_add_source(tay, "agent.h");
-    // ocl_add_source(tay, "taystd.h");
-    // ocl_add_source(tay, "agent.c");
-    // ocl_add_source(tay, "taystd.c");
+    ocl_add_source(tay, agent_ocl_h);
+    ocl_add_source(tay, taystd_ocl_h);
+    ocl_add_source(tay, agent_ocl_c);
+    ocl_add_source(tay, taystd_ocl_c);
 
     return 0;
 }
