@@ -140,7 +140,15 @@ int main() {
     }
 
     GLFWmonitor *monitor = 0;
-    GLFWwindow *window = glfwCreateWindow(1600, 800, "Entorama", monitor, 0);
+
+#if 0
+    monitor = glfwGetPrimaryMonitor();
+    GLFWvidmode *mode = glfwGetVideoMode(monitor);
+    window_w = mode->width;
+    window_h = mode->height;
+#endif
+
+    GLFWwindow *window = glfwCreateWindow(window_w, window_h, "Entorama", monitor, 0);
 
     if (!window) {
         fprintf(stderr, "Could not create GLFW window\n");
