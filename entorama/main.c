@@ -4,6 +4,7 @@
 #include "tay.h"
 #include "thread.h" // TODO: remove this!!!
 #include "graphics.h"
+#include "font.h"
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include <stdlib.h>
@@ -173,6 +174,8 @@ int main() {
     _init_shader_program(&program_directed, "#version 450\n#define ENTORAMA_DIRECTION_FWD\n");
     _init_shader_program(&program_color, "#version 450\n#define ENTORAMA_COLOR_AGENT\n");
     _init_shader_program(&program_color_directed, "#version 450\n#define ENTORAMA_COLOR_AGENT\n#define ENTORAMA_DIRECTION_FWD\n");
+
+    font_init();
 
     EntoramaModelInfo model_info;
     model_info.init = 0;

@@ -145,6 +145,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="colors.c" />
+    <ClCompile Include="font.c" />
+    <ClCompile Include="font_raster.c" />
     <ClCompile Include="graphics.c" />
     <ClCompile Include="graphics\glad.c" />
     <ClCompile Include="main.c" />
@@ -155,6 +157,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="entorama.h" />
+    <ClInclude Include="font.h" />
+    <ClInclude Include="font_raster.h" />
     <ClInclude Include="graphics.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="platform.h" />
