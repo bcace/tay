@@ -133,9 +133,8 @@ static void _init_shader_program(Program *prog, const char *vert_defines) {
     shader_program_define_uniform(prog, "uniform_size");
 }
 
-static double _smooth_ms_per_frame(TayState *tay) {
+static double _smooth_ms_per_step(double ms) {
     static double smooth = 0.0;
-    double ms = tay_get_ms_per_step_for_last_run(tay);
     double ratio = ms / smooth;
     if (ratio > 1.5 || ratio < 0.5)
         smooth = ms;
@@ -378,7 +377,7 @@ int main() {
                 font_use_medium();
 
                 char buffer[50];
-                sprintf_s(buffer, 50, "%.1f", _smooth_ms_per_frame(tay));
+                sprintf_s(buffer, 50, "%.1f", _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
 
                 vec4 fg_color = color_fg();
                 font_draw_text(buffer, window_w - 60, 10, &projection, &fg_color);
