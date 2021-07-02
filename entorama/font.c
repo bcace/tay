@@ -1,19 +1,17 @@
 #include "font.h"
 #include "font_raster.h"
+#include "shaders.h"
+#include "graphics.h"
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include <stdlib.h>
+#include <string.h>
 
-
-typedef struct {
-    unsigned int id;
-    int w;
-    int h;
-    float nw;
-    float nh;
-} Font;
 
 Font inconsolata13;
+Font *font; /* currently used font */
+
+static Program prog;
 
 static void _create_texture(Font *font, FontRaster *raster) {
     font->w = raster->w;
@@ -38,4 +36,57 @@ void font_init() {
     _create_texture(&inconsolata13, raster);
 
     font_raster_clear();
+
+    /* initialize text shader program */
+    shader_program_init(&prog, text_vert, "text.vert", 0, text_frag, "text.frag", 0);
+    shader_program_define_in_float(&prog, 2);            /* vertex position */
+    shader_program_define_in_float(&prog, 2);            /* vertex texture position */
+    // shader_program_define_uniform(&prog, "projection");
+    // shader_program_define_uniform(&prog, "modelview");
+    // shader_program_define_uniform(&prog, "uniform_color");
+    // shader_program_define_uniform(&prog, "uniform_size");
+}
+
+void font_use_medium() {
+    font = &inconsolata13;
+    glBindTexture(GL_TEXTURE_2D, font->id);
+}
+
+void font_draw_text(const char *text, int x, int y) {
+    unsigned text_count = (unsigned)strlen(text);
+
+    unsigned text_cap = 0;
+    static vec2 *pos = 0;
+    static vec2 *tex_pos = 0;
+    if (text_cap < text_count) {
+        text_cap = text_count;
+        pos = realloc(pos, text_cap * sizeof(vec2) * 4);
+        tex_pos = realloc(tex_pos, text_cap * sizeof(vec2) * 4);
+    }
+
+    for (unsigned char_i = 0; char_i < text_count; ++char_i) {
+        unsigned vert_i = char_i * 4;
+
+        float qx = x + (font->w + 1.0f) * char_i;
+        float qy = (float)y;
+        pos[vert_i].x = qx;
+        pos[vert_i].y = qy;
+        pos[vert_i + 1].x = qx + font->w;
+        pos[vert_i + 1].y = qy;
+        pos[vert_i + 2].x = qx + font->w;
+        pos[vert_i + 2].y = qy + font->h;
+        pos[vert_i + 3].x = qx;
+        pos[vert_i + 3].y = qy + font->h;
+
+        float tx = (text[char_i] - 33) * font->nw;
+        float ty = 0.0f; // TODO: ???
+        tex_pos[vert_i + 0].x = tx;
+        tex_pos[vert_i + 0].y = ty;
+        tex_pos[vert_i + 1].x = tx + font->nw;
+        tex_pos[vert_i + 1].y = ty;
+        tex_pos[vert_i + 2].x = tx + font->nw;
+        tex_pos[vert_i + 2].y = ty + font->nh;
+        tex_pos[vert_i + 3].x = tx;
+        tex_pos[vert_i + 3].y = ty + font->nh;
+    }
 }
