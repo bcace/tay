@@ -251,3 +251,40 @@ void main(void) {\n \
     _pos = actual_pos;\n \
 }\n \
 ";
+
+const char *text_frag = "#version 450\n \
+\n \
+in vec4 _color;\n \
+in vec2 _tex_pos;\n \
+\n \
+out vec4 color;\n \
+\n \
+uniform sampler2D tex;\n \
+\n \
+\n \
+void main(void) {\n \
+    vec4 sss = texture(tex, _tex_pos);\n \
+    color = _color;\n \
+    color.a = sss.a;\n \
+}\n \
+";
+
+const char *text_vert = "#version 450\n \
+\n \
+layout(location = 0) in vec2 pos;\n \
+layout(location = 1) in vec2 tex_pos;\n \
+\n \
+uniform mat4 projection;\n \
+uniform vec4 uniform_color;\n \
+\n \
+out vec4 _color;\n \
+out vec2 _tex_pos;\n \
+\n \
+\n \
+void main(void) {\n \
+    gl_Position = projection * vec4(vec3(pos, 0.0f), 1.0f);\n \
+\n \
+    _color = uniform_color;\n \
+    _tex_pos = tex_pos;\n \
+}\n \
+";
