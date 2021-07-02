@@ -29,6 +29,15 @@ void shader_program_init(Program *p, const char *vert_src, const char *vert_titl
     _create_shader(p->prog, vert_src, vert_title, vert_defines, GL_VERTEX_SHADER);
     _create_shader(p->prog, frag_src, frag_title, frag_defines, GL_FRAGMENT_SHADER);
     glLinkProgram(p->prog);
+
+    GLint status;
+    GLchar error_message[1024];
+    glGetProgramiv(p->prog, GL_LINK_STATUS, &status);
+    if (status == GL_FALSE) {
+        glGetProgramInfoLog(p->prog, 1024, 0, error_message);
+        fprintf(stderr, "Link error for program with shaders %s and %s: %s\n", vert_title, frag_title, error_message);
+    }
+
     glGenVertexArrays(1, &p->vao);
     glBindVertexArray(p->vao);
 }
@@ -92,8 +101,10 @@ void graphics_enable_depth_test(int enable) {
 }
 
 void graphics_enable_blend(int enable) {
-    if (enable)
+    if (enable) {
         glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
     else
         glDisable(GL_BLEND);
 }
