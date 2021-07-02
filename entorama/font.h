@@ -12,5 +12,6 @@ typedef struct Font {
 
 void font_init();
 void font_use_medium();
+void font_draw_text(const char *text, int x, int y, struct mat4 *projection, struct vec4 *color);
 
 #endif

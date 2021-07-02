@@ -23,8 +23,8 @@ static void _create_texture(Font *font, FontRaster *raster) {
     glBindTexture(GL_TEXTURE_2D, font->id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);   // GL_CLAMP_TO_EDGE
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);   // GL_CLAMP_TO_EDGE
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, raster->iw, raster->ih, 0, GL_RGBA, GL_UNSIGNED_BYTE, raster->data);
 }
@@ -38,21 +38,21 @@ void font_init() {
     font_raster_clear();
 
     /* initialize text shader program */
-    shader_program_init(&prog, text_vert, "text.vert", 0, text_frag, "text.frag", 0);
+    shader_program_init(&prog, text_vert, "text.vert", "", text_frag, "text.frag", "");
     shader_program_define_in_float(&prog, 2);            /* vertex position */
     shader_program_define_in_float(&prog, 2);            /* vertex texture position */
-    // shader_program_define_uniform(&prog, "projection");
-    // shader_program_define_uniform(&prog, "modelview");
-    // shader_program_define_uniform(&prog, "uniform_color");
-    // shader_program_define_uniform(&prog, "uniform_size");
+    shader_program_define_uniform(&prog, "projection");
+    shader_program_define_uniform(&prog, "uniform_color");
 }
 
 void font_use_medium() {
     font = &inconsolata13;
+    shader_program_use(&prog);
+    glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, font->id);
 }
 
-void font_draw_text(const char *text, int x, int y) {
+void font_draw_text(const char *text, int x, int y, mat4 *projection, vec4 *color) {
     unsigned text_count = (unsigned)strlen(text);
 
     unsigned text_cap = 0;
@@ -69,8 +69,8 @@ void font_draw_text(const char *text, int x, int y) {
 
         float qx = x + (font->w + 1.0f) * char_i;
         float qy = (float)y;
-        pos[vert_i].x = qx;
-        pos[vert_i].y = qy;
+        pos[vert_i + 0].x = qx;
+        pos[vert_i + 0].y = qy;
         pos[vert_i + 1].x = qx + font->w;
         pos[vert_i + 1].y = qy;
         pos[vert_i + 2].x = qx + font->w;
@@ -89,4 +89,12 @@ void font_draw_text(const char *text, int x, int y) {
         tex_pos[vert_i + 3].x = tx;
         tex_pos[vert_i + 3].y = ty + font->nh;
     }
+
+    shader_program_set_data_float(&prog, 0, text_count * 4, 2, pos);
+    shader_program_set_data_float(&prog, 1, text_count * 4, 2, tex_pos);
+
+    shader_program_set_uniform_mat4(&prog, 0, projection);
+    shader_program_set_uniform_vec4(&prog, 1, color);
+
+    graphics_draw_quads(text_count * 4);
 }
