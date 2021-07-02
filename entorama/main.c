@@ -142,7 +142,7 @@ int main() {
 
     GLFWmonitor *monitor = 0;
 
-#if 0
+#if 1
     monitor = glfwGetPrimaryMonitor();
     GLFWvidmode *mode = glfwGetVideoMode(monitor);
     window_w = mode->width;
@@ -165,6 +165,8 @@ int main() {
     glfwSetKeyCallback(window, _key_callback);
 
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress); /* load extensions */
+
+    graphics_enable_blend(1);
 
     Program program_basic;
     Program program_directed;
@@ -225,8 +227,6 @@ int main() {
 
         camera_far = model_info.radius * 6.0f;
     }
-
-    Program *prev_prog = 0;
 
     while (!quit) {
 
@@ -289,10 +289,7 @@ int main() {
                         prog = &program_basic;
                 }
 
-                if (prog != prev_prog) {
-                    shader_program_use(prog);
-                    prev_prog = prog;
-                }
+                shader_program_use(prog);
 
                 shader_program_set_uniform_mat4(prog, 0, &projection);
                 shader_program_set_uniform_mat4(prog, 1, &modelview);
@@ -361,6 +358,18 @@ int main() {
                 shader_program_set_data_float(prog, 3, group_info->max_agents, 4, inst_color);
                 shader_program_set_data_float(prog, 4, group_info->max_agents, 3, inst_size);
                 graphics_draw_triangles_instanced(PYRAMID_VERTS_COUNT, group_info->max_agents);
+            }
+
+            /* flat overlay */
+            {
+                // graphics_enable_depth_test(0);
+
+                graphics_ortho(&projection, 0.0f, (float)window_w, 0.0f, (float)window_h, -100.0f, 100.0f);
+
+                font_use_medium();
+
+                vec4 fg_color = color_fg();
+                font_draw_text("void shader_program_set_data_float(Program *p, int vbo_index, int count, int components, void *data) {", 100, 100, &projection, &fg_color);
             }
 
             glfwSwapBuffers(window);
