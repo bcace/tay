@@ -133,6 +133,17 @@ static void _init_shader_program(Program *prog, const char *vert_defines) {
     shader_program_define_uniform(prog, "uniform_size");
 }
 
+static double _smooth_ms_per_frame(TayState *tay) {
+    static double smooth = 0.0;
+    double ms = tay_get_ms_per_step_for_last_run(tay);
+    double ratio = ms / smooth;
+    if (ratio > 1.5 || ratio < 0.5)
+        smooth = ms;
+    else
+        smooth = smooth * 0.99 + ms * 0.01;
+    return smooth;
+}
+
 int main() {
 
     if (!glfwInit()) {
@@ -142,7 +153,7 @@ int main() {
 
     GLFWmonitor *monitor = 0;
 
-#if 1
+#if 0
     monitor = glfwGetPrimaryMonitor();
     GLFWvidmode *mode = glfwGetVideoMode(monitor);
     window_w = mode->width;
@@ -362,14 +373,15 @@ int main() {
 
             /* flat overlay */
             {
-                // graphics_enable_depth_test(0);
-
                 graphics_ortho(&projection, 0.0f, (float)window_w, 0.0f, (float)window_h, -100.0f, 100.0f);
 
                 font_use_medium();
 
+                char buffer[50];
+                sprintf_s(buffer, 50, "%.1f", _smooth_ms_per_frame(tay));
+
                 vec4 fg_color = color_fg();
-                font_draw_text("void shader_program_set_data_float(Program *p, int vbo_index, int count, int components, void *data) {", 100, 100, &projection, &fg_color);
+                font_draw_text(buffer, window_w - 60, 10, &projection, &fg_color);
             }
 
             glfwSwapBuffers(window);
