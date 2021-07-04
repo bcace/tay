@@ -48,7 +48,7 @@ typedef struct EntoramaGroupInfo {
         };
         unsigned color_palette_index_offset;    /* ENTORAMA_COLOR_AGENT_PALETTE */
         struct {                                /* ENTORAMA_COLOR_AGENT_RGB */
-            unsigned red_offset, green_offset, blue_offset;
+            unsigned color_r_offset, color_g_offset, color_b_offset;
         };
     };
 
