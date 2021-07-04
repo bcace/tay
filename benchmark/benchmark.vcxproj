@@ -152,6 +152,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="agent_host.c" />
+    <ClCompile Include="agent_ocl.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="taystd_host.c" />
     <ClCompile Include="test.c" />
@@ -161,6 +162,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="agent_host.h" />
+    <ClInclude Include="agent_ocl.h" />
     <ClInclude Include="taystd_host.h" />
     <ClInclude Include="test.h" />
   </ItemGroup>

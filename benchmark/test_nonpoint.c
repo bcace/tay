@@ -1,6 +1,7 @@
 #include "test.h"
 #include "thread.h"
 #include "agent_host.h"
+#include "agent_ocl.h"
 #include "taystd.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,10 +39,10 @@ void _test(Config *config, int steps, float see_radius, int depth_correction, fl
                                                float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
                                                min_size, max_size, distr_exp);
 
-    ocl_add_source(tay, "agent.h");
-    ocl_add_source(tay, "taystd.h");
-    ocl_add_source(tay, "agent.c");
-    ocl_add_source(tay, "taystd.c");
+    ocl_add_source(tay, agent_ocl_h);
+    ocl_add_source(tay, taystd_ocl_h);
+    ocl_add_source(tay, agent_ocl_c);
+    ocl_add_source(tay, taystd_ocl_c);
 
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);

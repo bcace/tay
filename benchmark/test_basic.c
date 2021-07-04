@@ -1,6 +1,7 @@
 #include "test.h"
 #include "thread.h"
 #include "agent_host.h"
+#include "agent_ocl.h"
 #include "taystd.h"
 #include <stdio.h>
 #include <stdbool.h>
@@ -64,10 +65,10 @@ static void _test(ModelCase model_case, Config *config, float see_radius, int de
             fprintf(stderr, "model case not implemented\n");
     }
 
-    ocl_add_source(tay, "agent.h");
-    ocl_add_source(tay, "taystd.h");
-    ocl_add_source(tay, "agent.c");
-    ocl_add_source(tay, "taystd.c");
+    ocl_add_source(tay, agent_ocl_h);
+    ocl_add_source(tay, taystd_ocl_h);
+    ocl_add_source(tay, agent_ocl_c);
+    ocl_add_source(tay, taystd_ocl_c);
 
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);

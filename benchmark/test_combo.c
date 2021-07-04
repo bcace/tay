@@ -1,6 +1,7 @@
 #include "test.h"
 #include "state.h"
 #include "agent_host.h"
+#include "agent_ocl.h"
 #include "taystd.h"
 #include "thread.h"
 #include <stdlib.h>
@@ -113,10 +114,10 @@ static void _test(Config *config, int is_point_a, int is_point_b, int steps, flo
     tay_add_act(tay, group_a, _get_act_func(is_point_a), _get_act_func_name(is_point_a), &act_context, sizeof(act_context));
     tay_add_act(tay, group_b, _get_act_func(is_point_b), _get_act_func_name(is_point_b), &act_context, sizeof(act_context));
 
-    ocl_add_source(tay, "agent.h");
-    ocl_add_source(tay, "taystd.h");
-    ocl_add_source(tay, "agent.c");
-    ocl_add_source(tay, "taystd.c");
+    ocl_add_source(tay, agent_ocl_h);
+    ocl_add_source(tay, taystd_ocl_h);
+    ocl_add_source(tay, agent_ocl_c);
+    ocl_add_source(tay, taystd_ocl_c);
 
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);
