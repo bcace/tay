@@ -3,12 +3,12 @@
 
 
 typedef struct FontRaster {
-    int w;
-    int h;
-    int iw;
-    int ih;
-    int code_size;
-    int data_size;
+    unsigned w;
+    unsigned h;
+    unsigned iw;
+    unsigned ih;
+    unsigned code_size;
+    unsigned data_size;
     unsigned char *data;
 } FontRaster;
 

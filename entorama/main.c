@@ -377,10 +377,9 @@ int main() {
                 font_use_medium();
 
                 char buffer[50];
-                sprintf_s(buffer, 50, "%.1f", _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
+                sprintf_s(buffer, 50, "ms: %.1f", _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
 
-                vec4 fg_color = color_fg();
-                font_draw_text(buffer, window_w - 60, 10, &projection, &fg_color);
+                font_draw_text(buffer, window_w - 160, 10, projection, color_fg());
             }
 
             glfwSwapBuffers(window);

@@ -15,15 +15,15 @@ void font_raster_clear() {
 }
 
 static void _fill_raster(unsigned short *code) {
-    int data_size = raster.iw * raster.ih * 4;
+    unsigned data_size = raster.iw * raster.ih * 4;
     if (raster.data_size < data_size) {
         raster.data_size = data_size;
         raster.data = realloc(raster.data, data_size);
     }
-    int k = 0;
-    for (int i = 0; i < raster.code_size; ++i) {
+    unsigned k = 0;
+    for (unsigned i = 0; i < raster.code_size; ++i) {
         if (code[i] > 255)
-            for (int j = 0; j < code[i] - 255; ++j) {
+            for (unsigned short j = 0; j < code[i] - 255; ++j) {
                 raster.data[k] = raster.data[k + 1] = raster.data[k + 2] = 255;
                 raster.data[k + 3] = 0;
                 k += 4;

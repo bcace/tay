@@ -12,6 +12,7 @@ Font inconsolata13;
 Font *font; /* currently used font */
 
 static Program prog;
+static unsigned horz_spacing = 1;
 
 static void _create_texture(Font *font, FontRaster *raster) {
     font->w = raster->w;
@@ -52,22 +53,22 @@ void font_use_medium() {
     glBindTexture(GL_TEXTURE_2D, font->id);
 }
 
-void font_draw_text(const char *text, int x, int y, mat4 *projection, vec4 *color) {
-    unsigned text_count = (unsigned)strlen(text);
+void font_draw_text(const char *text, int x, int y, mat4 projection, vec4 color) {
+    unsigned text_size = (unsigned)strlen(text);
 
     unsigned text_cap = 0;
     static vec2 *pos = 0;
     static vec2 *tex_pos = 0;
-    if (text_cap < text_count) {
-        text_cap = text_count;
+    if (text_cap < text_size) {
+        text_cap = text_size;
         pos = realloc(pos, text_cap * sizeof(vec2) * 4);
         tex_pos = realloc(tex_pos, text_cap * sizeof(vec2) * 4);
     }
 
-    for (unsigned char_i = 0; char_i < text_count; ++char_i) {
+    for (unsigned char_i = 0; char_i < text_size; ++char_i) {
         unsigned vert_i = char_i * 4;
 
-        float qx = x + (font->w + 1.0f) * char_i;
+        float qx = (float)(x + (font->w + horz_spacing) * char_i);
         float qy = (float)y;
         pos[vert_i + 0].x = qx;
         pos[vert_i + 0].y = qy;
@@ -90,11 +91,15 @@ void font_draw_text(const char *text, int x, int y, mat4 *projection, vec4 *colo
         tex_pos[vert_i + 3].y = ty + font->nh;
     }
 
-    shader_program_set_data_float(&prog, 0, text_count * 4, 2, pos);
-    shader_program_set_data_float(&prog, 1, text_count * 4, 2, tex_pos);
+    shader_program_set_data_float(&prog, 0, text_size * 4, 2, pos);
+    shader_program_set_data_float(&prog, 1, text_size * 4, 2, tex_pos);
 
-    shader_program_set_uniform_mat4(&prog, 0, projection);
-    shader_program_set_uniform_vec4(&prog, 1, color);
+    shader_program_set_uniform_mat4(&prog, 0, &projection);
+    shader_program_set_uniform_vec4(&prog, 1, &color);
 
-    graphics_draw_quads(text_count * 4);
+    graphics_draw_quads(text_size * 4);
+}
+
+unsigned font_text_length(const char *text) {
+    return (unsigned)strlen(text) * (font->w + horz_spacing);
 }
