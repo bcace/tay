@@ -5,7 +5,7 @@ preproc/__pycache__
 examples/graphics
 entorama/graphics
 scratch
-benchmark/*.py
+test/*.py
 *.log
 *.filters
 *.user
