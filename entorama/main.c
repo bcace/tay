@@ -117,6 +117,7 @@ static void _init_simulation_info(EntoramaSimulationInfo *info) {
         group->direction_source = ENTORAMA_DIRECTION_AUTO;
         group->color_source = ENTORAMA_COLOR_AUTO;
         group->size_source = ENTORAMA_SIZE_AUTO;
+        group->shape = ENTORAMA_CUBE;
     }
 }
 
@@ -629,7 +630,12 @@ int main() {
                     }
                 }
 
-                shader_program_set_data_float(prog, 0, CUBE_VERTS_COUNT, 3, CUBE_VERTS);
+                if (group_info->shape == ENTORAMA_CUBE)
+                    shader_program_set_data_float(prog, 0, CUBE_VERTS_COUNT, 3, CUBE_VERTS);
+                else if (group_info->shape == ENTORAMA_PYRAMID)
+                    shader_program_set_data_float(prog, 0, PYRAMID_VERTS_COUNT, 3, PYRAMID_VERTS);
+                else
+                    shader_program_set_data_float(prog, 0, ICOSAHEDRON_VERTS_COUNT, 3, ICOSAHEDRON_VERTS);
                 shader_program_set_data_float(prog, 1, group_info->max_agents, 3, inst_pos);
                 graphics_draw_triangles_instanced(CUBE_VERTS_COUNT, group_info->max_agents);
             }

@@ -25,6 +25,12 @@ typedef enum EntoramaDirectionSource {
     ENTORAMA_DIRECTION_FWD,
 } EntoramaDirectionSource;
 
+typedef enum EntoramaShape {
+    ENTORAMA_CUBE,
+    ENTORAMA_PYRAMID,
+    ENTORAMA_SPHERE,
+} EntoramaShape;
+
 typedef struct EntoramaGroupInfo {
     struct TayGroup *group;
     unsigned max_agents;
@@ -63,6 +69,8 @@ typedef struct EntoramaGroupInfo {
             unsigned size_x_offset, size_y_offset, size_z_offset;
         };
     };
+
+    EntoramaShape shape;
 } EntoramaGroupInfo;
 
 typedef struct EntoramaSimulationInfo {
