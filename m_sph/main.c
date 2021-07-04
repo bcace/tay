@@ -12,7 +12,7 @@ static TayGroup *particles_group;
 
 static SphContext sph_context;
 
-static int particles_count = 100000;
+static int particles_count = 60000;
 
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
@@ -68,7 +68,7 @@ static int _init(EntoramaSimulationInfo *info, TayState *tay) {
 
     tay_configure_space(tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 1000);
     // tay_fix_space_box(tay, particles_group, sph_context.min, sph_context.max);
-    tay_group_enable_ocl(tay, particles_group);
+    // tay_group_enable_ocl(tay, particles_group);
 
     tay_add_see(tay, particles_group, particles_group, sph_particle_density, "sph_particle_density", (float4){h, h, h, h}, TAY_TRUE, &sph_context, sizeof(sph_context));
     tay_add_act(tay, particles_group, sph_particle_pressure, "sph_particle_pressure", &sph_context, sizeof(sph_context));

@@ -87,12 +87,10 @@ void main(void) {\n \
     local_pos = _quat_rotate(rot1, local_pos);\n \
 #endif\n \
 \n \
-#ifdef ENTORAMA_SIZE_UNIFORM\n \
-    local_pos *= uniform_size;\n \
-#endif\n \
-\n \
 #ifdef ENTORAMA_SIZE_AGENT\n \
     local_pos *= inst_size;\n \
+#else\n \
+    local_pos *= uniform_size;\n \
 #endif\n \
 \n \
     vec4 global_pos = modelview * vec4(local_pos + inst_pos, 1.0);\n \

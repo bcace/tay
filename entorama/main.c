@@ -182,12 +182,10 @@ int main() {
     Program program_directed;
     Program program_color;
     Program program_color_directed;
-    Program program_size;
     _init_shader_program(&program_basic, "#version 450\n");
     _init_shader_program(&program_directed, "#version 450\n#define ENTORAMA_DIRECTION_FWD\n");
     _init_shader_program(&program_color, "#version 450\n#define ENTORAMA_COLOR_AGENT\n");
     _init_shader_program(&program_color_directed, "#version 450\n#define ENTORAMA_COLOR_AGENT\n#define ENTORAMA_DIRECTION_FWD\n");
-    _init_shader_program(&program_size, "#version 450\n#define ENTORAMA_SIZE_AGENT\n");
 
     font_init();
 
@@ -297,12 +295,8 @@ int main() {
                 else {
                     if (group_info->color_source == ENTORAMA_COLOR_AGENT_PALETTE || group_info->color_source == ENTORAMA_COLOR_AGENT_RGB)
                         prog = &program_color;
-                    else {
-                        if (group_info->size_source == ENTORAMA_SIZE_UNIFORM_RADIUS)
-                            prog = &program_size;
-                        else
-                            prog = &program_basic;
-                    }
+                    else
+                        prog = &program_basic;
                 }
 
                 shader_program_use(prog);
@@ -318,7 +312,13 @@ int main() {
                 else
                     uniform_color = color_palette(group_i % 4);
 
-                vec3 uniform_size = {1.0f, 1.0f, 1.0f};
+                vec3 uniform_size;
+                if (group_info->size_source == ENTORAMA_SIZE_UNIFORM_RADIUS)
+                    uniform_size = (vec3){group_info->size_radius, group_info->size_radius, group_info->size_radius};
+                else if (group_info->size_source == ENTORAMA_SIZE_UNIFORM_XYZ)
+                    uniform_size = (vec3){group_info->size_x, group_info->size_y, group_info->size_z};
+                else
+                    uniform_size = (vec3){1.0f, 1.0f, 1.0f};
 
                 shader_program_set_uniform_vec4(prog, 2, &uniform_color);
                 shader_program_set_uniform_vec3(prog, 3, &uniform_size);
@@ -335,6 +335,8 @@ int main() {
                             inst_dir_fwd[agent_i].z = *(float *)(data + group_info->direction_fwd_z_offset);
                             inst_color[agent_i] = color_palette(*(unsigned *)(data + group_info->color_palette_index_offset) % 4);
                         }
+
+                        shader_program_set_data_float(prog, 3, group_info->max_agents, 4, inst_color);
                     }
                     else {
                         for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
@@ -347,6 +349,8 @@ int main() {
                             inst_dir_fwd[agent_i].z = *(float *)(data + group_info->direction_fwd_z_offset);
                         }
                     }
+
+                    shader_program_set_data_float(prog, 2, group_info->max_agents, 3, inst_dir_fwd);
                 }
                 else {
                     if (group_info->color_source == ENTORAMA_COLOR_AGENT_PALETTE) {
@@ -357,18 +361,35 @@ int main() {
                             inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
                             inst_color[agent_i] = color_palette(*(unsigned *)(data + group_info->color_palette_index_offset) % 4);
                         }
+
+                        shader_program_set_data_float(prog, 3, group_info->max_agents, 4, inst_color);
                     }
                     else {
-                        if (group_info->size_source == ENTORAMA_SIZE_UNIFORM_RADIUS) {
+                        if (group_info->size_source == ENTORAMA_SIZE_AGENT_RADIUS) {
                             for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
                                 char *data = (char *)tay_get_agent(tay, group_info->group, agent_i) + sizeof(TayAgentTag);
                                 inst_pos[agent_i].x = *(float *)(data + group_info->position_x_offset);
                                 inst_pos[agent_i].y = *(float *)(data + group_info->position_y_offset);
                                 inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
-                                inst_size[agent_i].x = group_info->size_radius;
-                                inst_size[agent_i].y = group_info->size_radius;
-                                inst_size[agent_i].z = group_info->size_radius;
+                                // inst_size[agent_i].x = ...;
+                                // inst_size[agent_i].y = ...;
+                                // inst_size[agent_i].z = ...;
                             }
+
+                            shader_program_set_data_float(prog, 4, group_info->max_agents, 3, inst_size);
+                        }
+                        else if (group_info->size_source == ENTORAMA_SIZE_AGENT_XYZ) {
+                            for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
+                                char *data = (char *)tay_get_agent(tay, group_info->group, agent_i) + sizeof(TayAgentTag);
+                                inst_pos[agent_i].x = *(float *)(data + group_info->position_x_offset);
+                                inst_pos[agent_i].y = *(float *)(data + group_info->position_y_offset);
+                                inst_pos[agent_i].z = *(float *)(data + group_info->position_z_offset);
+                                // inst_size[agent_i].x = ...;
+                                // inst_size[agent_i].y = ...;
+                                // inst_size[agent_i].z = ...;
+                            }
+
+                            shader_program_set_data_float(prog, 4, group_info->max_agents, 3, inst_size);
                         }
                         else {
                             for (unsigned agent_i = 0; agent_i < group_info->max_agents; ++agent_i) {
@@ -383,9 +404,6 @@ int main() {
 
                 shader_program_set_data_float(prog, 0, CUBE_VERTS_COUNT, 3, CUBE_VERTS);
                 shader_program_set_data_float(prog, 1, group_info->max_agents, 3, inst_pos);
-                shader_program_set_data_float(prog, 2, group_info->max_agents, 3, inst_dir_fwd);
-                shader_program_set_data_float(prog, 3, group_info->max_agents, 4, inst_color);
-                shader_program_set_data_float(prog, 4, group_info->max_agents, 3, inst_size);
                 graphics_draw_triangles_instanced(CUBE_VERTS_COUNT, group_info->max_agents);
             }
 
