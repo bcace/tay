@@ -64,11 +64,12 @@ static int _init(EntoramaSimulationInfo *info, TayState *tay) {
     group_info->group = particles_group;
     group_info->max_agents = particles_count;
     group_info->size_source = ENTORAMA_SIZE_UNIFORM_RADIUS;
-    group_info->size_radius = 0.01f;
+    group_info->size_radius = 0.05f;
+    group_info->shape = ENTORAMA_SPHERE;
 
     tay_configure_space(tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 1000);
     // tay_fix_space_box(tay, particles_group, sph_context.min, sph_context.max);
-    // tay_group_enable_ocl(tay, particles_group);
+    tay_group_enable_ocl(tay, particles_group);
 
     tay_add_see(tay, particles_group, particles_group, sph_particle_density, "sph_particle_density", (float4){h, h, h, h}, TAY_TRUE, &sph_context, sizeof(sph_context));
     tay_add_act(tay, particles_group, sph_particle_pressure, "sph_particle_pressure", &sph_context, sizeof(sph_context));
@@ -99,6 +100,6 @@ __declspec(dllexport) int entorama_main(EntoramaModelInfo *info) {
     info->origin_x = 0.0f;
     info->origin_y = 0.0f;
     info->origin_z = 0.0f;
-    info->radius = 3.0f;
+    info->radius = 2.0f;
     return 0;
 }

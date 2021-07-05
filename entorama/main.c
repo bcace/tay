@@ -247,6 +247,11 @@ int main() {
         camera_far = model_info.radius * 6.0f;
     }
 
+    const unsigned SPHERE_SUBDIVS = 1;
+    int SPHERE_VERTS_COUNT = icosahedron_verts_count(SPHERE_SUBDIVS);
+    float *SPHERE_VERTS = malloc(SPHERE_VERTS_COUNT * 3 * sizeof(float));
+    icosahedron_verts(SPHERE_SUBDIVS, SPHERE_VERTS);
+
     while (!quit) {
 
         if (!paused)
@@ -630,14 +635,23 @@ int main() {
                     }
                 }
 
-                if (group_info->shape == ENTORAMA_CUBE)
-                    shader_program_set_data_float(prog, 0, CUBE_VERTS_COUNT, 3, CUBE_VERTS);
-                else if (group_info->shape == ENTORAMA_PYRAMID)
-                    shader_program_set_data_float(prog, 0, PYRAMID_VERTS_COUNT, 3, PYRAMID_VERTS);
-                else
-                    shader_program_set_data_float(prog, 0, ICOSAHEDRON_VERTS_COUNT, 3, ICOSAHEDRON_VERTS);
+                int verts_count = 0;
+                float *verts = 0;
+                if (group_info->shape == ENTORAMA_CUBE) {
+                    verts_count = CUBE_VERTS_COUNT;
+                    verts = CUBE_VERTS;
+                }
+                else if (group_info->shape == ENTORAMA_PYRAMID) {
+                    verts_count = PYRAMID_VERTS_COUNT;
+                    verts = PYRAMID_VERTS;
+                }
+                else {
+                    verts_count = SPHERE_VERTS_COUNT;
+                    verts = SPHERE_VERTS;
+                }
+                shader_program_set_data_float(prog, 0, verts_count, 3, verts);
                 shader_program_set_data_float(prog, 1, group_info->max_agents, 3, inst_pos);
-                graphics_draw_triangles_instanced(CUBE_VERTS_COUNT, group_info->max_agents);
+                graphics_draw_triangles_instanced(verts_count, group_info->max_agents);
             }
 
             /* flat overlay */
@@ -649,7 +663,7 @@ int main() {
                 char buffer[50];
                 sprintf_s(buffer, 50, "ms: %.1f", _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
 
-                font_draw_text(buffer, window_w - 160, 10, projection, color_fg());
+                font_draw_text(buffer, window_w - font_text_length(buffer) - 10, 10, projection, color_fg());
             }
 
             glfwSwapBuffers(window);
