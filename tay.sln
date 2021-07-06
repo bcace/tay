@@ -5,11 +5,6 @@ VisualStudioVersion = 16.0.29926.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tay", "tay\tay.vcxproj", "{A8C095EE-0453-4F68-AAFE-EFADF868005B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "examples", "examples\examples.vcxproj", "{8EC227D2-BAA0-4288-9431-01A83C2CCB1B}"
-	ProjectSection(ProjectDependencies) = postProject
-		{A8C095EE-0453-4F68-AAFE-EFADF868005B} = {A8C095EE-0453-4F68-AAFE-EFADF868005B}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "entorama", "entorama\entorama.vcxproj", "{C3BADB4B-2C39-4AF8-A648-6CC232CB14E7}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D7229568-8F7F-44E0-B2B2-D35EF476D0E5} = {D7229568-8F7F-44E0-B2B2-D35EF476D0E5}
@@ -28,6 +23,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcxproj",
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m_sph", "m_sph\m_sph.vcxproj", "{E89684C3-C7D4-4DBC-80DF-3ACA544DCEA8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A8C095EE-0453-4F68-AAFE-EFADF868005B} = {A8C095EE-0453-4F68-AAFE-EFADF868005B}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,14 +43,6 @@ Global
 		{A8C095EE-0453-4F68-AAFE-EFADF868005B}.Release|x64.Build.0 = Release|x64
 		{A8C095EE-0453-4F68-AAFE-EFADF868005B}.Release|x86.ActiveCfg = Release|Win32
 		{A8C095EE-0453-4F68-AAFE-EFADF868005B}.Release|x86.Build.0 = Release|Win32
-		{8EC227D2-BAA0-4288-9431-01A83C2CCB1B}.Debug|x64.ActiveCfg = Debug|x64
-		{8EC227D2-BAA0-4288-9431-01A83C2CCB1B}.Debug|x64.Build.0 = Debug|x64
-		{8EC227D2-BAA0-4288-9431-01A83C2CCB1B}.Debug|x86.ActiveCfg = Debug|Win32
-		{8EC227D2-BAA0-4288-9431-01A83C2CCB1B}.Debug|x86.Build.0 = Debug|Win32
-		{8EC227D2-BAA0-4288-9431-01A83C2CCB1B}.Release|x64.ActiveCfg = Release|x64
-		{8EC227D2-BAA0-4288-9431-01A83C2CCB1B}.Release|x64.Build.0 = Release|x64
-		{8EC227D2-BAA0-4288-9431-01A83C2CCB1B}.Release|x86.ActiveCfg = Release|Win32
-		{8EC227D2-BAA0-4288-9431-01A83C2CCB1B}.Release|x86.Build.0 = Release|Win32
 		{C3BADB4B-2C39-4AF8-A648-6CC232CB14E7}.Debug|x64.ActiveCfg = Debug|x64
 		{C3BADB4B-2C39-4AF8-A648-6CC232CB14E7}.Debug|x64.Build.0 = Debug|x64
 		{C3BADB4B-2C39-4AF8-A648-6CC232CB14E7}.Debug|x86.ActiveCfg = Debug|Win32
