@@ -130,7 +130,7 @@ kernel void grid_sort_kernel_1(global void *space_buffer, unsigned boxes_count, 
 \n\
     float4 cell_size = min_part_sizes;\n\
     float4 space_size = max - min + cell_size * 0.001f;\n\
-    grid->cell_counts = convert_int4(floor(space_size / cell_size));\n\
+    grid->cell_counts = convert_int4(ceil(space_size / cell_size));\n\
     grid->cell_sizes = space_size / convert_float4(grid->cell_counts);\n\
 \n\
     grid->cells_count = grid_z_cell_indices_to_cell_index(grid->cell_counts, dims) + 1;\n\

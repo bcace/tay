@@ -89,7 +89,7 @@ void cpu_grid_sort(TayGroup *group) {
         float cell_size = space->min_part_sizes.arr[i];
         float space_size = space->box.max.arr[i] - space->box.min.arr[i] + cell_size * 0.001f;
 
-        cell_counts[i] = (int)floorf(space_size / cell_size);
+        cell_counts[i] = (int)ceilf(space_size / cell_size);
         cell_sizes[i] = space_size / (float)cell_counts[i];
 
         cells_count *= cell_counts[i];
@@ -104,7 +104,7 @@ void cpu_grid_sort(TayGroup *group) {
             float cell_size = space->min_part_sizes.arr[i];
             float space_size = space->box.max.arr[i] - space->box.min.arr[i] + cell_size * 0.001f;
 
-            cell_counts[i] = (int)floorf(cell_counts[i] / ratio);
+            cell_counts[i] = (int)ceilf(cell_counts[i] / ratio);
             cell_sizes[i] = space_size / (float)cell_counts[i];
         }
     }
