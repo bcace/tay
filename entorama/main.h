@@ -2,6 +2,12 @@
 #define main_h
 
 
+/* drawing.c */
+void drawing_init();
+void drawing_mouse_scroll(double y);
+void drawing_mouse_move(int button_l, int button_r, float dx, float dy);
+void drawing_camera_setup(struct EntoramaModelInfo *info, int window_w, int window_h, struct mat4 *projection, struct mat4 *modelview);
+
 /* colors.c */
 struct vec4 color_bg();
 struct vec4 color_fg();

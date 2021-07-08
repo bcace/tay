@@ -17,12 +17,6 @@ static int paused = 1;
 static int window_w = 1600;
 static int window_h = 800;
 
-static float view_pan_x = 0.0f;
-static float view_pan_y = 0.0f;
-static float view_rot_x = -1.0f;
-static float view_rot_y = 0.0f;
-static float view_zoom = 0.2f;
-
 static int mouse_started_moving = 0;
 static int mouse_l = 0;
 static int mouse_r = 0;
@@ -31,30 +25,13 @@ static float mouse_y;
 static float mouse_dx = 0.0f;
 static float mouse_dy = 0.0f;
 
-typedef enum {
-    CAMERA_MODELING,
-    CAMERA_FLOATING,
-} CameraType;
-
-CameraType camera_type = CAMERA_MODELING;
 
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
 }
 
 static void _scroll_callback(GLFWwindow *glfw_window, double x, double y) {
-    if (camera_type == CAMERA_MODELING) {
-        if (y > 0.0) {
-            view_zoom *= 0.95f;
-            view_pan_x /= 0.95f;
-            view_pan_y /= 0.95f;
-        }
-        else if (y < 0.0) {
-            view_zoom /= 0.95f;
-            view_pan_x *= 0.95f;
-            view_pan_y *= 0.95f;
-        }
-    }
+    drawing_mouse_scroll(y);
 }
 
 static void _mousebutton_callback(GLFWwindow *glfw_window, int button, int action, int mods) {
@@ -86,16 +63,7 @@ static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
     mouse_x = (float)x;
     mouse_y = (float)y;
 
-    if (camera_type == CAMERA_MODELING) {
-        if (mouse_l) {
-            view_rot_x -= mouse_dy * 0.001f;
-            view_rot_y += mouse_dx * 0.001f;
-        }
-        else if (mouse_r) {
-            view_pan_x -= mouse_dx;
-            view_pan_y -= mouse_dy;
-        }
-    }
+    drawing_mouse_move(mouse_l, mouse_r, mouse_dx, mouse_dy);
 }
 
 static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action, int mods) {
@@ -218,34 +186,7 @@ int main() {
     vec4 *inst_color = malloc(sizeof(vec4) * max_agents_count);
     vec3 *inst_size = malloc(sizeof(vec3) * max_agents_count);
 
-    float camera_fov;
-    float camera_near;
-    float camera_far;
-    vec3 camera_pos;
-    vec3 camera_fwd;
-    vec3 camera_up;
-
-    if (camera_type == CAMERA_MODELING) {
-
-    }
-    else {
-        camera_fov = 1.2f;
-        camera_near = 0.1f;
-
-        camera_pos.x = model_info.origin_x;
-        camera_pos.y = model_info.origin_y;
-        camera_pos.z = model_info.origin_z + model_info.radius * 4.0f;
-
-        camera_fwd.x = 0.0f;
-        camera_fwd.y = 0.0f;
-        camera_fwd.z = -1.0;
-
-        camera_up.x = 0.0f;
-        camera_up.y = 1.0f;
-        camera_up.z = 0.0f;
-
-        camera_far = model_info.radius * 6.0f;
-    }
+    drawing_init();
 
     const unsigned SPHERE_SUBDIVS = 1;
     int SPHERE_VERTS_COUNT = icosahedron_verts_count(SPHERE_SUBDIVS);
@@ -268,33 +209,7 @@ int main() {
             mat4 projection;
             mat4 modelview;
 
-            if (camera_type == CAMERA_MODELING) {
-
-                graphics_frustum(&projection,
-                     0.00001f * view_zoom * (view_pan_x - window_w * 0.5f),
-                     0.00001f * view_zoom * (view_pan_x + window_w * 0.5f),
-                     0.00001f * view_zoom * (view_pan_y - window_h * 0.5f),
-                     0.00001f * view_zoom * (view_pan_y + window_h * 0.5f),
-                     0.001f, 200.0f);
-
-                mat4_set_identity(&modelview);
-                mat4_translate(&modelview, 0.0f, 0.0f, -100.0f);
-                mat4_rotate(&modelview, view_rot_x, 1.0f, 0.0f, 0.0f);
-                mat4_rotate(&modelview, view_rot_y, 0.0f, 0.0f, 1.0f);
-                mat4_scale(&modelview, 50.0f / model_info.radius);
-                mat4_translate(&modelview, -model_info.origin_x, -model_info.origin_y, -model_info.origin_z);
-            }
-            else {
-                mat4 perspective;
-                graphics_perspective(&perspective, camera_fov, (float)window_w / (float)window_h, camera_near, camera_far);
-
-                mat4 lookat;
-                graphics_lookat(&lookat, camera_pos, camera_fwd, camera_up);
-
-                mat4_multiply(&projection, &perspective, &lookat);
-
-                mat4_set_identity(&modelview);
-            }
+            drawing_camera_setup(&model_info, window_w, window_h, &projection, &modelview);
 
             for (unsigned group_i = 0; group_i < sim_info.groups_count; ++group_i) {
                 EntoramaGroupInfo *group_info = sim_info.groups + group_i;
@@ -635,6 +550,8 @@ int main() {
                     }
                 }
 
+                shader_program_set_data_float(prog, 1, group_info->max_agents, 3, inst_pos);
+
                 int verts_count = 0;
                 float *verts = 0;
                 if (group_info->shape == ENTORAMA_CUBE) {
@@ -650,7 +567,6 @@ int main() {
                     verts = SPHERE_VERTS;
                 }
                 shader_program_set_data_float(prog, 0, verts_count, 3, verts);
-                shader_program_set_data_float(prog, 1, group_info->max_agents, 3, inst_pos);
                 graphics_draw_triangles_instanced(verts_count, group_info->max_agents);
             }
 
