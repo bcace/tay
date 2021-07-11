@@ -11,7 +11,7 @@ static TayGroup *boids_group;
 static ActContext act_context;
 static SeeContext see_context;
 
-static int boids_count = 200000;
+static int boids_count = 100000;
 
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;

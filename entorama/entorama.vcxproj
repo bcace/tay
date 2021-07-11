@@ -156,6 +156,7 @@
     <ClCompile Include="platform.c" />
     <ClCompile Include="shaders.c" />
     <ClCompile Include="shapes.c" />
+    <ClCompile Include="widgets.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="entorama.h" />

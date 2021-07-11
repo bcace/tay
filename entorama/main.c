@@ -115,7 +115,11 @@ int main() {
 
     graphics_enable_blend(1);
 
+    const int ENTORAMA_TOOLBAR_H = 32;
+
     font_init();
+    widgets_init();
+    widgets_update(window_w, window_h, ENTORAMA_TOOLBAR_H);
 
     TayState *tay = tay_create_state();
 
@@ -136,13 +140,13 @@ int main() {
 
         /* drawing */
         {
-            graphics_viewport(0, 0, window_w, window_h);
+            graphics_viewport(0, 0, window_w, window_h - ENTORAMA_TOOLBAR_H);
             vec4 bg = color_bg();
             graphics_clear(bg.x, bg.y, bg.z);
             graphics_clear_depth();
             graphics_enable_depth_test(1);
 
-            drawing_camera_setup(&model, window_w, window_h);
+            drawing_camera_setup(&model, window_w, window_h - ENTORAMA_TOOLBAR_H);
 
             /* draw agents */
             for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
@@ -150,10 +154,15 @@ int main() {
                 drawing_draw_group(tay, group, group_i);
             }
 
-            /* draw flat overlay */
+            /* draw widgets */
             {
+                graphics_viewport(0, 0, window_w, window_h);
+
                 mat4 projection;
                 graphics_ortho(&projection, 0.0f, (float)window_w, 0.0f, (float)window_h, -100.0f, 100.0f);
+
+                widgets_draw(projection);
+
 
                 font_use_medium();
 

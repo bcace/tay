@@ -10,6 +10,7 @@ void drawing_camera_setup(struct EntoramaModel *model, int window_w, int window_
 void drawing_draw_group(struct TayState *tay, struct EntoramaGroup *group, int group_i);
 
 /* colors.c */
+struct vec4 color_bkbg();
 struct vec4 color_bg();
 struct vec4 color_fg();
 struct vec4 color_palette(int index);
@@ -29,5 +30,10 @@ void icosahedron_verts(unsigned subdivs, float *verts);
 
 /* entorama.c */
 void entorama_init_model(struct EntoramaModel *model);
+
+/* widgets.c */
+void widgets_init();
+void widgets_update(int window_w, int window_h, int toolbar_h);
+void widgets_draw(struct mat4 projection);
 
 #endif

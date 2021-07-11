@@ -4,10 +4,8 @@
 
 extern const char *agent_frag;
 extern const char *agent_vert;
-extern const char *boids_frag;
-extern const char *boids_vert;
-extern const char *particles_frag;
-extern const char *particles_vert;
+extern const char *flat_frag;
+extern const char *flat_vert;
 extern const char *text_frag;
 extern const char *text_vert;
 
