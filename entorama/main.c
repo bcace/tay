@@ -70,23 +70,6 @@ static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action
         paused = !paused;
 }
 
-static void _init_model(EntoramaModel *model) {
-    model->init = 0;
-    model->groups_count = 0;
-    for (unsigned i = 0; i < ENTORAMA_MAX_GROUPS; ++i) {
-        EntoramaGroup *group = model->groups + i;
-        group->group = 0;
-        group->max_agents = 0;
-        group->position_x_offset = 0;
-        group->position_y_offset = 4;
-        group->position_z_offset = 8;
-        group->direction_source = ENTORAMA_DIRECTION_AUTO;
-        group->color_source = ENTORAMA_COLOR_AUTO;
-        group->size_source = ENTORAMA_SIZE_AUTO;
-        group->shape = ENTORAMA_CUBE;
-    }
-}
-
 static double _smooth_ms_per_step(double ms) {
     static double smooth = 0.0;
     double ratio = ms / smooth;
@@ -137,7 +120,7 @@ int main() {
     TayState *tay = tay_create_state();
 
     EntoramaModel model;
-    _init_model(&model);
+    entorama_init_model(&model);
     model_load(&model, "m_flocking.dll");
     model.init(&model, tay);
 

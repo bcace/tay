@@ -2,6 +2,7 @@
 #define entorama_h
 
 #define ENTORAMA_MAX_GROUPS     256
+#define ENTORAMA_MAX_NAME       256
 
 
 typedef enum EntoramaColorSource {
@@ -34,6 +35,7 @@ typedef enum EntoramaShape {
 typedef struct EntoramaGroup {
     struct TayGroup *group;
     unsigned max_agents;
+    char name[ENTORAMA_MAX_NAME];
 
     /* drawing info */
 
@@ -75,17 +77,21 @@ typedef struct EntoramaGroup {
 
 typedef int (*ENTORAMA_INIT_MODEL)(struct EntoramaModel *model, struct TayState *tay);
 
+typedef EntoramaGroup *(*ENTORAMA_ADD_GROUP)(struct EntoramaModel *model, const char *name, struct TayGroup *group, unsigned max_agents);
+
 typedef struct EntoramaModel {
     ENTORAMA_INIT_MODEL init;
     float origin_x, origin_y, origin_z;
     float radius;
+
     /* filled by init model */
     EntoramaGroup groups[ENTORAMA_MAX_GROUPS];
     unsigned groups_count;
+
+    /* member functions */
+    ENTORAMA_ADD_GROUP add_group;
 } EntoramaModel;
 
 typedef int (*ENTORAMA_MAIN)(EntoramaModel *model);
-
-EntoramaGroup *entorama_add_group(const char *name, struct TayGroup *group, unsigned max_agents);
 
 #endif

@@ -60,12 +60,12 @@ static int _init(EntoramaModel *model, TayState *tay) {
     float part_size = h * 1.0f;
 
     particles_group = tay_add_group(tay, sizeof(SphParticle), particles_count, TAY_TRUE);
-    EntoramaGroup *group_info = model->groups + model->groups_count++;
-    group_info->group = particles_group;
-    group_info->max_agents = particles_count;
-    group_info->size_source = ENTORAMA_SIZE_UNIFORM_RADIUS;
-    group_info->size_radius = 0.02f;
-    group_info->shape = ENTORAMA_CUBE;
+    EntoramaGroup *e_particles_info = model->add_group(model, "Particles", particles_group, particles_count);
+    e_particles_info->group = particles_group;
+    e_particles_info->max_agents = particles_count;
+    e_particles_info->size_source = ENTORAMA_SIZE_UNIFORM_RADIUS;
+    e_particles_info->size_radius = 0.02f;
+    e_particles_info->shape = ENTORAMA_CUBE;
 
     tay_configure_space(tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 1000);
     // tay_fix_space_box(tay, particles_group, sph_context.min, sph_context.max);

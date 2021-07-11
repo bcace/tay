@@ -31,16 +31,14 @@ int entorama_init(EntoramaModel *model, TayState *tay) {
     see_context.separation_r = radius * 0.5f;
 
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE);
-    EntoramaGroup *group_info = model->groups + model->groups_count++;
-    group_info->group = boids_group;
-    group_info->max_agents = boids_count;
-    group_info->direction_source = ENTORAMA_DIRECTION_FWD;
-    group_info->direction_fwd_x_offset = 16;
-    group_info->direction_fwd_y_offset = 20;
-    group_info->direction_fwd_z_offset = 24;
-    group_info->color_source = ENTORAMA_COLOR_AGENT_PALETTE;
-    group_info->color_palette_index_offset = 32;
-    group_info->shape = ENTORAMA_PYRAMID;
+    EntoramaGroup *e_boids_group = model->add_group(model, "Boids", boids_group, boids_count);
+    e_boids_group->direction_source = ENTORAMA_DIRECTION_FWD;
+    e_boids_group->direction_fwd_x_offset = 16;
+    e_boids_group->direction_fwd_y_offset = 20;
+    e_boids_group->direction_fwd_z_offset = 24;
+    e_boids_group->color_source = ENTORAMA_COLOR_AGENT_PALETTE;
+    e_boids_group->color_palette_index_offset = 32;
+    e_boids_group->shape = ENTORAMA_PYRAMID;
 
     tay_configure_space(tay, boids_group, TAY_CPU_GRID, 3, part_sizes, 250);
     tay_group_enable_ocl(tay, boids_group);

@@ -27,4 +27,7 @@ int CUBE_VERTS_COUNT;
 int icosahedron_verts_count(unsigned subdivs);
 void icosahedron_verts(unsigned subdivs, float *verts);
 
+/* entorama.c */
+void entorama_init_model(struct EntoramaModel *model);
+
 #endif
