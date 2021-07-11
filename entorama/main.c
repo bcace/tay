@@ -161,15 +161,15 @@ int main() {
                 mat4 projection;
                 graphics_ortho(&projection, 0.0f, (float)window_w, 0.0f, (float)window_h, -100.0f, 100.0f);
 
-                widgets_draw(projection);
+                widgets_draw(projection, _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
 
 
-                font_use_medium();
+                // font_use_medium();
 
-                char buffer[50];
-                sprintf_s(buffer, 50, "ms: %.1f", _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
+                // char buffer[50];
+                // sprintf_s(buffer, 50, "ms: %.1f", _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
 
-                font_draw_text(buffer, window_w - font_text_length(buffer) - 10, 10, projection, color_fg());
+                // font_draw_text(buffer, window_w - font_text_length(buffer) - 10, 10, projection, color_fg());
             }
 
             glfwSwapBuffers(window);

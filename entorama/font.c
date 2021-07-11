@@ -103,3 +103,7 @@ void font_draw_text(const char *text, int x, int y, mat4 projection, vec4 color)
 unsigned font_text_length(const char *text) {
     return (unsigned)strlen(text) * (font->w + horz_spacing);
 }
+
+unsigned font_height() {
+    return font->h;
+}

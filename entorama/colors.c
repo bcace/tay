@@ -11,7 +11,7 @@ vec4 color_bg() {
 }
 
 vec4 color_fg() {
-    return (vec4){0.8f, 0.8f, 0.8f, 1.0f};
+    return (vec4){0.30859375f, 0.71875f, 0.6171875f, 1.0f};
 }
 
 vec4 color_palette(int index) {
