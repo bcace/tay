@@ -146,12 +146,14 @@ int main() {
             graphics_clear_depth();
             graphics_enable_depth_test(1);
 
-            drawing_camera_setup(&model, window_w, window_h - ENTORAMA_TOOLBAR_H);
-
             /* draw agents */
-            for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
-                EntoramaGroup *group = model.groups + group_i;
-                drawing_draw_group(tay, group, group_i);
+            {
+                drawing_camera_setup(&model, window_w, window_h - ENTORAMA_TOOLBAR_H);
+
+                for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
+                    EntoramaGroup *group = model.groups + group_i;
+                    drawing_draw_group(tay, group, group_i);
+                }
             }
 
             /* draw widgets */
@@ -162,14 +164,6 @@ int main() {
                 graphics_ortho(&projection, 0.0f, (float)window_w, 0.0f, (float)window_h, -100.0f, 100.0f);
 
                 widgets_draw(projection, _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
-
-
-                // font_use_medium();
-
-                // char buffer[50];
-                // sprintf_s(buffer, 50, "ms: %.1f", _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
-
-                // font_draw_text(buffer, window_w - font_text_length(buffer) - 10, 10, projection, color_fg());
             }
 
             glfwSwapBuffers(window);

@@ -77,6 +77,4 @@ void widgets_draw(mat4 projection, double ms) {
         sprintf_s(buffer, 50, "%.1f ms", ms);
         font_draw_text(buffer, window_w - font_text_length(buffer) - 10, window_h - (int)((toolbar_h + font_height()) * 0.5f), projection, color_fg());
     }
-
-    graphics_enable_depth_test(1);
 }
