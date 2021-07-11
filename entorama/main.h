@@ -6,8 +6,8 @@
 void drawing_init(int max_agents_per_group);
 void drawing_mouse_scroll(double y);
 void drawing_mouse_move(int button_l, int button_r, float dx, float dy);
-void drawing_camera_setup(struct EntoramaModelInfo *info, int window_w, int window_h);
-void drawing_draw_group(struct TayState *tay, struct EntoramaGroupInfo *group, int group_i);
+void drawing_camera_setup(struct EntoramaModel *model, int window_w, int window_h);
+void drawing_draw_group(struct TayState *tay, struct EntoramaGroup *group, int group_i);
 
 /* colors.c */
 struct vec4 color_bg();
@@ -15,7 +15,7 @@ struct vec4 color_fg();
 struct vec4 color_palette(int index);
 
 /* model.c */
-void model_load(struct EntoramaModelInfo *info, char *path);
+void model_load(struct EntoramaModel *model, char *path);
 
 /* shapes.c */
 float PYRAMID_VERTS[];

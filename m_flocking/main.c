@@ -17,7 +17,7 @@ static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
 }
 
-int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
+int entorama_init(EntoramaModel *model, TayState *tay) {
     const float radius = 20.0f;
     const float avoidance_r = 100.0f;
     const float4 see_radii = { radius, radius, radius, radius };
@@ -31,7 +31,7 @@ int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
     see_context.separation_r = radius * 0.5f;
 
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE);
-    EntoramaGroupInfo *group_info = info->groups + info->groups_count++;
+    EntoramaGroup *group_info = model->groups + model->groups_count++;
     group_info->group = boids_group;
     group_info->max_agents = boids_count;
     group_info->direction_source = ENTORAMA_DIRECTION_FWD;
@@ -40,6 +40,7 @@ int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
     group_info->direction_fwd_z_offset = 24;
     group_info->color_source = ENTORAMA_COLOR_AGENT_PALETTE;
     group_info->color_palette_index_offset = 32;
+    group_info->shape = ENTORAMA_PYRAMID;
 
     tay_configure_space(tay, boids_group, TAY_CPU_GRID, 3, part_sizes, 250);
     tay_group_enable_ocl(tay, boids_group);
@@ -84,11 +85,11 @@ int entorama_init(EntoramaSimulationInfo *info, TayState *tay) {
     return 0;
 }
 
-__declspec(dllexport) int entorama_main(EntoramaModelInfo *info) {
-    info->init = entorama_init;
-    info->origin_x = 0.0f;
-    info->origin_y = 0.0f;
-    info->origin_z = 0.0f;
-    info->radius = 500.0f;
+__declspec(dllexport) int entorama_main(EntoramaModel *model) {
+    model->init = entorama_init;
+    model->origin_x = 0.0f;
+    model->origin_y = 0.0f;
+    model->origin_z = 0.0f;
+    model->radius = 500.0f;
     return 0;
 }

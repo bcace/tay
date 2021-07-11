@@ -99,7 +99,7 @@ void drawing_init(int max_agents_per_group) {
     inst_color = malloc(sizeof(vec4) * max_agents_per_group);
     inst_size = malloc(sizeof(vec3) * max_agents_per_group);
 
-    const unsigned SPHERE_SUBDIVS = 1;
+    const unsigned SPHERE_SUBDIVS = 0;
     SPHERE_VERTS_COUNT = icosahedron_verts_count(SPHERE_SUBDIVS);
     SPHERE_VERTS = malloc(SPHERE_VERTS_COUNT * 3 * sizeof(float));
     icosahedron_verts(SPHERE_SUBDIVS, SPHERE_VERTS);
@@ -133,7 +133,7 @@ void drawing_mouse_move(int button_l, int button_r, float dx, float dy) {
     }
 }
 
-void drawing_camera_setup(EntoramaModelInfo *info, int window_w, int window_h) {
+void drawing_camera_setup(EntoramaModel *model, int window_w, int window_h) {
     mat4_set_identity(&camera.modelview);
     if (camera.type == CAMERA_MODELING) {
         graphics_frustum(&camera.projection,
@@ -146,8 +146,8 @@ void drawing_camera_setup(EntoramaModelInfo *info, int window_w, int window_h) {
         mat4_translate(&camera.modelview, 0.0f, 0.0f, -100.0f);
         mat4_rotate(&camera.modelview, camera.rot_x, 1.0f, 0.0f, 0.0f);
         mat4_rotate(&camera.modelview, camera.rot_y, 0.0f, 0.0f, 1.0f);
-        mat4_scale(&camera.modelview, 50.0f / info->radius);
-        mat4_translate(&camera.modelview, -info->origin_x, -info->origin_y, -info->origin_z);
+        mat4_scale(&camera.modelview, 50.0f / model->radius);
+        mat4_translate(&camera.modelview, -model->origin_x, -model->origin_y, -model->origin_z);
     }
     else {
         mat4 perspective, lookat;
@@ -158,7 +158,7 @@ void drawing_camera_setup(EntoramaModelInfo *info, int window_w, int window_h) {
     }
 }
 
-void drawing_draw_group(TayState *tay, EntoramaGroupInfo *group, int group_i) {
+void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
     Program *prog = 0;
 
     /* select the agent drawing shader program */

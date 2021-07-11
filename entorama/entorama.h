@@ -31,7 +31,7 @@ typedef enum EntoramaShape {
     ENTORAMA_SPHERE,
 } EntoramaShape;
 
-typedef struct EntoramaGroupInfo {
+typedef struct EntoramaGroup {
     struct TayGroup *group;
     unsigned max_agents;
 
@@ -71,21 +71,21 @@ typedef struct EntoramaGroupInfo {
     };
 
     EntoramaShape shape;
-} EntoramaGroupInfo;
+} EntoramaGroup;
 
-typedef struct EntoramaSimulationInfo {
-    EntoramaGroupInfo groups[ENTORAMA_MAX_GROUPS];
-    unsigned groups_count;
-} EntoramaSimulationInfo;
+typedef int (*ENTORAMA_INIT_MODEL)(struct EntoramaModel *model, struct TayState *tay);
 
-typedef int (*ENTORAMA_INIT)(EntoramaSimulationInfo *info, struct TayState *);
-
-typedef struct EntoramaModelInfo {
-    ENTORAMA_INIT init;
+typedef struct EntoramaModel {
+    ENTORAMA_INIT_MODEL init;
     float origin_x, origin_y, origin_z;
     float radius;
-} EntoramaModelInfo;
+    /* filled by init model */
+    EntoramaGroup groups[ENTORAMA_MAX_GROUPS];
+    unsigned groups_count;
+} EntoramaModel;
 
-typedef int (*ENTORAMA_MAIN)(EntoramaModelInfo *);
+typedef int (*ENTORAMA_MAIN)(EntoramaModel *model);
+
+EntoramaGroup *entorama_add_group(const char *name, struct TayGroup *group, unsigned max_agents);
 
 #endif

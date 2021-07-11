@@ -70,10 +70,11 @@ static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action
         paused = !paused;
 }
 
-static void _init_simulation_info(EntoramaSimulationInfo *info) {
-    info->groups_count = 0;
+static void _init_model(EntoramaModel *model) {
+    model->init = 0;
+    model->groups_count = 0;
     for (unsigned i = 0; i < ENTORAMA_MAX_GROUPS; ++i) {
-        EntoramaGroupInfo *group = info->groups + i;
+        EntoramaGroup *group = model->groups + i;
         group->group = 0;
         group->max_agents = 0;
         group->position_x_offset = 0;
@@ -133,15 +134,12 @@ int main() {
 
     font_init();
 
-    EntoramaModelInfo model_info;
-    model_info.init = 0;
-    model_load(&model_info, "m_sph.dll");
-
     TayState *tay = tay_create_state();
 
-    EntoramaSimulationInfo sim_info;
-    _init_simulation_info(&sim_info);
-    model_info.init(&sim_info, tay);
+    EntoramaModel model;
+    _init_model(&model);
+    model_load(&model, "m_flocking.dll");
+    model.init(&model, tay);
 
     tay_threads_start(100000); // TODO: remove this!!!
     tay_simulation_start(tay);
@@ -161,13 +159,12 @@ int main() {
             graphics_clear_depth();
             graphics_enable_depth_test(1);
 
-            drawing_camera_setup(&model_info, window_w, window_h);
+            drawing_camera_setup(&model, window_w, window_h);
 
             /* draw agents */
-            for (unsigned group_i = 0; group_i < sim_info.groups_count; ++group_i) {
-                EntoramaGroupInfo *group_info = sim_info.groups + group_i;
-
-                drawing_draw_group(tay, group_info, group_i);
+            for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
+                EntoramaGroup *group = model.groups + group_i;
+                drawing_draw_group(tay, group, group_i);
             }
 
             /* draw flat overlay */

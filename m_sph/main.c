@@ -35,7 +35,7 @@ static void _update_sph_context(SphContext *c, float m) {
     c->viscosity = -c->spiky;
 }
 
-static int _init(EntoramaSimulationInfo *info, TayState *tay) {
+static int _init(EntoramaModel *model, TayState *tay) {
     float particle_m = 0.05f;
     float fluid_density = 998.29f;
     float atmospheric_pressure = 101325.0f;
@@ -60,12 +60,12 @@ static int _init(EntoramaSimulationInfo *info, TayState *tay) {
     float part_size = h * 1.0f;
 
     particles_group = tay_add_group(tay, sizeof(SphParticle), particles_count, TAY_TRUE);
-    EntoramaGroupInfo *group_info = info->groups + info->groups_count++;
+    EntoramaGroup *group_info = model->groups + model->groups_count++;
     group_info->group = particles_group;
     group_info->max_agents = particles_count;
     group_info->size_source = ENTORAMA_SIZE_UNIFORM_RADIUS;
-    group_info->size_radius = 0.05f;
-    group_info->shape = ENTORAMA_SPHERE;
+    group_info->size_radius = 0.02f;
+    group_info->shape = ENTORAMA_CUBE;
 
     tay_configure_space(tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 1000);
     // tay_fix_space_box(tay, particles_group, sph_context.min, sph_context.max);
@@ -95,11 +95,11 @@ static int _init(EntoramaSimulationInfo *info, TayState *tay) {
     return 0;
 }
 
-__declspec(dllexport) int entorama_main(EntoramaModelInfo *info) {
-    info->init = _init;
-    info->origin_x = 0.0f;
-    info->origin_y = 0.0f;
-    info->origin_z = 0.0f;
-    info->radius = 2.0f;
+__declspec(dllexport) int entorama_main(EntoramaModel *model) {
+    model->init = _init;
+    model->origin_x = 0.0f;
+    model->origin_y = 0.0f;
+    model->origin_z = 0.0f;
+    model->radius = 2.0f;
     return 0;
 }
