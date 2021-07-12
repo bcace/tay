@@ -115,7 +115,7 @@ int main() {
 
     graphics_enable_blend(1);
 
-    const int ENTORAMA_TOOLBAR_H = 32;
+    const int ENTORAMA_TOOLBAR_H = 40;
 
     font_init();
     widgets_init();

@@ -12,7 +12,7 @@ Font inconsolata13;
 Font *font; /* currently used font */
 
 static Program prog;
-static unsigned horz_spacing = 1;
+static unsigned HORZ_SPACING = 1;
 
 static void _create_texture(Font *font, FontRaster *raster) {
     font->w = raster->w;
@@ -68,7 +68,7 @@ void font_draw_text(const char *text, int x, int y, mat4 projection, vec4 color)
     for (unsigned char_i = 0; char_i < text_size; ++char_i) {
         unsigned vert_i = char_i * 4;
 
-        float qx = (float)(x + (font->w + horz_spacing) * char_i);
+        float qx = (float)(x + (font->w + HORZ_SPACING) * char_i);
         float qy = (float)y;
         pos[vert_i + 0].x = qx;
         pos[vert_i + 0].y = qy;
@@ -100,10 +100,16 @@ void font_draw_text(const char *text, int x, int y, mat4 projection, vec4 color)
     graphics_draw_quads(text_size * 4);
 }
 
-unsigned font_text_length(const char *text) {
-    return (unsigned)strlen(text) * (font->w + horz_spacing);
+unsigned font_text_width(FontSize font_size, const char *text) {
+    if (font_size == ENTORAMA_FONT_MEDIUM)
+        return (unsigned)strlen(text) * (inconsolata13.w + HORZ_SPACING);
+    else
+        return 0;
 }
 
-unsigned font_height() {
-    return font->h;
+unsigned font_text_height(FontSize font_size, const char *text) {
+    if (font_size == ENTORAMA_FONT_MEDIUM)
+        return inconsolata13.h;
+    else
+        return 0;
 }
