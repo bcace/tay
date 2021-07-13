@@ -23,16 +23,22 @@ typedef struct {
 typedef struct {
     char label[MAX_LABEL];
     int label_x, label_y;
+    vec2 min, max;
 } Button;
 
-static VertQuad quad_verts[MAX_QUADS];
-static ColorQuad quad_colors[MAX_QUADS];
-static Button buttons[MAX_BUTTONS];
-static int quads_count;
 static int window_w;
 static int window_h;
 static int toolbar_h;
+static int statusbar_h;
+
+static VertQuad quad_verts[MAX_QUADS];
+static ColorQuad quad_colors[MAX_QUADS];
+static int quads_count;
+
+static Button buttons[MAX_BUTTONS];
 static int buttons_count;
+static Button *run_button;
+static Button *hovered_button;
 
 void widgets_init() {
     shader_program_init(&prog, flat_vert, "flat.vert", "", flat_frag, "flat.frag", "");
@@ -42,10 +48,8 @@ void widgets_init() {
 
     buttons_count = 0;
 
-    {
-        Button *b = buttons + buttons_count++;
-        strcpy_s(b->label, MAX_LABEL, "Run");
-    }
+    run_button = buttons + buttons_count++;
+    strcpy_s(run_button->label, MAX_LABEL, "Run");
 }
 
 static void _init_quad(VertQuad *quad, float min_x, float max_x, float min_y, float max_y) {
@@ -73,55 +77,81 @@ static void _init_color(ColorQuad *quad, vec4 color) {
     quad->c4 = color;
 }
 
-void widgets_update(int window_w_in, int window_h_in, int toolbar_h_in) {
-    quads_count = 0;
+void widgets_update(int window_w_in, int window_h_in, int toolbar_h_in, int statusbar_h_in) {
     window_w = window_w_in;
     window_h = window_h_in;
     toolbar_h = toolbar_h_in;
-
-    /* shadows */
-    {
-        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h - 8), (float)(window_h - toolbar_h));
-        _init_shadow(quad_colors + quads_count, 0.0f, 0.0f, 0.5f, 0.5f);
-        ++quads_count;
-    }
+    statusbar_h = statusbar_h_in;
 
     /* buttons */
     {
-        Button *run_b = buttons + 0;
-        unsigned text_w = font_text_width(ENTORAMA_FONT_MEDIUM, run_b->label);
-        run_b->label_x = (int)((window_w - text_w) * 0.5f);
-        run_b->label_y = window_h - (int)((toolbar_h + font_text_height(ENTORAMA_FONT_MEDIUM, run_b->label)) * 0.5f);
+        const float TOOL_BUTTON_W = 60.0f;
+
+        unsigned text_w = font_text_width(ENTORAMA_FONT_MEDIUM, run_button->label);
+        run_button->label_x = (int)((window_w - text_w) * 0.5f);
+        run_button->label_y = window_h - (int)((toolbar_h + font_text_height(ENTORAMA_FONT_MEDIUM, run_button->label)) * 0.5f);
+        run_button->min = (vec2){(window_w - TOOL_BUTTON_W) * 0.5f, (float)(window_h - toolbar_h)};
+        run_button->max = (vec2){(window_w + TOOL_BUTTON_W) * 0.5f, (float)(window_h)};
     }
 }
 
 void widgets_draw(mat4 projection, double ms) {
     graphics_enable_depth_test(0);
 
+    quads_count = 0;
+
     /* quads */
     {
+        if (hovered_button) {
+            _init_quad(quad_verts + quads_count, hovered_button->min.x, hovered_button->max.x, hovered_button->min.y, hovered_button->max.y);
+            _init_color(quad_colors + quads_count, (vec4){0.0f, 0.0f, 0.0f, 0.2f});
+            ++quads_count;
+        }
+
+        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h - 4), (float)(window_h - toolbar_h));
+        _init_shadow(quad_colors + quads_count, 0.0f, 0.0f, 0.5f, 0.5f);
+        ++quads_count;
+
+        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(statusbar_h), (float)(statusbar_h + 4));
+        _init_shadow(quad_colors + quads_count, 0.5f, 0.5f, 0.0f, 0.0f);
+        ++quads_count;
+
         shader_program_use(&prog);
-
-        shader_program_set_data_float(&prog, 0, quads_count * 4, 2, quad_verts);
-        shader_program_set_data_float(&prog, 1, quads_count * 4, 4, quad_colors);
-
         shader_program_set_uniform_mat4(&prog, 0, &projection);
 
-        graphics_draw_quads(quads_count * 4);
+        if (quads_count) {
+            shader_program_set_data_float(&prog, 0, quads_count * 4, 2, quad_verts);
+            shader_program_set_data_float(&prog, 1, quads_count * 4, 4, quad_colors);
+            graphics_draw_quads(quads_count * 4);
+        }
     }
 
-    font_use_medium();
-
-    /* button labels */
-    for (int button_i = 0; button_i < buttons_count; ++button_i) {
-        Button *b = buttons + button_i;
-        font_draw_text(b->label, b->label_x, b->label_y, projection, color_fg());
-    }
-
-    /* simulation speed */
+    /* text */
     {
-        char buffer[50];
-        sprintf_s(buffer, 50, "%.1f ms", ms);
-        font_draw_text(buffer, window_w - font_text_width(ENTORAMA_FONT_MEDIUM, buffer) - 10, window_h - (int)((toolbar_h + font_text_height(ENTORAMA_FONT_MEDIUM, buffer)) * 0.5f), projection, color_fg());
+        font_use_medium();
+
+        /* buttons */
+        for (int button_i = 0; button_i < buttons_count; ++button_i) {
+            Button *b = buttons + button_i;
+            font_draw_text(b->label, b->label_x, b->label_y, projection, color_fg());
+        }
+
+        /* simulation speed */
+        {
+            char buffer[50];
+            sprintf_s(buffer, 50, "%.1f ms", ms);
+            font_draw_text(buffer,
+                           window_w - font_text_width(ENTORAMA_FONT_MEDIUM, buffer) - 10,
+                           (int)((statusbar_h - font_text_height(ENTORAMA_FONT_MEDIUM, buffer)) * 0.5f),
+                           projection,
+                           color_fg());
+        }
     }
+}
+
+void widgets_mouse_move(int button_l, int button_r, float x, float y) {
+    hovered_button = 0;
+
+    if (x > run_button->min.x && x < run_button->max.x && y > run_button->min.y && y < run_button->max.y)
+        hovered_button = run_button;
 }

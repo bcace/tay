@@ -61,6 +61,7 @@ static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
     mouse_y = (float)y;
 
     drawing_mouse_move(mouse_l, mouse_r, mouse_dx, mouse_dy);
+    widgets_mouse_move(mouse_l, mouse_r, mouse_x, mouse_y);
 }
 
 static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action, int mods) {
@@ -115,11 +116,12 @@ int main() {
 
     graphics_enable_blend(1);
 
-    const int ENTORAMA_TOOLBAR_H = 40;
+    const int TOOLBAR_H = 40;
+    const int STATUSBAR_H = 24;
 
     font_init();
     widgets_init();
-    widgets_update(window_w, window_h, ENTORAMA_TOOLBAR_H);
+    widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H);
 
     TayState *tay = tay_create_state();
 
@@ -140,7 +142,7 @@ int main() {
 
         /* drawing */
         {
-            graphics_viewport(0, 0, window_w, window_h - ENTORAMA_TOOLBAR_H);
+            graphics_viewport(0, STATUSBAR_H, window_w, window_h - TOOLBAR_H - STATUSBAR_H);
             vec4 bg = color_bg();
             graphics_clear(bg.x, bg.y, bg.z);
             graphics_clear_depth();
@@ -148,7 +150,7 @@ int main() {
 
             /* draw agents */
             {
-                drawing_camera_setup(&model, window_w, window_h - ENTORAMA_TOOLBAR_H);
+                drawing_camera_setup(&model, window_w, window_h - TOOLBAR_H - STATUSBAR_H);
 
                 for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                     EntoramaGroup *group = model.groups + group_i;
