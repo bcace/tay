@@ -107,7 +107,7 @@ void widgets_draw(mat4 projection, double ms) {
     {
         if (pressed_button) {
             _init_quad(quad_verts + quads_count, pressed_button->min.x, pressed_button->max.x, pressed_button->min.y, pressed_button->max.y);
-            _init_color(quad_colors + quads_count, (vec4){0.8f, 0.0f, 0.0f, 1.0f});
+            _init_color(quad_colors + quads_count, color_hi());
             ++quads_count;
         }
         else if (hovered_button) {

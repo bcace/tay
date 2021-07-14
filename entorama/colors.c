@@ -2,16 +2,17 @@
 #include "graphics.h"
 
 
-vec4 color_bkbg() {
-    return (vec4){0.0664f * 0.7f, 0.18359f * 0.7f, 0.2539f * 0.7f, 1.0f};
-}
-
 vec4 color_bg() {
-    return (vec4){0.0664f, 0.18359f, 0.2539f, 1.0f};
+    // return (vec4){0.0664f, 0.18359f, 0.2539f, 1.0f};
+    return (vec4){0.15f, 0.15f, 0.15f, 1.0f};
 }
 
 vec4 color_fg() {
     return (vec4){0.8f, 0.8f, 0.8f, 1.0f};
+}
+
+vec4 color_hi() {
+    return (vec4){0.8f, 0.0f, 0.0f, 1.0f};
 }
 
 vec4 color_palette(int index) {

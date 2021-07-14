@@ -21,6 +21,8 @@ static float mouse_y;
 static float mouse_dx = 0.0f;
 static float mouse_dy = 0.0f;
 
+const int TOOLBAR_H = 40;
+const int STATUSBAR_H = 24;
 
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
@@ -72,6 +74,12 @@ static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action
         paused = !paused;
 }
 
+static void _size_callback(GLFWwindow *glfw_window, int w, int h) {
+    window_w = w;
+    window_h = h;
+    widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H);
+}
+
 static double _smooth_ms_per_step(double ms) {
     static double smooth = 0.0;
     double ratio = ms / smooth;
@@ -99,6 +107,8 @@ int main() {
 #endif
 
     GLFWwindow *window = glfwCreateWindow(window_w, window_h, "Entorama", monitor, 0);
+    // glfwMaximizeWindow(window);
+    // glfwGetWindowSize(window, &window_w, &window_h);
 
     if (!window) {
         fprintf(stderr, "Could not create GLFW window\n");
@@ -112,13 +122,11 @@ int main() {
     glfwSetCursorPosCallback(window, _mousepos_callback);
     glfwSetMouseButtonCallback(window, _mousebutton_callback);
     glfwSetKeyCallback(window, _key_callback);
+    glfwSetWindowSizeCallback(window, _size_callback);
 
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress); /* load extensions */
 
     graphics_enable_blend(1);
-
-    const int TOOLBAR_H = 40;
-    const int STATUSBAR_H = 24;
 
     font_init();
     widgets_init();
