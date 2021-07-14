@@ -36,5 +36,8 @@ void widgets_init();
 void widgets_update(int window_w, int window_h, int toolbar_h, int statusbar_h);
 void widgets_draw(struct mat4 projection, double ms);
 void widgets_mouse_move(int button_l, int button_r, float x, float y);
+void widgets_mouse_button(int button, int action);
+
+extern int paused;
 
 #endif

@@ -10,6 +10,8 @@
 #define MAX_BUTTONS 32
 
 
+extern int paused = 1;
+
 static Program prog;
 
 typedef struct {
@@ -39,6 +41,7 @@ static Button buttons[MAX_BUTTONS];
 static int buttons_count;
 static Button *run_button;
 static Button *hovered_button;
+static Button *pressed_button;
 
 void widgets_init() {
     shader_program_init(&prog, flat_vert, "flat.vert", "", flat_frag, "flat.frag", "");
@@ -102,7 +105,12 @@ void widgets_draw(mat4 projection, double ms) {
 
     /* quads */
     {
-        if (hovered_button) {
+        if (pressed_button) {
+            _init_quad(quad_verts + quads_count, pressed_button->min.x, pressed_button->max.x, pressed_button->min.y, pressed_button->max.y);
+            _init_color(quad_colors + quads_count, (vec4){0.8f, 0.0f, 0.0f, 1.0f});
+            ++quads_count;
+        }
+        else if (hovered_button) {
             _init_quad(quad_verts + quads_count, hovered_button->min.x, hovered_button->max.x, hovered_button->min.y, hovered_button->max.y);
             _init_color(quad_colors + quads_count, (vec4){0.0f, 0.0f, 0.0f, 0.2f});
             ++quads_count;
@@ -154,4 +162,19 @@ void widgets_mouse_move(int button_l, int button_r, float x, float y) {
 
     if (x > run_button->min.x && x < run_button->max.x && y > run_button->min.y && y < run_button->max.y)
         hovered_button = run_button;
+}
+
+void widgets_mouse_button(int button, int action) {
+    if (button == 0) {
+        if (action == 0)
+            pressed_button = hovered_button;
+        else {
+            if (pressed_button == hovered_button) { /* for a button click press button must be the same as the release button */
+                if (pressed_button == run_button) { /* temporary run button action */
+                    paused = !paused;
+                }
+            }
+            pressed_button = 0;
+        }
+    }
 }

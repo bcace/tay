@@ -10,7 +10,6 @@
 
 
 static int quit = 0;
-static int paused = 1;
 static int window_w = 1600;
 static int window_h = 800;
 
@@ -44,6 +43,8 @@ static void _mousebutton_callback(GLFWwindow *glfw_window, int button, int actio
         if (button == GLFW_MOUSE_BUTTON_RIGHT)
             mouse_r = 0;
     }
+
+    widgets_mouse_button(button == GLFW_MOUSE_BUTTON_LEFT ? 0 : 1, action == GLFW_PRESS ? 0 : 1);
 }
 
 static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
