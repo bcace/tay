@@ -10,6 +10,7 @@ void drawing_camera_setup(struct EntoramaModel *model, int window_w, int window_
 void drawing_draw_group(struct TayState *tay, struct EntoramaGroup *group, int group_i);
 
 /* colors.c */
+void color_init();
 struct vec4 color_bg();
 struct vec4 color_fg();
 struct vec4 color_hi();

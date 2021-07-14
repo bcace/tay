@@ -128,6 +128,7 @@ int main() {
 
     graphics_enable_blend(1);
 
+    color_init();
     font_init();
     widgets_init();
     widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H);

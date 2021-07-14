@@ -116,12 +116,20 @@ void widgets_draw(mat4 projection, double ms) {
             ++quads_count;
         }
 
-        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h - 4), (float)(window_h - toolbar_h));
+        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h - 5), (float)(window_h - toolbar_h));
         _init_shadow(quad_colors + quads_count, 0.0f, 0.0f, 0.5f, 0.5f);
         ++quads_count;
 
-        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(statusbar_h), (float)(statusbar_h + 4));
+        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h), (float)(window_h));
+        _init_shadow(quad_colors + quads_count, 0.1f, 0.1f, 0.0f, 0.0f);
+        ++quads_count;
+
+        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(statusbar_h), (float)(statusbar_h + 5));
         _init_shadow(quad_colors + quads_count, 0.5f, 0.5f, 0.0f, 0.0f);
+        ++quads_count;
+
+        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, 0.0f, (float)(statusbar_h));
+        _init_shadow(quad_colors + quads_count, 0.1f, 0.1f, 0.0f, 0.0f);
         ++quads_count;
 
         shader_program_use(&prog);
