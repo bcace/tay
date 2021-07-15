@@ -108,6 +108,10 @@ void widgets_draw(mat4 projection, double ms) {
 
     quads_count = 0;
 
+    vec4 fg_color = color_fg();
+    vec4 hv_color = fg_color;
+    hv_color.w = 0.2f;
+
     /* quads */
     {
         if (pressed_button) {
@@ -117,7 +121,7 @@ void widgets_draw(mat4 projection, double ms) {
         }
         else if (hovered_button) {
             _init_quad(quad_verts + quads_count, hovered_button->min.x, hovered_button->max.x, hovered_button->min.y, hovered_button->max.y);
-            _init_color(quad_colors + quads_count, (vec4){0.0f, 0.0f, 0.0f, 0.2f});
+            _init_color(quad_colors + quads_count, hv_color);
             ++quads_count;
         }
 
@@ -146,7 +150,7 @@ void widgets_draw(mat4 projection, double ms) {
         /* buttons */
         for (int button_i = 0; button_i < buttons_count; ++button_i) {
             Button *b = buttons + button_i;
-            font_draw_text(b->label, b->label_x, b->label_y, projection, color_fg());
+            font_draw_text(b->label, b->label_x, b->label_y, projection, fg_color);
         }
 
         /* simulation speed */
@@ -157,7 +161,7 @@ void widgets_draw(mat4 projection, double ms) {
                            window_w - font_text_width(ENTORAMA_FONT_MEDIUM, buffer) - 10,
                            (int)((statusbar_h - font_text_height(ENTORAMA_FONT_MEDIUM, buffer)) * 0.5f),
                            projection,
-                           color_fg());
+                           fg_color);
         }
 
         /* tooltip */
@@ -166,7 +170,7 @@ void widgets_draw(mat4 projection, double ms) {
                            (int)((window_w - font_text_width(ENTORAMA_FONT_MEDIUM, tooltip)) * 0.5f),
                            (int)((statusbar_h - font_text_height(ENTORAMA_FONT_MEDIUM, tooltip)) * 0.5f),
                            projection,
-                           color_fg());
+                           fg_color);
         }
     }
 }

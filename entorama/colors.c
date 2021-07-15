@@ -14,7 +14,8 @@ Theme *selected;
 
 void color_init() {
     dark = (Theme){
-        .bg = (vec4){0.15f, 0.15f, 0.15f, 1.0f}, // (vec4){0.0664f, 0.18359f, 0.2539f, 1.0f}
+        // .bg = (vec4){0.15f, 0.15f, 0.15f, 1.0f},
+        .bg = (vec4){0.0664f, 0.18359f, 0.2539f, 1.0f},
         .fg = (vec4){0.8f, 0.8f, 0.8f, 1.0f},
         .hi = (vec4){0.8f, 0.0f, 0.0f, 1.0f},
         .palette = {
@@ -37,7 +38,7 @@ void color_init() {
         },
     };
 
-    selected = &light;
+    selected = &dark;
 }
 
 vec4 color_bg() {
