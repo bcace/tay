@@ -22,7 +22,8 @@ static float mouse_dx = 0.0f;
 static float mouse_dy = 0.0f;
 
 const int TOOLBAR_H = 40;
-const int STATUSBAR_H = 24;
+const int STATUSBAR_H = 30;
+const int SIDEBAR_W = 320;
 
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
@@ -77,7 +78,7 @@ static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action
 static void _size_callback(GLFWwindow *glfw_window, int w, int h) {
     window_w = w;
     window_h = h;
-    widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H);
+    widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H, SIDEBAR_W);
 }
 
 static double _smooth_ms_per_step(double ms) {
@@ -131,7 +132,7 @@ int main() {
     color_init();
     font_init();
     widgets_init();
-    widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H);
+    widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H, SIDEBAR_W);
 
     TayState *tay = tay_create_state();
 
@@ -152,7 +153,7 @@ int main() {
 
         /* drawing */
         {
-            graphics_viewport(0, STATUSBAR_H, window_w, window_h - TOOLBAR_H - STATUSBAR_H);
+            graphics_viewport(SIDEBAR_W, STATUSBAR_H, window_w - SIDEBAR_W, window_h - TOOLBAR_H - STATUSBAR_H);
             vec4 bg = color_bg();
             graphics_clear(bg.x, bg.y, bg.z);
             graphics_clear_depth();
@@ -160,7 +161,7 @@ int main() {
 
             /* draw agents */
             {
-                drawing_camera_setup(&model, window_w, window_h - TOOLBAR_H - STATUSBAR_H);
+                drawing_camera_setup(&model, window_w - SIDEBAR_W, window_h - TOOLBAR_H - STATUSBAR_H);
 
                 for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                     EntoramaGroup *group = model.groups + group_i;

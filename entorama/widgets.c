@@ -33,6 +33,7 @@ static int window_w;
 static int window_h;
 static int toolbar_h;
 static int statusbar_h;
+static int sidebar_w;
 
 static VertQuad quad_verts[MAX_QUADS];
 static ColorQuad quad_colors[MAX_QUADS];
@@ -85,11 +86,12 @@ static void _init_color(ColorQuad *quad, vec4 color) {
     quad->c4 = color;
 }
 
-void widgets_update(int window_w_in, int window_h_in, int toolbar_h_in, int statusbar_h_in) {
+void widgets_update(int window_w_in, int window_h_in, int toolbar_h_in, int statusbar_h_in, int sidebar_w_in) {
     window_w = window_w_in;
     window_h = window_h_in;
     toolbar_h = toolbar_h_in;
     statusbar_h = statusbar_h_in;
+    sidebar_w = sidebar_w_in;
 
     /* buttons */
     {
@@ -110,10 +112,13 @@ void widgets_draw(mat4 projection, double ms) {
 
     vec4 fg_color = color_fg();
     vec4 hv_color = fg_color;
-    hv_color.w = 0.2f;
+    hv_color.w = 0.25f;
+
+    const float shadow_alpha = 0.2f;
 
     /* quads */
     {
+        /* button highlights */
         if (pressed_button) {
             _init_quad(quad_verts + quads_count, pressed_button->min.x, pressed_button->max.x, pressed_button->min.y, pressed_button->max.y);
             _init_color(quad_colors + quads_count, color_hi());
@@ -125,13 +130,23 @@ void widgets_draw(mat4 projection, double ms) {
             ++quads_count;
         }
 
-        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h - 5), (float)(window_h - toolbar_h));
-        _init_shadow(quad_colors + quads_count, 0.0f, 0.0f, 0.3f, 0.3f);
-        ++quads_count;
+        /* sidebar */
+        {
+            _init_quad(quad_verts + quads_count, 0, sidebar_w, statusbar_h, window_h - toolbar_h);
+            _init_color(quad_colors + quads_count, color_vd());
+            ++quads_count;
+        }
 
-        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(statusbar_h), (float)(statusbar_h + 5));
-        _init_shadow(quad_colors + quads_count, 0.3f, 0.3f, 0.0f, 0.0f);
-        ++quads_count;
+        /* shadows */
+        {
+            _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h - 5), (float)(window_h - toolbar_h));
+            _init_shadow(quad_colors + quads_count, 0.0f, 0.0f, shadow_alpha, shadow_alpha);
+            ++quads_count;
+
+            _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(statusbar_h), (float)(statusbar_h + 5));
+            _init_shadow(quad_colors + quads_count, shadow_alpha, shadow_alpha, 0.0f, 0.0f);
+            ++quads_count;
+        }
 
         shader_program_use(&prog);
         shader_program_set_uniform_mat4(&prog, 0, &projection);

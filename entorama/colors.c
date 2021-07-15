@@ -3,6 +3,7 @@
 
 
 typedef struct {
+    vec4 vd;
     vec4 bg;
     vec4 fg;
     vec4 hi;
@@ -15,6 +16,7 @@ Theme *selected;
 void color_init() {
     dark = (Theme){
         // .bg = (vec4){0.15f, 0.15f, 0.15f, 1.0f},
+        .vd = (vec4){0.0664f * 0.7f, 0.18359f * 0.7f, 0.2539f * 0.7f, 1.0f},
         .bg = (vec4){0.0664f, 0.18359f, 0.2539f, 1.0f},
         .fg = (vec4){0.8f, 0.8f, 0.8f, 1.0f},
         .hi = (vec4){0.8f, 0.0f, 0.0f, 1.0f},
@@ -27,6 +29,7 @@ void color_init() {
     };
 
     light = (Theme){
+        .vd = (vec4){0.9f, 0.9f, 0.9f, 1.0f},
         .bg = (vec4){1.0f, 1.0f, 1.0f, 1.0f},
         .fg = (vec4){0.1f, 0.1f, 0.1f, 1.0f},
         .hi = (vec4){0.8f, 0.0f, 0.0f, 1.0f},
@@ -38,7 +41,12 @@ void color_init() {
         },
     };
 
-    selected = &dark;
+    selected = &light;
+    // selected = &dark;
+}
+
+vec4 color_vd() {
+    return selected->vd;
 }
 
 vec4 color_bg() {
