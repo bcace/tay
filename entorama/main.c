@@ -22,8 +22,10 @@ static float mouse_dx = 0.0f;
 static float mouse_dy = 0.0f;
 
 const int TOOLBAR_H = 40;
-const int STATUSBAR_H = 30;
+const int STATUSBAR_H = 28;
 const int SIDEBAR_W = 320;
+
+static EntoramaModel model;
 
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
@@ -136,10 +138,11 @@ int main() {
 
     TayState *tay = tay_create_state();
 
-    EntoramaModel model;
     entorama_init_model(&model);
     model_load(&model, "m_flocking.dll");
     model.init(&model, tay);
+
+    widgets_update_model_specific(&model);
 
     tay_threads_start(100000); // TODO: remove this!!!
     tay_simulation_start(tay);

@@ -113,3 +113,10 @@ unsigned font_text_height(FontSize font_size, const char *text) {
     else
         return 0;
 }
+
+unsigned font_height(FontSize font_size) {
+    if (font_size == ENTORAMA_FONT_MEDIUM)
+        return inconsolata13.h;
+    else
+        return 0;
+}

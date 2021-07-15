@@ -19,5 +19,6 @@ void font_use_medium();
 void font_draw_text(const char *text, int x, int y, struct mat4 projection, struct vec4 color);
 unsigned font_text_width(FontSize font_size, const char *text);
 unsigned font_text_height(FontSize font_size, const char *text);
+unsigned font_height(FontSize font_size);
 
 #endif

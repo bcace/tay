@@ -1,4 +1,5 @@
 #include "main.h"
+#include "entorama.h"
 #include "graphics.h"
 #include "shaders.h"
 #include "font.h"
@@ -6,7 +7,7 @@
 #include <string.h>
 
 #define MAX_QUADS   32
-#define MAX_LABEL   128
+#define MAX_LABEL   256
 #define MAX_BUTTONS 32
 #define MAX_TOOLTIP 512
 
@@ -41,9 +42,12 @@ static int quads_count;
 
 static Button buttons[MAX_BUTTONS];
 static int buttons_count;
+static Button sidebar_buttons[MAX_BUTTONS];
+static int sidebar_buttons_count;
 static Button *run_button;
 static Button *hovered_button;
 static Button *pressed_button;
+
 
 static char tooltip[MAX_TOOLTIP];
 
@@ -86,6 +90,31 @@ static void _init_color(ColorQuad *quad, vec4 color) {
     quad->c4 = color;
 }
 
+static void _update_sidebar_buttons_geometry() {
+    const int SIDEBAR_BUTTON_H = 28;
+
+    for (int button_i = 0; button_i < sidebar_buttons_count; ++button_i) {
+        Button *button = sidebar_buttons + button_i;
+        button->min = (vec2){0.0f, (float)(window_h - toolbar_h - SIDEBAR_BUTTON_H * (button_i + 1))};
+        button->max = (vec2){(float)sidebar_w, (float)(window_h - toolbar_h - SIDEBAR_BUTTON_H * button_i)};
+        button->label_x = (int)button->min.x + 10;
+        button->label_y = (int)((button->min.y + button->max.y - font_height(ENTORAMA_FONT_MEDIUM)) * 0.5f);
+    }
+}
+
+void widgets_update_model_specific(struct EntoramaModel *model) {
+    sidebar_buttons_count = 0;
+
+    for (unsigned group_i = 0; group_i < model->groups_count; ++group_i) {
+        EntoramaGroup *group = model->groups + group_i;
+
+        Button *button = sidebar_buttons + sidebar_buttons_count++;
+        strcpy_s(button->label, MAX_LABEL, group->name);
+    }
+
+    _update_sidebar_buttons_geometry();
+}
+
 void widgets_update(int window_w_in, int window_h_in, int toolbar_h_in, int statusbar_h_in, int sidebar_w_in) {
     window_w = window_w_in;
     window_h = window_h_in;
@@ -93,16 +122,18 @@ void widgets_update(int window_w_in, int window_h_in, int toolbar_h_in, int stat
     statusbar_h = statusbar_h_in;
     sidebar_w = sidebar_w_in;
 
-    /* buttons */
+    /* toolbar buttons */
     {
         const float TOOL_BUTTON_W = 60.0f;
 
         unsigned text_w = font_text_width(ENTORAMA_FONT_MEDIUM, run_button->label);
         run_button->label_x = (int)((window_w - text_w) * 0.5f);
-        run_button->label_y = window_h - (int)((toolbar_h + font_text_height(ENTORAMA_FONT_MEDIUM, run_button->label)) * 0.5f);
+        run_button->label_y = window_h - (int)((toolbar_h + font_height(ENTORAMA_FONT_MEDIUM)) * 0.5f);
         run_button->min = (vec2){(window_w - TOOL_BUTTON_W) * 0.5f, (float)(window_h - toolbar_h)};
         run_button->max = (vec2){(window_w + TOOL_BUTTON_W) * 0.5f, (float)(window_h)};
     }
+
+    _update_sidebar_buttons_geometry();
 }
 
 void widgets_draw(mat4 projection, double ms) {
@@ -118,6 +149,13 @@ void widgets_draw(mat4 projection, double ms) {
 
     /* quads */
     {
+        /* sidebar */
+        {
+            _init_quad(quad_verts + quads_count, 0.0f, (float)sidebar_w, (float)statusbar_h, (float)(window_h - toolbar_h));
+            _init_color(quad_colors + quads_count, color_vd());
+            ++quads_count;
+        }
+
         /* button highlights */
         if (pressed_button) {
             _init_quad(quad_verts + quads_count, pressed_button->min.x, pressed_button->max.x, pressed_button->min.y, pressed_button->max.y);
@@ -130,20 +168,13 @@ void widgets_draw(mat4 projection, double ms) {
             ++quads_count;
         }
 
-        /* sidebar */
-        {
-            _init_quad(quad_verts + quads_count, 0, sidebar_w, statusbar_h, window_h - toolbar_h);
-            _init_color(quad_colors + quads_count, color_vd());
-            ++quads_count;
-        }
-
         /* shadows */
         {
             _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h - 5), (float)(window_h - toolbar_h));
             _init_shadow(quad_colors + quads_count, 0.0f, 0.0f, shadow_alpha, shadow_alpha);
             ++quads_count;
 
-            _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(statusbar_h), (float)(statusbar_h + 5));
+            _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)statusbar_h, (float)(statusbar_h + 5));
             _init_shadow(quad_colors + quads_count, shadow_alpha, shadow_alpha, 0.0f, 0.0f);
             ++quads_count;
         }
@@ -168,13 +199,19 @@ void widgets_draw(mat4 projection, double ms) {
             font_draw_text(b->label, b->label_x, b->label_y, projection, fg_color);
         }
 
+        /* sidebar buttons */
+        for (int button_i = 0; button_i < sidebar_buttons_count; ++button_i) {
+            Button *b = sidebar_buttons + button_i;
+            font_draw_text(b->label, b->label_x, b->label_y, projection, fg_color);
+        }
+
         /* simulation speed */
         {
             char buffer[50];
             sprintf_s(buffer, 50, "%.1f ms", ms);
             font_draw_text(buffer,
                            window_w - font_text_width(ENTORAMA_FONT_MEDIUM, buffer) - 10,
-                           (int)((statusbar_h - font_text_height(ENTORAMA_FONT_MEDIUM, buffer)) * 0.5f),
+                           (int)((statusbar_h - font_height(ENTORAMA_FONT_MEDIUM)) * 0.5f),
                            projection,
                            fg_color);
         }
@@ -183,7 +220,7 @@ void widgets_draw(mat4 projection, double ms) {
         {
             font_draw_text(tooltip,
                            (int)((window_w - font_text_width(ENTORAMA_FONT_MEDIUM, tooltip)) * 0.5f),
-                           (int)((statusbar_h - font_text_height(ENTORAMA_FONT_MEDIUM, tooltip)) * 0.5f),
+                           (int)((statusbar_h - font_height(ENTORAMA_FONT_MEDIUM)) * 0.5f),
                            projection,
                            fg_color);
         }
@@ -197,6 +234,17 @@ void widgets_mouse_move(int button_l, int button_r, float x, float y) {
     if (x > run_button->min.x && x < run_button->max.x && y > run_button->min.y && y < run_button->max.y) {
         hovered_button = run_button;
         strcpy_s(tooltip, MAX_TOOLTIP, "Run/pause simulation");
+        return;
+    }
+
+    for (int button_i = 0; button_i < sidebar_buttons_count; ++button_i) {
+        Button *button = sidebar_buttons + button_i;
+
+        if (x > button->min.x && x < button->max.x && y > button->min.y && y < button->max.y) {
+            hovered_button = button;
+            strcpy_s(tooltip, MAX_TOOLTIP, button->label);
+            return;
+        }
     }
 }
 
