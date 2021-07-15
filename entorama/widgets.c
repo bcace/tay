@@ -8,6 +8,7 @@
 #define MAX_QUADS   32
 #define MAX_LABEL   128
 #define MAX_BUTTONS 32
+#define MAX_TOOLTIP 512
 
 
 extern int paused = 1;
@@ -43,6 +44,8 @@ static Button *run_button;
 static Button *hovered_button;
 static Button *pressed_button;
 
+static char tooltip[MAX_TOOLTIP];
+
 void widgets_init() {
     shader_program_init(&prog, flat_vert, "flat.vert", "", flat_frag, "flat.frag", "");
     shader_program_define_in_float(&prog, 2);            /* vertex position */
@@ -53,6 +56,8 @@ void widgets_init() {
 
     run_button = buttons + buttons_count++;
     strcpy_s(run_button->label, MAX_LABEL, "Run");
+
+    tooltip[0] = '\0';
 }
 
 static void _init_quad(VertQuad *quad, float min_x, float max_x, float min_y, float max_y) {
@@ -117,19 +122,11 @@ void widgets_draw(mat4 projection, double ms) {
         }
 
         _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h - 5), (float)(window_h - toolbar_h));
-        _init_shadow(quad_colors + quads_count, 0.0f, 0.0f, 0.5f, 0.5f);
-        ++quads_count;
-
-        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h), (float)(window_h));
-        _init_shadow(quad_colors + quads_count, 0.1f, 0.1f, 0.0f, 0.0f);
+        _init_shadow(quad_colors + quads_count, 0.0f, 0.0f, 0.3f, 0.3f);
         ++quads_count;
 
         _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(statusbar_h), (float)(statusbar_h + 5));
-        _init_shadow(quad_colors + quads_count, 0.5f, 0.5f, 0.0f, 0.0f);
-        ++quads_count;
-
-        _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, 0.0f, (float)(statusbar_h));
-        _init_shadow(quad_colors + quads_count, 0.1f, 0.1f, 0.0f, 0.0f);
+        _init_shadow(quad_colors + quads_count, 0.3f, 0.3f, 0.0f, 0.0f);
         ++quads_count;
 
         shader_program_use(&prog);
@@ -162,14 +159,26 @@ void widgets_draw(mat4 projection, double ms) {
                            projection,
                            color_fg());
         }
+
+        /* tooltip */
+        {
+            font_draw_text(tooltip,
+                           (int)((window_w - font_text_width(ENTORAMA_FONT_MEDIUM, tooltip)) * 0.5f),
+                           (int)((statusbar_h - font_text_height(ENTORAMA_FONT_MEDIUM, tooltip)) * 0.5f),
+                           projection,
+                           color_fg());
+        }
     }
 }
 
 void widgets_mouse_move(int button_l, int button_r, float x, float y) {
     hovered_button = 0;
+    tooltip[0] = '\0';
 
-    if (x > run_button->min.x && x < run_button->max.x && y > run_button->min.y && y < run_button->max.y)
+    if (x > run_button->min.x && x < run_button->max.x && y > run_button->min.y && y < run_button->max.y) {
         hovered_button = run_button;
+        strcpy_s(tooltip, MAX_TOOLTIP, "Run/pause simulation");
+    }
 }
 
 void widgets_mouse_button(int button, int action) {
