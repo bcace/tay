@@ -47,6 +47,7 @@ static int sidebar_buttons_count;
 static Button *run_button;
 static Button *hovered_button;
 static Button *pressed_button;
+static Button *selected_sidebar_button;
 
 
 static char tooltip[MAX_TOOLTIP];
@@ -156,6 +157,12 @@ void widgets_draw(mat4 projection, double ms) {
             ++quads_count;
         }
 
+        if (selected_sidebar_button) {
+            _init_quad(quad_verts + quads_count, selected_sidebar_button->min.x, selected_sidebar_button->max.x, selected_sidebar_button->min.y, selected_sidebar_button->max.y);
+            _init_color(quad_colors + quads_count, color_hi());
+            ++quads_count;
+        }
+
         /* button highlights */
         if (pressed_button) {
             _init_quad(quad_verts + quads_count, pressed_button->min.x, pressed_button->max.x, pressed_button->min.y, pressed_button->max.y);
@@ -248,14 +255,22 @@ void widgets_mouse_move(int button_l, int button_r, float x, float y) {
     }
 }
 
+static int _is_sidebar_button(Button *button) {
+    return button >= sidebar_buttons && button < sidebar_buttons + sidebar_buttons_count;
+}
+
 void widgets_mouse_button(int button, int action) {
     if (button == 0) {
         if (action == 0)
             pressed_button = hovered_button;
         else {
             if (pressed_button == hovered_button) { /* for a button click press button must be the same as the release button */
+                selected_sidebar_button = 0;
                 if (pressed_button == run_button) { /* temporary run button action */
                     paused = !paused;
+                }
+                else if (_is_sidebar_button(pressed_button)) {
+                    selected_sidebar_button = pressed_button;
                 }
             }
             pressed_button = 0;
