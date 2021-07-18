@@ -21,13 +21,20 @@ typedef struct mat4 {
     float v[4][4];
 } mat4;
 
-typedef struct Line {
-    vec3 v1, v2;
-} Line;
+typedef struct QuadBuffer {
+    unsigned count;
+    unsigned capacity;
+    struct vec2 *pos;
+    struct vec4 *col;
+} QuadBuffer;
 
-typedef struct Quad {
-    vec3 v1, v2, v3, v4;
-} Quad;
+typedef struct TexQuadBuffer {
+    unsigned count;
+    unsigned capacity;
+    struct vec2 *pos;
+    struct vec2 *tex;
+    struct vec4 *col;
+} TexQuadBuffer;
 
 typedef struct Program {
     unsigned prog, vao;
@@ -86,5 +93,11 @@ void mat4_scale(mat4 *m, float v);
 void mat4_translate(mat4 *m, float x, float y, float z);
 void mat4_rotate(mat4 *m, float angle, float x, float y, float z);
 void mat4_multiply(mat4 *r, mat4 *a, mat4 *b);
+
+void quad_buffer_clear(QuadBuffer *buffer);
+void quad_buffer_add(QuadBuffer *buffer, unsigned count, vec2 **pos, vec4 **col);
+
+void tex_quad_buffer_clear(TexQuadBuffer *buffer);
+void tex_quad_buffer_add(TexQuadBuffer *buffer, unsigned count, vec2 **pos, vec2 **tex, vec4 **col);
 
 #endif

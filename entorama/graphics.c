@@ -1,6 +1,7 @@
 #include "graphics.h"
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
+#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -366,4 +367,36 @@ void mat4_multiply(mat4 *r, mat4 *a, mat4 *b) {
     r->v[3][1] = a->v[0][1] * b->v[3][0] + a->v[1][1] * b->v[3][1] + a->v[2][1] * b->v[3][2] + a->v[3][1] * b->v[3][3];
     r->v[3][2] = a->v[0][2] * b->v[3][0] + a->v[1][2] * b->v[3][1] + a->v[2][2] * b->v[3][2] + a->v[3][2] * b->v[3][3];
     r->v[3][3] = a->v[0][3] * b->v[3][0] + a->v[1][3] * b->v[3][1] + a->v[2][3] * b->v[3][2] + a->v[3][3] * b->v[3][3];
+}
+
+void quad_buffer_clear(QuadBuffer *buffer) {
+    buffer->count = 0;
+}
+
+void quad_buffer_add(QuadBuffer *buffer, unsigned count, vec2 **pos, vec4 **col) {
+    if (buffer->count + count > buffer->capacity) {
+        buffer->capacity = buffer->count + count + 64;
+        buffer->pos = realloc(buffer->pos, buffer->capacity * sizeof(vec2) * 4);
+        buffer->col = realloc(buffer->col, buffer->capacity * sizeof(vec4) * 4);
+    }
+    *pos = buffer->pos + buffer->count * 4;
+    *col = buffer->col + buffer->count * 4;
+    buffer->count += count;
+}
+
+void tex_quad_buffer_clear(TexQuadBuffer *buffer) {
+    buffer->count = 0;
+}
+
+void tex_quad_buffer_add(TexQuadBuffer *buffer, unsigned count, vec2 **pos, vec2 **tex, vec4 **col) {
+    if (buffer->count + count > buffer->capacity) {
+        buffer->capacity = buffer->count + count + 64;
+        buffer->pos = realloc(buffer->pos, buffer->capacity * sizeof(vec2) * 4);
+        buffer->tex = realloc(buffer->tex, buffer->capacity * sizeof(vec2) * 4);
+        buffer->col = realloc(buffer->col, buffer->capacity * sizeof(vec4) * 4);
+    }
+    *pos = buffer->pos + buffer->count * 4;
+    *tex = buffer->tex + buffer->count * 4;
+    *col = buffer->col + buffer->count * 4;
+    buffer->count += count;
 }
