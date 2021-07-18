@@ -22,7 +22,7 @@ static float mouse_dx = 0.0f;
 static float mouse_dy = 0.0f;
 
 const int TOOLBAR_H = 40;
-const int STATUSBAR_H = 28;
+const int STATUSBAR_H = 26;
 const int SIDEBAR_W = 320;
 
 static EntoramaModel model;

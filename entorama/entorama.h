@@ -77,18 +77,20 @@ typedef struct EntoramaGroup {
 
 typedef int (*ENTORAMA_INIT_MODEL)(struct EntoramaModel *model, struct TayState *tay);
 
+typedef void (*ENTORAMA_SET_WORLD_BOX)(struct EntoramaModel *model, float min_x, float min_y, float min_z, float max_x, float max_y, float max_z);
 typedef EntoramaGroup *(*ENTORAMA_ADD_GROUP)(struct EntoramaModel *model, const char *name, struct TayGroup *group, unsigned max_agents);
 
 typedef struct EntoramaModel {
     ENTORAMA_INIT_MODEL init;
-    float origin_x, origin_y, origin_z;
-    float radius;
+    float min_x, min_y, min_z;
+    float max_x, max_y, max_z;
 
     /* filled by init model */
     EntoramaGroup groups[ENTORAMA_MAX_GROUPS];
     unsigned groups_count;
 
     /* member functions */
+    ENTORAMA_SET_WORLD_BOX set_world_box;
     ENTORAMA_ADD_GROUP add_group;
 } EntoramaModel;
 

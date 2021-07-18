@@ -146,8 +146,16 @@ void drawing_camera_setup(EntoramaModel *model, int window_w, int window_h) {
         mat4_translate(&camera.modelview, 0.0f, 0.0f, -100.0f);
         mat4_rotate(&camera.modelview, camera.rot_x, 1.0f, 0.0f, 0.0f);
         mat4_rotate(&camera.modelview, camera.rot_y, 0.0f, 0.0f, 1.0f);
-        mat4_scale(&camera.modelview, 50.0f / model->radius);
-        mat4_translate(&camera.modelview, -model->origin_x, -model->origin_y, -model->origin_z);
+        float dx = model->max_x - model->min_x;
+        float dy = model->max_y - model->min_y;
+        float dz = model->max_z - model->min_z;
+        float radius = sqrtf(dx * dx + dy * dy + dz * dz) * 0.5f;
+        mat4_scale(&camera.modelview, 50.0f / radius);
+        mat4_translate(&camera.modelview,
+            (model->max_x + model->min_x) * -0.5f,
+            (model->max_y + model->min_y) * -0.5f,
+            (model->max_z + model->min_z) * -0.5f
+        );
     }
     else {
         mat4 perspective, lookat;

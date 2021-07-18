@@ -89,7 +89,7 @@ static void _init_color(vec4 *quad, vec4 color) {
 }
 
 static void _update_sidebar_buttons_geometry() {
-    const int SIDEBAR_BUTTON_H = 28;
+    const int SIDEBAR_BUTTON_H = 26;
 
     for (int button_i = 0; button_i < sidebar_buttons_count; ++button_i) {
         Button *button = sidebar_buttons + button_i;

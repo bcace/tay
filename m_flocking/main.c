@@ -18,6 +18,9 @@ static float _rand(float min, float max) {
 }
 
 int entorama_init(EntoramaModel *model, TayState *tay) {
+
+    model->set_world_box(model, -500.0f, -500.0f, -500.0f, 500.0f, 500.0f, 500.0f);
+
     const float radius = 20.0f;
     const float avoidance_r = 100.0f;
     const float4 see_radii = { radius, radius, radius, radius };
@@ -85,9 +88,5 @@ int entorama_init(EntoramaModel *model, TayState *tay) {
 
 __declspec(dllexport) int entorama_main(EntoramaModel *model) {
     model->init = entorama_init;
-    model->origin_x = 0.0f;
-    model->origin_y = 0.0f;
-    model->origin_z = 0.0f;
-    model->radius = 500.0f;
     return 0;
 }

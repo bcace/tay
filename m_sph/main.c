@@ -54,6 +54,8 @@ static int _init(EntoramaModel *model, TayState *tay) {
     sph_context.min = (float4){-3.0f, -2.0f, -1.0f, 0.0f};
     sph_context.max = (float4){3.0f, 2.0f, 1.0f, 0.0f};
 
+    model->set_world_box(model, sph_context.min.x, sph_context.min.y, sph_context.min.z, sph_context.min.x, sph_context.min.y, sph_context.min.z);
+
     _update_sph_context(&sph_context, particle_m);
 
     float h = sph_context.h;
@@ -97,9 +99,5 @@ static int _init(EntoramaModel *model, TayState *tay) {
 
 __declspec(dllexport) int entorama_main(EntoramaModel *model) {
     model->init = _init;
-    model->origin_x = 0.0f;
-    model->origin_y = 0.0f;
-    model->origin_z = 0.0f;
-    model->radius = 2.0f;
     return 0;
 }
