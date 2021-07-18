@@ -49,7 +49,7 @@ static void _mousebutton_callback(GLFWwindow *glfw_window, int button, int actio
             mouse_r = 0;
     }
 
-    widgets_mouse_button(button == GLFW_MOUSE_BUTTON_LEFT ? 0 : 1, action == GLFW_PRESS ? 0 : 1);
+    widgets_mouse_button(button == GLFW_MOUSE_BUTTON_LEFT ? 0 : 1, action == GLFW_PRESS ? 0 : 1, mouse_x, mouse_y);
 }
 
 static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {

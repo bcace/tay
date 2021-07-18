@@ -265,18 +265,26 @@ static int _is_sidebar_button(Button *button) {
     return button >= sidebar_buttons && button < sidebar_buttons + sidebar_buttons_count;
 }
 
-void widgets_mouse_button(int button, int action) {
+static int _mouse_inside_sidebar(float x, float y) {
+    return x >= 0 && x < sidebar_w && y >= statusbar_h && y < window_h - toolbar_h;
+}
+
+void widgets_mouse_button(int button, int action, float x, float y) {
     if (button == 0) {
         if (action == 0)
             pressed_button = hovered_button;
         else {
             if (pressed_button == hovered_button) { /* for a button click press button must be the same as the release button */
-                selected_sidebar_button = 0;
-                if (pressed_button == run_button) { /* temporary run button action */
-                    paused = !paused;
+
+                if (_mouse_inside_sidebar(x, y)) {
+                    if (_is_sidebar_button(pressed_button))
+                        selected_sidebar_button = pressed_button;
+                    else
+                        selected_sidebar_button = 0;
                 }
-                else if (_is_sidebar_button(pressed_button)) {
-                    selected_sidebar_button = pressed_button;
+                else {
+                    if (pressed_button == run_button) /* temporary run button action */
+                        paused = !paused;
                 }
             }
             pressed_button = 0;
