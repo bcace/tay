@@ -139,7 +139,7 @@ int main() {
     TayState *tay = tay_create_state();
 
     entorama_init_model(&model);
-    model_load(&model, "m_flocking.dll");
+    model_load(&model, "m_sph.dll");
     model.init(&model, tay);
 
     widgets_update_model_specific(&model);
@@ -148,6 +148,8 @@ int main() {
     tay_simulation_start(tay);
 
     drawing_init(1000000);
+
+    drawing_update_world_box(&model);
 
     while (!quit) {
 
@@ -160,10 +162,10 @@ int main() {
             vec4 bg = color_bg();
             graphics_clear(bg.x, bg.y, bg.z);
             graphics_clear_depth();
-            graphics_enable_depth_test(1);
 
             /* draw agents */
             {
+                graphics_enable_depth_test(1);
                 drawing_camera_setup(&model, window_w - SIDEBAR_W, window_h - TOOLBAR_H - STATUSBAR_H);
 
                 for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {

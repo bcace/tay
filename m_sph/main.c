@@ -12,7 +12,7 @@ static TayGroup *particles_group;
 
 static SphContext sph_context;
 
-static int particles_count = 60000;
+static int particles_count = 200000;
 
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
@@ -54,7 +54,7 @@ static int _init(EntoramaModel *model, TayState *tay) {
     sph_context.min = (float4){-3.0f, -2.0f, -1.0f, 0.0f};
     sph_context.max = (float4){3.0f, 2.0f, 1.0f, 0.0f};
 
-    model->set_world_box(model, sph_context.min.x, sph_context.min.y, sph_context.min.z, sph_context.min.x, sph_context.min.y, sph_context.min.z);
+    model->set_world_box(model, sph_context.min.x, sph_context.min.y, sph_context.min.z, sph_context.max.x, sph_context.max.y, sph_context.max.z);
 
     _update_sph_context(&sph_context, particle_m);
 
@@ -67,7 +67,7 @@ static int _init(EntoramaModel *model, TayState *tay) {
     e_particles_info->max_agents = particles_count;
     e_particles_info->size_source = ENTORAMA_SIZE_UNIFORM_RADIUS;
     e_particles_info->size_radius = 0.02f;
-    e_particles_info->shape = ENTORAMA_CUBE;
+    e_particles_info->shape = ENTORAMA_SPHERE;
 
     tay_configure_space(tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 1000);
     // tay_fix_space_box(tay, particles_group, sph_context.min, sph_context.max);

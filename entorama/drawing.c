@@ -35,6 +35,7 @@ typedef struct {
 } Camera;
 
 static Camera camera;
+static Program program_tools;
 static Program program_basic;
 static Program program_color;
 static Program program_size;
@@ -49,6 +50,9 @@ static vec4 *inst_color;
 static vec3 *inst_size;
 static int SPHERE_VERTS_COUNT;
 static float *SPHERE_VERTS;
+static vec3 world_box_verts[24];
+static vec4 world_box_colors[24];
+static int world_box_verts_count;
 
 static void _init_shader_program(Program *prog, const char *vert_defines) {
     shader_program_init(prog, agent_vert, "agent.vert", vert_defines, agent_frag, "agent.frag", "#version 450\n");
@@ -68,8 +72,8 @@ void drawing_init(int max_agents_per_group) {
 
     camera.pan_x = 0.0f;
     camera.pan_y = 0.0f;
-    camera.rot_x = -1.0f;
-    camera.rot_y = 0.0f;
+    camera.rot_x = -1.2f;
+    camera.rot_y = 1.0f;
     camera.zoom = 0.2f;
 
     // camera.fov = 1.2f;
@@ -93,6 +97,12 @@ void drawing_init(int max_agents_per_group) {
     _init_shader_program(&program_direction_size, "#version 450\n#define ENTORAMA_DIRECTION_FWD\n#define ENTORAMA_SIZE_AGENT\n");
     _init_shader_program(&program_color_direction, "#version 450\n#define ENTORAMA_COLOR_AGENT\n#define ENTORAMA_DIRECTION_FWD\n");
     _init_shader_program(&program_color_direction_size, "#version 450\n#define ENTORAMA_COLOR_AGENT\n#define ENTORAMA_DIRECTION_FWD\n#define ENTORAMA_SIZE_AGENT\n");
+
+    shader_program_init(&program_tools, tools_vert, "tools.vert", "", tools_frag, "tools.frag", "");
+    shader_program_define_in_float(&program_tools, 3);  /* vertex position */
+    shader_program_define_in_float(&program_tools, 4);  /* vertex color */
+    shader_program_define_uniform(&program_tools, "projection");
+    shader_program_define_uniform(&program_tools, "modelview");
 
     inst_pos = malloc(sizeof(vec3) * max_agents_per_group);
     inst_dir_fwd = malloc(sizeof(vec3) * max_agents_per_group);
@@ -123,8 +133,8 @@ void drawing_mouse_scroll(double y) {
 void drawing_mouse_move(int button_l, int button_r, float dx, float dy) {
     if (camera.type == CAMERA_MODELING) {
         if (button_l) {
-            camera.rot_x -= dy * 0.001f;
-            camera.rot_y += dx * 0.001f;
+            camera.rot_x -= dy * 0.002f;
+            camera.rot_y += dx * 0.002f;
         }
         else if (button_r) {
             camera.pan_x -= dx;
@@ -137,11 +147,11 @@ void drawing_camera_setup(EntoramaModel *model, int window_w, int window_h) {
     mat4_set_identity(&camera.modelview);
     if (camera.type == CAMERA_MODELING) {
         graphics_frustum(&camera.projection,
-            0.00001f * camera.zoom * (camera.pan_x - window_w * 0.5f),
-            0.00001f * camera.zoom * (camera.pan_x + window_w * 0.5f),
-            0.00001f * camera.zoom * (camera.pan_y - window_h * 0.5f),
-            0.00001f * camera.zoom * (camera.pan_y + window_h * 0.5f),
-            0.001f, 200.0f
+            0.007f * camera.zoom * (camera.pan_x - window_w * 0.5f),
+            0.007f * camera.zoom * (camera.pan_x + window_w * 0.5f),
+            0.007f * camera.zoom * (camera.pan_y - window_h * 0.5f),
+            0.007f * camera.zoom * (camera.pan_y + window_h * 0.5f),
+            1.0f, 200.0f
         );
         mat4_translate(&camera.modelview, 0.0f, 0.0f, -100.0f);
         mat4_rotate(&camera.modelview, camera.rot_x, 1.0f, 0.0f, 0.0f);
@@ -149,8 +159,8 @@ void drawing_camera_setup(EntoramaModel *model, int window_w, int window_h) {
         float dx = model->max_x - model->min_x;
         float dy = model->max_y - model->min_y;
         float dz = model->max_z - model->min_z;
-        float radius = sqrtf(dx * dx + dy * dy + dz * dz) * 0.5f;
-        mat4_scale(&camera.modelview, 50.0f / radius);
+        float d = sqrtf(dx * dx + dy * dy + dz * dz);
+        mat4_scale(&camera.modelview, 100.0f / d);
         mat4_translate(&camera.modelview,
             (model->max_x + model->min_x) * -0.5f,
             (model->max_y + model->min_y) * -0.5f,
@@ -164,6 +174,39 @@ void drawing_camera_setup(EntoramaModel *model, int window_w, int window_h) {
         mat4_multiply(&camera.projection, &perspective, &lookat);
         mat4_set_identity(&camera.modelview);
     }
+}
+
+void drawing_update_world_box(EntoramaModel *model) {
+    world_box_verts[0] = (vec3){model->min_x, model->min_y, model->min_z};
+    world_box_verts[1] = (vec3){model->max_x, model->min_y, model->min_z};
+    world_box_verts[2] = (vec3){model->max_x, model->min_y, model->min_z};
+    world_box_verts[3] = (vec3){model->max_x, model->max_y, model->min_z};
+    world_box_verts[4] = (vec3){model->max_x, model->max_y, model->min_z};
+    world_box_verts[5] = (vec3){model->min_x, model->max_y, model->min_z};
+    world_box_verts[6] = (vec3){model->min_x, model->max_y, model->min_z};
+    world_box_verts[7] = (vec3){model->min_x, model->min_y, model->min_z};
+    world_box_verts[8] = (vec3){model->min_x, model->min_y, model->max_z};
+    world_box_verts[9] = (vec3){model->max_x, model->min_y, model->max_z};
+    world_box_verts[10] = (vec3){model->max_x, model->min_y, model->max_z};
+    world_box_verts[11] = (vec3){model->max_x, model->max_y, model->max_z};
+    world_box_verts[12] = (vec3){model->max_x, model->max_y, model->max_z};
+    world_box_verts[13] = (vec3){model->min_x, model->max_y, model->max_z};
+    world_box_verts[14] = (vec3){model->min_x, model->max_y, model->max_z};
+    world_box_verts[15] = (vec3){model->min_x, model->min_y, model->max_z};
+    world_box_verts[16] = (vec3){model->min_x, model->min_y, model->min_z};
+    world_box_verts[17] = (vec3){model->min_x, model->min_y, model->max_z};
+    world_box_verts[18] = (vec3){model->max_x, model->min_y, model->min_z};
+    world_box_verts[19] = (vec3){model->max_x, model->min_y, model->max_z};
+    world_box_verts[20] = (vec3){model->max_x, model->max_y, model->min_z};
+    world_box_verts[21] = (vec3){model->max_x, model->max_y, model->max_z};
+    world_box_verts[22] = (vec3){model->min_x, model->max_y, model->min_z};
+    world_box_verts[23] = (vec3){model->min_x, model->max_y, model->max_z};
+
+    world_box_verts_count = 24;
+    vec4 color = color_fg();
+    color.w = 0.1f;
+    for (int i = 0; i < world_box_verts_count; ++i)
+        world_box_colors[i] = color;
 }
 
 void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
@@ -532,5 +575,21 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
         }
         shader_program_set_data_float(prog, 0, verts_count, 3, verts);
         graphics_draw_triangles_instanced(verts_count, group->max_agents);
+    }
+
+    /* draw world box */
+    {
+        graphics_enable_smooth_line(1);
+
+        shader_program_use(&program_tools);
+        shader_program_set_uniform_mat4(&program_tools, 0, &camera.projection);
+        shader_program_set_uniform_mat4(&program_tools, 1, &camera.modelview);
+
+        shader_program_set_data_float(&program_tools, 0, world_box_verts_count, 3, world_box_verts);
+        shader_program_set_data_float(&program_tools, 1, world_box_verts_count, 4, world_box_colors);
+
+        graphics_draw_lines(world_box_verts_count);
+
+        graphics_enable_smooth_line(0);
     }
 }

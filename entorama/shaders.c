@@ -173,3 +173,34 @@ void main(void) {\n \
     _tex_pos = tex_pos;\n \
 }\n \
 ";
+
+const char *tools_frag = "#version 450\n \
+\n \
+in vec4 _color;\n \
+\n \
+out vec4 color;\n \
+\n \
+\n \
+void main(void) {\n \
+    color = _color;\n \
+}\n \
+";
+
+const char *tools_vert = "#version 450\n \
+\n \
+layout(location = 0) in vec3 pos;\n \
+layout(location = 1) in vec4 color;\n \
+\n \
+uniform mat4 projection;\n \
+uniform mat4 modelview;\n \
+\n \
+out vec4 _color;\n \
+\n \
+\n \
+void main(void) {\n \
+    vec4 global_pos = modelview * vec4(pos, 1.0);\n \
+    gl_Position = projection * global_pos;\n \
+\n \
+    _color = color;\n \
+}\n \
+";
