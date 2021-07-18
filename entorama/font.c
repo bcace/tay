@@ -11,7 +11,6 @@
 Font inconsolata13;
 Font *font; /* currently used font */
 
-static Program prog;
 static unsigned HORZ_SPACING = 1;
 
 static void _create_texture(Font *font, FontRaster *raster) {
@@ -37,74 +36,69 @@ void font_init() {
     _create_texture(&inconsolata13, raster);
 
     font_raster_clear();
-
-    /* initialize text shader program */
-    shader_program_init(&prog, text_vert, "text.vert", "", text_frag, "text.frag", "");
-    shader_program_define_in_float(&prog, 2);            /* vertex position */
-    shader_program_define_in_float(&prog, 2);            /* vertex texture position */
-    shader_program_define_in_float(&prog, 4);            /* vertex color */
-    shader_program_define_uniform(&prog, "projection");
 }
 
 void font_use_medium() {
     font = &inconsolata13;
-    shader_program_use(&prog);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, font->id);
 }
 
-void font_draw_text(const char *text, int x, int y, mat4 projection, vec4 color) {
+void font_text_buffer_clear(FontTextBuffer *buffer) {
+    buffer->count = 0;
+}
+
+static void _ensure_text_buffer_capacity(FontTextBuffer *buffer, unsigned size) {
+    if (buffer->count + size > buffer->capacity) {
+        buffer->capacity = buffer->count + size + 64;
+        buffer->pos = realloc(buffer->pos, buffer->capacity * sizeof(vec2) * 4);
+        buffer->tex = realloc(buffer->tex, buffer->capacity * sizeof(vec2) * 4);
+        buffer->col = realloc(buffer->col, buffer->capacity * sizeof(vec4) * 4);
+    }
+}
+
+void font_draw_text(const char *text, int x, int y, vec4 color, FontTextBuffer *buffer) {
     unsigned text_size = (unsigned)strlen(text);
 
-    unsigned text_cap = 0;
-    static vec2 *pos = 0;
-    static vec2 *tex_pos = 0;
-    static vec4 *colors = 0;
-    if (text_cap < text_size) {
-        text_cap = text_size;
-        pos = realloc(pos, text_cap * sizeof(vec2) * 4);
-        tex_pos = realloc(tex_pos, text_cap * sizeof(vec2) * 4);
-        colors = realloc(colors, text_cap * sizeof(vec4) * 4);
-    }
+    _ensure_text_buffer_capacity(buffer, text_size);
+    vec2 *pos = buffer->pos + buffer->count * 4;
+    vec2 *tex = buffer->tex + buffer->count * 4;
+    vec4 *col = buffer->col + buffer->count * 4;
+    buffer->count += text_size;
 
     for (unsigned char_i = 0; char_i < text_size; ++char_i) {
         unsigned vert_i = char_i * 4;
 
         float qx = (float)(x + (font->w + HORZ_SPACING) * char_i);
         float qy = (float)y;
-        pos[vert_i + 0].x = qx;
-        pos[vert_i + 0].y = qy;
-        pos[vert_i + 1].x = qx + font->w;
-        pos[vert_i + 1].y = qy;
-        pos[vert_i + 2].x = qx + font->w;
-        pos[vert_i + 2].y = qy + font->h;
-        pos[vert_i + 3].x = qx;
-        pos[vert_i + 3].y = qy + font->h;
+        pos[0].x = qx;
+        pos[0].y = qy;
+        pos[1].x = qx + font->w;
+        pos[1].y = qy;
+        pos[2].x = qx + font->w;
+        pos[2].y = qy + font->h;
+        pos[3].x = qx;
+        pos[3].y = qy + font->h;
+        pos += 4;
 
         float tx = (text[char_i] - 33) * font->nw;
         float ty = 0.0f; // TODO: ???
-        tex_pos[vert_i + 0].x = tx;
-        tex_pos[vert_i + 0].y = ty;
-        tex_pos[vert_i + 1].x = tx + font->nw;
-        tex_pos[vert_i + 1].y = ty;
-        tex_pos[vert_i + 2].x = tx + font->nw;
-        tex_pos[vert_i + 2].y = ty + font->nh;
-        tex_pos[vert_i + 3].x = tx;
-        tex_pos[vert_i + 3].y = ty + font->nh;
+        tex[0].x = tx;
+        tex[0].y = ty;
+        tex[1].x = tx + font->nw;
+        tex[1].y = ty;
+        tex[2].x = tx + font->nw;
+        tex[2].y = ty + font->nh;
+        tex[3].x = tx;
+        tex[3].y = ty + font->nh;
+        tex += 4;
 
-        colors[vert_i + 0] = color;
-        colors[vert_i + 1] = color;
-        colors[vert_i + 2] = color;
-        colors[vert_i + 3] = color;
+        col[0] = color;
+        col[1] = color;
+        col[2] = color;
+        col[3] = color;
+        col += 4;
     }
-
-    shader_program_set_data_float(&prog, 0, text_size * 4, 2, pos);
-    shader_program_set_data_float(&prog, 1, text_size * 4, 2, tex_pos);
-    shader_program_set_data_float(&prog, 2, text_size * 4, 4, colors);
-
-    shader_program_set_uniform_mat4(&prog, 0, &projection);
-
-    graphics_draw_quads(text_size * 4);
 }
 
 unsigned font_text_width(FontSize font_size, const char *text) {

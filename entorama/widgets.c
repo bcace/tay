@@ -15,6 +15,7 @@
 extern int paused = 1;
 
 static Program prog;
+static Program text_prog;
 
 typedef struct {
     vec2 p1, p2, p3, p4;
@@ -40,6 +41,8 @@ static VertQuad quad_verts[MAX_QUADS];
 static ColorQuad quad_colors[MAX_QUADS];
 static int quads_count;
 
+static FontTextBuffer text_buffer;
+
 static Button buttons[MAX_BUTTONS];
 static int buttons_count;
 static Button sidebar_buttons[MAX_BUTTONS];
@@ -49,7 +52,6 @@ static Button *hovered_button;
 static Button *pressed_button;
 static Button *selected_sidebar_button;
 
-
 static char tooltip[MAX_TOOLTIP];
 
 void widgets_init() {
@@ -57,6 +59,12 @@ void widgets_init() {
     shader_program_define_in_float(&prog, 2);            /* vertex position */
     shader_program_define_in_float(&prog, 4);            /* vertex color */
     shader_program_define_uniform(&prog, "projection");
+
+    shader_program_init(&text_prog, text_vert, "text.vert", "", text_frag, "text.frag", "");
+    shader_program_define_in_float(&text_prog, 2);            /* vertex position */
+    shader_program_define_in_float(&text_prog, 2);            /* vertex texture position */
+    shader_program_define_in_float(&text_prog, 4);            /* vertex color */
+    shader_program_define_uniform(&text_prog, "projection");
 
     buttons_count = 0;
 
@@ -198,18 +206,20 @@ void widgets_draw(mat4 projection, double ms) {
 
     /* text */
     {
+        shader_program_use(&text_prog);
+
         font_use_medium();
 
         /* buttons */
         for (int button_i = 0; button_i < buttons_count; ++button_i) {
             Button *b = buttons + button_i;
-            font_draw_text(b->label, b->label_x, b->label_y, projection, fg_color);
+            font_draw_text(b->label, b->label_x, b->label_y, fg_color, &text_buffer);
         }
 
         /* sidebar buttons */
         for (int button_i = 0; button_i < sidebar_buttons_count; ++button_i) {
             Button *b = sidebar_buttons + button_i;
-            font_draw_text(b->label, b->label_x, b->label_y, projection, fg_color);
+            font_draw_text(b->label, b->label_x, b->label_y, fg_color, &text_buffer);
         }
 
         /* simulation speed */
@@ -219,8 +229,7 @@ void widgets_draw(mat4 projection, double ms) {
             font_draw_text(buffer,
                            window_w - font_text_width(ENTORAMA_FONT_MEDIUM, buffer) - 10,
                            (int)((statusbar_h - font_height(ENTORAMA_FONT_MEDIUM)) * 0.5f),
-                           projection,
-                           fg_color);
+                           fg_color, &text_buffer);
         }
 
         /* tooltip */
@@ -228,10 +237,17 @@ void widgets_draw(mat4 projection, double ms) {
             font_draw_text(tooltip,
                            (int)((window_w - font_text_width(ENTORAMA_FONT_MEDIUM, tooltip)) * 0.5f),
                            (int)((statusbar_h - font_height(ENTORAMA_FONT_MEDIUM)) * 0.5f),
-                           projection,
-                           fg_color);
+                           fg_color, &text_buffer);
         }
+
+        shader_program_set_data_float(&text_prog, 0, text_buffer.count * 4, 2, text_buffer.pos);
+        shader_program_set_data_float(&text_prog, 1, text_buffer.count * 4, 2, text_buffer.tex);
+        shader_program_set_data_float(&text_prog, 2, text_buffer.count * 4, 4, text_buffer.col);
+        shader_program_set_uniform_mat4(&text_prog, 0, &projection);
+        graphics_draw_quads(text_buffer.count * 4);
     }
+
+    font_text_buffer_clear(&text_buffer);
 }
 
 void widgets_mouse_move(int button_l, int button_r, float x, float y) {
