@@ -42,8 +42,8 @@ void font_init() {
     shader_program_init(&prog, text_vert, "text.vert", "", text_frag, "text.frag", "");
     shader_program_define_in_float(&prog, 2);            /* vertex position */
     shader_program_define_in_float(&prog, 2);            /* vertex texture position */
+    shader_program_define_in_float(&prog, 4);            /* vertex color */
     shader_program_define_uniform(&prog, "projection");
-    shader_program_define_uniform(&prog, "uniform_color");
 }
 
 void font_use_medium() {
@@ -59,10 +59,12 @@ void font_draw_text(const char *text, int x, int y, mat4 projection, vec4 color)
     unsigned text_cap = 0;
     static vec2 *pos = 0;
     static vec2 *tex_pos = 0;
+    static vec4 *colors = 0;
     if (text_cap < text_size) {
         text_cap = text_size;
         pos = realloc(pos, text_cap * sizeof(vec2) * 4);
         tex_pos = realloc(tex_pos, text_cap * sizeof(vec2) * 4);
+        colors = realloc(colors, text_cap * sizeof(vec4) * 4);
     }
 
     for (unsigned char_i = 0; char_i < text_size; ++char_i) {
@@ -89,13 +91,18 @@ void font_draw_text(const char *text, int x, int y, mat4 projection, vec4 color)
         tex_pos[vert_i + 2].y = ty + font->nh;
         tex_pos[vert_i + 3].x = tx;
         tex_pos[vert_i + 3].y = ty + font->nh;
+
+        colors[vert_i + 0] = color;
+        colors[vert_i + 1] = color;
+        colors[vert_i + 2] = color;
+        colors[vert_i + 3] = color;
     }
 
     shader_program_set_data_float(&prog, 0, text_size * 4, 2, pos);
     shader_program_set_data_float(&prog, 1, text_size * 4, 2, tex_pos);
+    shader_program_set_data_float(&prog, 2, text_size * 4, 4, colors);
 
     shader_program_set_uniform_mat4(&prog, 0, &projection);
-    shader_program_set_uniform_vec4(&prog, 1, &color);
 
     graphics_draw_quads(text_size * 4);
 }
