@@ -18,14 +18,6 @@ static Program prog;
 static Program text_prog;
 
 typedef struct {
-    vec2 p1, p2, p3, p4;
-} VertQuad;
-
-typedef struct {
-    vec4 c1, c2, c3, c4;
-} ColorQuad;
-
-typedef struct {
     char label[MAX_LABEL];
     int label_x, label_y;
     vec2 min, max;
@@ -37,11 +29,8 @@ static int toolbar_h;
 static int statusbar_h;
 static int sidebar_w;
 
-static VertQuad quad_verts[MAX_QUADS];
-static ColorQuad quad_colors[MAX_QUADS];
-static int quads_count;
-
-static FontTextBuffer text_buffer;
+static TexQuadBuffer text_buffer;
+static QuadBuffer quad_buffer;
 
 static Button buttons[MAX_BUTTONS];
 static int buttons_count;
@@ -74,29 +63,29 @@ void widgets_init() {
     tooltip[0] = '\0';
 }
 
-static void _init_quad(VertQuad *quad, float min_x, float max_x, float min_y, float max_y) {
-    quad->p1.x = min_x;
-    quad->p1.y = min_y;
-    quad->p2.x = max_x;
-    quad->p2.y = min_y;
-    quad->p3.x = max_x;
-    quad->p3.y = max_y;
-    quad->p4.x = min_x;
-    quad->p4.y = max_y;
+static void _init_quad(vec2 *quad, float min_x, float max_x, float min_y, float max_y) {
+    quad[0].x = min_x;
+    quad[0].y = min_y;
+    quad[1].x = max_x;
+    quad[1].y = min_y;
+    quad[2].x = max_x;
+    quad[2].y = max_y;
+    quad[3].x = min_x;
+    quad[3].y = max_y;
 }
 
-static void _init_shadow(ColorQuad *quad, float a1, float a2, float a3, float a4) {
-    quad->c1 = (vec4){0.0f, 0.0f, 0.0f, a1};
-    quad->c2 = (vec4){0.0f, 0.0f, 0.0f, a2};
-    quad->c3 = (vec4){0.0f, 0.0f, 0.0f, a3};
-    quad->c4 = (vec4){0.0f, 0.0f, 0.0f, a4};
+static void _init_shadow(vec4 *quad, float a1, float a2, float a3, float a4) {
+    quad[0] = (vec4){0.0f, 0.0f, 0.0f, a1};
+    quad[1] = (vec4){0.0f, 0.0f, 0.0f, a2};
+    quad[2] = (vec4){0.0f, 0.0f, 0.0f, a3};
+    quad[3] = (vec4){0.0f, 0.0f, 0.0f, a4};
 }
 
-static void _init_color(ColorQuad *quad, vec4 color) {
-    quad->c1 = color;
-    quad->c2 = color;
-    quad->c3 = color;
-    quad->c4 = color;
+static void _init_color(vec4 *quad, vec4 color) {
+    quad[0] = color;
+    quad[1] = color;
+    quad[2] = color;
+    quad[3] = color;
 }
 
 static void _update_sidebar_buttons_geometry() {
@@ -148,66 +137,64 @@ void widgets_update(int window_w_in, int window_h_in, int toolbar_h_in, int stat
 void widgets_draw(mat4 projection, double ms) {
     graphics_enable_depth_test(0);
 
-    quads_count = 0;
-
     vec4 fg_color = color_fg();
     vec4 hv_color = fg_color;
     hv_color.w = 0.25f;
 
-    const float shadow_alpha = 0.2f;
-
     /* quads */
     {
+        const float shadow_alpha = 0.2f;
+        vec2 *quad_pos = 0;
+        vec4 *quad_col = 0;
+
         /* sidebar */
         {
-            _init_quad(quad_verts + quads_count, 0.0f, (float)sidebar_w, (float)statusbar_h, (float)(window_h - toolbar_h));
-            _init_color(quad_colors + quads_count, color_vd());
-            ++quads_count;
+            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+            _init_quad(quad_pos, 0.0f, (float)sidebar_w, (float)statusbar_h, (float)(window_h - toolbar_h));
+            _init_color(quad_col, color_vd());
         }
 
         if (selected_sidebar_button) {
-            _init_quad(quad_verts + quads_count, selected_sidebar_button->min.x, selected_sidebar_button->max.x, selected_sidebar_button->min.y, selected_sidebar_button->max.y);
-            _init_color(quad_colors + quads_count, color_hi());
-            ++quads_count;
+            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+            _init_quad(quad_pos, selected_sidebar_button->min.x, selected_sidebar_button->max.x, selected_sidebar_button->min.y, selected_sidebar_button->max.y);
+            _init_color(quad_col, color_hi());
         }
 
         /* button highlights */
         if (pressed_button) {
-            _init_quad(quad_verts + quads_count, pressed_button->min.x, pressed_button->max.x, pressed_button->min.y, pressed_button->max.y);
-            _init_color(quad_colors + quads_count, color_hi());
-            ++quads_count;
+            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+            _init_quad(quad_pos, pressed_button->min.x, pressed_button->max.x, pressed_button->min.y, pressed_button->max.y);
+            _init_color(quad_col, color_hi());
         }
         else if (hovered_button) {
-            _init_quad(quad_verts + quads_count, hovered_button->min.x, hovered_button->max.x, hovered_button->min.y, hovered_button->max.y);
-            _init_color(quad_colors + quads_count, hv_color);
-            ++quads_count;
+            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+            _init_quad(quad_pos, hovered_button->min.x, hovered_button->max.x, hovered_button->min.y, hovered_button->max.y);
+            _init_color(quad_col, hv_color);
         }
 
         /* shadows */
         {
-            _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)(window_h - toolbar_h - 5), (float)(window_h - toolbar_h));
-            _init_shadow(quad_colors + quads_count, 0.0f, 0.0f, shadow_alpha, shadow_alpha);
-            ++quads_count;
+            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+            _init_quad(quad_pos, 0.0f, (float)window_w, (float)(window_h - toolbar_h - 5), (float)(window_h - toolbar_h));
+            _init_shadow(quad_col, 0.0f, 0.0f, shadow_alpha, shadow_alpha);
 
-            _init_quad(quad_verts + quads_count, 0.0f, (float)window_w, (float)statusbar_h, (float)(statusbar_h + 5));
-            _init_shadow(quad_colors + quads_count, shadow_alpha, shadow_alpha, 0.0f, 0.0f);
-            ++quads_count;
+            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+            _init_quad(quad_pos, 0.0f, (float)window_w, (float)statusbar_h, (float)(statusbar_h + 5));
+            _init_shadow(quad_col, shadow_alpha, shadow_alpha, 0.0f, 0.0f);
         }
 
-        shader_program_use(&prog);
-        shader_program_set_uniform_mat4(&prog, 0, &projection);
-
-        if (quads_count) {
-            shader_program_set_data_float(&prog, 0, quads_count * 4, 2, quad_verts);
-            shader_program_set_data_float(&prog, 1, quads_count * 4, 4, quad_colors);
-            graphics_draw_quads(quads_count * 4);
+        if (quad_buffer.count) {
+            shader_program_use(&prog);
+            shader_program_set_uniform_mat4(&prog, 0, &projection);
+            shader_program_set_data_float(&prog, 0, quad_buffer.count * 4, 2, quad_buffer.pos);
+            shader_program_set_data_float(&prog, 1, quad_buffer.count * 4, 4, quad_buffer.col);
+            graphics_draw_quads(quad_buffer.count * 4);
+            quad_buffer_clear(&quad_buffer);
         }
     }
 
     /* text */
     {
-        shader_program_use(&text_prog);
-
         font_use_medium();
 
         /* buttons */
@@ -240,14 +227,17 @@ void widgets_draw(mat4 projection, double ms) {
                            fg_color, &text_buffer);
         }
 
-        shader_program_set_data_float(&text_prog, 0, text_buffer.count * 4, 2, text_buffer.pos);
-        shader_program_set_data_float(&text_prog, 1, text_buffer.count * 4, 2, text_buffer.tex);
-        shader_program_set_data_float(&text_prog, 2, text_buffer.count * 4, 4, text_buffer.col);
-        shader_program_set_uniform_mat4(&text_prog, 0, &projection);
-        graphics_draw_quads(text_buffer.count * 4);
+        if (text_buffer.count) {
+            shader_program_use(&text_prog);
+            shader_program_set_data_float(&text_prog, 0, text_buffer.count * 4, 2, text_buffer.pos);
+            shader_program_set_data_float(&text_prog, 1, text_buffer.count * 4, 2, text_buffer.tex);
+            shader_program_set_data_float(&text_prog, 2, text_buffer.count * 4, 4, text_buffer.col);
+            shader_program_set_uniform_mat4(&text_prog, 0, &projection);
+            graphics_draw_quads(text_buffer.count * 4);
+            tex_quad_buffer_clear(&text_buffer);
+        }
     }
 
-    font_text_buffer_clear(&text_buffer);
 }
 
 void widgets_mouse_move(int button_l, int button_r, float x, float y) {

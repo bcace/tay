@@ -44,27 +44,13 @@ void font_use_medium() {
     glBindTexture(GL_TEXTURE_2D, font->id);
 }
 
-void font_text_buffer_clear(FontTextBuffer *buffer) {
-    buffer->count = 0;
-}
-
-static void _ensure_text_buffer_capacity(FontTextBuffer *buffer, unsigned size) {
-    if (buffer->count + size > buffer->capacity) {
-        buffer->capacity = buffer->count + size + 64;
-        buffer->pos = realloc(buffer->pos, buffer->capacity * sizeof(vec2) * 4);
-        buffer->tex = realloc(buffer->tex, buffer->capacity * sizeof(vec2) * 4);
-        buffer->col = realloc(buffer->col, buffer->capacity * sizeof(vec4) * 4);
-    }
-}
-
-void font_draw_text(const char *text, int x, int y, vec4 color, FontTextBuffer *buffer) {
+void font_draw_text(const char *text, int x, int y, vec4 color, TexQuadBuffer *buffer) {
     unsigned text_size = (unsigned)strlen(text);
 
-    _ensure_text_buffer_capacity(buffer, text_size);
-    vec2 *pos = buffer->pos + buffer->count * 4;
-    vec2 *tex = buffer->tex + buffer->count * 4;
-    vec4 *col = buffer->col + buffer->count * 4;
-    buffer->count += text_size;
+    vec2 *pos = 0;
+    vec2 *tex = 0;
+    vec4 *col = 0;
+    tex_quad_buffer_add(buffer, text_size, &pos, &tex, &col);
 
     for (unsigned char_i = 0; char_i < text_size; ++char_i) {
         unsigned vert_i = char_i * 4;
