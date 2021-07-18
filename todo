@@ -1,2 +1,6 @@
 
-- Make tay_fix_space_box work with ocl grid
+- entorama: move the fluid example to a dll and remove the examples project
+- entorama: agent layout descriptions - can be used for everything, all the visualizations
+- entorama: add floating camera
+- entorama: add button to switch between cameras
+- tay: make tay_fix_space_box work with ocl grid

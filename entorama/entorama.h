@@ -2,6 +2,7 @@
 #define entorama_h
 
 #define ENTORAMA_MAX_GROUPS     256
+#define ENTORAMA_MAX_PASSES     256
 #define ENTORAMA_MAX_NAME       256
 
 
@@ -75,23 +76,45 @@ typedef struct EntoramaGroup {
     EntoramaShape shape;
 } EntoramaGroup;
 
+typedef enum EntoramaPassType {
+    ENTORAMA_PASS_ACT,
+    ENTORAMA_PASS_SEE,
+} EntoramaPassType;
+
+typedef struct EntoramaPass {
+    EntoramaPassType type;
+    char name[ENTORAMA_MAX_NAME];
+    union {
+        EntoramaGroup *act_group;
+        EntoramaGroup *seer_group;
+    };
+    EntoramaGroup *seen_group;
+} EntoramaPass;
+
 typedef int (*ENTORAMA_INIT_MODEL)(struct EntoramaModel *model, struct TayState *tay);
 
 typedef void (*ENTORAMA_SET_WORLD_BOX)(struct EntoramaModel *model, float min_x, float min_y, float min_z, float max_x, float max_y, float max_z);
 typedef EntoramaGroup *(*ENTORAMA_ADD_GROUP)(struct EntoramaModel *model, const char *name, struct TayGroup *group, unsigned max_agents);
+typedef EntoramaPass *(*ENTORAMA_ADD_SEE)(struct EntoramaModel *model, const char *name, EntoramaGroup *seer_group, EntoramaGroup *seen_group);
+typedef EntoramaPass *(*ENTORAMA_ADD_ACT)(struct EntoramaModel *model, const char *name, EntoramaGroup *group);
 
 typedef struct EntoramaModel {
     ENTORAMA_INIT_MODEL init;
     float min_x, min_y, min_z;
     float max_x, max_y, max_z;
 
-    /* filled by init model */
+    /* filled by member functions */
     EntoramaGroup groups[ENTORAMA_MAX_GROUPS];
     unsigned groups_count;
+    EntoramaPass passes[ENTORAMA_MAX_PASSES];
+    unsigned passes_count;
 
     /* member functions */
     ENTORAMA_SET_WORLD_BOX set_world_box;
     ENTORAMA_ADD_GROUP add_group;
+    ENTORAMA_ADD_SEE add_see;
+    ENTORAMA_ADD_ACT add_act;
+
 } EntoramaModel;
 
 typedef int (*ENTORAMA_MAIN)(EntoramaModel *model);

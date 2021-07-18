@@ -14,9 +14,9 @@ static void _set_world_box(EntoramaModel *model, float min_x, float min_y, float
 
 static EntoramaGroup *_add_group(EntoramaModel *model, const char *name, TayGroup *tay_group, unsigned max_agents) {
     EntoramaGroup *group = model->groups + model->groups_count++;
+    strcpy_s(group->name, ENTORAMA_MAX_NAME, name);
     group->group = tay_group;
     group->max_agents = max_agents;
-    strcpy_s(group->name, ENTORAMA_MAX_NAME, name);
     group->position_x_offset = 0;
     group->position_y_offset = 4;
     group->position_z_offset = 8;
@@ -27,11 +27,31 @@ static EntoramaGroup *_add_group(EntoramaModel *model, const char *name, TayGrou
     return group;
 }
 
+EntoramaPass *_add_see(EntoramaModel *model, const char *name, EntoramaGroup *seer_group, EntoramaGroup *seen_group) {
+    EntoramaPass *pass = model->passes + model->passes_count++;
+    strcpy_s(pass->name, ENTORAMA_MAX_NAME, name);
+    pass->type = ENTORAMA_PASS_SEE;
+    pass->seer_group = seer_group;
+    pass->seen_group = seen_group;
+    return pass;
+}
+
+EntoramaPass *_add_act(EntoramaModel *model, const char *name, EntoramaGroup *group) {
+    EntoramaPass *pass = model->passes + model->passes_count++;
+    strcpy_s(pass->name, ENTORAMA_MAX_NAME, name);
+    pass->type = ENTORAMA_PASS_ACT;
+    pass->act_group = group;
+    return pass;
+}
+
 void entorama_init_model(EntoramaModel *model) {
     model->init = 0;
     model->groups_count = 0;
+    model->passes_count = 0;
     model->set_world_box = _set_world_box;
     model->add_group = _add_group;
+    model->add_see = _add_see;
+    model->add_act = _add_act;
     model->min_x = -100.0f;
     model->min_y = -100.0f;
     model->min_z = -100.0f;
