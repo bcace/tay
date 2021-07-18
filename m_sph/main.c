@@ -62,12 +62,12 @@ static int _init(EntoramaModel *model, TayState *tay) {
     float part_size = h * 1.0f;
 
     particles_group = tay_add_group(tay, sizeof(SphParticle), particles_count, TAY_TRUE);
-    EntoramaGroup *e_particles_info = model->add_group(model, "Particles", particles_group, particles_count);
-    e_particles_info->group = particles_group;
-    e_particles_info->max_agents = particles_count;
-    e_particles_info->size_source = ENTORAMA_SIZE_UNIFORM_RADIUS;
-    e_particles_info->size_radius = 0.02f;
-    e_particles_info->shape = ENTORAMA_SPHERE;
+    EntoramaGroup *e_particles_group = model->add_group(model, "Particles", particles_group, particles_count);
+    e_particles_group->group = particles_group;
+    e_particles_group->max_agents = particles_count;
+    e_particles_group->size_source = ENTORAMA_SIZE_UNIFORM_RADIUS;
+    e_particles_group->size_radius = 0.02f;
+    e_particles_group->shape = ENTORAMA_SPHERE;
 
     tay_configure_space(tay, particles_group, TAY_CPU_GRID, 3, (float4){part_size, part_size, part_size, part_size}, 1000);
     // tay_fix_space_box(tay, particles_group, sph_context.min, sph_context.max);
@@ -77,6 +77,11 @@ static int _init(EntoramaModel *model, TayState *tay) {
     tay_add_act(tay, particles_group, sph_particle_pressure, "sph_particle_pressure", &sph_context, sizeof(sph_context));
     tay_add_see(tay, particles_group, particles_group, sph_force_terms, "sph_force_terms", (float4){h, h, h, h}, TAY_FALSE, &sph_context, sizeof(sph_context));
     tay_add_act(tay, particles_group, sph_particle_leapfrog, "sph_particle_leapfrog", &sph_context, sizeof(sph_context));
+
+    model->add_see(model, "Density", e_particles_group, e_particles_group);
+    model->add_act(model, "Pressure", e_particles_group);
+    model->add_see(model, "Force terms", e_particles_group, e_particles_group);
+    model->add_act(model, "Leapfrog", e_particles_group);
 
     for (int i = 0; i < particles_count; ++i) {
         SphParticle *p = tay_get_available_agent(tay, particles_group);

@@ -110,6 +110,13 @@ void widgets_update_model_specific(struct EntoramaModel *model) {
         strcpy_s(button->label, MAX_LABEL, group->name);
     }
 
+    for (unsigned pass_i = 0; pass_i < model->passes_count; ++pass_i) {
+        EntoramaPass *pass = model->passes + pass_i;
+
+        Button *button = sidebar_buttons + sidebar_buttons_count++;
+        strcpy_s(button->label, MAX_LABEL, pass->name);
+    }
+
     _update_sidebar_buttons_geometry();
 }
 
