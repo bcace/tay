@@ -49,6 +49,9 @@ int entorama_init(EntoramaModel *model, TayState *tay) {
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
     tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context, sizeof(act_context));
 
+    model->add_see(model, "Perception", e_boids_group, e_boids_group);
+    model->add_act(model, "Action", e_boids_group);
+
     for (int i = 0; i < boids_count; ++i) {
         Agent *boid = tay_get_available_agent(tay, boids_group);
         boid->p.x = _rand(min.x, max.x);
