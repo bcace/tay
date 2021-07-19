@@ -141,6 +141,7 @@ int main() {
     entorama_init_model(&model);
     model_load(&model, "m_sph.dll");
     model.init(&model, tay);
+    model.reset(&model, tay);
 
     widgets_update_model_specific(&model);
 

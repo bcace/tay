@@ -83,6 +83,17 @@ static int _init(EntoramaModel *model, TayState *tay) {
     model->add_see(model, "Force terms", e_particles_group, e_particles_group);
     model->add_act(model, "Leapfrog", e_particles_group);
 
+    ocl_add_source(tay, agent_ocl_h);
+    ocl_add_source(tay, taystd_ocl_h);
+    ocl_add_source(tay, agent_ocl_c);
+    ocl_add_source(tay, taystd_ocl_c);
+
+    return 0;
+}
+
+static int _reset(EntoramaModel *model, TayState *tay) {
+    tay_clear_all_agents(tay, particles_group);
+
     for (int i = 0; i < particles_count; ++i) {
         SphParticle *p = tay_get_available_agent(tay, particles_group);
         p->p.x = _rand(sph_context.min.x, sph_context.min.x + (sph_context.max.x - sph_context.min.x) * 0.5f);
@@ -94,15 +105,11 @@ static int _init(EntoramaModel *model, TayState *tay) {
         tay_commit_available_agent(tay, particles_group);
     }
 
-    ocl_add_source(tay, agent_ocl_h);
-    ocl_add_source(tay, taystd_ocl_h);
-    ocl_add_source(tay, agent_ocl_c);
-    ocl_add_source(tay, taystd_ocl_c);
-
     return 0;
 }
 
 __declspec(dllexport) int entorama_main(EntoramaModel *model) {
     model->init = _init;
+    model->reset = _reset;
     return 0;
 }

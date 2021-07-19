@@ -13,22 +13,21 @@ static SeeContext see_context;
 
 static int boids_count = 30000;
 
+static float radius = 20.0f;
+static float avoidance_r = 100.0f;
+static float velocity = 1.0f;
+static float4 min = { -300.0f, -300.0f, -300.0f, -300.0f };
+static float4 max = { 300.0f, 300.0f, 300.0f, 300.0f };
+
 static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
 }
 
-int entorama_init(EntoramaModel *model, TayState *tay) {
+static int _init(EntoramaModel *model, TayState *tay) {
+    const float4 see_radii = { radius, radius, radius, radius };
+    const float4 part_sizes = { radius, radius, radius, radius };
 
     model->set_world_box(model, -500.0f, -500.0f, -500.0f, 500.0f, 500.0f, 500.0f);
-
-    const float radius = 20.0f;
-    const float avoidance_r = 100.0f;
-    const float4 see_radii = { radius, radius, radius, radius };
-    const float part_size = radius * 1.0f;
-    const float4 part_sizes = { part_size, part_size, part_size, part_size };
-    const float velocity = 1.0f;
-    const float4 min = { -300.0f, -300.0f, -300.0f, -300.0f };
-    const float4 max = { 300.0f, 300.0f, 300.0f, 300.0f };
 
     see_context.r = radius;
     see_context.separation_r = radius * 0.5f;
@@ -51,6 +50,17 @@ int entorama_init(EntoramaModel *model, TayState *tay) {
 
     model->add_see(model, "Perception", e_boids_group, e_boids_group);
     model->add_act(model, "Action", e_boids_group);
+
+    ocl_add_source(tay, agent_ocl_h);
+    ocl_add_source(tay, taystd_ocl_h);
+    ocl_add_source(tay, agent_ocl_c);
+    ocl_add_source(tay, taystd_ocl_c);
+
+    return 0;
+}
+
+static int _reset(EntoramaModel *model, TayState *tay) {
+    tay_clear_all_agents(tay, boids_group);
 
     for (int i = 0; i < boids_count; ++i) {
         Agent *boid = tay_get_available_agent(tay, boids_group);
@@ -81,15 +91,11 @@ int entorama_init(EntoramaModel *model, TayState *tay) {
         tay_commit_available_agent(tay, boids_group);
     }
 
-    ocl_add_source(tay, agent_ocl_h);
-    ocl_add_source(tay, taystd_ocl_h);
-    ocl_add_source(tay, agent_ocl_c);
-    ocl_add_source(tay, taystd_ocl_c);
-
     return 0;
 }
 
 __declspec(dllexport) int entorama_main(EntoramaModel *model) {
-    model->init = entorama_init;
+    model->init = _init;
+    model->reset = _reset;
     return 0;
 }
