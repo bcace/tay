@@ -96,6 +96,7 @@ void tay_group_enable_ocl(TayState *state, TayGroup *group);
 void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, void (*func)(void *, void *, void *), char *func_name, float4 radii, int self_see, void *context, unsigned context_size);
 void tay_add_act(TayState *state, TayGroup *act_group, void (*func)(void *, void *), char *func_name, void *context, unsigned context_size);
 
+void tay_clear_all_agents(TayState *state, TayGroup *group);
 void *tay_get_available_agent(TayState *state, TayGroup *group);
 void tay_commit_available_agent(TayState *state, TayGroup *group);
 void *tay_get_agent(TayState *state, TayGroup *group, int index);
