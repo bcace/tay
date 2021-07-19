@@ -10,6 +10,7 @@
 #define MAX_LABEL   256
 #define MAX_BUTTONS 32
 #define MAX_TOOLTIP 512
+#define MAX_COMPOSE 512
 
 
 extern int paused = 1;
@@ -19,8 +20,11 @@ static Program text_prog;
 
 typedef struct {
     char label[MAX_LABEL];
+    char desc[MAX_LABEL];
     int label_x, label_y;
+    int desc_x, desc_y;
     vec2 min, max;
+    int icon;
 } Button;
 
 static int window_w;
@@ -42,6 +46,7 @@ static Button *pressed_button;
 static Button *selected_sidebar_button;
 
 static char tooltip[MAX_TOOLTIP];
+static char compose[MAX_COMPOSE];
 
 void widgets_init() {
     shader_program_init(&prog, flat_vert, "flat.vert", "", flat_frag, "flat.frag", "");
@@ -89,14 +94,17 @@ static void _init_color(vec4 *quad, vec4 color) {
 }
 
 static void _update_sidebar_buttons_geometry() {
-    const int SIDEBAR_BUTTON_H = 26;
+    const int SIDEBAR_BUTTON_H = 52;
 
     for (int button_i = 0; button_i < sidebar_buttons_count; ++button_i) {
         Button *button = sidebar_buttons + button_i;
         button->min = (vec2){0.0f, (float)(window_h - toolbar_h - SIDEBAR_BUTTON_H * (button_i + 1))};
         button->max = (vec2){(float)sidebar_w, (float)(window_h - toolbar_h - SIDEBAR_BUTTON_H * button_i)};
-        button->label_x = (int)button->min.x + 10;
-        button->label_y = (int)((button->min.y + button->max.y - font_height(ENTORAMA_FONT_MEDIUM)) * 0.5f);
+        int icon_offset = button->icon ? 32 : 0;
+        button->label_x = icon_offset + (int)button->min.x + 10;
+        button->label_y = (int)(button->max.y - font_height(ENTORAMA_FONT_MEDIUM) - 8);
+        button->desc_x = icon_offset + (int)button->min.x + 10;
+        button->desc_y = (int)(button->min.y + 8);
     }
 }
 
@@ -105,16 +113,25 @@ void widgets_update_model_specific(struct EntoramaModel *model) {
 
     for (unsigned group_i = 0; group_i < model->groups_count; ++group_i) {
         EntoramaGroup *group = model->groups + group_i;
-
         Button *button = sidebar_buttons + sidebar_buttons_count++;
         strcpy_s(button->label, MAX_LABEL, group->name);
+        strcpy_s(button->desc, MAX_LABEL, "Agent group");
+        button->icon = 0;
     }
 
     for (unsigned pass_i = 0; pass_i < model->passes_count; ++pass_i) {
         EntoramaPass *pass = model->passes + pass_i;
-
         Button *button = sidebar_buttons + sidebar_buttons_count++;
         strcpy_s(button->label, MAX_LABEL, pass->name);
+        if (pass->type == ENTORAMA_PASS_ACT) {
+            sprintf_s(compose, MAX_COMPOSE, "Act: %s", pass->act_group->name);
+            button->icon = 1;
+        }
+        else if (pass->type == ENTORAMA_PASS_SEE) {
+            sprintf_s(compose, MAX_COMPOSE, "See: %s - %s", pass->seer_group->name, pass->seen_group->name);
+            button->icon = 2;
+        }
+        strcpy_s(button->desc, MAX_LABEL, compose);
     }
 
     _update_sidebar_buttons_geometry();
@@ -214,14 +231,14 @@ void widgets_draw(mat4 projection, double ms) {
         for (int button_i = 0; button_i < sidebar_buttons_count; ++button_i) {
             Button *b = sidebar_buttons + button_i;
             font_draw_text(b->label, b->label_x, b->label_y, fg_color, &text_buffer);
+            font_draw_text(b->desc, b->desc_x, b->desc_y, color_fg_disabled(), &text_buffer);
         }
 
         /* simulation speed */
         {
-            char buffer[50];
-            sprintf_s(buffer, 50, "%.1f ms", ms);
-            font_draw_text(buffer,
-                           window_w - font_text_width(ENTORAMA_FONT_MEDIUM, buffer) - 10,
+            sprintf_s(compose, MAX_COMPOSE, "%.1f ms", ms);
+            font_draw_text(compose,
+                           window_w - font_text_width(ENTORAMA_FONT_MEDIUM, compose) - 10,
                            (int)((statusbar_h - font_height(ENTORAMA_FONT_MEDIUM)) * 0.5f),
                            fg_color, &text_buffer);
         }
@@ -262,7 +279,10 @@ void widgets_mouse_move(int button_l, int button_r, float x, float y) {
 
         if (x > button->min.x && x < button->max.x && y > button->min.y && y < button->max.y) {
             hovered_button = button;
-            strcpy_s(tooltip, MAX_TOOLTIP, button->label);
+            if (button->desc[0])
+                sprintf_s(tooltip, MAX_TOOLTIP, "%s (%s)", button->label, button->desc);
+            else
+                sprintf_s(tooltip, MAX_TOOLTIP, button->label);
             return;
         }
     }

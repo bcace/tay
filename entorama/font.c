@@ -11,7 +11,7 @@
 Font inconsolata13;
 Font *font; /* currently used font */
 
-static unsigned HORZ_SPACING = 1;
+static unsigned HORZ_SPACING = 0;
 
 static void _create_texture(Font *font, FontRaster *raster) {
     font->w = raster->w;

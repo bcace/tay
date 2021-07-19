@@ -15,6 +15,7 @@ void color_init();
 struct vec4 color_vd();
 struct vec4 color_bg();
 struct vec4 color_fg();
+struct vec4 color_fg_disabled();
 struct vec4 color_hi();
 struct vec4 color_palette(int index);
 
