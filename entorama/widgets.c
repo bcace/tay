@@ -1,5 +1,6 @@
 #include "main.h"
 #include "entorama.h"
+#include "widgets.h"
 #include "graphics.h"
 #include "shaders.h"
 #include "font.h"
@@ -158,14 +159,14 @@ void widgets_update(int window_w_in, int window_h_in, int toolbar_h_in, int stat
     _update_sidebar_buttons_geometry();
 }
 
-unsigned long long pressed_button_id = 0;
+unsigned long long pressed_widget_id = 0;
 
-void widgets_begin() {
+void em_widgets_begin() {
     graphics_enable_depth_test(0);
     font_use_medium();
 }
 
-void widgets_end(mat4 projection) {
+void em_widgets_end(mat4 projection) {
     if (quad_buffer.count) {
         shader_program_use(&prog);
         shader_program_set_uniform_mat4(&prog, 0, &projection);
@@ -186,82 +187,72 @@ void widgets_end(mat4 projection) {
     }
 }
 
-int widgets_button(char *label, float min_x, float min_y, float max_x, float max_y) {
+int em_button(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonState state) {
     unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
     unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
-    int label_x = (int)((min_x + max_x - label_w) * 0.5f);
+    int label_x = (int)(min_x + 10.0f); // (int)((min_x + max_x - label_w) * 0.5f);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
     font_draw_text(label, label_x, label_y, color_fg(), &text_buffer);
 
     int result = 0;
+    int hovered = 0;
+    int pressed = 0;
+    vec2 *quad_pos = 0;
+    vec4 *quad_col = 0;
 
     if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
-        vec2 *quad_pos = 0;
-        vec4 *quad_col = 0;
         if (mouse_l) {
-            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
-            _init_quad(quad_pos, min_x, max_x, min_y, max_y);
-            _init_color(quad_col, color_hi());
-
-            pressed_button_id = (unsigned long long)label;
+            pressed = 1;
+            pressed_widget_id = (unsigned long long)label;
         }
         else {
-            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
-            _init_quad(quad_pos, min_x, max_x, min_y, max_y);
-            _init_color(quad_col, color_fg_disabled());
-
-            if (pressed_button_id == (unsigned long long)label) {
+            hovered = 1;
+            if (pressed_widget_id == (unsigned long long)label) {
                 result = 1;
-                pressed_button_id = 0;
+                pressed_widget_id = 0;
             }
         }
     }
-    else {
-        if (pressed_button_id == (unsigned long long)label) {
-            pressed_button_id = 0;
-        }
+    else if (pressed_widget_id == (unsigned long long)label)
+        pressed_widget_id = 0;
+
+    if (hovered) {
+        quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+        _init_color(quad_col, color_fg_disabled());
+    }
+    else if (pressed || state == EM_BUTTON_STATE_PRESSED) {
+        quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+        _init_color(quad_col, color_hi());
     }
 
     return result;
 }
 
-int widgets_toggle_button(char *label, float min_x, float min_y, float max_x, float max_y, int toggled) {
-    unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
-    unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
-    int label_x = (int)((min_x + max_x - label_w) * 0.5f);
-    int label_y = (int)((min_y + max_y - label_h) * 0.5f);
-
-    font_draw_text(label, label_x, label_y, color_fg(), &text_buffer);
-
+int em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
     int result = 0;
+    vec2 *quad_pos = 0;
+    vec4 *quad_col = 0;
+
+    quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+    _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+    _init_color(quad_col, color_vd());
 
     if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
-        vec2 *quad_pos = 0;
-        vec4 *quad_col = 0;
         if (mouse_l) {
-            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
-            _init_quad(quad_pos, min_x, max_x, min_y, max_y);
-            _init_color(quad_col, color_hi());
-
-            pressed_button_id = (unsigned long long)label;
+            pressed_widget_id = (unsigned long long)label;
         }
         else {
-            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
-            _init_quad(quad_pos, min_x, max_x, min_y, max_y);
-            _init_color(quad_col, color_fg_disabled());
-
-            if (pressed_button_id == (unsigned long long)label) {
+            if (pressed_widget_id == (unsigned long long)label) {
                 result = 1;
-                pressed_button_id = 0;
+                pressed_widget_id = 0;
             }
         }
     }
-    else {
-        if (pressed_button_id == (unsigned long long)label) {
-            pressed_button_id = 0;
-        }
-    }
+    else if (pressed_widget_id == (unsigned long long)label)
+        pressed_widget_id = 0;
 
     return result;
 }

@@ -28,6 +28,7 @@ const int STATUSBAR_H = 26;
 const int SIDEBAR_W = 320;
 
 static EntoramaModel model;
+static void *selected_model_element = 0;
 
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
@@ -184,12 +185,50 @@ int main() {
                 mat4 projection;
                 graphics_ortho(&projection, 0.0f, (float)window_w, 0.0f, (float)window_h, -100.0f, 100.0f);
 
-                widgets_begin();
+                em_widgets_begin();
 
-                if (widgets_button("Run", (window_w - 60) * 0.5f, (float)(window_h - TOOLBAR_H), (window_w + 60) * 0.5f, (float)window_h))
+                if (em_button("Run",
+                                   (window_w - 60) * 0.5f, (float)(window_h - TOOLBAR_H),
+                                   (window_w + 60) * 0.5f, (float)window_h,
+                                   EM_BUTTON_STATE_NONE))
                     paused = !paused;
 
-                widgets_end(projection);
+                /* sidebar */
+                {
+                    if (em_area("Sidebar background",
+                                0.0f, (float)STATUSBAR_H,
+                                (float)SIDEBAR_W, window_h - TOOLBAR_H))
+                        selected_model_element = 0;
+
+                    const float SIDEBAR_BUTTON_H = 52.0f;
+                    float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
+
+                    for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
+                        EntoramaGroup *group = model.groups + group_i;
+
+                        if (em_button(group->name,
+                                           0.0f, y,
+                                           (float)SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                           (selected_model_element == group) ? EM_BUTTON_STATE_PRESSED : EM_BUTTON_STATE_NONE))
+                            selected_model_element = group;
+
+                        y -= SIDEBAR_BUTTON_H;
+                    }
+
+                    for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
+                        EntoramaPass *pass = model.passes + pass_i;
+
+                        if (em_button(pass->name,
+                                           0.0f, y,
+                                           (float)SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                           (selected_model_element == pass) ? EM_BUTTON_STATE_PRESSED : EM_BUTTON_STATE_NONE))
+                            selected_model_element = pass;
+
+                        y -= SIDEBAR_BUTTON_H;
+                    }
+                }
+
+                em_widgets_end(projection);
             }
 
             glfwSwapBuffers(window);
