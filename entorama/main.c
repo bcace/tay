@@ -30,6 +30,9 @@ const int SIDEBAR_W = 320;
 static EntoramaModel model;
 static void *selected_model_element = 0;
 
+#define MAX_SPEED_TEXT_BUFFER 16
+static char speed_text_buffer[MAX_SPEED_TEXT_BUFFER];
+
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
 }
@@ -197,7 +200,7 @@ int main() {
                 {
                     if (em_area("Sidebar background",
                                 0.0f, (float)STATUSBAR_H,
-                                (float)SIDEBAR_W, window_h - TOOLBAR_H))
+                                (float)SIDEBAR_W, (float)(window_h - TOOLBAR_H)))
                         selected_model_element = 0;
 
                     const float SIDEBAR_BUTTON_H = 52.0f;
@@ -226,6 +229,15 @@ int main() {
 
                         y -= SIDEBAR_BUTTON_H;
                     }
+                }
+
+                /* statusbar */
+                {
+                    sprintf_s(speed_text_buffer, MAX_SPEED_TEXT_BUFFER, "%.1f ms", _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
+                    em_button(speed_text_buffer,
+                              window_w - font_text_width(ENTORAMA_FONT_MEDIUM, speed_text_buffer) - 20.0f, 0.0f,
+                              (float)window_w, (float)STATUSBAR_H,
+                              EM_BUTTON_STATE_NONE);
                 }
 
                 em_widgets_end(projection);
