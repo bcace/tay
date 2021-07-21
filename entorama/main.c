@@ -32,6 +32,7 @@ static void *selected_model_element = 0;
 
 #define MAX_SPEED_TEXT_BUFFER 16
 static char speed_text_buffer[MAX_SPEED_TEXT_BUFFER];
+static int speed_mode = 0;
 
 #define MAX_TOOLTIP_TEXT_BUFFER 512
 static char tooltip_text_buffer[MAX_TOOLTIP_TEXT_BUFFER];
@@ -243,11 +244,22 @@ int main() {
 
                 /* statusbar */
                 {
-                    sprintf_s(speed_text_buffer, MAX_SPEED_TEXT_BUFFER, "%.1f ms", _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
-                    em_button(speed_text_buffer,
-                              window_w - font_text_width(ENTORAMA_FONT_MEDIUM, speed_text_buffer) - 20.0f, 0.0f,
-                              (float)window_w, (float)STATUSBAR_H,
-                              EM_BUTTON_STATE_NONE);
+                    double speed = _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay));
+                    if (speed_mode)
+                        sprintf_s(speed_text_buffer, MAX_SPEED_TEXT_BUFFER, "%.1f fps", 1000.0 / speed);
+                    else
+                        sprintf_s(speed_text_buffer, MAX_SPEED_TEXT_BUFFER, "%.1f ms", speed);
+
+                    switch (em_button(speed_text_buffer,
+                                      window_w - font_text_width(ENTORAMA_FONT_MEDIUM, speed_text_buffer) - 20.0f, 0.0f,
+                                      (float)window_w, (float)STATUSBAR_H,
+                                      EM_BUTTON_STATE_NONE)) {
+                        case EM_RESPONSE_CLICKED:
+                            speed_mode = !speed_mode;
+                        case EM_RESPONSE_HOVERED:
+                            sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Toggle milliseconds per step / frames per second");
+                        default:;
+                    }
 
                     em_label(tooltip_text_buffer,
                              0.0f, 0.0f,
