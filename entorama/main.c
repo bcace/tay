@@ -199,10 +199,10 @@ int main() {
                 /* sidebar */
                 {
 
-                    if (em_area("Sidebar border",
+                    if (em_button("",
                                 SIDEBAR_W, (float)STATUSBAR_H,
                                 SIDEBAR_W + 6.0f, (float)(window_h - TOOLBAR_H),
-                                color_hi()) == EM_RESPONSE_PRESSED)
+                                EM_BUTTON_STATE_NONE) == EM_RESPONSE_PRESSED)
                         SIDEBAR_W = mouse_x - 3.0f;
 
                     const float SIDEBAR_BUTTON_H = 52.0f;
