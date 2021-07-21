@@ -14,11 +14,17 @@ typedef enum EmResponse {
     EM_RESPONSE_HOVERED,
 } EmResponse;
 
+void em_widgets_init();
 void em_widgets_begin();
 void em_widgets_end(struct mat4 projection);
 
 EmResponse em_button(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonState state);
 EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y);
 EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y);
+
+extern int mouse_l;
+extern int mouse_r;
+extern float mouse_x;
+extern float mouse_y;
 
 #endif

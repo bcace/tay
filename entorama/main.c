@@ -11,13 +11,9 @@
 
 
 static int quit = 0;
+static int paused = 1;
 static int window_w = 1600;
 static int window_h = 800;
-
-int mouse_l = 0;
-int mouse_r = 0;
-float mouse_x;
-float mouse_y;
 
 static int mouse_started_moving = 0;
 static float mouse_dx = 0.0f;
@@ -58,8 +54,6 @@ static void _mousebutton_callback(GLFWwindow *glfw_window, int button, int actio
         if (button == GLFW_MOUSE_BUTTON_RIGHT)
             mouse_r = 0;
     }
-
-    widgets_mouse_button(button == GLFW_MOUSE_BUTTON_LEFT ? 0 : 1, action == GLFW_PRESS ? 0 : 1, mouse_x, mouse_y);
 }
 
 static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
@@ -77,7 +71,6 @@ static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
     mouse_y = (float)y;
 
     drawing_mouse_move(mouse_l, mouse_r, mouse_dx, mouse_dy);
-    widgets_mouse_move(mouse_l, mouse_r, mouse_x, mouse_y);
 }
 
 static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action, int mods) {
@@ -90,7 +83,6 @@ static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action
 static void _size_callback(GLFWwindow *glfw_window, int w, int h) {
     window_w = w;
     window_h = h;
-    widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H, SIDEBAR_W);
 }
 
 static double _smooth_ms_per_step(double ms) {
@@ -143,8 +135,7 @@ int main() {
 
     color_init();
     font_init();
-    widgets_init();
-    // widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H, SIDEBAR_W);
+    em_widgets_init();
 
     TayState *tay = tay_create_state();
 
@@ -152,8 +143,6 @@ int main() {
     model_load(&model, "m_sph.dll");
     model.init(&model, tay);
     model.reset(&model, tay);
-
-    widgets_update_model_specific(&model);
 
     tay_threads_start(100000); // TODO: remove this!!!
     tay_simulation_start(tay);
