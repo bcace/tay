@@ -33,6 +33,9 @@ static void *selected_model_element = 0;
 #define MAX_SPEED_TEXT_BUFFER 16
 static char speed_text_buffer[MAX_SPEED_TEXT_BUFFER];
 
+#define MAX_TOOLTIP_TEXT_BUFFER 512
+static char tooltip_text_buffer[MAX_TOOLTIP_TEXT_BUFFER];
+
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
 }
@@ -188,19 +191,26 @@ int main() {
                 mat4 projection;
                 graphics_ortho(&projection, 0.0f, (float)window_w, 0.0f, (float)window_h, -100.0f, 100.0f);
 
+                tooltip_text_buffer[0] = '\0';
+
                 em_widgets_begin();
 
-                if (em_button("Run",
-                                   (window_w - 60) * 0.5f, (float)(window_h - TOOLBAR_H),
-                                   (window_w + 60) * 0.5f, (float)window_h,
-                                   EM_BUTTON_STATE_NONE))
-                    paused = !paused;
+                switch (em_button("Run",
+                                  (window_w - 60) * 0.5f, (float)(window_h - TOOLBAR_H),
+                                  (window_w + 60) * 0.5f, (float)window_h,
+                                  EM_BUTTON_STATE_NONE)) {
+                    case EM_RESPONSE_CLICKED:
+                        paused = !paused;
+                    case EM_RESPONSE_HOVERED:
+                        sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Run/pause simulation");
+                    default:;
+                }
 
                 /* sidebar */
                 {
                     if (em_area("Sidebar background",
                                 0.0f, (float)STATUSBAR_H,
-                                (float)SIDEBAR_W, (float)(window_h - TOOLBAR_H)))
+                                (float)SIDEBAR_W, (float)(window_h - TOOLBAR_H)) == EM_RESPONSE_CLICKED)
                         selected_model_element = 0;
 
                     const float SIDEBAR_BUTTON_H = 52.0f;
@@ -212,7 +222,7 @@ int main() {
                         if (em_button(group->name,
                                            0.0f, y,
                                            (float)SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                           (selected_model_element == group) ? EM_BUTTON_STATE_PRESSED : EM_BUTTON_STATE_NONE))
+                                           (selected_model_element == group) ? EM_BUTTON_STATE_PRESSED : EM_BUTTON_STATE_NONE) == EM_RESPONSE_CLICKED)
                             selected_model_element = group;
 
                         y -= SIDEBAR_BUTTON_H;
@@ -224,7 +234,7 @@ int main() {
                         if (em_button(pass->name,
                                            0.0f, y,
                                            (float)SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                           (selected_model_element == pass) ? EM_BUTTON_STATE_PRESSED : EM_BUTTON_STATE_NONE))
+                                           (selected_model_element == pass) ? EM_BUTTON_STATE_PRESSED : EM_BUTTON_STATE_NONE) == EM_RESPONSE_CLICKED)
                             selected_model_element = pass;
 
                         y -= SIDEBAR_BUTTON_H;
@@ -238,6 +248,10 @@ int main() {
                               window_w - font_text_width(ENTORAMA_FONT_MEDIUM, speed_text_buffer) - 20.0f, 0.0f,
                               (float)window_w, (float)STATUSBAR_H,
                               EM_BUTTON_STATE_NONE);
+
+                    em_label(tooltip_text_buffer,
+                             0.0f, 0.0f,
+                             (float)window_w, (float)STATUSBAR_H);
                 }
 
                 em_widgets_end(projection);

@@ -187,7 +187,7 @@ void em_widgets_end(mat4 projection) {
     }
 }
 
-int em_button(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonState state) {
+EmResponse em_button(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonState state) {
     unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
     unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
     int label_x = (int)(min_x + 10.0f); // (int)((min_x + max_x - label_w) * 0.5f);
@@ -195,7 +195,7 @@ int em_button(char *label, float min_x, float min_y, float max_x, float max_y, E
 
     font_draw_text(label, label_x, label_y, color_fg(), &text_buffer);
 
-    int result = 0;
+    EmResponse response = EM_RESPONSE_NONE;
     int hovered = 0;
     int pressed = 0;
     vec2 *quad_pos = 0;
@@ -209,9 +209,11 @@ int em_button(char *label, float min_x, float min_y, float max_x, float max_y, E
         else {
             hovered = 1;
             if (pressed_widget_id == (unsigned long long)label) {
-                result = 1;
+                response = EM_RESPONSE_CLICKED;
                 pressed_widget_id = 0;
             }
+            else
+                response = EM_RESPONSE_HOVERED;
         }
     }
     else if (pressed_widget_id == (unsigned long long)label)
@@ -228,11 +230,11 @@ int em_button(char *label, float min_x, float min_y, float max_x, float max_y, E
         _init_color(quad_col, color_hi());
     }
 
-    return result;
+    return response;
 }
 
-int em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
-    int result = 0;
+EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
+    EmResponse response = EM_RESPONSE_NONE;
     vec2 *quad_pos = 0;
     vec4 *quad_col = 0;
 
@@ -246,7 +248,7 @@ int em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
         }
         else {
             if (pressed_widget_id == (unsigned long long)label) {
-                result = 1;
+                response = EM_RESPONSE_CLICKED;
                 pressed_widget_id = 0;
             }
         }
@@ -254,7 +256,18 @@ int em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
     else if (pressed_widget_id == (unsigned long long)label)
         pressed_widget_id = 0;
 
-    return result;
+    return response;
+}
+
+EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y) {
+    unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
+    unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
+    int label_x = (int)((min_x + max_x - label_w) * 0.5f);
+    int label_y = (int)((min_y + max_y - label_h) * 0.5f);
+
+    font_draw_text(label, label_x, label_y, color_fg(), &text_buffer);
+
+    return EM_RESPONSE_NONE;
 }
 
 void widgets_draw(mat4 projection, double ms) {
