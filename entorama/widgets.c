@@ -158,6 +158,114 @@ void widgets_update(int window_w_in, int window_h_in, int toolbar_h_in, int stat
     _update_sidebar_buttons_geometry();
 }
 
+unsigned long long pressed_button_id = 0;
+
+void widgets_begin() {
+    graphics_enable_depth_test(0);
+    font_use_medium();
+}
+
+void widgets_end(mat4 projection) {
+    if (quad_buffer.count) {
+        shader_program_use(&prog);
+        shader_program_set_uniform_mat4(&prog, 0, &projection);
+        shader_program_set_data_float(&prog, 0, quad_buffer.count * 4, 2, quad_buffer.pos);
+        shader_program_set_data_float(&prog, 1, quad_buffer.count * 4, 4, quad_buffer.col);
+        graphics_draw_quads(quad_buffer.count * 4);
+        quad_buffer_clear(&quad_buffer);
+    }
+
+    if (text_buffer.count) {
+        shader_program_use(&text_prog);
+        shader_program_set_data_float(&text_prog, 0, text_buffer.count * 4, 2, text_buffer.pos);
+        shader_program_set_data_float(&text_prog, 1, text_buffer.count * 4, 2, text_buffer.tex);
+        shader_program_set_data_float(&text_prog, 2, text_buffer.count * 4, 4, text_buffer.col);
+        shader_program_set_uniform_mat4(&text_prog, 0, &projection);
+        graphics_draw_quads(text_buffer.count * 4);
+        tex_quad_buffer_clear(&text_buffer);
+    }
+}
+
+int widgets_button(char *label, float min_x, float min_y, float max_x, float max_y) {
+    unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
+    unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
+    int label_x = (int)((min_x + max_x - label_w) * 0.5f);
+    int label_y = (int)((min_y + max_y - label_h) * 0.5f);
+
+    font_draw_text(label, label_x, label_y, color_fg(), &text_buffer);
+
+    int result = 0;
+
+    if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
+        vec2 *quad_pos = 0;
+        vec4 *quad_col = 0;
+        if (mouse_l) {
+            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+            _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+            _init_color(quad_col, color_hi());
+
+            pressed_button_id = (unsigned long long)label;
+        }
+        else {
+            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+            _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+            _init_color(quad_col, color_fg_disabled());
+
+            if (pressed_button_id == (unsigned long long)label) {
+                result = 1;
+                pressed_button_id = 0;
+            }
+        }
+    }
+    else {
+        if (pressed_button_id == (unsigned long long)label) {
+            pressed_button_id = 0;
+        }
+    }
+
+    return result;
+}
+
+int widgets_toggle_button(char *label, float min_x, float min_y, float max_x, float max_y, int toggled) {
+    unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
+    unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
+    int label_x = (int)((min_x + max_x - label_w) * 0.5f);
+    int label_y = (int)((min_y + max_y - label_h) * 0.5f);
+
+    font_draw_text(label, label_x, label_y, color_fg(), &text_buffer);
+
+    int result = 0;
+
+    if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
+        vec2 *quad_pos = 0;
+        vec4 *quad_col = 0;
+        if (mouse_l) {
+            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+            _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+            _init_color(quad_col, color_hi());
+
+            pressed_button_id = (unsigned long long)label;
+        }
+        else {
+            quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+            _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+            _init_color(quad_col, color_fg_disabled());
+
+            if (pressed_button_id == (unsigned long long)label) {
+                result = 1;
+                pressed_button_id = 0;
+            }
+        }
+    }
+    else {
+        if (pressed_button_id == (unsigned long long)label) {
+            pressed_button_id = 0;
+        }
+    }
+
+    return result;
+}
+
 void widgets_draw(mat4 projection, double ms) {
     graphics_enable_depth_test(0);
 
@@ -206,15 +314,6 @@ void widgets_draw(mat4 projection, double ms) {
             _init_quad(quad_pos, 0.0f, (float)window_w, (float)statusbar_h, (float)(statusbar_h + 5));
             _init_shadow(quad_col, shadow_alpha, shadow_alpha, 0.0f, 0.0f);
         }
-
-        if (quad_buffer.count) {
-            shader_program_use(&prog);
-            shader_program_set_uniform_mat4(&prog, 0, &projection);
-            shader_program_set_data_float(&prog, 0, quad_buffer.count * 4, 2, quad_buffer.pos);
-            shader_program_set_data_float(&prog, 1, quad_buffer.count * 4, 4, quad_buffer.col);
-            graphics_draw_quads(quad_buffer.count * 4);
-            quad_buffer_clear(&quad_buffer);
-        }
     }
 
     /* text */
@@ -250,18 +349,27 @@ void widgets_draw(mat4 projection, double ms) {
                            (int)((statusbar_h - font_height(ENTORAMA_FONT_MEDIUM)) * 0.5f),
                            fg_color, &text_buffer);
         }
-
-        if (text_buffer.count) {
-            shader_program_use(&text_prog);
-            shader_program_set_data_float(&text_prog, 0, text_buffer.count * 4, 2, text_buffer.pos);
-            shader_program_set_data_float(&text_prog, 1, text_buffer.count * 4, 2, text_buffer.tex);
-            shader_program_set_data_float(&text_prog, 2, text_buffer.count * 4, 4, text_buffer.col);
-            shader_program_set_uniform_mat4(&text_prog, 0, &projection);
-            graphics_draw_quads(text_buffer.count * 4);
-            tex_quad_buffer_clear(&text_buffer);
-        }
     }
 
+
+    if (quad_buffer.count) {
+        shader_program_use(&prog);
+        shader_program_set_uniform_mat4(&prog, 0, &projection);
+        shader_program_set_data_float(&prog, 0, quad_buffer.count * 4, 2, quad_buffer.pos);
+        shader_program_set_data_float(&prog, 1, quad_buffer.count * 4, 4, quad_buffer.col);
+        graphics_draw_quads(quad_buffer.count * 4);
+        quad_buffer_clear(&quad_buffer);
+    }
+
+    if (text_buffer.count) {
+        shader_program_use(&text_prog);
+        shader_program_set_data_float(&text_prog, 0, text_buffer.count * 4, 2, text_buffer.pos);
+        shader_program_set_data_float(&text_prog, 1, text_buffer.count * 4, 2, text_buffer.tex);
+        shader_program_set_data_float(&text_prog, 2, text_buffer.count * 4, 4, text_buffer.col);
+        shader_program_set_uniform_mat4(&text_prog, 0, &projection);
+        graphics_draw_quads(text_buffer.count * 4);
+        tex_quad_buffer_clear(&text_buffer);
+    }
 }
 
 void widgets_mouse_move(int button_l, int button_r, float x, float y) {

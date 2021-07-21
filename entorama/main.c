@@ -2,6 +2,7 @@
 #include "entorama.h"
 #include "tay.h"
 #include "thread.h" // TODO: remove this!!!
+#include "widgets.h"
 #include "graphics.h"
 #include "font.h"
 #include "glad/glad.h"
@@ -13,11 +14,12 @@ static int quit = 0;
 static int window_w = 1600;
 static int window_h = 800;
 
+int mouse_l = 0;
+int mouse_r = 0;
+float mouse_x;
+float mouse_y;
+
 static int mouse_started_moving = 0;
-static int mouse_l = 0;
-static int mouse_r = 0;
-static float mouse_x;
-static float mouse_y;
 static float mouse_dx = 0.0f;
 static float mouse_dy = 0.0f;
 
@@ -134,7 +136,7 @@ int main() {
     color_init();
     font_init();
     widgets_init();
-    widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H, SIDEBAR_W);
+    // widgets_update(window_w, window_h, TOOLBAR_H, STATUSBAR_H, SIDEBAR_W);
 
     TayState *tay = tay_create_state();
 
@@ -182,7 +184,12 @@ int main() {
                 mat4 projection;
                 graphics_ortho(&projection, 0.0f, (float)window_w, 0.0f, (float)window_h, -100.0f, 100.0f);
 
-                widgets_draw(projection, _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay)));
+                widgets_begin();
+
+                if (widgets_button("Run", (window_w - 60) * 0.5f, (float)(window_h - TOOLBAR_H), (window_w + 60) * 0.5f, (float)window_h))
+                    paused = !paused;
+
+                widgets_end(projection);
             }
 
             glfwSwapBuffers(window);

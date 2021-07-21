@@ -45,4 +45,9 @@ void widgets_mouse_button(int button, int action, float x, float y);
 
 extern int paused;
 
+extern int mouse_l;
+extern int mouse_r;
+extern float mouse_x;
+extern float mouse_y;
+
 #endif
