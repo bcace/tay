@@ -19,9 +19,9 @@ static int mouse_started_moving = 0;
 static float mouse_dx = 0.0f;
 static float mouse_dy = 0.0f;
 
-const int TOOLBAR_H = 40;
-const int STATUSBAR_H = 26;
-const int SIDEBAR_W = 320;
+static int TOOLBAR_H = 40;
+static int STATUSBAR_H = 26;
+static float SIDEBAR_W = 320.0f;
 
 static EntoramaModel model;
 static void *selected_model_element = 0;
@@ -140,7 +140,7 @@ int main() {
     TayState *tay = tay_create_state();
 
     entorama_init_model(&model);
-    model_load(&model, "m_sph.dll");
+    model_load(&model, "m_flocking.dll");
     model.init(&model, tay);
     model.reset(&model, tay);
 
@@ -158,7 +158,7 @@ int main() {
 
         /* drawing */
         {
-            graphics_viewport(SIDEBAR_W, STATUSBAR_H, window_w - SIDEBAR_W, window_h - TOOLBAR_H - STATUSBAR_H);
+            graphics_viewport((int)SIDEBAR_W, STATUSBAR_H, window_w - (int)SIDEBAR_W, window_h - TOOLBAR_H - STATUSBAR_H);
             vec4 bg = color_bg();
             graphics_clear(bg.x, bg.y, bg.z);
             graphics_clear_depth();
@@ -166,7 +166,7 @@ int main() {
             /* draw agents */
             {
                 graphics_enable_depth_test(1);
-                drawing_camera_setup(&model, window_w - SIDEBAR_W, window_h - TOOLBAR_H - STATUSBAR_H);
+                drawing_camera_setup(&model, window_w - (int)SIDEBAR_W, window_h - TOOLBAR_H - STATUSBAR_H);
 
                 for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                     EntoramaGroup *group = model.groups + group_i;
@@ -198,10 +198,12 @@ int main() {
 
                 /* sidebar */
                 {
-                    if (em_area("Sidebar background",
-                                0.0f, (float)STATUSBAR_H,
-                                (float)SIDEBAR_W, (float)(window_h - TOOLBAR_H)) == EM_RESPONSE_CLICKED)
-                        selected_model_element = 0;
+
+                    if (em_area("Sidebar border",
+                                SIDEBAR_W, (float)STATUSBAR_H,
+                                SIDEBAR_W + 6.0f, (float)(window_h - TOOLBAR_H),
+                                color_hi()) == EM_RESPONSE_PRESSED)
+                        SIDEBAR_W = mouse_x - 3.0f;
 
                     const float SIDEBAR_BUTTON_H = 52.0f;
                     float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
@@ -211,7 +213,7 @@ int main() {
 
                         if (em_button(group->name,
                                            0.0f, y,
-                                           (float)SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                           SIDEBAR_W, y + SIDEBAR_BUTTON_H,
                                            (selected_model_element == group) ? EM_BUTTON_STATE_PRESSED : EM_BUTTON_STATE_NONE) == EM_RESPONSE_CLICKED)
                             selected_model_element = group;
 
@@ -223,12 +225,18 @@ int main() {
 
                         if (em_button(pass->name,
                                            0.0f, y,
-                                           (float)SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                           SIDEBAR_W, y + SIDEBAR_BUTTON_H,
                                            (selected_model_element == pass) ? EM_BUTTON_STATE_PRESSED : EM_BUTTON_STATE_NONE) == EM_RESPONSE_CLICKED)
                             selected_model_element = pass;
 
                         y -= SIDEBAR_BUTTON_H;
                     }
+
+                    if (em_area("Sidebar background",
+                                0.0f, (float)STATUSBAR_H,
+                                SIDEBAR_W, (float)(window_h - TOOLBAR_H),
+                                (vec4){0.0f, 0.0f, 0.0f, 0.0f}) == EM_RESPONSE_CLICKED)
+                        selected_model_element = 0;
                 }
 
                 /* statusbar */

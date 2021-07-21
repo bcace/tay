@@ -20,6 +20,7 @@ static TexQuadBuffer text_buffer;
 static QuadBuffer quad_buffer;
 
 unsigned long long pressed_widget_id = 0;
+unsigned long long hovered_widget_id = 0;
 
 void em_widgets_init() {
     shader_program_init(&prog, flat_vert, "flat.vert", "", flat_frag, "flat.frag", "");
@@ -62,6 +63,7 @@ static void _init_color(vec4 *quad, vec4 color) {
 void em_widgets_begin() {
     graphics_enable_depth_test(0);
     font_use_medium();
+    hovered_widget_id = 0;
 }
 
 void em_widgets_end(mat4 projection) {
@@ -85,6 +87,32 @@ void em_widgets_end(mat4 projection) {
     }
 }
 
+static EmResponse _get_response(unsigned long long id, float min_x, float min_y, float max_x, float max_y) {
+    EmResponse response = EM_RESPONSE_NONE;
+
+    if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
+        if (mouse_l) {
+            if (pressed_widget_id == 0) {
+                response = EM_RESPONSE_PRESSED;
+                pressed_widget_id = id;
+            }
+        }
+        else {
+            hovered_widget_id = id;
+            if (pressed_widget_id == id) {
+                response = EM_RESPONSE_CLICKED;
+                pressed_widget_id = 0;
+            }
+            else
+                response = EM_RESPONSE_HOVERED;
+        }
+    }
+    else if (pressed_widget_id == id)
+        response = EM_RESPONSE_PRESSED;
+
+    return response;
+}
+
 EmResponse em_button(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonState state) {
     unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
     unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
@@ -93,36 +121,17 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
 
     font_draw_text(label, label_x, label_y, color_fg(), &text_buffer);
 
-    EmResponse response = EM_RESPONSE_NONE;
-    int hovered = 0;
-    int pressed = 0;
+    EmResponse response = _get_response((unsigned long long)label, min_x, min_y, max_x, max_y);
+
     vec2 *quad_pos = 0;
     vec4 *quad_col = 0;
 
-    if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
-        if (mouse_l) {
-            pressed = 1;
-            pressed_widget_id = (unsigned long long)label;
-        }
-        else {
-            hovered = 1;
-            if (pressed_widget_id == (unsigned long long)label) {
-                response = EM_RESPONSE_CLICKED;
-                pressed_widget_id = 0;
-            }
-            else
-                response = EM_RESPONSE_HOVERED;
-        }
-    }
-    else if (pressed_widget_id == (unsigned long long)label)
-        pressed_widget_id = 0;
-
-    if (hovered) {
+    if (hovered_widget_id == (unsigned long long)label) {
         quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
         _init_quad(quad_pos, min_x, max_x, min_y, max_y);
         _init_color(quad_col, color_fg_disabled());
     }
-    else if (pressed || state == EM_BUTTON_STATE_PRESSED) {
+    else if (pressed_widget_id == (unsigned long long)label || state == EM_BUTTON_STATE_PRESSED) {
         quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
         _init_quad(quad_pos, min_x, max_x, min_y, max_y);
         _init_color(quad_col, color_hi());
@@ -131,28 +140,15 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
     return response;
 }
 
-EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
-    EmResponse response = EM_RESPONSE_NONE;
+EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y, vec4 color) {
     vec2 *quad_pos = 0;
     vec4 *quad_col = 0;
 
     quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
     _init_quad(quad_pos, min_x, max_x, min_y, max_y);
-    _init_color(quad_col, color_vd());
+    _init_color(quad_col, color);
 
-    if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
-        if (mouse_l) {
-            pressed_widget_id = (unsigned long long)label;
-        }
-        else {
-            if (pressed_widget_id == (unsigned long long)label) {
-                response = EM_RESPONSE_CLICKED;
-                pressed_widget_id = 0;
-            }
-        }
-    }
-    else if (pressed_widget_id == (unsigned long long)label)
-        pressed_widget_id = 0;
+    EmResponse response = _get_response((unsigned long long)label, min_x, min_y, max_x, max_y);
 
     return response;
 }
