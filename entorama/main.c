@@ -141,7 +141,7 @@ int main() {
     TayState *tay = tay_create_state();
 
     entorama_init_model(&model);
-    model_load(&model, "m_flocking.dll");
+    model_load(&model, "m_sph.dll");
     model.init(&model, tay);
     model.reset(&model, tay);
 
@@ -213,24 +213,50 @@ int main() {
                         EntoramaGroup *group = model.groups + group_i;
 
                         if (em_button(group->name,
-                                           0.0f, y,
-                                           SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                           (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                      0.0f, y,
+                                      SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                      (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                             selected_model_element = group;
 
                         y -= SIDEBAR_BUTTON_H;
                     }
 
-                    for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
-                        EntoramaPass *pass = model.passes + pass_i;
+                    /* pass buttons */
+                    {
+                        const float bullet_size = 8.0f;
+                        const float bullet_offset = 10.0f;
 
-                        if (em_button(pass->name,
-                                           0.0f, y,
-                                           SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                           (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
-                            selected_model_element = pass;
+                        float bottom_bullet_y = 0.0f;
+                        float top_bullet_y = 0.0f;
 
-                        y -= SIDEBAR_BUTTON_H;
+                        em_set_button_label_offset(bullet_offset * 2.0f + bullet_size);
+
+                        for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
+                            EntoramaPass *pass = model.passes + pass_i;
+
+                            if (em_button(pass->name,
+                                          0.0f, y,
+                                          SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                          (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                selected_model_element = pass;
+
+                            float bullet_y = y + SIDEBAR_BUTTON_H * 0.5f;
+                            if (pass_i == 0)
+                                top_bullet_y = bullet_y;
+                            bottom_bullet_y = bullet_y;
+
+                            em_quad(bullet_offset, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
+                                    bullet_offset + bullet_size, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
+                                    color_palette(3));
+
+                            y -= SIDEBAR_BUTTON_H;
+                        }
+
+                        em_quad(bullet_offset + bullet_size * 0.5f - 0.5f, bottom_bullet_y,
+                                bullet_offset + bullet_size * 0.5f + 0.5f, top_bullet_y,
+                                color_palette(3));
+
+                        em_reset_button_label_offset();
                     }
 
                     if (em_area("Sidebar background",

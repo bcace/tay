@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define EM_BUTTON_DEFAULT_LABEL_OFFSET 10.0f
+
 
 int mouse_l = 0;
 int mouse_r = 0;
@@ -19,8 +21,10 @@ static Program text_prog;
 static TexQuadBuffer text_buffer;
 static QuadBuffer quad_buffer;
 
-unsigned long long pressed_widget_id = 0;
-unsigned long long hovered_widget_id = 0;
+static unsigned long long pressed_widget_id = 0;
+static unsigned long long hovered_widget_id = 0;
+
+static float button_label_offset = EM_BUTTON_DEFAULT_LABEL_OFFSET;
 
 void em_widgets_init() {
     shader_program_init(&prog, flat_vert, "flat.vert", "", flat_frag, "flat.frag", "");
@@ -119,7 +123,7 @@ static EmResponse _get_response(unsigned long long id, float min_x, float min_y,
 EmResponse em_button(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
     unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
     unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
-    int label_x = (int)(min_x + 10.0f); // (int)((min_x + max_x - label_w) * 0.5f);
+    int label_x = (int)(min_x + button_label_offset); // (int)((min_x + max_x - label_w) * 0.5f);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
     font_draw_text(label, label_x, label_y, color_fg(), &text_buffer);
@@ -166,6 +170,23 @@ EmResponse em_label(char *label, float min_x, float min_y, float max_x, float ma
     font_draw_text(label, label_x, label_y, color_fg(), &text_buffer);
 
     return EM_RESPONSE_NONE;
+}
+
+void em_quad(float min_x, float min_y, float max_x, float max_y, vec4 color) {
+    vec2 *quad_pos = 0;
+    vec4 *quad_col = 0;
+
+    quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+    _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+    _init_color(quad_col, color);
+}
+
+void em_set_button_label_offset(float offset) {
+    button_label_offset = offset;
+}
+
+void em_reset_button_label_offset() {
+    button_label_offset = EM_BUTTON_DEFAULT_LABEL_OFFSET;
 }
 
 int em_widget_pressed() {
