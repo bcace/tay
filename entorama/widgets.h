@@ -23,6 +23,8 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
 EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y, struct vec4 color);
 EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y);
 
+int em_widget_pressed();
+
 extern int mouse_l;
 extern int mouse_r;
 extern float mouse_x;

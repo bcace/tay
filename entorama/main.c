@@ -70,7 +70,8 @@ static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
     mouse_x = (float)x;
     mouse_y = (float)y;
 
-    drawing_mouse_move(mouse_l, mouse_r, mouse_dx, mouse_dy);
+    if (!em_widget_pressed())
+        drawing_mouse_move(mouse_l, mouse_r, mouse_dx, mouse_dy);
 }
 
 static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action, int mods) {

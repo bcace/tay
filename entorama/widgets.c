@@ -164,3 +164,7 @@ EmResponse em_label(char *label, float min_x, float min_y, float max_x, float ma
 
     return EM_RESPONSE_NONE;
 }
+
+int em_widget_pressed() {
+    return pressed_widget_id != 0;
+}
