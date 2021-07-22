@@ -12,6 +12,7 @@ void drawing_update_world_box(struct EntoramaModel *model);
 
 /* colors.c */
 void color_init();
+struct vec4 color_border();
 struct vec4 color_vd();
 struct vec4 color_bg();
 struct vec4 color_fg();

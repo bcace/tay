@@ -50,13 +50,6 @@ static void _init_quad(vec2 *quad, float min_x, float max_x, float min_y, float 
     quad[3].y = max_y;
 }
 
-static void _init_shadow(vec4 *quad, float a1, float a2, float a3, float a4) {
-    quad[0] = (vec4){0.0f, 0.0f, 0.0f, a1};
-    quad[1] = (vec4){0.0f, 0.0f, 0.0f, a2};
-    quad[2] = (vec4){0.0f, 0.0f, 0.0f, a3};
-    quad[3] = (vec4){0.0f, 0.0f, 0.0f, a4};
-}
-
 static void _init_color(vec4 *quad, vec4 color) {
     quad[0] = color;
     quad[1] = color;
@@ -148,17 +141,8 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
     return response;
 }
 
-EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y, vec4 color) {
-    vec2 *quad_pos = 0;
-    vec4 *quad_col = 0;
-
-    quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
-    _init_quad(quad_pos, min_x, max_x, min_y, max_y);
-    _init_color(quad_col, color);
-
-    EmResponse response = _get_response((unsigned long long)label, min_x, min_y, max_x, max_y, EM_BUTTON_FLAGS_NONE);
-
-    return response;
+EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
+    return _get_response((unsigned long long)label, min_x, min_y, max_x, max_y, EM_BUTTON_FLAGS_NONE);
 }
 
 EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y) {

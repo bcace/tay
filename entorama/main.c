@@ -21,7 +21,7 @@ static float mouse_dy = 0.0f;
 
 static int TOOLBAR_H = 40;
 static int STATUSBAR_H = 26;
-static float SIDEBAR_W = 320.0f;
+static float SIDEBAR_W = 300.0f;
 
 static EntoramaModel model;
 static void *selected_model_element = 0;
@@ -186,6 +186,9 @@ int main() {
 
                 em_widgets_begin();
 
+                em_quad(0.0f, (float)(window_h - TOOLBAR_H), (float)window_w, (float)window_h, color_vd());
+                em_quad(0.0f, 0.0f, (float)window_w, (float)STATUSBAR_H, color_vd());
+
                 switch (em_button("Run",
                                   (window_w - 60) * 0.5f, (float)(window_h - TOOLBAR_H),
                                   (window_w + 60) * 0.5f, (float)window_h,
@@ -199,32 +202,36 @@ int main() {
 
                 /* sidebar */
                 {
+                    em_quad(0.0f, (float)STATUSBAR_H, SIDEBAR_W, (float)(window_h - TOOLBAR_H), color_vd());
 
                     if (em_button("",
                                   SIDEBAR_W, (float)STATUSBAR_H,
                                   SIDEBAR_W + 6.0f, (float)(window_h - TOOLBAR_H),
                                   EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_PRESSED)
-                        SIDEBAR_W = mouse_x - 3.0f;
+                        SIDEBAR_W += mouse_dx;
 
                     const float SIDEBAR_BUTTON_H = 52.0f;
                     float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
 
-                    for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
-                        EntoramaGroup *group = model.groups + group_i;
+                    /* group buttons */
+                    {
+                        for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
+                            EntoramaGroup *group = model.groups + group_i;
 
-                        if (em_button(group->name,
-                                      0.0f, y,
-                                      SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                      (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
-                            selected_model_element = group;
+                            if (em_button(group->name,
+                                          0.0f, y,
+                                          SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                          (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                selected_model_element = group;
 
-                        y -= SIDEBAR_BUTTON_H;
+                            y -= SIDEBAR_BUTTON_H;
+                        }
                     }
 
                     /* pass buttons */
                     {
                         const float bullet_size = 8.0f;
-                        const float bullet_offset = 10.0f;
+                        const float bullet_offset = 16.0f;
 
                         float bottom_bullet_y = 0.0f;
                         float top_bullet_y = 0.0f;
@@ -261,8 +268,7 @@ int main() {
 
                     if (em_area("Sidebar background",
                                 0.0f, (float)STATUSBAR_H,
-                                SIDEBAR_W, (float)(window_h - TOOLBAR_H),
-                                (vec4){0.0f, 0.0f, 0.0f, 0.0f}) == EM_RESPONSE_CLICKED)
+                                SIDEBAR_W, (float)(window_h - TOOLBAR_H)) == EM_RESPONSE_CLICKED)
                         selected_model_element = 0;
                 }
 
@@ -289,6 +295,10 @@ int main() {
                              0.0f, 0.0f,
                              (float)window_w, (float)STATUSBAR_H);
                 }
+
+                em_quad(0.0f, (float)STATUSBAR_H, (float)window_w, STATUSBAR_H + 1.0f, color_border());
+                em_quad(0.0f, window_h - TOOLBAR_H - 1.0f, (float)window_w, (float)(window_h - TOOLBAR_H), color_border());
+                em_quad((float)SIDEBAR_W, (float)STATUSBAR_H, SIDEBAR_W + 1.0f, (float)(window_h - TOOLBAR_H), color_border());
 
                 em_widgets_end(projection);
             }
