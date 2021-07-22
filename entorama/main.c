@@ -225,6 +225,11 @@ int main() {
                     const float SIDEBAR_BUTTON_H = 52.0f;
                     float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
 
+                    const float bullet_size = 8.0f;
+                    const float bullet_offset = 16.0f;
+
+                    em_set_button_label_offset(bullet_offset * 2.0f + bullet_size);
+
                     /* group buttons */
                     {
                         for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
@@ -236,19 +241,18 @@ int main() {
                                           (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                 selected_model_element = group;
 
+                            em_quad(bullet_offset, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
+                                    bullet_offset + bullet_size, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
+                                    color_palette(0));
+
                             y -= SIDEBAR_BUTTON_H;
                         }
                     }
 
                     /* pass buttons */
                     {
-                        const float bullet_size = 8.0f;
-                        const float bullet_offset = 16.0f;
-
                         float bottom_bullet_y = 0.0f;
                         float top_bullet_y = 0.0f;
-
-                        em_set_button_label_offset(bullet_offset * 2.0f + bullet_size);
 
                         for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
                             EntoramaPass *pass = model.passes + pass_i;
@@ -279,9 +283,9 @@ int main() {
                         em_quad(bullet_offset + bullet_size * 0.5f - 0.5f, bottom_bullet_y,
                                 bullet_offset + bullet_size * 0.5f + 0.5f, top_bullet_y,
                                 color_palette(3));
-
-                        em_reset_button_label_offset();
                     }
+
+                    em_reset_button_label_offset();
 
                     if (em_area("Sidebar background",
                                 0.0f, (float)STATUSBAR_H,
