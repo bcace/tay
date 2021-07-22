@@ -189,7 +189,7 @@ int main() {
                 switch (em_button("Run",
                                   (window_w - 60) * 0.5f, (float)(window_h - TOOLBAR_H),
                                   (window_w + 60) * 0.5f, (float)window_h,
-                                  EM_BUTTON_STATE_NONE)) {
+                                  EM_BUTTON_FLAGS_NONE)) {
                     case EM_RESPONSE_CLICKED:
                         paused = !paused;
                     case EM_RESPONSE_HOVERED:
@@ -201,9 +201,9 @@ int main() {
                 {
 
                     if (em_button("",
-                                SIDEBAR_W, (float)STATUSBAR_H,
-                                SIDEBAR_W + 6.0f, (float)(window_h - TOOLBAR_H),
-                                EM_BUTTON_STATE_NONE) == EM_RESPONSE_PRESSED)
+                                  SIDEBAR_W, (float)STATUSBAR_H,
+                                  SIDEBAR_W + 6.0f, (float)(window_h - TOOLBAR_H),
+                                  EM_BUTTON_FLAGS_DRAGGABLE) == EM_RESPONSE_PRESSED)
                         SIDEBAR_W = mouse_x - 3.0f;
 
                     const float SIDEBAR_BUTTON_H = 52.0f;
@@ -215,7 +215,7 @@ int main() {
                         if (em_button(group->name,
                                            0.0f, y,
                                            SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                           (selected_model_element == group) ? EM_BUTTON_STATE_PRESSED : EM_BUTTON_STATE_NONE) == EM_RESPONSE_CLICKED)
+                                           (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                             selected_model_element = group;
 
                         y -= SIDEBAR_BUTTON_H;
@@ -227,7 +227,7 @@ int main() {
                         if (em_button(pass->name,
                                            0.0f, y,
                                            SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                           (selected_model_element == pass) ? EM_BUTTON_STATE_PRESSED : EM_BUTTON_STATE_NONE) == EM_RESPONSE_CLICKED)
+                                           (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                             selected_model_element = pass;
 
                         y -= SIDEBAR_BUTTON_H;
@@ -251,7 +251,7 @@ int main() {
                     switch (em_button(speed_text_buffer,
                                       window_w - font_text_width(ENTORAMA_FONT_MEDIUM, speed_text_buffer) - 20.0f, 0.0f,
                                       (float)window_w, (float)STATUSBAR_H,
-                                      EM_BUTTON_STATE_NONE)) {
+                                      EM_BUTTON_FLAGS_NONE)) {
                         case EM_RESPONSE_CLICKED:
                             speed_mode = !speed_mode;
                         case EM_RESPONSE_HOVERED:
