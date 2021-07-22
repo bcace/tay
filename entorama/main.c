@@ -189,15 +189,24 @@ int main() {
                 em_quad(0.0f, (float)(window_h - TOOLBAR_H), (float)window_w, (float)window_h, color_vd());
                 em_quad(0.0f, 0.0f, (float)window_w, (float)STATUSBAR_H, color_vd());
 
-                switch (em_button("Run",
-                                  (window_w - 60) * 0.5f, (float)(window_h - TOOLBAR_H),
-                                  (window_w + 60) * 0.5f, (float)window_h,
-                                  EM_BUTTON_FLAGS_NONE)) {
-                    case EM_RESPONSE_CLICKED:
-                        paused = !paused;
-                    case EM_RESPONSE_HOVERED:
-                        sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Run/pause simulation");
-                    default:;
+                /* toolbar */
+                {
+                    switch (em_button("Run",
+                                      (window_w - 60) * 0.5f, (float)(window_h - TOOLBAR_H),
+                                      (window_w + 60) * 0.5f, (float)window_h,
+                                      EM_BUTTON_FLAGS_NONE)) {
+                        case EM_RESPONSE_CLICKED:
+                            paused = !paused;
+                        case EM_RESPONSE_HOVERED:
+                            sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Run/pause simulation");
+                        default:;
+                    }
+
+                    if (em_button("Theme",
+                                  window_w - 60.0f, (float)(window_h - TOOLBAR_H),
+                                  (float)window_w, (float)window_h,
+                                  EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                        color_toggle_theme();
                 }
 
                 /* sidebar */

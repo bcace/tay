@@ -50,7 +50,13 @@ void color_init() {
     };
 
     selected = &light;
-    // selected = &dark;
+}
+
+void color_toggle_theme() {
+    if (selected == &light)
+        selected = &dark;
+    else
+        selected = &light;
 }
 
 vec4 color_border() {

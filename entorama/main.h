@@ -20,6 +20,7 @@ struct vec4 color_fg_hover();
 struct vec4 color_fg_disabled();
 struct vec4 color_hi();
 struct vec4 color_palette(int index);
+void color_toggle_theme();
 
 /* model.c */
 void model_load(struct EntoramaModel *model, char *path);
