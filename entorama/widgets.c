@@ -126,15 +126,16 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
     vec2 *quad_pos = 0;
     vec4 *quad_col = 0;
 
-    if (hovered_widget_id == (unsigned long long)label) {
-        quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
-        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
-        _init_color(quad_col, color_fg_disabled());
-    }
-    else if (pressed_widget_id == (unsigned long long)label || state == EM_BUTTON_STATE_PRESSED) {
+    if (pressed_widget_id == (unsigned long long)label || state == EM_BUTTON_STATE_PRESSED) {
         quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
         _init_quad(quad_pos, min_x, max_x, min_y, max_y);
         _init_color(quad_col, color_hi());
+    }
+
+    if (hovered_widget_id == (unsigned long long)label) {
+        quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+        _init_color(quad_col, color_fg_hover());
     }
 
     return response;
