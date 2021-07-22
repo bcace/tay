@@ -141,6 +141,41 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
     return response;
 }
 
+EmResponse em_button_described(char *label, char *description, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
+    unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
+    unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
+    int label_x = (int)(min_x + button_label_offset); // (int)((min_x + max_x - label_w) * 0.5f);
+    int label_y = (int)(max_y - label_h - 9);
+
+    font_draw_text(label, label_x, label_y, color_fg(), &text_buffer);
+
+    unsigned desc_w = font_text_width(ENTORAMA_FONT_MEDIUM, description);
+    unsigned desc_h = font_height(ENTORAMA_FONT_MEDIUM);
+    int desc_x = (int)(min_x + button_label_offset);
+    int desc_y = (int)(min_y + 9);
+
+    font_draw_text(description, desc_x, desc_y, color_fg_disabled(), &text_buffer);
+
+    EmResponse response = _get_response((unsigned long long)label, min_x, min_y, max_x, max_y, flags);
+
+    vec2 *quad_pos = 0;
+    vec4 *quad_col = 0;
+
+    if (pressed_widget_id == (unsigned long long)label || flags & EM_BUTTON_FLAGS_PRESSED) {
+        quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+        _init_color(quad_col, color_hi());
+    }
+
+    if (hovered_widget_id == (unsigned long long)label) {
+        quad_buffer_add(&quad_buffer, 1, &quad_pos, &quad_col);
+        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+        _init_color(quad_col, color_fg_hover());
+    }
+
+    return response;
+}
+
 EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
     return _get_response((unsigned long long)label, min_x, min_y, max_x, max_y, EM_BUTTON_FLAGS_NONE);
 }

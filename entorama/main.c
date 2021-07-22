@@ -33,6 +33,9 @@ static int speed_mode = 0;
 #define MAX_TOOLTIP_TEXT_BUFFER 512
 static char tooltip_text_buffer[MAX_TOOLTIP_TEXT_BUFFER];
 
+#define MAX_DESC_TEXT_BUFFER 512
+static char desc_text_buffer[MAX_DESC_TEXT_BUFFER];
+
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
 }
@@ -250,10 +253,15 @@ int main() {
                         for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
                             EntoramaPass *pass = model.passes + pass_i;
 
-                            if (em_button(pass->name,
-                                          0.0f, y,
-                                          SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                          (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                            if (pass->type == ENTORAMA_PASS_ACT)
+                                sprintf_s(desc_text_buffer, MAX_DESC_TEXT_BUFFER, "Act: %s", pass->act_group->name);
+                            else
+                                sprintf_s(desc_text_buffer, MAX_DESC_TEXT_BUFFER, "See: %s - %s", pass->seer_group->name, pass->seen_group->name);
+
+                            if (em_button_described(pass->name, desc_text_buffer,
+                                                    0.0f, y,
+                                                    SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                    (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                 selected_model_element = pass;
 
                             float bullet_y = y + SIDEBAR_BUTTON_H * 0.5f;
