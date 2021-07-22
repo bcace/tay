@@ -85,6 +85,9 @@ void em_widgets_end(mat4 projection) {
         graphics_draw_quads(text_buffer.count * 4);
         tex_quad_buffer_clear(&text_buffer);
     }
+
+    if (!mouse_l)
+        pressed_widget_id = 0;
 }
 
 static EmResponse _get_response(unsigned long long id, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
@@ -98,21 +101,17 @@ static EmResponse _get_response(unsigned long long id, float min_x, float min_y,
             }
         }
         else {
-            hovered_widget_id = id;
             if (pressed_widget_id == id) {
                 response = EM_RESPONSE_CLICKED;
                 pressed_widget_id = 0;
             }
             else
                 response = EM_RESPONSE_HOVERED;
+            hovered_widget_id = id;
         }
     }
-    else if (pressed_widget_id == id) {
-        if ((flags & EM_BUTTON_FLAGS_DRAGGABLE) == 0)
-            pressed_widget_id = 0;
-        else
-            response = EM_RESPONSE_PRESSED;
-    }
+    else if (pressed_widget_id == id)
+        response = EM_RESPONSE_PRESSED;
 
     return response;
 }
