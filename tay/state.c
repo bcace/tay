@@ -154,6 +154,8 @@ void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *
 
 void tay_clear_all_agents(TayState *state, TayGroup *group) {
     group->space.count = 0;
+    if (group->ocl_enabled)
+        group->space.ocl_common.push_agents = 1;
 }
 
 void *tay_get_available_agent(TayState *state, TayGroup *group) {
