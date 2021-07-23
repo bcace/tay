@@ -18,9 +18,10 @@ static int mouse_started_moving = 0;
 static float mouse_dx = 0.0f;
 static float mouse_dy = 0.0f;
 
-static int TOOLBAR_H = 40;
-static int STATUSBAR_H = 26;
+static float TOOLBAR_H = 40;
+static float STATUSBAR_H = 26;
 static float SIDEBAR_W = 300.0f;
+static float PROPERTIES_H = 400.0f;
 
 static EntoramaModel model;
 static void *selected_model_element = 0;
@@ -115,8 +116,11 @@ int main() {
 #endif
 
     GLFWwindow *window = glfwCreateWindow(window_w, window_h, "Entorama", monitor, 0);
-    // glfwMaximizeWindow(window);
-    // glfwGetWindowSize(window, &window_w, &window_h);
+
+#if 0
+    glfwMaximizeWindow(window);
+    glfwGetWindowSize(window, &window_w, &window_h);
+#endif
 
     if (!window) {
         fprintf(stderr, "Could not create GLFW window\n");
@@ -161,7 +165,7 @@ int main() {
 
         /* drawing */
         {
-            graphics_viewport((int)SIDEBAR_W, STATUSBAR_H, window_w - (int)SIDEBAR_W, window_h - TOOLBAR_H - STATUSBAR_H);
+            graphics_viewport((int)SIDEBAR_W, (int)STATUSBAR_H, (int)(window_w - SIDEBAR_W), (int)(window_h - TOOLBAR_H - STATUSBAR_H));
             vec4 bg = color_bg();
             graphics_clear(bg.x, bg.y, bg.z);
             graphics_clear_depth();
@@ -169,7 +173,7 @@ int main() {
             /* draw agents */
             {
                 graphics_enable_depth_test(1);
-                drawing_camera_setup(&model, window_w - (int)SIDEBAR_W, window_h - TOOLBAR_H - STATUSBAR_H);
+                drawing_camera_setup(&model, (int)(window_w - SIDEBAR_W), (int)(window_h - TOOLBAR_H - STATUSBAR_H));
 
                 for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                     EntoramaGroup *group = model.groups + group_i;
@@ -188,10 +192,10 @@ int main() {
 
                 em_widgets_begin();
 
-                em_select_layer(1);
+                em_select_layer(2);
 
-                em_quad(0.0f, (float)(window_h - TOOLBAR_H), (float)window_w, (float)window_h, color_vd());
-                em_quad(0.0f, 0.0f, (float)window_w, (float)STATUSBAR_H, color_vd());
+                em_quad(0.0f, window_h - TOOLBAR_H, (float)window_w, (float)window_h, color_vd());
+                em_quad(0.0f, 0.0f, (float)window_w, STATUSBAR_H, color_vd());
 
                 /* toolbar */
                 {
@@ -200,20 +204,20 @@ int main() {
                     float button_x = (window_w - TOOLBAR_BUTTON_W * 2.0f) * 0.5f;
 
                     switch (em_button("Run",
-                                      button_x, (float)(window_h - TOOLBAR_H),
+                                      button_x, window_h - TOOLBAR_H,
                                       button_x + TOOLBAR_BUTTON_W, (float)window_h,
                                       EM_BUTTON_FLAGS_NONE)) {
                         case EM_RESPONSE_CLICKED:
                             paused = !paused;
                         case EM_RESPONSE_HOVERED:
-                            sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Run/pause simulation");
+                            sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Run / pause simulation");
                         default:;
                     }
 
                     button_x += TOOLBAR_BUTTON_W;
 
                     switch (em_button("Reset",
-                                      button_x, (float)(window_h - TOOLBAR_H),
+                                      button_x, window_h - TOOLBAR_H,
                                       button_x + TOOLBAR_BUTTON_W, (float)window_h,
                                       EM_BUTTON_FLAGS_NONE)) {
                         case EM_RESPONSE_CLICKED:
@@ -224,7 +228,7 @@ int main() {
                     }
 
                     if (em_button("Theme",
-                                  window_w - 60.0f, (float)(window_h - TOOLBAR_H),
+                                  window_w - 60.0f, window_h - TOOLBAR_H,
                                   (float)window_w, (float)window_h,
                                   EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                         color_toggle_theme();
@@ -232,117 +236,142 @@ int main() {
 
                 /* sidebar */
                 {
-                    em_select_layer(0);
-                    em_set_layer_scissor(0.0f, (float)STATUSBAR_H, SIDEBAR_W, (float)(window_h - TOOLBAR_H));
-
-                    em_quad(0.0f, (float)STATUSBAR_H, SIDEBAR_W, (float)(window_h - TOOLBAR_H), color_vd());
-
+                    /* sidebar size button */
                     if (em_button("",
-                                  SIDEBAR_W - 6.0f, (float)STATUSBAR_H,
-                                  SIDEBAR_W, (float)(window_h - TOOLBAR_H),
+                                  SIDEBAR_W, STATUSBAR_H,
+                                  SIDEBAR_W + 6.0f, window_h - TOOLBAR_H,
                                   EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_PRESSED)
                         SIDEBAR_W += mouse_dx;
 
-                    const float SIDEBAR_BUTTON_H = 52.0f;
-                    float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
+                    /* properties pane size button */
+                    if (em_button(" ",
+                                  0.0f, STATUSBAR_H + PROPERTIES_H,
+                                  SIDEBAR_W, STATUSBAR_H + PROPERTIES_H + 6.0f,
+                                  EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_PRESSED)
+                        PROPERTIES_H += mouse_dy;
 
-                    const float bullet_size = 8.0f;
-                    const float bullet_offset = 20.0f;
-
-                    em_set_button_label_offset(bullet_offset * 2.0f);
-
-                    /* tay button */
+                    /* model elements list */
                     {
-                        if (em_button_described("Tay",
-                                                "Global settings",
-                                                0.0f, y,
-                                                SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                (selected_model_element == tay) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
-                            selected_model_element = tay;
+                        em_select_layer(0);
+                        em_set_layer_scissor(0.0f, STATUSBAR_H + PROPERTIES_H, SIDEBAR_W, window_h - TOOLBAR_H);
 
-                        em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
-                                bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
-                                color_fg());
+                        /* background */
+                        em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, window_h - TOOLBAR_H, color_vd());
 
-                        y -= SIDEBAR_BUTTON_H;
-                    }
+                        const float SIDEBAR_BUTTON_H = 52.0f;
+                        float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
 
-                    /* group buttons */
-                    {
-                        for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
-                            EntoramaGroup *group = model.groups + group_i;
+                        const float bullet_size = 8.0f;
+                        const float bullet_offset = 20.0f;
 
-                            if (em_button_described(group->name,
-                                                    "Agent group",
+                        em_set_button_label_offset(bullet_offset * 2.0f);
+
+                        /* tay button */
+                        {
+                            if (em_button_described("Tay",
+                                                    "Global settings",
                                                     0.0f, y,
                                                     SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                    (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
-                                selected_model_element = group;
+                                                    (selected_model_element == tay) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                selected_model_element = tay;
 
                             em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
                                     bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
-                                    color_palette(group_i));
+                                    color_fg());
 
                             y -= SIDEBAR_BUTTON_H;
                         }
-                    }
 
-                    /* pass buttons */
-                    {
-                        float bottom_bullet_y = 0.0f;
-                        float top_bullet_y = 0.0f;
+                        /* group buttons */
+                        {
+                            for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
+                                EntoramaGroup *group = model.groups + group_i;
 
-                        for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
-                            EntoramaPass *pass = model.passes + pass_i;
+                                if (em_button_described(group->name,
+                                                        "Agent group",
+                                                        0.0f, y,
+                                                        SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                        (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                    selected_model_element = group;
 
-                            int pass_group_selected = 0;
+                                em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
+                                        bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
+                                        color_palette(group_i));
 
-                            if (pass->type == ENTORAMA_PASS_ACT) {
-                                sprintf_s(desc_text_buffer, MAX_DESC_TEXT_BUFFER, "Act: %s", pass->act_group->name);
-                                pass_group_selected = selected_model_element == pass->act_group;
+                                y -= SIDEBAR_BUTTON_H;
                             }
-                            else {
-                                sprintf_s(desc_text_buffer, MAX_DESC_TEXT_BUFFER, "See: %s - %s", pass->seer_group->name, pass->seen_group->name);
-                                pass_group_selected = selected_model_element == pass->seer_group || selected_model_element == pass->seen_group;
+                        }
+
+                        /* pass buttons */
+                        {
+                            float bottom_bullet_y = 0.0f;
+                            float top_bullet_y = 0.0f;
+
+                            for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
+                                EntoramaPass *pass = model.passes + pass_i;
+
+                                int pass_group_selected = 0;
+
+                                if (pass->type == ENTORAMA_PASS_ACT) {
+                                    sprintf_s(desc_text_buffer, MAX_DESC_TEXT_BUFFER, "Act: %s", pass->act_group->name);
+                                    pass_group_selected = selected_model_element == pass->act_group;
+                                }
+                                else {
+                                    sprintf_s(desc_text_buffer, MAX_DESC_TEXT_BUFFER, "See: %s - %s", pass->seer_group->name, pass->seen_group->name);
+                                    pass_group_selected = selected_model_element == pass->seer_group || selected_model_element == pass->seen_group;
+                                }
+
+                                if (em_button_described(pass->name, desc_text_buffer,
+                                                        0.0f, y,
+                                                        SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                        (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                    selected_model_element = pass;
+
+                                float bullet_y = y + SIDEBAR_BUTTON_H * 0.5f;
+                                if (pass_i == 0)
+                                    top_bullet_y = bullet_y;
+                                bottom_bullet_y = bullet_y;
+
+                                if (pass_group_selected) {
+                                    em_quad(SIDEBAR_W - 3.0f, y + 0.0f,
+                                            SIDEBAR_W, y + SIDEBAR_BUTTON_H - 0.0f,
+                                            color_palette(1));
+                                }
+
+                                em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
+                                        bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
+                                        color_fg_disabled());
+
+                                y -= SIDEBAR_BUTTON_H;
                             }
 
-                            if (em_button_described(pass->name, desc_text_buffer,
-                                                    0.0f, y,
-                                                    SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                    (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
-                                selected_model_element = pass;
-
-                            float bullet_y = y + SIDEBAR_BUTTON_H * 0.5f;
-                            if (pass_i == 0)
-                                top_bullet_y = bullet_y;
-                            bottom_bullet_y = bullet_y;
-
-                            if (pass_group_selected) {
-                                em_quad(SIDEBAR_W - 3.0f, y + 0.0f,
-                                        (float)SIDEBAR_W, y + SIDEBAR_BUTTON_H - 0.0f,
-                                        color_palette(1));
-                            }
-
-                            em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
-                                    bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
+                            /* line connecting pass button bullets */
+                            em_quad(bullet_offset - 0.5f, bottom_bullet_y,
+                                    bullet_offset + 0.5f, top_bullet_y,
                                     color_fg_disabled());
 
-                            y -= SIDEBAR_BUTTON_H;
+                            em_reset_button_label_offset();
                         }
 
-                        em_quad(bullet_offset - 0.5f, bottom_bullet_y,
-                                bullet_offset + 0.5f, top_bullet_y,
-                                color_fg_disabled());
+                        if (em_area("Model element deselect area",
+                                    0.0f, STATUSBAR_H + PROPERTIES_H,
+                                    SIDEBAR_W, window_h - TOOLBAR_H) == EM_RESPONSE_CLICKED)
+                            selected_model_element = 0;
                     }
 
-                    em_reset_button_label_offset();
+                    /* properties pane */
+                    {
+                        em_select_layer(1);
+                        em_set_layer_scissor(0.0f, STATUSBAR_H, SIDEBAR_W, STATUSBAR_H + PROPERTIES_H);
 
-                    if (em_area("Sidebar background",
-                                0.0f, (float)STATUSBAR_H,
-                                SIDEBAR_W, (float)(window_h - TOOLBAR_H)) == EM_RESPONSE_CLICKED)
-                        selected_model_element = 0;
+                        /* background */
+                        em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, STATUSBAR_H + PROPERTIES_H, color_vd());
+                    }
 
-                    em_select_layer(1);
+                    em_select_layer(2);
+
+                    /* border between element list and properties pane */
+                    em_quad(0.0f, STATUSBAR_H + PROPERTIES_H, SIDEBAR_W, STATUSBAR_H + PROPERTIES_H + 1.0f, color_border());
                 }
 
                 /* statusbar */
@@ -355,7 +384,7 @@ int main() {
 
                     switch (em_button(speed_text_buffer,
                                       window_w - font_text_width(ENTORAMA_FONT_MEDIUM, speed_text_buffer) - 20.0f, 0.0f,
-                                      (float)window_w, (float)STATUSBAR_H,
+                                      (float)window_w, STATUSBAR_H,
                                       EM_BUTTON_FLAGS_NONE)) {
                         case EM_RESPONSE_CLICKED:
                             speed_mode = !speed_mode;
@@ -366,12 +395,12 @@ int main() {
 
                     em_label(tooltip_text_buffer,
                              0.0f, 0.0f,
-                             (float)window_w, (float)STATUSBAR_H);
+                             (float)window_w, STATUSBAR_H);
                 }
 
-                em_quad(0.0f, (float)STATUSBAR_H, (float)window_w, STATUSBAR_H + 1.0f, color_border());
-                em_quad(0.0f, window_h - TOOLBAR_H - 1.0f, (float)window_w, (float)(window_h - TOOLBAR_H), color_border());
-                em_quad((float)SIDEBAR_W, (float)STATUSBAR_H, SIDEBAR_W + 1.0f, (float)(window_h - TOOLBAR_H), color_border());
+                em_quad(0.0f, STATUSBAR_H, (float)window_w, STATUSBAR_H + 1.0f, color_border());
+                em_quad(0.0f, window_h - TOOLBAR_H - 1.0f, (float)window_w, window_h - TOOLBAR_H, color_border());
+                em_quad(SIDEBAR_W, STATUSBAR_H, SIDEBAR_W + 1.0f, window_h - TOOLBAR_H, color_border());
 
                 em_widgets_end(projection);
             }
