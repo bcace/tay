@@ -76,9 +76,6 @@ typedef struct {
     unsigned end;
 } TayRange;
 
-void tay_threads_start(unsigned thread_storage_size);
-void tay_threads_stop();
-
 void tay_thread_set_task(int index, void (*task_func)(TayThreadTask *, TayThreadContext *), TayThreadTask *task, void *context);
 void tay_runner_run();
 void tay_runner_run_no_threads();

@@ -110,4 +110,7 @@ void tay_log(void *file, char *fmt, ...);
 
 void ocl_add_source(TayState *state, const char *source);
 
+void tay_threads_start(unsigned threads_count, unsigned thread_storage_size);
+void tay_threads_stop();
+
 #endif

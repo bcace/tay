@@ -67,8 +67,12 @@ void _start_threads(int threads_count, unsigned thread_storage_size) {
 #endif
 }
 
-void tay_threads_start(unsigned thread_storage_size) {
-    _start_threads(GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS), thread_storage_size);
+void tay_threads_start(unsigned threads_count, unsigned thread_storage_size) {
+    if (threads_count == 0)
+        threads_count = GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS);
+    else if (threads_count > TAY_MAX_THREADS)
+        threads_count = TAY_MAX_THREADS;
+    _start_threads(threads_count, thread_storage_size);
 }
 
 void tay_runner_run() {
