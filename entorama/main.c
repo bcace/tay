@@ -1,7 +1,6 @@
 #include "main.h"
 #include "entorama.h"
 #include "tay.h"
-#include "thread.h" // TODO: remove this!!!
 #include "widgets.h"
 #include "graphics.h"
 #include "font.h"
@@ -148,7 +147,7 @@ int main() {
     model.init(&model, tay);
     model.reset(&model, tay);
 
-    tay_threads_start(100000); // TODO: remove this!!!
+    tay_threads_start(0, 100000);
     tay_simulation_start(tay);
 
     drawing_init(1000000);
@@ -385,7 +384,7 @@ int main() {
     }
 
     tay_simulation_end(tay);
-    tay_threads_stop(); // TODO: remove this!!!
+    tay_threads_stop();
     tay_destroy_state(tay);
 
     glfwDestroyWindow(window);
