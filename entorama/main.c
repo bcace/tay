@@ -189,6 +189,8 @@ int main() {
 
                 em_widgets_begin();
 
+                em_select_layer(1);
+
                 em_quad(0.0f, (float)(window_h - TOOLBAR_H), (float)window_w, (float)window_h, color_vd());
                 em_quad(0.0f, 0.0f, (float)window_w, (float)STATUSBAR_H, color_vd());
 
@@ -214,11 +216,14 @@ int main() {
 
                 /* sidebar */
                 {
+                    em_select_layer(0);
+                    em_set_layer_scissor(0.0f, (float)STATUSBAR_H, SIDEBAR_W, (float)(window_h - TOOLBAR_H));
+
                     em_quad(0.0f, (float)STATUSBAR_H, SIDEBAR_W, (float)(window_h - TOOLBAR_H), color_vd());
 
                     if (em_button("",
-                                  SIDEBAR_W, (float)STATUSBAR_H,
-                                  SIDEBAR_W + 6.0f, (float)(window_h - TOOLBAR_H),
+                                  SIDEBAR_W - 6.0f, (float)STATUSBAR_H,
+                                  SIDEBAR_W, (float)(window_h - TOOLBAR_H),
                                   EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_PRESSED)
                         SIDEBAR_W += mouse_dx;
 
@@ -291,6 +296,8 @@ int main() {
                                 0.0f, (float)STATUSBAR_H,
                                 SIDEBAR_W, (float)(window_h - TOOLBAR_H)) == EM_RESPONSE_CLICKED)
                         selected_model_element = 0;
+
+                    em_select_layer(1);
                 }
 
                 /* statusbar */

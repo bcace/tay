@@ -29,6 +29,9 @@ void em_quad(float min_x, float min_y, float max_x, float max_y, struct vec4 col
 void em_set_button_label_offset(float offset);
 void em_reset_button_label_offset();
 
+void em_select_layer(unsigned layer_index);
+void em_set_layer_scissor(float min_x, float min_y, float max_x, float max_y);
+
 int em_widget_pressed();
 
 extern int mouse_l;
