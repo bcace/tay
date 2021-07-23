@@ -196,14 +196,31 @@ int main() {
 
                 /* toolbar */
                 {
+                    const float TOOLBAR_BUTTON_W = 60.0f;
+
+                    float button_x = (window_w - TOOLBAR_BUTTON_W * 2.0f) * 0.5f;
+
                     switch (em_button("Run",
-                                      (window_w - 60) * 0.5f, (float)(window_h - TOOLBAR_H),
-                                      (window_w + 60) * 0.5f, (float)window_h,
+                                      button_x, (float)(window_h - TOOLBAR_H),
+                                      button_x + TOOLBAR_BUTTON_W, (float)window_h,
                                       EM_BUTTON_FLAGS_NONE)) {
                         case EM_RESPONSE_CLICKED:
                             paused = !paused;
                         case EM_RESPONSE_HOVERED:
                             sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Run/pause simulation");
+                        default:;
+                    }
+
+                    button_x += TOOLBAR_BUTTON_W;
+
+                    switch (em_button("Reset",
+                                      button_x, (float)(window_h - TOOLBAR_H),
+                                      button_x + TOOLBAR_BUTTON_W, (float)window_h,
+                                      EM_BUTTON_FLAGS_NONE)) {
+                        case EM_RESPONSE_CLICKED:
+                            model.reset(&model, tay);
+                        case EM_RESPONSE_HOVERED:
+                            sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Reset simulation");
                         default:;
                     }
 
@@ -231,24 +248,41 @@ int main() {
                     float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
 
                     const float bullet_size = 8.0f;
-                    const float bullet_offset = 16.0f;
+                    const float bullet_offset = 20.0f;
 
-                    em_set_button_label_offset(bullet_offset * 2.0f + bullet_size);
+                    em_set_button_label_offset(bullet_offset * 2.0f);
+
+                    /* tay button */
+                    {
+                        if (em_button_described("Tay",
+                                                "Global settings",
+                                                0.0f, y,
+                                                SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                (selected_model_element == tay) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                            selected_model_element = tay;
+
+                        em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
+                                bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
+                                color_fg());
+
+                        y -= SIDEBAR_BUTTON_H;
+                    }
 
                     /* group buttons */
                     {
                         for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                             EntoramaGroup *group = model.groups + group_i;
 
-                            if (em_button(group->name,
-                                          0.0f, y,
-                                          SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                          (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                            if (em_button_described(group->name,
+                                                    "Agent group",
+                                                    0.0f, y,
+                                                    SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                    (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                 selected_model_element = group;
 
-                            em_quad(bullet_offset, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
-                                    bullet_offset + bullet_size, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
-                                    color_palette(0));
+                            em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
+                                    bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
+                                    color_palette(group_i));
 
                             y -= SIDEBAR_BUTTON_H;
                         }
@@ -262,10 +296,16 @@ int main() {
                         for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
                             EntoramaPass *pass = model.passes + pass_i;
 
-                            if (pass->type == ENTORAMA_PASS_ACT)
+                            int pass_group_selected = 0;
+
+                            if (pass->type == ENTORAMA_PASS_ACT) {
                                 sprintf_s(desc_text_buffer, MAX_DESC_TEXT_BUFFER, "Act: %s", pass->act_group->name);
-                            else
+                                pass_group_selected = selected_model_element == pass->act_group;
+                            }
+                            else {
                                 sprintf_s(desc_text_buffer, MAX_DESC_TEXT_BUFFER, "See: %s - %s", pass->seer_group->name, pass->seen_group->name);
+                                pass_group_selected = selected_model_element == pass->seer_group || selected_model_element == pass->seen_group;
+                            }
 
                             if (em_button_described(pass->name, desc_text_buffer,
                                                     0.0f, y,
@@ -278,16 +318,22 @@ int main() {
                                 top_bullet_y = bullet_y;
                             bottom_bullet_y = bullet_y;
 
-                            em_quad(bullet_offset, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
-                                    bullet_offset + bullet_size, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
-                                    color_palette(3));
+                            if (pass_group_selected) {
+                                em_quad(SIDEBAR_W - 3.0f, y + 0.0f,
+                                        (float)SIDEBAR_W, y + SIDEBAR_BUTTON_H - 0.0f,
+                                        color_palette(1));
+                            }
+
+                            em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
+                                    bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
+                                    color_fg_disabled());
 
                             y -= SIDEBAR_BUTTON_H;
                         }
 
-                        em_quad(bullet_offset + bullet_size * 0.5f - 0.5f, bottom_bullet_y,
-                                bullet_offset + bullet_size * 0.5f + 0.5f, top_bullet_y,
-                                color_palette(3));
+                        em_quad(bullet_offset - 0.5f, bottom_bullet_y,
+                                bullet_offset + 0.5f, top_bullet_y,
+                                color_fg_disabled());
                     }
 
                     em_reset_button_label_offset();
