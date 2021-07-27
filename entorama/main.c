@@ -27,6 +27,7 @@ static EntoramaModel model;
 static void *selected_model_element = 0;
 
 static int speed_mode = 0;
+static unsigned thread_storage_size = 100000;
 
 #define MAX_LABEL_TEXT_BUFFER 512
 static char label_text_buffer[MAX_LABEL_TEXT_BUFFER];
@@ -149,7 +150,7 @@ int main() {
     model.init(&model, tay);
     model.reset(&model, tay);
 
-    tay_threads_start(0, 100000);
+    tay_threads_start(0, thread_storage_size);
     tay_simulation_start(tay);
 
     drawing_init(1000000);
@@ -371,20 +372,28 @@ int main() {
 
                             /* threads count */
                             {
-                                sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%d threads", tay_get_number_of_threads());
+                                unsigned threads_count = tay_get_number_of_threads();
+
+                                sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%d threads", threads_count);
                                 em_label(label_text_buffer,
                                          PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H,
                                          SIDEBAR_W - PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H);
 
-                                em_button("-",
-                                          0.0f, STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H,
-                                          PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H,
-                                          EM_BUTTON_FLAGS_NONE);
+                                if (em_button("-",
+                                              0.0f, STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H,
+                                              PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H,
+                                              EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                    tay_threads_stop();
+                                    tay_threads_start(--threads_count, thread_storage_size);
+                                }
 
-                                em_button("+",
-                                          SIDEBAR_W - PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H,
-                                          SIDEBAR_W, STATUSBAR_H + PROPERTIES_H,
-                                          EM_BUTTON_FLAGS_NONE);
+                                if (em_button("+",
+                                              SIDEBAR_W - PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H,
+                                              SIDEBAR_W, STATUSBAR_H + PROPERTIES_H,
+                                              EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                    tay_threads_stop();
+                                    tay_threads_start(++threads_count, thread_storage_size);
+                                }
                             }
                         }
                     }
