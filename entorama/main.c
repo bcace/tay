@@ -26,18 +26,13 @@ static float PROPERTIES_H = 400.0f;
 static EntoramaModel model;
 static void *selected_model_element = 0;
 
-#define MAX_SPEED_TEXT_BUFFER 16
-static char speed_text_buffer[MAX_SPEED_TEXT_BUFFER];
 static int speed_mode = 0;
+
+#define MAX_LABEL_TEXT_BUFFER 512
+static char label_text_buffer[MAX_LABEL_TEXT_BUFFER];
 
 #define MAX_TOOLTIP_TEXT_BUFFER 512
 static char tooltip_text_buffer[MAX_TOOLTIP_TEXT_BUFFER];
-
-#define MAX_DESC_TEXT_BUFFER 512
-static char desc_text_buffer[MAX_DESC_TEXT_BUFFER];
-
-#define MAX_THREADS_TEXT_BUFFER 16
-static char threads_text_buffer[MAX_THREADS_TEXT_BUFFER];
 
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
@@ -316,15 +311,15 @@ int main() {
                                 int pass_group_selected = 0;
 
                                 if (pass->type == ENTORAMA_PASS_ACT) {
-                                    sprintf_s(desc_text_buffer, MAX_DESC_TEXT_BUFFER, "Act: %s", pass->act_group->name);
+                                    sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "Act: %s", pass->act_group->name);
                                     pass_group_selected = selected_model_element == pass->act_group;
                                 }
                                 else {
-                                    sprintf_s(desc_text_buffer, MAX_DESC_TEXT_BUFFER, "See: %s - %s", pass->seer_group->name, pass->seen_group->name);
+                                    sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "See: %s - %s", pass->seer_group->name, pass->seen_group->name);
                                     pass_group_selected = selected_model_element == pass->seer_group || selected_model_element == pass->seen_group;
                                 }
 
-                                if (em_button_described(pass->name, desc_text_buffer,
+                                if (em_button_described(pass->name, label_text_buffer,
                                                         0.0f, y,
                                                         SIDEBAR_W, y + SIDEBAR_BUTTON_H,
                                                         (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
@@ -376,8 +371,8 @@ int main() {
 
                             /* threads count */
                             {
-                                sprintf_s(threads_text_buffer, MAX_THREADS_TEXT_BUFFER, "%d threads", tay_get_number_of_threads());
-                                em_label(threads_text_buffer,
+                                sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%d threads", tay_get_number_of_threads());
+                                em_label(label_text_buffer,
                                          PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H,
                                          SIDEBAR_W - PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H);
 
@@ -404,12 +399,12 @@ int main() {
                 {
                     double speed = _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay));
                     if (speed_mode)
-                        sprintf_s(speed_text_buffer, MAX_SPEED_TEXT_BUFFER, "%.1f fps", 1000.0 / speed);
+                        sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%.1f fps", 1000.0 / speed);
                     else
-                        sprintf_s(speed_text_buffer, MAX_SPEED_TEXT_BUFFER, "%.1f ms", speed);
+                        sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%.1f ms", speed);
 
-                    switch (em_button(speed_text_buffer,
-                                      window_w - font_text_width(ENTORAMA_FONT_MEDIUM, speed_text_buffer) - 20.0f, 0.0f,
+                    switch (em_button(label_text_buffer,
+                                      window_w - font_text_width(ENTORAMA_FONT_MEDIUM, label_text_buffer) - 20.0f, 0.0f,
                                       (float)window_w, STATUSBAR_H,
                                       EM_BUTTON_FLAGS_NONE)) {
                         case EM_RESPONSE_CLICKED:
