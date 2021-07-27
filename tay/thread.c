@@ -117,6 +117,10 @@ void tay_threads_stop() {
     _stop_threads();
 }
 
+unsigned tay_get_number_of_threads() {
+    return runner.count;
+}
+
 static void _init_thread(TayThread *thread) {
     thread->run = 1;
 }

@@ -112,5 +112,6 @@ void ocl_add_source(TayState *state, const char *source);
 
 void tay_threads_start(unsigned threads_count, unsigned thread_storage_size);
 void tay_threads_stop();
+unsigned tay_get_number_of_threads();
 
 #endif
