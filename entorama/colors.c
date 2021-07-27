@@ -16,15 +16,18 @@ typedef struct {
 Theme dark, light;
 Theme *selected;
 
+#define EM_DARKEN(r, g, b, s) r * s, g * s, b * s
+#define EM_LIGHTEN(r, g, b, s) (1.0f - r) * s + r, (1.0f - g) * s + g, (1.0f - b) * s + b
+
 void color_init() {
     dark = (Theme){
-        .border = (vec4){0.0664f * 0.5f, 0.18359f * 0.5f, 0.2539f * 0.5f, 1.0f},
-        .vd = (vec4){0.0664f * 0.8f, 0.18359f * 0.8f, 0.2539f * 0.8f, 1.0f},
+        .border = (vec4){EM_DARKEN(0.0664f, 0.18359f, 0.2539f, 0.5f), 1.0f},
+        .vd = (vec4){EM_DARKEN(0.0664f, 0.18359f, 0.2539f, 0.8f), 1.0f},
         .bg = (vec4){0.0664f, 0.18359f, 0.2539f, 1.0f},
         .fg = (vec4){0.99f, 0.99f, 0.99f, 1.0f},
         .fg_hover = (vec4){0.99f, 0.99f, 0.99f, 0.1f},
         .fg_disabled = (vec4){0.5f, 0.5f, 0.5f, 1.0f},
-        .hi = (vec4){0.0664f * 0.7f, 0.18359f * 0.7f, 0.2539f * 0.7f, 1.0f},
+        .hi = (vec4){EM_LIGHTEN(0.0664f, 0.18359f, 0.2539f, 0.1f), 1.0f},
         .palette = {
             (vec4){0.019531f, 0.51953125f, 0.52734375f, 1.0f},
             (vec4){0.30859375f, 0.71875f, 0.6171875f, 1.0f},

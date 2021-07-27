@@ -374,7 +374,11 @@ int main() {
                             {
                                 unsigned threads_count = tay_get_number_of_threads();
 
-                                sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%d threads", threads_count);
+                                if (threads_count == 1)
+                                    sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%d thread", threads_count);
+                                else
+                                    sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%d threads", threads_count);
+
                                 em_label(label_text_buffer,
                                          PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H,
                                          SIDEBAR_W - PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H);
