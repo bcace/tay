@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define EM_MAX_LAYERS 8
-#define EM_BUTTON_DEFAULT_LABEL_OFFSET 10.0f
+#define EM_MAX_LAYERS                   8
+#define EM_BUTTON_DEFAULT_LABEL_OFFSET  10.0f
 
 
 int mouse_l = 0;
@@ -30,8 +30,9 @@ typedef struct {
 static Layer layers[EM_MAX_LAYERS];
 static Layer *selected_layer = layers;
 
-static unsigned long long pressed_widget_id = 0;
-static unsigned long long hovered_widget_id = 0;
+static unsigned available_widget_id = 0;
+static unsigned pressed_widget_id = 0;
+static unsigned hovered_widget_id = 0;
 
 static float button_label_offset = EM_BUTTON_DEFAULT_LABEL_OFFSET;
 
@@ -70,6 +71,7 @@ void em_widgets_begin() {
     graphics_enable_depth_test(0);
     font_use_medium();
     hovered_widget_id = 0;
+    available_widget_id = 0;
 }
 
 void em_widgets_end(mat4 projection) {
@@ -106,7 +108,7 @@ void em_widgets_end(mat4 projection) {
         pressed_widget_id = 0;
 }
 
-static EmResponse _get_response(unsigned long long id, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
+static EmResponse _get_response(unsigned id, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
     EmResponse response = EM_RESPONSE_NONE;
 
     if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
@@ -133,6 +135,8 @@ static EmResponse _get_response(unsigned long long id, float min_x, float min_y,
 }
 
 EmResponse em_button(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
+    unsigned id = ++available_widget_id;
+
     unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
     unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
     int label_x = (int)(min_x + button_label_offset); // (int)((min_x + max_x - label_w) * 0.5f);
@@ -140,18 +144,18 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
 
     font_draw_text(label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
 
-    EmResponse response = _get_response((unsigned long long)label, min_x, min_y, max_x, max_y, flags);
+    EmResponse response = _get_response(id, min_x, min_y, max_x, max_y, flags);
 
     vec2 *quad_pos = 0;
     vec4 *quad_col = 0;
 
-    if (pressed_widget_id == (unsigned long long)label || flags & EM_BUTTON_FLAGS_PRESSED) {
+    if (pressed_widget_id == id || flags & EM_BUTTON_FLAGS_PRESSED) {
         quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
         _init_quad(quad_pos, min_x, max_x, min_y, max_y);
         _init_color(quad_col, color_hi());
     }
 
-    if (hovered_widget_id == (unsigned long long)label) {
+    if (hovered_widget_id == id) {
         quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
         _init_quad(quad_pos, min_x, max_x, min_y, max_y);
         _init_color(quad_col, color_fg_hover());
@@ -161,6 +165,8 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
 }
 
 EmResponse em_button_described(char *label, char *description, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
+    unsigned id = ++available_widget_id;
+
     unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
     unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
     int label_x = (int)(min_x + button_label_offset); // (int)((min_x + max_x - label_w) * 0.5f);
@@ -175,18 +181,18 @@ EmResponse em_button_described(char *label, char *description, float min_x, floa
 
     font_draw_text(description, desc_x, desc_y, color_fg_disabled(), &selected_layer->text_buffer);
 
-    EmResponse response = _get_response((unsigned long long)label, min_x, min_y, max_x, max_y, flags);
+    EmResponse response = _get_response(id, min_x, min_y, max_x, max_y, flags);
 
     vec2 *quad_pos = 0;
     vec4 *quad_col = 0;
 
-    if (pressed_widget_id == (unsigned long long)label || flags & EM_BUTTON_FLAGS_PRESSED) {
+    if (pressed_widget_id == id || flags & EM_BUTTON_FLAGS_PRESSED) {
         quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
         _init_quad(quad_pos, min_x, max_x, min_y, max_y);
         _init_color(quad_col, color_hi());
     }
 
-    if (hovered_widget_id == (unsigned long long)label) {
+    if (hovered_widget_id == id) {
         quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
         _init_quad(quad_pos, min_x, max_x, min_y, max_y);
         _init_color(quad_col, color_fg_hover());
@@ -196,10 +202,14 @@ EmResponse em_button_described(char *label, char *description, float min_x, floa
 }
 
 EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
-    return _get_response((unsigned long long)label, min_x, min_y, max_x, max_y, EM_BUTTON_FLAGS_NONE);
+    unsigned id = ++available_widget_id;
+
+    return _get_response(id, min_x, min_y, max_x, max_y, EM_BUTTON_FLAGS_NONE);
 }
 
 EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y) {
+    unsigned id = ++available_widget_id;
+
     unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
     unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
     int label_x = (int)((min_x + max_x - label_w) * 0.5f);
