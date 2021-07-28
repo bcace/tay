@@ -9,7 +9,7 @@
 
 
 int main() {
-    tay_threads_start(100000);
+    tay_threads_start(0, 100000);
 
     Results *results = results_create();
 
