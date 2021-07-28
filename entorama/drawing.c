@@ -4,6 +4,7 @@
 #include "graphics.h"
 #include "shaders.h"
 #include <stdlib.h>
+#include <math.h>
 
 
 typedef enum {
