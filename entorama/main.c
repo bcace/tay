@@ -243,7 +243,7 @@ int main() {
                         SIDEBAR_W += mouse_dx;
 
                     /* properties pane size button */
-                    if (em_button(" ",
+                    if (em_button("",
                                   0.0f, STATUSBAR_H + PROPERTIES_H,
                                   SIDEBAR_W, STATUSBAR_H + PROPERTIES_H + 6.0f,
                                   EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_PRESSED)
@@ -366,7 +366,8 @@ int main() {
                         /* background */
                         em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, STATUSBAR_H + PROPERTIES_H, color_vd());
 
-                        const float PROPERTY_LINE_H = 26.0f;
+                        const float PROPERTY_LINE_H = 30.0f;
+                        float property_line_y = STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H;
 
                         if (selected_model_element == tay) {
 
@@ -380,24 +381,26 @@ int main() {
                                     sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%d threads", threads_count);
 
                                 em_label(label_text_buffer,
-                                         PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H,
-                                         SIDEBAR_W - PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H);
+                                         PROPERTY_LINE_H, property_line_y,
+                                         SIDEBAR_W - PROPERTY_LINE_H, property_line_y + PROPERTY_LINE_H);
 
                                 if (em_button("-",
-                                              0.0f, STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H,
-                                              PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H,
+                                              0.0f, property_line_y,
+                                              PROPERTY_LINE_H, property_line_y + PROPERTY_LINE_H,
                                               EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
                                     tay_threads_stop();
                                     tay_threads_start(--threads_count, thread_storage_size);
                                 }
 
                                 if (em_button("+",
-                                              SIDEBAR_W - PROPERTY_LINE_H, STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H,
-                                              SIDEBAR_W, STATUSBAR_H + PROPERTIES_H,
+                                              SIDEBAR_W - PROPERTY_LINE_H, property_line_y,
+                                              SIDEBAR_W, property_line_y + PROPERTY_LINE_H,
                                               EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
                                     tay_threads_stop();
                                     tay_threads_start(++threads_count, thread_storage_size);
                                 }
+
+                                property_line_y -= PROPERTY_LINE_H;
                             }
                         }
                     }
