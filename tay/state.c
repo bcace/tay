@@ -10,7 +10,7 @@
 
 TayState *tay_create_state() {
     TayState *state = calloc(1, sizeof(TayState));
-    state->running = TAY_STATE_STATUS_IDLE;
+    state->is_running = 0;
     state->error = TAY_ERROR_NONE;
     state->ms_per_step = 0.0;
     state->next_group_id = 0;
@@ -97,6 +97,7 @@ void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_ty
     space->dims = space_dims;
     space->shared_size = shared_size_in_megabytes * TAY_MB;
     space->shared = realloc(space->shared, space->shared_size);
+    state->recompile = 1;
 }
 
 void tay_fix_space_box(TayState *state, TayGroup *group, float4 min, float4 max) {
@@ -173,22 +174,24 @@ void *tay_get_agent(TayState *state, TayGroup *group, int index) {
     // ERROR: check group
     return group->storage + group->agent_size * index;
 }
+
 void tay_simulation_start(TayState *state) {
-    if (state->running != TAY_STATE_STATUS_IDLE) {
+    if (state->is_running) {
         tay_set_error2(state, TAY_ERROR_STATE_STATUS, "cannot start simulation if it's already running");
         return;
     }
 
-    if (!state_compile(state))
-        return;
-
-    state->running = TAY_STATE_STATUS_RUNNING;
+    state->recompile = 1;
+    state->is_running = 1;
 }
 
 /* Returns the number of steps executed */
 int tay_run(TayState *state, int steps) {
 
-    if (state->running != TAY_STATE_STATUS_RUNNING) {
+    if (!state_compile(state))
+        return 0;
+
+    if (!state->is_running) {
         tay_set_error2(state, TAY_ERROR_STATE_STATUS, "cannot run simulation steps if simulation is not started");
         return 0;
     }
@@ -318,12 +321,12 @@ int tay_run(TayState *state, int steps) {
 
 void tay_simulation_end(TayState *state) {
 
-    if (state->running != TAY_STATE_STATUS_RUNNING) {
-        tay_set_error(state, TAY_ERROR_STATE_STATUS);
+    if (!state->is_running) {
+        tay_set_error2(state, TAY_ERROR_STATE_STATUS, "cannot end simulationif it's not running");
         return;
     }
 
-    state->running = TAY_STATE_STATUS_IDLE;
+    state->is_running = 0;
     ocl_on_simulation_end(state);
 }
 

@@ -3,6 +3,11 @@
 
 
 int state_compile(TayState *state) {
+    if (state->recompile)
+        state->recompile = 0;
+    else
+        return 1; /* already compiled */
+
     int has_ocl_work = 0;
 
     /* check basic group settings */

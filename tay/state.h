@@ -140,20 +140,16 @@ typedef struct TayPass {
     };
 } TayPass;
 
-typedef enum TayStateStatus {
-    TAY_STATE_STATUS_IDLE,
-    TAY_STATE_STATUS_RUNNING,
-} TayStateStatus;
-
 typedef struct TayState {
     TayGroup groups[TAY_MAX_GROUPS];
     TayPass passes[TAY_MAX_PASSES];
     unsigned passes_count;
-    TayStateStatus running;
+    int is_running;
     TayError error;
     double ms_per_step; /* for the last run */
     TayOcl ocl;
     unsigned next_group_id;
+    int recompile;
 } TayState;
 
 void tay_set_error(TayState *state, TayError error);
