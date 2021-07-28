@@ -38,6 +38,13 @@ typedef struct EntoramaGroup {
     unsigned max_agents;
     char name[ENTORAMA_MAX_NAME];
 
+    enum TaySpaceType space_type;
+    float min_part_size_x;
+    float min_part_size_y;
+    float min_part_size_z;
+    float min_part_size_w;
+    void (*configure_space)(struct EntoramaGroup *group, enum TaySpaceType space_type, float min_part_size_x, float min_part_size_y, float min_part_size_z, float min_part_size_w);
+
     /* drawing info */
 
     struct {
@@ -80,6 +87,7 @@ typedef enum EntoramaPassType {
     ENTORAMA_PASS_ACT,
     ENTORAMA_PASS_SEE,
 } EntoramaPassType;
+
 
 typedef struct EntoramaPass {
     EntoramaPassType type;

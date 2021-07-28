@@ -146,9 +146,15 @@ int main() {
     TayState *tay = tay_create_state();
 
     entorama_init_model(&model);
-    model_load(&model, "m_sph.dll");
+    model_load(&model, "m_flocking.dll");
     model.init(&model, tay);
     model.reset(&model, tay);
+
+    /* reconfigure spaces */
+    for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
+        EntoramaGroup *group = model.groups + group_i;
+        tay_configure_space(tay, group->group, group->space_type, 3, (float4){group->min_part_size_x, group->min_part_size_y, group->min_part_size_z, group->min_part_size_w}, 1000);
+    }
 
     tay_threads_start(0, thread_storage_size);
     tay_simulation_start(tay);

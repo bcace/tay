@@ -25,7 +25,6 @@ static float _rand(float min, float max) {
 
 static int _init(EntoramaModel *model, TayState *tay) {
     const float4 see_radii = { radius, radius, radius, radius };
-    const float4 part_sizes = { radius, radius, radius, radius };
 
     model->set_world_box(model, -500.0f, -500.0f, -500.0f, 500.0f, 500.0f, 500.0f);
 
@@ -41,8 +40,8 @@ static int _init(EntoramaModel *model, TayState *tay) {
     e_boids_group->color_source = ENTORAMA_COLOR_AGENT_PALETTE;
     e_boids_group->color_palette_index_offset = 32;
     e_boids_group->shape = ENTORAMA_PYRAMID;
+    e_boids_group->configure_space(e_boids_group, TAY_CPU_GRID, radius, radius, radius, radius);
 
-    tay_configure_space(tay, boids_group, TAY_CPU_GRID, 3, part_sizes, 250);
     // tay_group_enable_ocl(tay, boids_group);
 
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));

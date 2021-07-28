@@ -12,6 +12,14 @@ static void _set_world_box(EntoramaModel *model, float min_x, float min_y, float
     model->max_z = max_z;
 }
 
+static void _configure_space(EntoramaGroup *group, TaySpaceType space_type, float min_part_size_x, float min_part_size_y, float min_part_size_z, float min_part_size_w) {
+    group->space_type = space_type;
+    group->min_part_size_x = min_part_size_x;
+    group->min_part_size_y = min_part_size_y;
+    group->min_part_size_z = min_part_size_z;
+    group->min_part_size_w = min_part_size_w;
+}
+
 static EntoramaGroup *_add_group(EntoramaModel *model, const char *name, TayGroup *tay_group, unsigned max_agents) {
     EntoramaGroup *group = model->groups + model->groups_count++;
     strcpy_s(group->name, ENTORAMA_MAX_NAME, name);
@@ -24,6 +32,7 @@ static EntoramaGroup *_add_group(EntoramaModel *model, const char *name, TayGrou
     group->color_source = ENTORAMA_COLOR_AUTO;
     group->size_source = ENTORAMA_SIZE_AUTO;
     group->shape = ENTORAMA_CUBE;
+    group->configure_space = _configure_space;
     return group;
 }
 
