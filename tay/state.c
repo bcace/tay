@@ -109,6 +109,7 @@ void tay_fix_space_box(TayState *state, TayGroup *group, float4 min, float4 max)
 
 void tay_group_enable_ocl(TayState *state, TayGroup *group) {
     group->ocl_enabled = 1;
+    state->recompile = 1;
 }
 
 int group_is_active(TayGroup *group) {

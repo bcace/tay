@@ -19,13 +19,13 @@ int state_compile(TayState *state) {
 
         if (group->is_point) {
             if (group->space.type == TAY_CPU_AABB_TREE) {
-                tay_set_error2(state, TAY_ERROR_OCL, "aabb tree structure can only contain non-point agents");
+                tay_set_error2(state, TAY_ERROR_POINT_NONPOINT_MISMATCH, "aabb tree structure can only contain non-point agents");
                 return 0;
             }
         }
         else {
             if (group->space.type == TAY_CPU_GRID || group->space.type == TAY_CPU_Z_GRID) {
-                tay_set_error2(state, TAY_ERROR_OCL, "grid structure can only contain point agents");
+                tay_set_error2(state, TAY_ERROR_POINT_NONPOINT_MISMATCH, "grid structure can only contain point agents");
                 return 0;
             }
         }
