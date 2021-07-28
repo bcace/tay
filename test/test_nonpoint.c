@@ -28,8 +28,6 @@ void _test(Config *config, int steps, float see_radius, int depth_correction, fl
     TayState *tay = tay_create_state();
     TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT, TAY_FALSE);
     tay_configure_space(tay, group, config->a_type, 3, part_sizes, 250);
-    if (config->a_ocl_enabled)
-        tay_group_enable_ocl(tay, group);
 
     tay_add_see(tay, group, group, box_agent_see, "box_agent_see", see_radii, TAY_FALSE, 0, 0);
     tay_add_act(tay, group, box_agent_act, "box_agent_act", &act_context, sizeof(act_context));

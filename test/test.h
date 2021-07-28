@@ -17,8 +17,6 @@ typedef enum {
 typedef struct {
     TaySpaceType a_type;
     TaySpaceType b_type;
-    int a_ocl_enabled;
-    int b_ocl_enabled;
 } Config;
 
 typedef struct {
@@ -37,8 +35,8 @@ void results_destroy(Results *r);
 void results_write_or_compare(Results *results, TayState *tay, TayGroup *group, int agents_count, int f_buffer_offset, int result_index_offset, void *file);
 
 void spaces_init(Configs *configs);
-void space_add_single(Configs *configs, TaySpaceType a_type, int a_ocl_enabled);
-void space_add_double(Configs *configs, TaySpaceType a_type, int a_ocl_enabled, TaySpaceType b_type, int b_ocl_enabled);
+void space_add_single(Configs *configs, TaySpaceType a_type);
+void space_add_double(Configs *configs, TaySpaceType a_type, TaySpaceType b_type);
 int space_can_depth_correct(Config *config);
 char *space_label(Config *config);
 

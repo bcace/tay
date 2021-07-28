@@ -82,8 +82,6 @@ static void _test(Config *config, int is_point_a, int is_point_b, int steps, flo
                                                    float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
                                                    min_size, max_size, distr_exp);
     }
-    if (config->a_ocl_enabled)
-        tay_group_enable_ocl(tay, group_a);
 
     if (is_point_b) {
         group_b = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT / 2, is_point_b);
@@ -104,8 +102,6 @@ static void _test(Config *config, int is_point_a, int is_point_b, int steps, flo
                                                    float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
                                                    min_size, max_size, distr_exp);
     }
-    if (config->b_ocl_enabled)
-        tay_group_enable_ocl(tay, group_b);
 
     tay_add_see(tay, group_a, group_a, _get_see_func(is_point_a, is_point_b), _get_see_func_name(is_point_a, is_point_b), see_radii, TAY_FALSE, 0, 0);
     tay_add_see(tay, group_a, group_b, _get_see_func(is_point_a, is_point_b), _get_see_func_name(is_point_a, is_point_b), see_radii, TAY_FALSE, 0, 0);

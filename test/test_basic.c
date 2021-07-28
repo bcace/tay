@@ -34,8 +34,6 @@ static void _test(ModelCase model_case, Config *config, float see_radius, int de
     TayState *tay = tay_create_state();
     TayGroup *group = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT, TAY_TRUE);
     tay_configure_space(tay, group, config->a_type, 3, part_sizes, 250);
-    if (config->a_ocl_enabled)
-        tay_group_enable_ocl(tay, group);
 
     tay_add_see(tay, group, group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
     tay_add_act(tay, group, agent_act, "agent_act", &act_context, sizeof(act_context));
