@@ -83,6 +83,7 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     space->shared_size = 0;
     space->shared = 0;
     space->count = 0;
+    space->is_box_fixed = 0;
 
     space->ocl_common.space_buffer = 0;
 
@@ -94,10 +95,8 @@ void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_ty
     space->type = space_type;
     space->min_part_sizes = min_part_sizes;
     space->dims = space_dims;
-    space->count = 0;
     space->shared_size = shared_size_in_megabytes * TAY_MB;
     space->shared = realloc(space->shared, space->shared_size);
-    space->is_box_fixed = 0;
 }
 
 void tay_fix_space_box(TayState *state, TayGroup *group, float4 min, float4 max) {
