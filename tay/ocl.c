@@ -62,7 +62,7 @@ int ocl_create_buffers(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group) || !group->ocl_enabled)
+        if (group_is_inactive(group) || !group_is_ocl_enabled(group))
             continue;
 
         OclCommon *ocl_common = &group->space.ocl_common;
@@ -193,7 +193,7 @@ void ocl_on_simulation_end(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group) || !group->ocl_enabled)
+        if (group_is_inactive(group) || !group_is_ocl_enabled(group))
             continue;
 
         ocl_release_buffer(group->space.ocl_common.agent_buffer);
@@ -248,7 +248,7 @@ int ocl_has_ocl_enabled_groups(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_active(group) && group->ocl_enabled)
+        if (group_is_active(group) && group_is_ocl_enabled(group))
             return 1;
     }
 
@@ -259,7 +259,7 @@ void ocl_push_agents_non_blocking(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group) || !group->ocl_enabled)
+        if (group_is_inactive(group) || !group_is_ocl_enabled(group))
             continue;
 
         if (group->space.ocl_common.push_agents) {
@@ -282,7 +282,7 @@ void ocl_fetch_agents(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group) || !group->ocl_enabled)
+        if (group_is_inactive(group) || !group_is_ocl_enabled(group))
             continue;
 
         ocl_read_buffer_non_blocking(state, group->space.ocl_common.agent_buffer, group->storage, group->space.count * group->agent_size);

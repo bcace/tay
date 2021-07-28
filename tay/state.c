@@ -73,7 +73,6 @@ TayGroup *tay_add_group(TayState *state, unsigned agent_size, unsigned agent_cap
     group->capacity = agent_capacity;
     group->is_point = is_point;
     group->id = state->next_group_id++;
-    group->ocl_enabled = 0;
 
     /* initialize the group's space */
     Space *space = &group->space;
@@ -107,11 +106,6 @@ void tay_fix_space_box(TayState *state, TayGroup *group, float4 min, float4 max)
     space->is_box_fixed = 1;
 }
 
-void tay_group_enable_ocl(TayState *state, TayGroup *group) {
-    group->ocl_enabled = 1;
-    state->recompile = 1;
-}
-
 int group_is_active(TayGroup *group) {
     return group->storage != 0;
 }
@@ -120,11 +114,15 @@ int group_is_inactive(TayGroup *group) {
     return group->storage == 0;
 }
 
+int group_is_ocl_enabled(TayGroup *group) {
+    return group->space.type == TAY_OCL_SIMPLE || group->space.type == TAY_OCL_Z_GRID;
+}
+
 int pass_is_ocl_enabled(TayPass *pass) {
     if (pass->type == TAY_PASS_SEE)
-        return pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled;
+        return group_is_ocl_enabled(pass->seer_group) && group_is_ocl_enabled(pass->seen_group);
     else if (pass->type == TAY_PASS_ACT)
-        return pass->act_group->ocl_enabled;
+        return group_is_ocl_enabled(pass->act_group);
     return 0;
 }
 
@@ -155,7 +153,7 @@ void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *
 
 void tay_clear_all_agents(TayState *state, TayGroup *group) {
     group->space.count = 0;
-    if (group->ocl_enabled)
+    if (group_is_ocl_enabled(group))
         group->space.ocl_common.push_agents = 1;
 }
 
@@ -225,7 +223,7 @@ int tay_run(TayState *state, int steps) {
             if (group_is_inactive(group))
                 continue;
 
-            if (group->ocl_enabled) {
+            if (group_is_ocl_enabled(group)) {
                 if (group->space.type == TAY_CPU_GRID)
                     ocl_grid_run_sort_kernel(state, group);
             }
@@ -248,7 +246,7 @@ int tay_run(TayState *state, int steps) {
             if (pass->type == TAY_PASS_SEE) {
                 Space *seer_space = &pass->seer_group->space;
 
-                if (pass->seer_group->ocl_enabled && pass->seen_group->ocl_enabled)
+                if (group_is_ocl_enabled(pass->seer_group) && group_is_ocl_enabled(pass->seen_group))
                     ocl_run_see_kernel(state, pass);
                 else if (seer_space->type == TAY_CPU_SIMPLE)
                     cpu_simple_see(pass);
@@ -268,7 +266,7 @@ int tay_run(TayState *state, int steps) {
             else if (pass->type == TAY_PASS_ACT) {
                 Space *act_space = &pass->act_group->space;
 
-                if (pass->act_group->ocl_enabled)
+                if (group_is_ocl_enabled(pass->act_group))
                     ocl_run_act_kernel(state, pass);
                 else if (act_space->type == TAY_CPU_SIMPLE ||
                     act_space->type == TAY_CPU_KD_TREE ||
@@ -291,7 +289,7 @@ int tay_run(TayState *state, int steps) {
             if (group_is_inactive(group))
                 continue;
 
-            if (group->ocl_enabled) {
+            if (group_is_ocl_enabled(group)) {
                 if (group->space.type == TAY_CPU_GRID)
                     ocl_grid_run_unsort_kernel(state, group);
             }
