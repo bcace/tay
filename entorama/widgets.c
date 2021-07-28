@@ -113,10 +113,8 @@ static EmResponse _get_response(unsigned id, float min_x, float min_y, float max
 
     if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
         if (mouse_l) {
-            if (pressed_widget_id == 0) {
-                response = EM_RESPONSE_PRESSED;
+            if (pressed_widget_id == 0)
                 pressed_widget_id = id;
-            }
         }
         else {
             if (pressed_widget_id == id) {
