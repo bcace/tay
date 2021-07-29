@@ -29,11 +29,8 @@ static void *selected_model_element = 0;
 static int speed_mode = 0;
 static unsigned thread_storage_size = 100000;
 
-#define MAX_LABEL_TEXT_BUFFER 512
-static char label_text_buffer[MAX_LABEL_TEXT_BUFFER];
-
-#define MAX_TOOLTIP_TEXT_BUFFER 512
-static char tooltip_text_buffer[MAX_TOOLTIP_TEXT_BUFFER];
+static char label_text_buffer[512];
+static char tooltip_text_buffer[512];
 
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
@@ -150,7 +147,7 @@ int main() {
     TayState *tay = tay_create_state();
 
     entorama_init_model(&model);
-    model_load(&model, "m_flocking.dll");
+    model_load(&model, "m_sph.dll");
     model.init(&model, tay);
     model.reset(&model, tay);
 
@@ -187,7 +184,7 @@ int main() {
                 }
             }
 
-            /* draw widgets */
+            /* widgets */
             {
                 graphics_viewport(0, 0, window_w, window_h);
 
@@ -216,7 +213,7 @@ int main() {
                         case EM_RESPONSE_CLICKED:
                             paused = !paused;
                         case EM_RESPONSE_HOVERED:
-                            sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Run / pause simulation");
+                            sprintf_s(tooltip_text_buffer, sizeof(tooltip_text_buffer), "Run / pause simulation");
                         default:;
                     }
 
@@ -229,7 +226,7 @@ int main() {
                         case EM_RESPONSE_CLICKED:
                             model.reset(&model, tay);
                         case EM_RESPONSE_HOVERED:
-                            sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Reset simulation");
+                            sprintf_s(tooltip_text_buffer, sizeof(tooltip_text_buffer), "Reset simulation");
                         default:;
                     }
 
@@ -264,7 +261,7 @@ int main() {
                         /* background */
                         em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, window_h - TOOLBAR_H, color_vd());
 
-                        const float SIDEBAR_BUTTON_H = 52.0f;
+                        const float SIDEBAR_BUTTON_H = 32.0f;
                         float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
 
                         const float bullet_size = 8.0f;
@@ -274,11 +271,10 @@ int main() {
 
                         /* tay button */
                         {
-                            if (em_button_described("Tay",
-                                                    "Global settings",
-                                                    0.0f, y,
-                                                    SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                    (selected_model_element == tay) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                            if (em_button("Tay",
+                                          0.0f, y,
+                                          SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                          (selected_model_element == tay) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                 selected_model_element = tay;
 
                             em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
@@ -293,11 +289,10 @@ int main() {
                             for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                                 EntoramaGroup *group = model.groups + group_i;
 
-                                if (em_button_described(group->name,
-                                                        "Agent group",
-                                                        0.0f, y,
-                                                        SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                        (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                if (em_button(group->name,
+                                              0.0f, y,
+                                              SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                              (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                     selected_model_element = group;
 
                                 em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
@@ -319,18 +314,18 @@ int main() {
                                 int pass_group_selected = 0;
 
                                 if (pass->type == ENTORAMA_PASS_ACT) {
-                                    sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "Act: %s", pass->act_group->name);
+                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%s act (%s)", pass->act_group->name, pass->name);
                                     pass_group_selected = selected_model_element == pass->act_group;
                                 }
                                 else {
-                                    sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "See: %s - %s", pass->seer_group->name, pass->seen_group->name);
+                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%s see %s (%s)", pass->seer_group->name, pass->seen_group->name, pass->name);
                                     pass_group_selected = selected_model_element == pass->seer_group || selected_model_element == pass->seen_group;
                                 }
 
-                                if (em_button_described(pass->name, label_text_buffer,
-                                                        0.0f, y,
-                                                        SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                        (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                if (em_button(label_text_buffer,
+                                              0.0f, y,
+                                              SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                              (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                     selected_model_element = pass;
 
                                 float bullet_y = y + SIDEBAR_BUTTON_H * 0.5f;
@@ -383,9 +378,9 @@ int main() {
                                 unsigned threads_count = tay_get_number_of_threads();
 
                                 if (threads_count == 1)
-                                    sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%d thread", threads_count);
+                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%d thread", threads_count);
                                 else
-                                    sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%d threads", threads_count);
+                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%d threads", threads_count);
 
                                 em_label(label_text_buffer,
                                          PROPERTY_LINE_H, property_line_y,
@@ -428,9 +423,9 @@ int main() {
                 {
                     double speed = _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay));
                     if (speed_mode)
-                        sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%.1f fps", 1000.0 / speed);
+                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%.1f fps", 1000.0 / speed);
                     else
-                        sprintf_s(label_text_buffer, MAX_LABEL_TEXT_BUFFER, "%.1f ms", speed);
+                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%.1f ms", speed);
 
                     switch (em_button(label_text_buffer,
                                       window_w - font_text_width(ENTORAMA_FONT_MEDIUM, label_text_buffer) - 20.0f, 0.0f,
@@ -439,7 +434,7 @@ int main() {
                         case EM_RESPONSE_CLICKED:
                             speed_mode = !speed_mode;
                         case EM_RESPONSE_HOVERED:
-                            sprintf_s(tooltip_text_buffer, MAX_TOOLTIP_TEXT_BUFFER, "Toggle milliseconds per step / frames per second");
+                            sprintf_s(tooltip_text_buffer, sizeof(tooltip_text_buffer), "Toggle milliseconds per step / frames per second");
                         default:;
                     }
 

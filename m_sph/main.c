@@ -79,7 +79,7 @@ static int _init(EntoramaModel *model, TayState *tay) {
 
     model->add_see(model, "Density", e_particles_group, e_particles_group);
     model->add_act(model, "Pressure", e_particles_group);
-    model->add_see(model, "Force terms", e_particles_group, e_particles_group);
+    model->add_see(model, "Forces", e_particles_group, e_particles_group);
     model->add_act(model, "Leapfrog", e_particles_group);
 
     ocl_add_source(tay, agent_ocl_h);
