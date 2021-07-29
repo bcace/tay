@@ -205,7 +205,7 @@ EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max
     return _get_response(id, min_x, min_y, max_x, max_y, EM_BUTTON_FLAGS_NONE);
 }
 
-EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y) {
+EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
     unsigned id = ++available_widget_id;
 
     unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
@@ -213,7 +213,10 @@ EmResponse em_label(char *label, float min_x, float min_y, float max_x, float ma
     int label_x = (int)((min_x + max_x - label_w) * 0.5f);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
-    font_draw_text(label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
+    if (flags & EM_BUTTON_FLAGS_DISABLED)
+        font_draw_text(label, label_x, label_y, color_fg_disabled(), &selected_layer->text_buffer);
+    else
+        font_draw_text(label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
 
     return EM_RESPONSE_NONE;
 }

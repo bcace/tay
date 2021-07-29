@@ -20,7 +20,7 @@ static void _configure_space(EntoramaGroup *group, TaySpaceType space_type, floa
     group->min_part_size_w = min_part_size_w;
 }
 
-static EntoramaGroup *_add_group(EntoramaModel *model, const char *name, TayGroup *tay_group, unsigned max_agents) {
+static EntoramaGroup *_add_group(EntoramaModel *model, const char *name, TayGroup *tay_group, unsigned max_agents, int is_point) {
     EntoramaGroup *group = model->groups + model->groups_count++;
     strcpy_s(group->name, ENTORAMA_MAX_NAME, name);
     group->group = tay_group;
@@ -32,6 +32,7 @@ static EntoramaGroup *_add_group(EntoramaModel *model, const char *name, TayGrou
     group->color_source = ENTORAMA_COLOR_AUTO;
     group->size_source = ENTORAMA_SIZE_AUTO;
     group->shape = ENTORAMA_CUBE;
+    group->is_point = is_point;
     group->configure_space = _configure_space;
     return group;
 }

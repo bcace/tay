@@ -32,7 +32,7 @@ static int _init(EntoramaModel *model, TayState *tay) {
     see_context.separation_r = radius * 0.5f;
 
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE);
-    EntoramaGroup *e_boids_group = model->add_group(model, "Boids", boids_group, boids_count);
+    EntoramaGroup *e_boids_group = model->add_group(model, "Boids", boids_group, boids_count, 1);
     e_boids_group->direction_source = ENTORAMA_DIRECTION_FWD;
     e_boids_group->direction_fwd_x_offset = 16;
     e_boids_group->direction_fwd_y_offset = 20;

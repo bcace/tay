@@ -98,6 +98,10 @@ static double _smooth_ms_per_step(double ms) {
     return smooth;
 }
 
+static void _reconfigure_space(TayState *tay, EntoramaGroup *group) {
+    tay_configure_space(tay, group->group, group->space_type, 3, (float4){group->min_part_size_x, group->min_part_size_y, group->min_part_size_z, group->min_part_size_w}, 1000);
+}
+
 int main() {
 
     if (!glfwInit()) {
@@ -150,11 +154,8 @@ int main() {
     model.init(&model, tay);
     model.reset(&model, tay);
 
-    /* reconfigure spaces */
-    for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
-        EntoramaGroup *group = model.groups + group_i;
-        tay_configure_space(tay, group->group, group->space_type, 3, (float4){group->min_part_size_x, group->min_part_size_y, group->min_part_size_z, group->min_part_size_w}, 1000);
-    }
+    for (unsigned group_i = 0; group_i < model.groups_count; ++group_i)
+        _reconfigure_space(tay, model.groups + group_i);
 
     tay_threads_start(0, thread_storage_size);
     tay_simulation_start(tay);
@@ -388,7 +389,8 @@ int main() {
 
                                 em_label(label_text_buffer,
                                          PROPERTY_LINE_H, property_line_y,
-                                         SIDEBAR_W - PROPERTY_LINE_H, property_line_y + PROPERTY_LINE_H);
+                                         SIDEBAR_W - PROPERTY_LINE_H, property_line_y + PROPERTY_LINE_H,
+                                         EM_BUTTON_FLAGS_NONE);
 
                                 if (em_button("-",
                                               0.0f, property_line_y,
@@ -408,6 +410,11 @@ int main() {
 
                                 property_line_y -= PROPERTY_LINE_H;
                             }
+                        }
+                        else if ((EntoramaGroup *)selected_model_element >= model.groups && (EntoramaGroup *)selected_model_element < model.groups + model.groups_count) {
+                            EntoramaGroup *group = selected_model_element;
+
+                            // ...
                         }
                     }
 
@@ -438,7 +445,8 @@ int main() {
 
                     em_label(tooltip_text_buffer,
                              0.0f, 0.0f,
-                             (float)window_w, STATUSBAR_H);
+                             (float)window_w, STATUSBAR_H,
+                             EM_BUTTON_FLAGS_NONE);
                 }
 
                 em_quad(0.0f, STATUSBAR_H, (float)window_w, STATUSBAR_H + 1.0f, color_border());

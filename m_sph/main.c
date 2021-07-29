@@ -62,7 +62,7 @@ static int _init(EntoramaModel *model, TayState *tay) {
     float part_size = h * 1.0f;
 
     particles_group = tay_add_group(tay, sizeof(SphParticle), particles_count, TAY_TRUE);
-    EntoramaGroup *e_particles_group = model->add_group(model, "Particles", particles_group, particles_count);
+    EntoramaGroup *e_particles_group = model->add_group(model, "Particles", particles_group, particles_count, 1);
     e_particles_group->group = particles_group;
     e_particles_group->max_agents = particles_count;
     e_particles_group->size_source = ENTORAMA_SIZE_UNIFORM_RADIUS;

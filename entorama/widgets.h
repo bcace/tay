@@ -22,7 +22,7 @@ void em_widgets_end(struct mat4 projection);
 EmResponse em_button(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags);
 EmResponse em_button_described(char *label, char *description, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags);
 EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y);
-EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y);
+EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags);
 
 void em_quad(float min_x, float min_y, float max_x, float max_y, struct vec4 color);
 
