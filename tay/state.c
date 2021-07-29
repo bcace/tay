@@ -96,6 +96,7 @@ void tay_configure_space(TayState *state, TayGroup *group, TaySpaceType space_ty
     space->dims = space_dims;
     space->shared_size = shared_size_in_megabytes * TAY_MB;
     space->shared = realloc(space->shared, space->shared_size);
+    space->ocl_common.push_agents = 1;
     state->recompile = 1;
 }
 
@@ -224,7 +225,7 @@ int tay_run(TayState *state, int steps) {
                 continue;
 
             if (group_is_ocl_enabled(group)) {
-                if (group->space.type == TAY_CPU_GRID)
+                if (group->space.type == TAY_OCL_Z_GRID)
                     ocl_grid_run_sort_kernel(state, group);
             }
             else {
@@ -290,7 +291,7 @@ int tay_run(TayState *state, int steps) {
                 continue;
 
             if (group_is_ocl_enabled(group)) {
-                if (group->space.type == TAY_CPU_GRID)
+                if (group->space.type == TAY_OCL_Z_GRID)
                     ocl_grid_run_unsort_kernel(state, group);
             }
             else {

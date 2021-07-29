@@ -24,7 +24,7 @@ int state_compile(TayState *state) {
             }
         }
         else {
-            if (group->space.type == TAY_CPU_GRID || group->space.type == TAY_CPU_Z_GRID) {
+            if (group->space.type == TAY_CPU_GRID || group->space.type == TAY_CPU_Z_GRID || group->space.type == TAY_OCL_Z_GRID) {
                 tay_set_error2(state, TAY_ERROR_POINT_NONPOINT_MISMATCH, "grid structure can only contain point agents");
                 return 0;
             }

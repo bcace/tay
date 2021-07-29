@@ -50,7 +50,7 @@ void ocl_text_add_end_of_string(OclText *text) {
 }
 
 void ocl_add_seen_text(OclText *text, TayPass *pass, int dims) {
-    if (pass->seen_group->space.type == TAY_CPU_GRID)
+    if (pass->seen_group->space.type == TAY_OCL_Z_GRID)
         ocl_grid_add_seen_text(text, pass, dims);
     else
         ocl_simple_add_seen_text(text, pass, dims);
@@ -162,7 +162,7 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
 
             int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
 
-            if (seer_space->type == TAY_CPU_GRID)
+            if (seer_space->type == TAY_OCL_Z_GRID)
                 ocl_grid_add_see_kernel_text(&text, pass, min_dims);
             else
                 ocl_simple_add_see_kernel_text(&text, pass, min_dims);
