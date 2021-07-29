@@ -111,9 +111,11 @@ void em_widgets_end(mat4 projection) {
 static EmResponse _get_response(unsigned id, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
     EmResponse response = EM_RESPONSE_NONE;
 
+    int disabled = flags & EM_BUTTON_FLAGS_DISABLED;
+
     if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
         if (mouse_l) {
-            if (pressed_widget_id == 0)
+            if (pressed_widget_id == 0 && !disabled)
                 pressed_widget_id = id;
         }
         else {
@@ -121,7 +123,7 @@ static EmResponse _get_response(unsigned id, float min_x, float min_y, float max
                 response = EM_RESPONSE_CLICKED;
                 pressed_widget_id = 0;
             }
-            else
+            else if (!disabled)
                 response = EM_RESPONSE_HOVERED;
             hovered_widget_id = id;
         }
@@ -140,7 +142,10 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
     int label_x = (int)(min_x + button_label_offset); // (int)((min_x + max_x - label_w) * 0.5f);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
-    font_draw_text(label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
+    if (flags & EM_BUTTON_FLAGS_DISABLED)
+        font_draw_text(label, label_x, label_y, color_fg_disabled(), &selected_layer->text_buffer);
+    else
+        font_draw_text(label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
 
     EmResponse response = _get_response(id, min_x, min_y, max_x, max_y, flags);
 

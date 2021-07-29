@@ -42,8 +42,6 @@ static int _init(EntoramaModel *model, TayState *tay) {
     e_boids_group->shape = ENTORAMA_PYRAMID;
     e_boids_group->configure_space(e_boids_group, TAY_CPU_GRID, radius, radius, radius, radius);
 
-    // tay_group_enable_ocl(tay, boids_group);
-
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
     tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context, sizeof(act_context));
 

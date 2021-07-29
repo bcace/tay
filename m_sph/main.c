@@ -70,8 +70,6 @@ static int _init(EntoramaModel *model, TayState *tay) {
     e_particles_group->shape = ENTORAMA_SPHERE;
     e_particles_group->configure_space(e_particles_group, TAY_CPU_GRID, part_size, part_size, part_size, part_size);
 
-    // tay_group_enable_ocl(tay, particles_group);
-
     tay_add_see(tay, particles_group, particles_group, sph_particle_density, "sph_particle_density", (float4){h, h, h, h}, TAY_TRUE, &sph_context, sizeof(sph_context));
     tay_add_act(tay, particles_group, sph_particle_pressure, "sph_particle_pressure", &sph_context, sizeof(sph_context));
     tay_add_see(tay, particles_group, particles_group, sph_force_terms, "sph_force_terms", (float4){h, h, h, h}, TAY_FALSE, &sph_context, sizeof(sph_context));

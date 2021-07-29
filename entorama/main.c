@@ -261,7 +261,7 @@ int main() {
                         /* background */
                         em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, window_h - TOOLBAR_H, color_vd());
 
-                        const float SIDEBAR_BUTTON_H = 32.0f;
+                        const float SIDEBAR_BUTTON_H = 28.0f;
                         float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
 
                         const float bullet_size = 8.0f;
@@ -368,7 +368,7 @@ int main() {
                         /* background */
                         em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, STATUSBAR_H + PROPERTIES_H, color_vd());
 
-                        const float PROPERTY_LINE_H = 30.0f;
+                        const float PROPERTY_LINE_H = 28.0f;
                         float property_line_y = STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H;
 
                         if (selected_model_element == tay) {
@@ -409,7 +409,56 @@ int main() {
                         else if ((EntoramaGroup *)selected_model_element >= model.groups && (EntoramaGroup *)selected_model_element < model.groups + model.groups_count) {
                             EntoramaGroup *group = selected_model_element;
 
-                            // ...
+                            for (TaySpaceType space_type = TAY_CPU_SIMPLE; space_type < TAY_SPACE_COUNT; ++space_type) {
+
+                                EmButtonFlags flags = EM_BUTTON_FLAGS_NONE;
+
+                                switch (space_type) {
+                                    case TAY_CPU_SIMPLE:
+                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Simple");
+                                        break;
+                                    case TAY_CPU_KD_TREE:
+                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Kd Tree");
+                                        break;
+                                    case TAY_CPU_AABB_TREE:
+                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU AABB Tree");
+                                        if (group->is_point)
+                                            flags |= EM_BUTTON_FLAGS_DISABLED;
+                                        break;
+                                    case TAY_CPU_GRID:
+                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Grid");
+                                        if (!group->is_point)
+                                            flags |= EM_BUTTON_FLAGS_DISABLED;
+                                        break;
+                                    case TAY_CPU_Z_GRID:
+                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Z-Order Grid");
+                                        if (!group->is_point)
+                                            flags |= EM_BUTTON_FLAGS_DISABLED;
+                                        break;
+                                    case TAY_OCL_SIMPLE:
+                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "GPU Simple (OpenCL)");
+                                        break;
+                                    case TAY_OCL_Z_GRID:
+                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "GPU Z-Order Grid (OpenCL)");
+                                        if (!group->is_point)
+                                            flags |= EM_BUTTON_FLAGS_DISABLED;
+                                        break;
+                                    default:;
+                                }
+
+                                if (space_type == group->space_type)
+                                    flags |= EM_BUTTON_FLAGS_PRESSED;
+
+                                if (em_button(label_text_buffer,
+                                              0.0f, property_line_y,
+                                              SIDEBAR_W, property_line_y + PROPERTY_LINE_H,
+                                              flags) == EM_RESPONSE_CLICKED) {
+                                    group->space_type = space_type;
+                                    _reconfigure_space(tay, group);
+                                }
+
+                                property_line_y -= PROPERTY_LINE_H;
+                            }
                         }
                     }
 
