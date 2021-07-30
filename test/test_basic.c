@@ -32,6 +32,14 @@ static void _test(ModelCase model_case, Config *config, float see_radius, int de
     see_context.radii.z = see_radius;
 
     TayState *tay = tay_create_state();
+    if (config->is_ocl) {
+        tay_switch_to_ocl(tay);
+        ocl_add_source(tay, agent_ocl_h);
+        ocl_add_source(tay, taystd_ocl_h);
+        ocl_add_source(tay, agent_ocl_c);
+        ocl_add_source(tay, taystd_ocl_c);
+    }
+
     TayGroup *group = tay_add_group(tay, sizeof(Agent), AGENTS_COUNT, TAY_TRUE);
     tay_configure_space(tay, group, config->a_type, 3, part_sizes, 250);
 
@@ -62,11 +70,6 @@ static void _test(ModelCase model_case, Config *config, float see_radius, int de
         default:
             fprintf(stderr, "model case not implemented\n");
     }
-
-    ocl_add_source(tay, agent_ocl_h);
-    ocl_add_source(tay, taystd_ocl_h);
-    ocl_add_source(tay, agent_ocl_c);
-    ocl_add_source(tay, taystd_ocl_c);
 
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);

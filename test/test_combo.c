@@ -62,6 +62,14 @@ static void _test(Config *config, int is_point_a, int is_point_b, int steps, flo
     float distr_exp = 0.0f;
 
     TayState *tay = tay_create_state();
+    if (config->is_ocl) {
+        tay_switch_to_ocl(tay);
+        ocl_add_source(tay, agent_ocl_h);
+        ocl_add_source(tay, taystd_ocl_h);
+        ocl_add_source(tay, agent_ocl_c);
+        ocl_add_source(tay, taystd_ocl_c);
+    }
+
     TayGroup *group_a;
     TayGroup *group_b;
 
@@ -109,11 +117,6 @@ static void _test(Config *config, int is_point_a, int is_point_b, int steps, flo
     tay_add_see(tay, group_b, group_a, _get_see_func(is_point_a, is_point_b), _get_see_func_name(is_point_a, is_point_b), see_radii, TAY_FALSE, 0, 0);
     tay_add_act(tay, group_a, _get_act_func(is_point_a), _get_act_func_name(is_point_a), &act_context, sizeof(act_context));
     tay_add_act(tay, group_b, _get_act_func(is_point_b), _get_act_func_name(is_point_b), &act_context, sizeof(act_context));
-
-    ocl_add_source(tay, agent_ocl_h);
-    ocl_add_source(tay, taystd_ocl_h);
-    ocl_add_source(tay, agent_ocl_c);
-    ocl_add_source(tay, taystd_ocl_c);
 
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);

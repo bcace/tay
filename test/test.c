@@ -17,16 +17,18 @@ void spaces_init(Configs *configs) {
     configs->count = 0;
 }
 
-void space_add_single(Configs *configs, TaySpaceType a_type) {
+void space_add_single(Configs *configs, TaySpaceType a_type, int is_ocl) {
     Config *config = configs->configs + configs->count++;
     config->a_type = a_type;
     config->b_type = TAY_SPACE_NONE;
+    config->is_ocl = is_ocl;
 }
 
-void space_add_double(Configs *configs, TaySpaceType a_type, TaySpaceType b_type) {
+void space_add_double(Configs *configs, TaySpaceType a_type, TaySpaceType b_type, int is_ocl) {
     Config *config = configs->configs + configs->count++;
     config->a_type = a_type;
     config->b_type = b_type;
+    config->is_ocl = is_ocl;
 }
 
 int space_can_depth_correct(Config *config) {
@@ -41,13 +43,11 @@ const char *_space_type_name(TaySpaceType space_type) {
         return "(None)";
     else {
         switch (space_type) {
-            case TAY_CPU_SIMPLE: return "CpuSimple";
-            case TAY_CPU_KD_TREE: return "CpuKdTree";
-            case TAY_CPU_AABB_TREE: return "CpuAabbTree";
-            case TAY_CPU_GRID: return "CpuGrid";
-            case TAY_CPU_Z_GRID: return "CpuZGrid";
-            case TAY_OCL_SIMPLE: return "OclSimple";
-            case TAY_OCL_Z_GRID: return "OclZGrid";
+            case TAY_CPU_SIMPLE: return "Simple";
+            case TAY_CPU_KD_TREE: return "Kd Tree";
+            case TAY_CPU_AABB_TREE: return "AABB Tree";
+            case TAY_CPU_GRID: return "Grid";
+            case TAY_CPU_Z_GRID: return "Z Grid";
             default: return "(None)";
         }
     }
@@ -58,9 +58,9 @@ char *space_label(Config *config) {
     buffer[0] = '\0';
 
     if (config->b_type == TAY_SPACE_NONE)
-        sprintf_s(buffer, 256, "%s", _space_type_name(config->a_type));
+        sprintf_s(buffer, 256, "%s (%s)", _space_type_name(config->a_type), config->is_ocl ? "GPU" : "CPU");
     else
-        sprintf_s(buffer, 256, "%s - %s", _space_type_name(config->a_type), _space_type_name(config->b_type));
+        sprintf_s(buffer, 256, "%s - %s (%s)", _space_type_name(config->a_type), _space_type_name(config->b_type), config->is_ocl ? "GPU" : "CPU");
 
     return buffer;
 }

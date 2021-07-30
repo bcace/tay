@@ -26,6 +26,14 @@ void _test(Config *config, int steps, float see_radius, int depth_correction, fl
     act_context.max.z = SPACE_SIZE;
 
     TayState *tay = tay_create_state();
+    if (config->is_ocl) {
+        tay_switch_to_ocl(tay);
+        ocl_add_source(tay, agent_ocl_h);
+        ocl_add_source(tay, taystd_ocl_h);
+        ocl_add_source(tay, agent_ocl_c);
+        ocl_add_source(tay, taystd_ocl_c);
+    }
+
     TayGroup *group = tay_add_group(tay, sizeof(BoxAgent), AGENTS_COUNT, TAY_FALSE);
     tay_configure_space(tay, group, config->a_type, 3, part_sizes, 250);
 
@@ -36,11 +44,6 @@ void _test(Config *config, int steps, float see_radius, int depth_correction, fl
                                                float3_make(0, 0, 0),
                                                float3_make(SPACE_SIZE, SPACE_SIZE, SPACE_SIZE),
                                                min_size, max_size, distr_exp);
-
-    ocl_add_source(tay, agent_ocl_h);
-    ocl_add_source(tay, taystd_ocl_h);
-    ocl_add_source(tay, agent_ocl_c);
-    ocl_add_source(tay, taystd_ocl_c);
 
     tay_simulation_start(tay);
     int steps_run = tay_run(tay, steps);
