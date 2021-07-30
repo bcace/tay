@@ -39,6 +39,23 @@ void tay_destroy_state(TayState *state) {
     free(state);
 }
 
+int tay_switch_to_ocl(TayState *state) {
+    if (!state->ocl.device.enabled) {
+        ocl_init_context(state, &state->ocl.device);
+        state->recompile = 1;
+    }
+    return state->ocl.device.enabled;
+}
+
+int tay_switch_to_host(TayState *state) {
+    if (state->ocl.device.enabled) {
+        ocl_clear_program_and_buffers(state);
+        ocl_release_context(&state->ocl.device);
+        state->recompile = 1;
+    }
+    return !state->ocl.device.enabled;
+}
+
 TayError tay_get_error(TayState *state) {
     return state->error;
 }
@@ -115,18 +132,6 @@ int group_is_inactive(TayGroup *group) {
     return group->storage == 0;
 }
 
-int group_is_ocl_enabled(TayGroup *group) {
-    return group->space.type == TAY_OCL_SIMPLE || group->space.type == TAY_OCL_Z_GRID;
-}
-
-int pass_is_ocl_enabled(TayPass *pass) {
-    if (pass->type == TAY_PASS_SEE)
-        return group_is_ocl_enabled(pass->seer_group) && group_is_ocl_enabled(pass->seen_group);
-    else if (pass->type == TAY_PASS_ACT)
-        return group_is_ocl_enabled(pass->act_group);
-    return 0;
-}
-
 void tay_add_see(TayState *state, TayGroup *seer_group, TayGroup *seen_group, TAY_SEE_FUNC func, char *func_name, float4 radii, int self_see, void *context, unsigned context_size) {
     assert(state->passes_count < TAY_MAX_PASSES);
     TayPass *p = state->passes + state->passes_count++;
@@ -154,7 +159,7 @@ void tay_add_act(TayState *state, TayGroup *act_group, TAY_ACT_FUNC func, char *
 
 void tay_clear_all_agents(TayState *state, TayGroup *group) {
     group->space.count = 0;
-    if (group_is_ocl_enabled(group))
+    if (state->ocl.device.enabled)
         group->space.ocl_common.push_agents = 1;
 }
 
@@ -200,10 +205,8 @@ int tay_run(TayState *state, int steps) {
     struct timespec beg, end;
     timespec_get(&beg, TIME_UTC);
 
-    int has_ocl_enabled_groups = ocl_has_ocl_enabled_groups(state);
-
     /* ocl groups and passes setup */
-    if (has_ocl_enabled_groups) {
+    if (state->ocl.device.enabled) {
 
         /* push agents if they have been modified (push_agents flag) */
         ocl_push_agents_non_blocking(state);
@@ -224,8 +227,8 @@ int tay_run(TayState *state, int steps) {
             if (group_is_inactive(group))
                 continue;
 
-            if (group_is_ocl_enabled(group)) {
-                if (group->space.type == TAY_OCL_Z_GRID)
+            if (state->ocl.device.enabled) {
+                if (group->space.type == TAY_CPU_Z_GRID)
                     ocl_grid_run_sort_kernel(state, group);
             }
             else {
@@ -247,7 +250,7 @@ int tay_run(TayState *state, int steps) {
             if (pass->type == TAY_PASS_SEE) {
                 Space *seer_space = &pass->seer_group->space;
 
-                if (group_is_ocl_enabled(pass->seer_group) && group_is_ocl_enabled(pass->seen_group))
+                if (state->ocl.device.enabled)
                     ocl_run_see_kernel(state, pass);
                 else if (seer_space->type == TAY_CPU_SIMPLE)
                     cpu_simple_see(pass);
@@ -267,7 +270,7 @@ int tay_run(TayState *state, int steps) {
             else if (pass->type == TAY_PASS_ACT) {
                 Space *act_space = &pass->act_group->space;
 
-                if (group_is_ocl_enabled(pass->act_group))
+                if (state->ocl.device.enabled)
                     ocl_run_act_kernel(state, pass);
                 else if (act_space->type == TAY_CPU_SIMPLE ||
                     act_space->type == TAY_CPU_KD_TREE ||
@@ -290,8 +293,8 @@ int tay_run(TayState *state, int steps) {
             if (group_is_inactive(group))
                 continue;
 
-            if (group_is_ocl_enabled(group)) {
-                if (group->space.type == TAY_OCL_Z_GRID)
+            if (state->ocl.device.enabled) {
+                if (group->space.type == TAY_CPU_Z_GRID)
                     ocl_grid_run_unsort_kernel(state, group);
             }
             else {
@@ -308,7 +311,7 @@ int tay_run(TayState *state, int steps) {
     }
 
     /* fetch agents from GPU */
-    if (has_ocl_enabled_groups)
+    if (state->ocl.device.enabled)
         ocl_fetch_agents(state);
 
     /* end measuring run-time */
@@ -327,7 +330,7 @@ void tay_simulation_end(TayState *state) {
     }
 
     state->is_running = 0;
-    ocl_on_simulation_end(state);
+    ocl_clear_program_and_buffers(state);
 }
 
 double tay_get_ms_per_step_for_last_run(TayState *state) {

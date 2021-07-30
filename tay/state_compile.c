@@ -8,8 +8,6 @@ int state_compile(TayState *state) {
     else
         return 1; /* already compiled */
 
-    int has_ocl_work = 0;
-
     /* check basic group settings */
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
@@ -24,7 +22,7 @@ int state_compile(TayState *state) {
             }
         }
         else {
-            if (group->space.type == TAY_CPU_GRID || group->space.type == TAY_CPU_Z_GRID || group->space.type == TAY_OCL_Z_GRID) {
+            if (group->space.type == TAY_CPU_GRID || group->space.type == TAY_CPU_Z_GRID) {
                 tay_set_error2(state, TAY_ERROR_POINT_NONPOINT_MISMATCH, "grid structure can only contain point agents");
                 return 0;
             }
@@ -35,11 +33,8 @@ int state_compile(TayState *state) {
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        int is_ocl_pass = 0;
-
         if (pass->type == TAY_PASS_SEE) {
-            if (group_is_ocl_enabled(pass->seer_group) && group_is_ocl_enabled(pass->seen_group)) {
-                is_ocl_pass = 1;
+            if (state->ocl.device.enabled) {
             }
             else {
                 if (pass->see == 0) {
@@ -49,8 +44,7 @@ int state_compile(TayState *state) {
             }
         }
         else if (pass->type == TAY_PASS_ACT) {
-            if (group_is_ocl_enabled(pass->act_group)) {
-                is_ocl_pass = 1;
+            if (state->ocl.device.enabled) {
             }
             else {
                 if (pass->see == 0) {
@@ -60,7 +54,7 @@ int state_compile(TayState *state) {
             }
         }
 
-        if (is_ocl_pass) {
+        if (state->ocl.device.enabled) {
             if (pass->context != 0 && pass->context_size == 0) {
                 tay_set_error2(state, TAY_ERROR_OCL, "ocl pass context set but context size is 0");
                 return 0;
@@ -74,23 +68,15 @@ int state_compile(TayState *state) {
                 tay_set_error2(state, TAY_ERROR_OCL, "ocl pass with no func name set");
                 return 0;
             }
-
-            has_ocl_work = 1;
         }
     }
 
-    /* initialize ocl context if there's something to be done on the GPU and it was not yet initialized */
-    if (has_ocl_work && !state->ocl.device.enabled) {
-        if (!ocl_init_context(state, &state->ocl.device))
-            return 0;
-    }
-
     /* compose and compile OCL program */
-    if (has_ocl_work)
+    if (state->ocl.device.enabled)
         if (!ocl_compile_program(state))
             return 0;
 
-    /* check passes */
+    /* check and prepare passes */
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
@@ -99,21 +85,19 @@ int state_compile(TayState *state) {
             Space *seen_space = &pass->seen_group->space;
             int seer_is_point = pass->seer_group->is_point;
             int seen_is_point = pass->seen_group->is_point;
-            int seer_is_ocl = group_is_ocl_enabled(pass->seer_group);
-            int seen_is_ocl = group_is_ocl_enabled(pass->seen_group);
 
             if (seer_space->dims != seen_space->dims) {
                 tay_set_error2(state, TAY_ERROR_NOT_IMPLEMENTED, "groups with different numbers of dimensions not supported");
                 return 0;
             }
 
-            if (seer_is_ocl && seen_is_ocl) { /* both groups must be ocl enabled to have an ocl pass */
-                if (seer_space->type != TAY_OCL_SIMPLE && seer_space->type != TAY_OCL_Z_GRID) {
+            if (state->ocl.device.enabled) {
+                if (seer_space->type != TAY_CPU_SIMPLE && seer_space->type != TAY_CPU_Z_GRID) {
                     tay_set_error2(state, TAY_ERROR_OCL, "unhandled OCL see pass seer type");
                     return 0;
                 }
 
-                if (seen_space->type != TAY_OCL_SIMPLE && seen_space->type != TAY_OCL_Z_GRID) {
+                if (seen_space->type != TAY_CPU_SIMPLE && seen_space->type != TAY_CPU_Z_GRID) {
                     tay_set_error2(state, TAY_ERROR_OCL, "unhandled OCL see pass seen type");
                     return 0;
                 }
@@ -152,38 +136,40 @@ int state_compile(TayState *state) {
             }
         }
         else if (pass->type == TAY_PASS_ACT) {
-            if (group_is_ocl_enabled(pass->act_group)) {
+            if (state->ocl.device.enabled) {
                 if (!ocl_get_pass_kernel(state, pass))
                     return 0;
             }
         }
     }
 
-    /* prepare CPU spaces for simulation */
-    for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-        TayGroup *group = state->groups + group_i;
+    if (state->ocl.device.enabled) {
 
-        if (group_is_inactive(group) || group_is_ocl_enabled(group))
-            continue;
-
-        Space *space = &group->space;
-        if (space->type == TAY_CPU_KD_TREE)
-            cpu_tree_on_simulation_start(space);
-        else if (space->type == TAY_CPU_GRID)
-            cpu_grid_on_simulation_start(space);
-        else if (space->type == TAY_CPU_Z_GRID)
-            cpu_z_grid_on_simulation_start(space);
-    }
-
-    /* get built-in OCL kernels */
-    if (has_ocl_work)
+        /* get built-in OCL kernels */
         if (!ocl_grid_get_kernels(state))
             return 0;
 
-    /* create OCL buffers */
-    if (has_ocl_work)
+        /* create OCL buffers */
         if (!ocl_create_buffers(state))
             return 0;
+    }
+    else { /* prepare CPU spaces for simulation */
+
+        for (int group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
+            TayGroup *group = state->groups + group_i;
+
+            if (group_is_inactive(group))
+                continue;
+
+            Space *space = &group->space;
+            if (space->type == TAY_CPU_KD_TREE)
+                cpu_tree_on_simulation_start(space);
+            else if (space->type == TAY_CPU_GRID)
+                cpu_grid_on_simulation_start(space);
+            else if (space->type == TAY_CPU_Z_GRID)
+                cpu_z_grid_on_simulation_start(space);
+        }
+    }
 
     return 1;
 }

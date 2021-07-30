@@ -25,8 +25,6 @@ typedef enum TaySpaceType {
     TAY_CPU_AABB_TREE,
     TAY_CPU_GRID,
     TAY_CPU_Z_GRID,
-    TAY_OCL_SIMPLE,
-    TAY_OCL_Z_GRID,
     TAY_SPACE_COUNT,
 } TaySpaceType;
 
@@ -88,6 +86,7 @@ typedef struct TayPass TayPass;
 
 TayState *tay_create_state();
 void tay_destroy_state(TayState *state);
+int tay_switch_to_ocl(TayState *state);
 
 TayError tay_get_error(TayState *state);
 

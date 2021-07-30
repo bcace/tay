@@ -5,7 +5,7 @@
 
 
 typedef struct {
-    unsigned enabled;
+    int enabled;
     unsigned long long global_mem_size;
     unsigned long long local_mem_size;
     unsigned max_compute_units;
@@ -46,12 +46,11 @@ int ocl_get_pass_kernel(TayState *state, TayPass *pass);
 
 int ocl_create_buffers(TayState *state);
 int ocl_compile_program(TayState *state);
-void ocl_on_simulation_end(TayState *state);
+void ocl_clear_program_and_buffers(TayState *state);
 
 void ocl_run_see_kernel(TayState *state, TayPass *pass);
 void ocl_run_act_kernel(TayState *state, TayPass *pass);
 
-int ocl_has_ocl_enabled_groups(TayState *state);
 void ocl_push_agents_non_blocking(TayState *state);
 void ocl_push_pass_contexts_non_blocking(TayState *state);
 void ocl_fetch_agents(TayState *state);

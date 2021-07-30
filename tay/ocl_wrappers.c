@@ -211,7 +211,8 @@ void *ocl_create_program(TayState *state, OclText *text) {
 }
 
 int ocl_init_context(TayState *state, OclDevice *device) {
-    device->enabled = 0;
+    if (device->enabled)
+        return device->enabled;
 
 #ifdef TAY_OCL
     cl_uint plat_count = 0;
@@ -338,8 +339,8 @@ int ocl_init_context(TayState *state, OclDevice *device) {
             }
         }
     }
-
 #endif
+
     return device->enabled;
 }
 

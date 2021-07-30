@@ -50,7 +50,7 @@ void ocl_text_add_end_of_string(OclText *text) {
 }
 
 void ocl_add_seen_text(OclText *text, TayPass *pass, int dims) {
-    if (pass->seen_group->space.type == TAY_OCL_Z_GRID)
+    if (pass->seen_group->space.type == TAY_CPU_Z_GRID)
         ocl_grid_add_seen_text(text, pass, dims);
     else
         ocl_simple_add_seen_text(text, pass, dims);
@@ -62,7 +62,7 @@ int ocl_create_buffers(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group) || !group_is_ocl_enabled(group))
+        if (group_is_inactive(group))
             continue;
 
         OclCommon *ocl_common = &group->space.ocl_common;
@@ -85,15 +85,13 @@ int ocl_create_buffers(TayState *state) {
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (pass_is_ocl_enabled(pass)) {
-            if (pass->context_size) {
-                pass->context_buffer = ocl_create_read_only_buffer(state, pass->context_size);
-                if (!pass->context_buffer)
-                    return 0;
-            }
-            else
-                pass->context_buffer = 0;
+        if (pass->context_size) {
+            pass->context_buffer = ocl_create_read_only_buffer(state, pass->context_size);
+            if (!pass->context_buffer)
+                return 0;
         }
+        else
+            pass->context_buffer = 0;
     }
 
     return 1;
@@ -153,16 +151,13 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (!pass_is_ocl_enabled(pass))
-            continue;
-
         if (pass->type == TAY_PASS_SEE) {
             Space *seer_space = &pass->seer_group->space;
             Space *seen_space = &pass->seen_group->space;
 
             int min_dims = (seer_space->dims < seen_space->dims) ? seer_space->dims : seen_space->dims;
 
-            if (seer_space->type == TAY_OCL_Z_GRID)
+            if (seer_space->type == TAY_CPU_Z_GRID)
                 ocl_grid_add_see_kernel_text(&text, pass, min_dims);
             else
                 ocl_simple_add_see_kernel_text(&text, pass, min_dims);
@@ -181,7 +176,7 @@ void tay_memcpy(global char *a, global char *b, unsigned size) {\n\
     return 1;
 }
 
-void ocl_on_simulation_end(TayState *state) {
+void ocl_clear_program_and_buffers(TayState *state) {
     TayOcl *ocl = &state->ocl;
     if (!ocl->device.enabled)
         return;
@@ -193,7 +188,7 @@ void ocl_on_simulation_end(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group) || !group_is_ocl_enabled(group))
+        if (group_is_inactive(group))
             continue;
 
         ocl_release_buffer(group->space.ocl_common.agent_buffer);
@@ -206,8 +201,7 @@ void ocl_on_simulation_end(TayState *state) {
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (pass_is_ocl_enabled(pass))
-            ocl_release_buffer(pass->context_buffer);
+        ocl_release_buffer(pass->context_buffer);
     }
 }
 
@@ -241,25 +235,11 @@ void ocl_run_act_kernel(TayState *state, TayPass *pass) {
     ocl_finish(state);
 }
 
-int ocl_has_ocl_enabled_groups(TayState *state) {
-    if (!state->ocl.device.enabled)
-        return 0;
-
-    for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
-        TayGroup *group = state->groups + group_i;
-
-        if (group_is_active(group) && group_is_ocl_enabled(group))
-            return 1;
-    }
-
-    return 0;
-}
-
 void ocl_push_agents_non_blocking(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group) || !group_is_ocl_enabled(group))
+        if (group_is_inactive(group))
             continue;
 
         if (group->space.ocl_common.push_agents) {
@@ -273,7 +253,7 @@ void ocl_push_pass_contexts_non_blocking(TayState *state) {
     for (unsigned pass_i = 0; pass_i < state->passes_count; ++pass_i) {
         TayPass *pass = state->passes + pass_i;
 
-        if (pass_is_ocl_enabled(pass) && pass->context_size)
+        if (pass->context_size)
             ocl_write_buffer_non_blocking(state, pass->context_buffer, pass->context, pass->context_size);
     }
 }
@@ -282,7 +262,7 @@ void ocl_fetch_agents(TayState *state) {
     for (unsigned group_i = 0; group_i < TAY_MAX_GROUPS; ++group_i) {
         TayGroup *group = state->groups + group_i;
 
-        if (group_is_inactive(group) || !group_is_ocl_enabled(group))
+        if (group_is_inactive(group))
             continue;
 
         ocl_read_buffer_non_blocking(state, group->space.ocl_common.agent_buffer, group->storage, group->space.count * group->agent_size);
