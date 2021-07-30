@@ -100,6 +100,7 @@ typedef struct EntoramaPass {
 } EntoramaPass;
 
 typedef struct EntoramaModel {
+    int ocl_enabled;
 
     /* filled by member functions */
     EntoramaGroup groups[ENTORAMA_MAX_GROUPS];

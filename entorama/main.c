@@ -405,6 +405,21 @@ int main() {
 
                                 property_line_y -= PROPERTY_LINE_H;
                             }
+
+                            /* CPU/GPU switch */
+                            {
+                                if (em_button(model.ocl_enabled ? "Switch to CPU" : "Switch to GPU",
+                                              0.0f, property_line_y,
+                                              SIDEBAR_W, property_line_y + PROPERTY_LINE_H,
+                                              EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                    if (model.ocl_enabled)
+                                        model.ocl_enabled = tay_switch_to_host(tay);
+                                    else
+                                        model.ocl_enabled = tay_switch_to_ocl(tay);
+                                }
+
+                                property_line_y -= PROPERTY_LINE_H;
+                            }
                         }
                         else if ((EntoramaGroup *)selected_model_element >= model.groups && (EntoramaGroup *)selected_model_element < model.groups + model.groups_count) {
                             EntoramaGroup *group = selected_model_element;
@@ -419,27 +434,21 @@ int main() {
                                         break;
                                     case TAY_CPU_KD_TREE:
                                         sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Kd Tree");
+                                        if (model.ocl_enabled)
+                                            flags |= EM_BUTTON_FLAGS_DISABLED;
                                         break;
                                     case TAY_CPU_AABB_TREE:
                                         sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU AABB Tree");
-                                        if (group->is_point)
+                                        if (group->is_point || model.ocl_enabled)
                                             flags |= EM_BUTTON_FLAGS_DISABLED;
                                         break;
                                     case TAY_CPU_GRID:
                                         sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Grid");
-                                        if (!group->is_point)
+                                        if (!group->is_point || model.ocl_enabled)
                                             flags |= EM_BUTTON_FLAGS_DISABLED;
                                         break;
                                     case TAY_CPU_Z_GRID:
                                         sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Z-Order Grid");
-                                        if (!group->is_point)
-                                            flags |= EM_BUTTON_FLAGS_DISABLED;
-                                        break;
-                                    case TAY_OCL_SIMPLE:
-                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "GPU Simple (OpenCL)");
-                                        break;
-                                    case TAY_OCL_Z_GRID:
-                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "GPU Z-Order Grid (OpenCL)");
                                         if (!group->is_point)
                                             flags |= EM_BUTTON_FLAGS_DISABLED;
                                         break;

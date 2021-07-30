@@ -68,4 +68,5 @@ void entorama_init_model(EntoramaModel *model) {
     model->max_x = 100.0f;
     model->max_y = 100.0f;
     model->max_z = 100.0f;
+    model->ocl_enabled = 0;
 }
