@@ -53,7 +53,7 @@ int tay_switch_to_host(TayState *state) {
         ocl_release_context(&state->ocl.device);
         state->recompile = 1;
     }
-    return !state->ocl.device.enabled;
+    return state->ocl.device.enabled;
 }
 
 TayError tay_get_error(TayState *state) {

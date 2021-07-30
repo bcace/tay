@@ -87,6 +87,7 @@ typedef struct TayPass TayPass;
 TayState *tay_create_state();
 void tay_destroy_state(TayState *state);
 int tay_switch_to_ocl(TayState *state);
+int tay_switch_to_host(TayState *state);
 
 TayError tay_get_error(TayState *state);
 
