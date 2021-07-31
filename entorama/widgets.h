@@ -6,6 +6,7 @@ typedef enum EmButtonFlags {
     EM_BUTTON_FLAGS_NONE = 0x0,
     EM_BUTTON_FLAGS_PRESSED = 0x1,
     EM_BUTTON_FLAGS_DISABLED = 0x2,
+    EM_WIDGET_FLAGS_LEFT = 0x4,
 } EmButtonFlags;
 
 typedef enum EmResponse {

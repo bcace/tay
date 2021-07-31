@@ -215,7 +215,7 @@ EmResponse em_label(char *label, float min_x, float min_y, float max_x, float ma
 
     unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
     unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
-    int label_x = (int)((min_x + max_x - label_w) * 0.5f);
+    int label_x = (flags & EM_WIDGET_FLAGS_LEFT) ? (int)(min_x + button_label_offset) : (int)((min_x + max_x - label_w) * 0.5f);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
     if (flags & EM_BUTTON_FLAGS_DISABLED)

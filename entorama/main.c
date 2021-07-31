@@ -28,6 +28,10 @@ static void *selected_model_element = 0;
 
 static int speed_mode = 0;
 static unsigned thread_storage_size = 100000;
+static int simulation_expanded = 0;
+static int devices_expanded = 0;
+static int cpu_expanded = 0;
+static int gpu_expanded = 0;
 
 static char label_text_buffer[512];
 static char tooltip_text_buffer[512];
@@ -261,27 +265,153 @@ int main() {
                         /* background */
                         em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, window_h - TOOLBAR_H, color_vd());
 
-                        const float SIDEBAR_BUTTON_H = 28.0f;
+                        const float INDENT_W = 16.0f;
+                        const float SIDEBAR_BUTTON_H = font_height(ENTORAMA_FONT_MEDIUM) + 8.0f;
                         float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
+                        float x = 0.0f;
 
-                        const float bullet_size = 8.0f;
-                        const float bullet_offset = 20.0f;
+                        const float bullet_size = 5.0f;
+                        const float bullet_offset = 12.0f;
 
                         em_set_button_label_offset(bullet_offset * 2.0f);
 
-                        /* tay button */
+                        /* simulation tree */
                         {
-                            if (em_button("Tay",
-                                          0.0f, y,
+                            if (em_button("Simulation",
+                                          x, y,
                                           SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                          (selected_model_element == tay) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                          (selected_model_element == tay) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
                                 selected_model_element = tay;
+                                simulation_expanded = !simulation_expanded;
+                            }
 
                             em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
                                     bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
                                     color_fg());
 
                             y -= SIDEBAR_BUTTON_H;
+
+                            if (simulation_expanded) {
+
+                                em_reset_button_label_offset();
+
+                                x += INDENT_W;
+
+                                /* devices */
+                                {
+                                    if (em_button("Devices",
+                                                  INDENT_W, y,
+                                                  SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                  EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                        devices_expanded = !devices_expanded;
+                                    }
+
+                                    y -= SIDEBAR_BUTTON_H;
+
+                                    if (devices_expanded) {
+
+                                        x += INDENT_W;
+
+                                        {
+                                            EmButtonFlags flags = EM_BUTTON_FLAGS_NONE;
+                                            if (!model.ocl_enabled)
+                                                flags |= EM_BUTTON_FLAGS_PRESSED;
+
+                                            if (em_button("CPU",
+                                                          x, y,
+                                                          SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                          EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                                cpu_expanded = !cpu_expanded;
+
+                                            if (em_button(model.ocl_enabled ? "o" : "x",
+                                                          SIDEBAR_W - SIDEBAR_BUTTON_H, y,
+                                                          SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                          EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                                model.ocl_enabled = tay_switch_to_host(tay);
+
+                                            y -= SIDEBAR_BUTTON_H;
+
+                                            if (cpu_expanded) {
+
+                                                x += INDENT_W;
+
+                                                /* threads count */
+                                                {
+                                                    em_label("CPU threads",
+                                                             x, y,
+                                                             SIDEBAR_W * 0.5f, y + SIDEBAR_BUTTON_H,
+                                                             EM_WIDGET_FLAGS_LEFT);
+
+                                                    {
+                                                        unsigned threads_count = tay_get_number_of_threads();
+                                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%d", threads_count);
+
+                                                        em_label(label_text_buffer,
+                                                                 SIDEBAR_W * 0.5f + SIDEBAR_BUTTON_H, y,
+                                                                 SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                                 EM_BUTTON_FLAGS_NONE);
+
+                                                        if (em_button("-",
+                                                                      SIDEBAR_W * 0.5f, y,
+                                                                      SIDEBAR_W * 0.5f + SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                                      EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                                            tay_threads_stop();
+                                                            tay_threads_start(--threads_count, thread_storage_size);
+                                                        }
+
+                                                        if (em_button("+",
+                                                                      SIDEBAR_W - SIDEBAR_BUTTON_H, y,
+                                                                      SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                                      EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                                            tay_threads_stop();
+                                                            tay_threads_start(++threads_count, thread_storage_size);
+                                                        }
+                                                    }
+
+                                                    y -= SIDEBAR_BUTTON_H;
+                                                }
+
+                                                x -= INDENT_W;
+                                            }
+                                        }
+
+                                        {
+                                            EmButtonFlags flags = EM_BUTTON_FLAGS_NONE;
+                                            if (!model.ocl_enabled) {
+                                                for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
+                                                    EntoramaGroup *group = model.groups + group_i;
+
+                                                    if (group->space_type != TAY_CPU_SIMPLE && group->space_type != TAY_CPU_Z_GRID) {
+                                                        flags = EM_BUTTON_FLAGS_DISABLED;
+                                                        // TODO: set tooltip explanation
+                                                        break;
+                                                    }
+                                                }
+                                            }
+
+                                            if (em_button("GPU",
+                                                          x, y,
+                                                          SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                          EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                                gpu_expanded = !gpu_expanded;
+
+                                            if (em_button(model.ocl_enabled ? "x" : "o",
+                                                          SIDEBAR_W - SIDEBAR_BUTTON_H, y,
+                                                          SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                          flags) == EM_RESPONSE_CLICKED)
+                                                model.ocl_enabled = tay_switch_to_ocl(tay);
+
+                                            y -= SIDEBAR_BUTTON_H;
+                                        }
+
+                                        x -= INDENT_W;
+                                    }
+                                }
+
+                                x -= INDENT_W;
+
+                                em_set_button_label_offset(bullet_offset * 2.0f);
+                            }
                         }
 
                         /* group buttons */
@@ -371,86 +501,7 @@ int main() {
                         const float PROPERTY_LINE_H = 28.0f;
                         float property_line_y = STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H;
 
-                        if (selected_model_element == tay) {
-
-                            /* threads count */
-                            {
-                                unsigned threads_count = tay_get_number_of_threads();
-
-                                if (threads_count == 1)
-                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%d thread", threads_count);
-                                else
-                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%d threads", threads_count);
-
-                                em_label(label_text_buffer,
-                                         PROPERTY_LINE_H, property_line_y,
-                                         SIDEBAR_W - PROPERTY_LINE_H, property_line_y + PROPERTY_LINE_H,
-                                         EM_BUTTON_FLAGS_NONE);
-
-                                if (em_button("-",
-                                              0.0f, property_line_y,
-                                              PROPERTY_LINE_H, property_line_y + PROPERTY_LINE_H,
-                                              model.ocl_enabled ? EM_BUTTON_FLAGS_DISABLED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
-                                    tay_threads_stop();
-                                    tay_threads_start(--threads_count, thread_storage_size);
-                                }
-
-                                if (em_button("+",
-                                              SIDEBAR_W - PROPERTY_LINE_H, property_line_y,
-                                              SIDEBAR_W, property_line_y + PROPERTY_LINE_H,
-                                              model.ocl_enabled ? EM_BUTTON_FLAGS_DISABLED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
-                                    tay_threads_stop();
-                                    tay_threads_start(++threads_count, thread_storage_size);
-                                }
-
-                                property_line_y -= PROPERTY_LINE_H;
-                            }
-
-                            /* CPU/GPU switch */
-                            {
-                                {
-                                    EmButtonFlags flags = EM_BUTTON_FLAGS_NONE;
-                                    if (!model.ocl_enabled)
-                                        flags |= EM_BUTTON_FLAGS_PRESSED;
-
-                                    if (em_button("Host CPU",
-                                                  0.0f, property_line_y,
-                                                  SIDEBAR_W, property_line_y + PROPERTY_LINE_H,
-                                                  flags) == EM_RESPONSE_CLICKED) {
-                                        model.ocl_enabled = tay_switch_to_host(tay);
-                                    }
-
-                                    property_line_y -= PROPERTY_LINE_H;
-                                }
-
-                                {
-                                    EmButtonFlags flags = EM_BUTTON_FLAGS_NONE;
-                                    if (model.ocl_enabled)
-                                        flags |= EM_BUTTON_FLAGS_PRESSED;
-                                    else {
-                                        for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
-                                            EntoramaGroup *group = model.groups + group_i;
-
-                                            if (group->space_type != TAY_CPU_SIMPLE && group->space_type != TAY_CPU_Z_GRID) {
-                                                flags = EM_BUTTON_FLAGS_DISABLED;
-                                                // TODO: set tooltip explanation
-                                                break;
-                                            }
-                                        }
-                                    }
-
-                                    if (em_button("GPU",
-                                                  0.0f, property_line_y,
-                                                  SIDEBAR_W, property_line_y + PROPERTY_LINE_H,
-                                                  flags) == EM_RESPONSE_CLICKED) {
-                                        model.ocl_enabled = tay_switch_to_ocl(tay);
-                                    }
-
-                                    property_line_y -= PROPERTY_LINE_H;
-                                }
-                            }
-                        }
-                        else if ((EntoramaGroup *)selected_model_element >= model.groups && (EntoramaGroup *)selected_model_element < model.groups + model.groups_count) {
+                        if ((EntoramaGroup *)selected_model_element >= model.groups && (EntoramaGroup *)selected_model_element < model.groups + model.groups_count) {
                             EntoramaGroup *group = selected_model_element;
 
                             for (TaySpaceType space_type = TAY_CPU_SIMPLE; space_type < TAY_SPACE_COUNT; ++space_type) {
