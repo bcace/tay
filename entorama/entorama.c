@@ -34,6 +34,7 @@ static EmGroup *_add_group(EmModel *model, const char *name, TayGroup *tay_group
     group->shape = EM_CUBE;
     group->is_point = is_point;
     group->configure_space = _configure_space;
+    group->expanded = 0;
     return group;
 }
 
@@ -43,6 +44,7 @@ EmPass *_add_see(EmModel *model, const char *name, EmGroup *seer_group, EmGroup 
     pass->type = EM_PASS_SEE;
     pass->seer_group = seer_group;
     pass->seen_group = seen_group;
+    pass->expanded = 0;
     return pass;
 }
 
@@ -51,6 +53,7 @@ EmPass *_add_act(EmModel *model, const char *name, EmGroup *group) {
     strcpy_s(pass->name, EM_MAX_NAME, name);
     pass->type = EM_PASS_ACT;
     pass->act_group = group;
+    pass->expanded = 0;
     return pass;
 }
 
