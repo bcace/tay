@@ -22,10 +22,8 @@ static float mouse_dy = 0.0f;
 static float TOOLBAR_H = 40;
 static float STATUSBAR_H = 26;
 static float SIDEBAR_W = 300.0f;
-static float PROPERTIES_H = 400.0f;
 
 static EmModel model;
-static void *selected_model_element = 0;
 
 static int speed_mode = 0;
 static unsigned thread_storage_size = 100000;
@@ -232,17 +230,10 @@ int main() {
                               EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_PRESSED)
                     SIDEBAR_W += mouse_dx;
 
-                /* properties pane size button */
-                if (em_button("",
-                              0.0f, STATUSBAR_H + PROPERTIES_H,
-                              SIDEBAR_W, STATUSBAR_H + PROPERTIES_H + 6.0f,
-                              EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_PRESSED)
-                    PROPERTIES_H += mouse_dy;
-
                 /* model elements list */
                 {
                     em_select_layer(0);
-                    em_set_layer_scissor(0.0f, STATUSBAR_H + PROPERTIES_H, SIDEBAR_W, window_h - TOOLBAR_H);
+                    em_set_layer_scissor(0.0f, STATUSBAR_H, SIDEBAR_W, window_h - TOOLBAR_H);
 
                     /* background */
                     em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, window_h - TOOLBAR_H, color_vd());
@@ -262,10 +253,8 @@ int main() {
                         if (em_button("Simulation",
                                       x, y,
                                       SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                      (selected_model_element == tay) ? EM_WIDGET_FLAGS_PRESSED : EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
-                            selected_model_element = tay;
+                                      EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                             simulation_expanded = !simulation_expanded;
-                        }
 
                         em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
                                 bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
@@ -404,14 +393,66 @@ int main() {
                             if (em_button(group->name,
                                           0.0f, y,
                                           SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                          (selected_model_element == group) ? EM_WIDGET_FLAGS_PRESSED : EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
-                                selected_model_element = group;
+                                          EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                group->expanded = !group->expanded;
 
                             em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
                                     bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
                                     color_palette(group_i));
 
                             y -= SIDEBAR_BUTTON_H;
+
+                            if (group->expanded) {
+
+                                x += INDENT_W;
+
+                                for (TaySpaceType space_type = TAY_CPU_SIMPLE; space_type < TAY_SPACE_COUNT; ++space_type) {
+
+                                    EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
+
+                                    switch (space_type) {
+                                        case TAY_CPU_SIMPLE:
+                                            sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Simple");
+                                            break;
+                                        case TAY_CPU_KD_TREE:
+                                            sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Kd Tree");
+                                            if (model.ocl_enabled)
+                                                flags |= EM_WIDGET_FLAGS_DISABLED;
+                                            break;
+                                        case TAY_CPU_AABB_TREE:
+                                            sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU AABB Tree");
+                                            if (group->is_point || model.ocl_enabled)
+                                                flags |= EM_WIDGET_FLAGS_DISABLED;
+                                            break;
+                                        case TAY_CPU_GRID:
+                                            sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Grid");
+                                            if (!group->is_point || model.ocl_enabled)
+                                                flags |= EM_WIDGET_FLAGS_DISABLED;
+                                            break;
+                                        case TAY_CPU_Z_GRID:
+                                            sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Z-Order Grid");
+                                            if (!group->is_point)
+                                                flags |= EM_WIDGET_FLAGS_DISABLED;
+                                            break;
+                                        default:;
+                                    }
+
+                                    if (space_type == group->space_type)
+                                        flags |= EM_WIDGET_FLAGS_PRESSED;
+
+                                    if (em_button(label_text_buffer,
+                                                  x, y,
+                                                  SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                  flags) == EM_RESPONSE_CLICKED) {
+                                        group->space_type = space_type;
+                                        _reconfigure_space(tay, group);
+                                    }
+
+                                    y -= SIDEBAR_BUTTON_H;
+                                }
+
+                                x -= INDENT_W;
+                            }
                         }
                     }
 
@@ -423,33 +464,21 @@ int main() {
                         for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
                             EmPass *pass = model.passes + pass_i;
 
-                            int pass_group_selected = 0;
-
-                            if (pass->type == EM_PASS_ACT) {
+                            if (pass->type == EM_PASS_ACT)
                                 sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%s act (%s)", pass->act_group->name, pass->name);
-                                pass_group_selected = selected_model_element == pass->act_group;
-                            }
-                            else {
+                            else
                                 sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%s see %s (%s)", pass->seer_group->name, pass->seen_group->name, pass->name);
-                                pass_group_selected = selected_model_element == pass->seer_group || selected_model_element == pass->seen_group;
-                            }
 
                             if (em_button(label_text_buffer,
                                           0.0f, y,
                                           SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                          (selected_model_element == pass) ? EM_WIDGET_FLAGS_PRESSED : EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
-                                selected_model_element = pass;
+                                          EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                pass->expanded = !pass->expanded;
 
                             float bullet_y = y + SIDEBAR_BUTTON_H * 0.5f;
                             if (pass_i == 0)
                                 top_bullet_y = bullet_y;
                             bottom_bullet_y = bullet_y;
-
-                            if (pass_group_selected) {
-                                em_quad(SIDEBAR_W - 3.0f, y + 0.0f,
-                                        SIDEBAR_W, y + SIDEBAR_BUTTON_H - 0.0f,
-                                        color_palette(1));
-                            }
 
                             em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
                                     bullet_offset + bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H + bullet_size) * 0.5f,
@@ -458,80 +487,72 @@ int main() {
                             y -= SIDEBAR_BUTTON_H;
                         }
 
-                        /* line connecting pass button bullets */
-                        em_quad(bullet_offset - 0.5f, bottom_bullet_y,
-                                bullet_offset + 0.5f, top_bullet_y,
-                                color_fg_disabled());
-
                         em_reset_button_label_offset();
                     }
                 }
 
-                /* properties pane */
-                {
-                    em_select_layer(1);
-                    em_set_layer_scissor(0.0f, STATUSBAR_H, SIDEBAR_W, STATUSBAR_H + PROPERTIES_H);
+                // /* properties pane */
+                // {
+                //     em_select_layer(1);
+                //     em_set_layer_scissor(0.0f, STATUSBAR_H, SIDEBAR_W, STATUSBAR_H + PROPERTIES_H);
 
-                    /* background */
-                    em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, STATUSBAR_H + PROPERTIES_H, color_vd());
+                //     /* background */
+                //     em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, STATUSBAR_H + PROPERTIES_H, color_vd());
 
-                    const float PROPERTY_LINE_H = 28.0f;
-                    float property_line_y = STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H;
+                //     const float PROPERTY_LINE_H = 28.0f;
+                //     float property_line_y = STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H;
 
-                    if ((EmGroup *)selected_model_element >= model.groups && (EmGroup *)selected_model_element < model.groups + model.groups_count) {
-                        EmGroup *group = selected_model_element;
+                //     if ((EmGroup *)selected_model_element >= model.groups && (EmGroup *)selected_model_element < model.groups + model.groups_count) {
+                //         EmGroup *group = selected_model_element;
 
-                        for (TaySpaceType space_type = TAY_CPU_SIMPLE; space_type < TAY_SPACE_COUNT; ++space_type) {
+                //         for (TaySpaceType space_type = TAY_CPU_SIMPLE; space_type < TAY_SPACE_COUNT; ++space_type) {
 
-                            EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
+                //             EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
 
-                            switch (space_type) {
-                                case TAY_CPU_SIMPLE:
-                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Simple");
-                                    break;
-                                case TAY_CPU_KD_TREE:
-                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Kd Tree");
-                                    if (model.ocl_enabled)
-                                        flags |= EM_WIDGET_FLAGS_DISABLED;
-                                    break;
-                                case TAY_CPU_AABB_TREE:
-                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU AABB Tree");
-                                    if (group->is_point || model.ocl_enabled)
-                                        flags |= EM_WIDGET_FLAGS_DISABLED;
-                                    break;
-                                case TAY_CPU_GRID:
-                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Grid");
-                                    if (!group->is_point || model.ocl_enabled)
-                                        flags |= EM_WIDGET_FLAGS_DISABLED;
-                                    break;
-                                case TAY_CPU_Z_GRID:
-                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Z-Order Grid");
-                                    if (!group->is_point)
-                                        flags |= EM_WIDGET_FLAGS_DISABLED;
-                                    break;
-                                default:;
-                            }
+                //             switch (space_type) {
+                //                 case TAY_CPU_SIMPLE:
+                //                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Simple");
+                //                     break;
+                //                 case TAY_CPU_KD_TREE:
+                //                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Kd Tree");
+                //                     if (model.ocl_enabled)
+                //                         flags |= EM_WIDGET_FLAGS_DISABLED;
+                //                     break;
+                //                 case TAY_CPU_AABB_TREE:
+                //                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU AABB Tree");
+                //                     if (group->is_point || model.ocl_enabled)
+                //                         flags |= EM_WIDGET_FLAGS_DISABLED;
+                //                     break;
+                //                 case TAY_CPU_GRID:
+                //                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Grid");
+                //                     if (!group->is_point || model.ocl_enabled)
+                //                         flags |= EM_WIDGET_FLAGS_DISABLED;
+                //                     break;
+                //                 case TAY_CPU_Z_GRID:
+                //                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Z-Order Grid");
+                //                     if (!group->is_point)
+                //                         flags |= EM_WIDGET_FLAGS_DISABLED;
+                //                     break;
+                //                 default:;
+                //             }
 
-                            if (space_type == group->space_type)
-                                flags |= EM_WIDGET_FLAGS_PRESSED;
+                //             if (space_type == group->space_type)
+                //                 flags |= EM_WIDGET_FLAGS_PRESSED;
 
-                            if (em_button(label_text_buffer,
-                                          0.0f, property_line_y,
-                                          SIDEBAR_W, property_line_y + PROPERTY_LINE_H,
-                                          flags) == EM_RESPONSE_CLICKED) {
-                                group->space_type = space_type;
-                                _reconfigure_space(tay, group);
-                            }
+                //             if (em_button(label_text_buffer,
+                //                           0.0f, property_line_y,
+                //                           SIDEBAR_W, property_line_y + PROPERTY_LINE_H,
+                //                           flags) == EM_RESPONSE_CLICKED) {
+                //                 group->space_type = space_type;
+                //                 _reconfigure_space(tay, group);
+                //             }
 
-                            property_line_y -= PROPERTY_LINE_H;
-                        }
-                    }
-                }
+                //             property_line_y -= PROPERTY_LINE_H;
+                //         }
+                //     }
+                // }
 
                 em_select_layer(2);
-
-                /* border between element list and properties pane */
-                em_quad(0.0f, STATUSBAR_H + PROPERTIES_H, SIDEBAR_W, STATUSBAR_H + PROPERTIES_H + 1.0f, color_border());
             }
 
             /* statusbar */

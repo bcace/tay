@@ -82,6 +82,9 @@ typedef struct EmGroup {
     };
 
     EmShape shape;
+
+    /* widget stuff */
+    int expanded;
 } EmGroup;
 
 typedef enum EmPassType {
@@ -97,6 +100,9 @@ typedef struct EmPass {
         EmGroup *seer_group;
     };
     EmGroup *seen_group;
+
+    /* widget stuff */
+    int expanded;
 } EmPass;
 
 typedef struct EmModel {
