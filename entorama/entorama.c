@@ -3,7 +3,7 @@
 #include <string.h>
 
 
-static void _set_world_box(EntoramaModel *model, float min_x, float min_y, float min_z, float max_x, float max_y, float max_z) {
+static void _set_world_box(EmModel *model, float min_x, float min_y, float min_z, float max_x, float max_y, float max_z) {
     model->min_x = min_x;
     model->min_y = min_y;
     model->min_z = min_z;
@@ -12,7 +12,7 @@ static void _set_world_box(EntoramaModel *model, float min_x, float min_y, float
     model->max_z = max_z;
 }
 
-static void _configure_space(EntoramaGroup *group, TaySpaceType space_type, float min_part_size_x, float min_part_size_y, float min_part_size_z, float min_part_size_w) {
+static void _configure_space(EmGroup *group, TaySpaceType space_type, float min_part_size_x, float min_part_size_y, float min_part_size_z, float min_part_size_w) {
     group->space_type = space_type;
     group->min_part_size_x = min_part_size_x;
     group->min_part_size_y = min_part_size_y;
@@ -20,41 +20,41 @@ static void _configure_space(EntoramaGroup *group, TaySpaceType space_type, floa
     group->min_part_size_w = min_part_size_w;
 }
 
-static EntoramaGroup *_add_group(EntoramaModel *model, const char *name, TayGroup *tay_group, unsigned max_agents, int is_point) {
-    EntoramaGroup *group = model->groups + model->groups_count++;
-    strcpy_s(group->name, ENTORAMA_MAX_NAME, name);
+static EmGroup *_add_group(EmModel *model, const char *name, TayGroup *tay_group, unsigned max_agents, int is_point) {
+    EmGroup *group = model->groups + model->groups_count++;
+    strcpy_s(group->name, EM_MAX_NAME, name);
     group->group = tay_group;
     group->max_agents = max_agents;
     group->position_x_offset = 0;
     group->position_y_offset = 4;
     group->position_z_offset = 8;
-    group->direction_source = ENTORAMA_DIRECTION_AUTO;
-    group->color_source = ENTORAMA_COLOR_AUTO;
-    group->size_source = ENTORAMA_SIZE_AUTO;
-    group->shape = ENTORAMA_CUBE;
+    group->direction_source = EM_DIRECTION_AUTO;
+    group->color_source = EM_COLOR_AUTO;
+    group->size_source = EM_SIZE_AUTO;
+    group->shape = EM_CUBE;
     group->is_point = is_point;
     group->configure_space = _configure_space;
     return group;
 }
 
-EntoramaPass *_add_see(EntoramaModel *model, const char *name, EntoramaGroup *seer_group, EntoramaGroup *seen_group) {
-    EntoramaPass *pass = model->passes + model->passes_count++;
-    strcpy_s(pass->name, ENTORAMA_MAX_NAME, name);
-    pass->type = ENTORAMA_PASS_SEE;
+EmPass *_add_see(EmModel *model, const char *name, EmGroup *seer_group, EmGroup *seen_group) {
+    EmPass *pass = model->passes + model->passes_count++;
+    strcpy_s(pass->name, EM_MAX_NAME, name);
+    pass->type = EM_PASS_SEE;
     pass->seer_group = seer_group;
     pass->seen_group = seen_group;
     return pass;
 }
 
-EntoramaPass *_add_act(EntoramaModel *model, const char *name, EntoramaGroup *group) {
-    EntoramaPass *pass = model->passes + model->passes_count++;
-    strcpy_s(pass->name, ENTORAMA_MAX_NAME, name);
-    pass->type = ENTORAMA_PASS_ACT;
+EmPass *_add_act(EmModel *model, const char *name, EmGroup *group) {
+    EmPass *pass = model->passes + model->passes_count++;
+    strcpy_s(pass->name, EM_MAX_NAME, name);
+    pass->type = EM_PASS_ACT;
     pass->act_group = group;
     return pass;
 }
 
-void entorama_init_model(EntoramaModel *model) {
+void entorama_init_model(EmModel *model) {
     model->init = 0;
     model->groups_count = 0;
     model->passes_count = 0;

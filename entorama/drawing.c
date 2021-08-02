@@ -91,13 +91,13 @@ void drawing_init(int max_agents_per_group) {
     // camera.far = model_info.radius * 6.0f;
 
     _init_shader_program(&program_basic, "#version 450\n");
-    _init_shader_program(&program_color, "#version 450\n#define ENTORAMA_COLOR_AGENT\n");
-    _init_shader_program(&program_size, "#version 450\n#define ENTORAMA_SIZE_AGENT\n");
-    _init_shader_program(&program_direction, "#version 450\n#define ENTORAMA_DIRECTION_FWD\n");
-    _init_shader_program(&program_color_size, "#version 450\n#define ENTORAMA_COLOR_AGENT\n#define ENTORAMA_SIZE_AGENT\n");
-    _init_shader_program(&program_direction_size, "#version 450\n#define ENTORAMA_DIRECTION_FWD\n#define ENTORAMA_SIZE_AGENT\n");
-    _init_shader_program(&program_color_direction, "#version 450\n#define ENTORAMA_COLOR_AGENT\n#define ENTORAMA_DIRECTION_FWD\n");
-    _init_shader_program(&program_color_direction_size, "#version 450\n#define ENTORAMA_COLOR_AGENT\n#define ENTORAMA_DIRECTION_FWD\n#define ENTORAMA_SIZE_AGENT\n");
+    _init_shader_program(&program_color, "#version 450\n#define EM_COLOR_AGENT\n");
+    _init_shader_program(&program_size, "#version 450\n#define EM_SIZE_AGENT\n");
+    _init_shader_program(&program_direction, "#version 450\n#define EM_DIRECTION_FWD\n");
+    _init_shader_program(&program_color_size, "#version 450\n#define EM_COLOR_AGENT\n#define EM_SIZE_AGENT\n");
+    _init_shader_program(&program_direction_size, "#version 450\n#define EM_DIRECTION_FWD\n#define EM_SIZE_AGENT\n");
+    _init_shader_program(&program_color_direction, "#version 450\n#define EM_COLOR_AGENT\n#define EM_DIRECTION_FWD\n");
+    _init_shader_program(&program_color_direction_size, "#version 450\n#define EM_COLOR_AGENT\n#define EM_DIRECTION_FWD\n#define EM_SIZE_AGENT\n");
 
     shader_program_init(&program_tools, tools_vert, "tools.vert", "", tools_frag, "tools.frag", "");
     shader_program_define_in_float(&program_tools, 3);  /* vertex position */
@@ -148,7 +148,7 @@ void drawing_mouse_move(int button_l, int button_r, float dx, float dy, int *red
     }
 }
 
-void drawing_camera_setup(EntoramaModel *model, int window_w, int window_h) {
+void drawing_camera_setup(EmModel *model, int window_w, int window_h) {
     mat4_set_identity(&camera.modelview);
     if (camera.type == CAMERA_MODELING) {
         graphics_frustum(&camera.projection,
@@ -181,7 +181,7 @@ void drawing_camera_setup(EntoramaModel *model, int window_w, int window_h) {
     }
 }
 
-void drawing_update_world_box(EntoramaModel *model) {
+void drawing_update_world_box(EmModel *model) {
     world_box_verts[0] = (vec3){model->min_x, model->min_y, model->min_z};
     world_box_verts[1] = (vec3){model->max_x, model->min_y, model->min_z};
     world_box_verts[2] = (vec3){model->max_x, model->min_y, model->min_z};
@@ -214,34 +214,34 @@ void drawing_update_world_box(EntoramaModel *model) {
         world_box_colors[i] = color;
 }
 
-void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
+void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
     Program *prog = 0;
 
     /* select the agent drawing shader program */
     {
         if (group->direction_source) {
-            if (group->color_source == ENTORAMA_COLOR_AGENT_PALETTE || group->color_source == ENTORAMA_COLOR_AGENT_RGB) {
-                if (group->size_source == ENTORAMA_SIZE_AGENT_RADIUS || group->size_source == ENTORAMA_SIZE_AGENT_XYZ)
+            if (group->color_source == EM_COLOR_AGENT_PALETTE || group->color_source == EM_COLOR_AGENT_RGB) {
+                if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ)
                     prog = &program_color_direction_size;
                 else
                     prog = &program_color_direction;
             }
             else {
-                if (group->size_source == ENTORAMA_SIZE_AGENT_RADIUS || group->size_source == ENTORAMA_SIZE_AGENT_XYZ)
+                if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ)
                     prog = &program_direction_size;
                 else
                     prog = &program_direction;
             }
         }
         else {
-            if (group->color_source == ENTORAMA_COLOR_AGENT_PALETTE || group->color_source == ENTORAMA_COLOR_AGENT_RGB) {
-                if (group->size_source == ENTORAMA_SIZE_AGENT_RADIUS || group->size_source == ENTORAMA_SIZE_AGENT_XYZ)
+            if (group->color_source == EM_COLOR_AGENT_PALETTE || group->color_source == EM_COLOR_AGENT_RGB) {
+                if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ)
                     prog = &program_color_size;
                 else
                     prog = &program_color;
             }
             else {
-                if (group->size_source == ENTORAMA_SIZE_AGENT_RADIUS || group->size_source == ENTORAMA_SIZE_AGENT_XYZ)
+                if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ)
                     prog = &program_size;
                 else
                     prog = &program_basic;
@@ -256,17 +256,17 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
     /* set color mode */
     {
         vec4 uniform_color;
-        if (group->color_source == ENTORAMA_COLOR_UNIFORM_PALETTE)
+        if (group->color_source == EM_COLOR_UNIFORM_PALETTE)
             uniform_color = color_palette(group->palette_index % 4);
-        else if (group->color_source == ENTORAMA_COLOR_UNIFORM_RGB)
+        else if (group->color_source == EM_COLOR_UNIFORM_RGB)
             uniform_color = (vec4){group->red, group->green, group->blue, 1.0f};
         else
             uniform_color = color_palette(group_i % 4);
 
         vec3 uniform_size;
-        if (group->size_source == ENTORAMA_SIZE_UNIFORM_RADIUS)
+        if (group->size_source == EM_SIZE_UNIFORM_RADIUS)
             uniform_size = (vec3){group->size_radius, group->size_radius, group->size_radius};
-        else if (group->size_source == ENTORAMA_SIZE_UNIFORM_XYZ)
+        else if (group->size_source == EM_SIZE_UNIFORM_XYZ)
             uniform_size = (vec3){group->size_x, group->size_y, group->size_z};
         else
             uniform_size = (vec3){1.0f, 1.0f, 1.0f};
@@ -278,8 +278,8 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
     /* push agent data */
     {
         if (group->direction_source) {
-            if (group->color_source == ENTORAMA_COLOR_AGENT_PALETTE) {
-                if (group->size_source == ENTORAMA_SIZE_AGENT_RADIUS) {
+            if (group->color_source == EM_COLOR_AGENT_PALETTE) {
+                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -295,7 +295,7 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
 
                     shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
                 }
-                else if (group->size_source == ENTORAMA_SIZE_AGENT_XYZ) {
+                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -327,8 +327,8 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
 
                 shader_program_set_data_float(prog, 3, group->max_agents, 4, inst_color);
             }
-            else if (group->color_source == ENTORAMA_COLOR_AGENT_RGB) {
-                if (group->size_source == ENTORAMA_SIZE_AGENT_RADIUS) {
+            else if (group->color_source == EM_COLOR_AGENT_RGB) {
+                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -347,7 +347,7 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
 
                     shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
                 }
-                else if (group->size_source == ENTORAMA_SIZE_AGENT_XYZ) {
+                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -386,7 +386,7 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
                 shader_program_set_data_float(prog, 3, group->max_agents, 4, inst_color);
             }
             else {
-                if (group->size_source == ENTORAMA_SIZE_AGENT_RADIUS) {
+                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -401,7 +401,7 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
 
                     shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
                 }
-                else if (group->size_source == ENTORAMA_SIZE_AGENT_XYZ) {
+                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -433,8 +433,8 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
             shader_program_set_data_float(prog, 2, group->max_agents, 3, inst_dir_fwd);
         }
         else {
-            if (group->color_source == ENTORAMA_COLOR_AGENT_PALETTE) {
-                if (group->size_source == ENTORAMA_SIZE_AGENT_RADIUS) {
+            if (group->color_source == EM_COLOR_AGENT_PALETTE) {
+                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -447,7 +447,7 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
 
                     shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
                 }
-                else if (group->size_source == ENTORAMA_SIZE_AGENT_XYZ) {
+                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -473,8 +473,8 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
 
                 shader_program_set_data_float(prog, 3, group->max_agents, 4, inst_color);
             }
-            else if (group->color_source == ENTORAMA_COLOR_AGENT_RGB) {
-                if (group->size_source == ENTORAMA_SIZE_AGENT_RADIUS) {
+            else if (group->color_source == EM_COLOR_AGENT_RGB) {
+                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -490,7 +490,7 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
 
                     shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
                 }
-                else if (group->size_source == ENTORAMA_SIZE_AGENT_XYZ) {
+                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -523,7 +523,7 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
                 shader_program_set_data_float(prog, 3, group->max_agents, 4, inst_color);
             }
             else {
-                if (group->size_source == ENTORAMA_SIZE_AGENT_RADIUS) {
+                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -535,7 +535,7 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
 
                     shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
                 }
-                else if (group->size_source == ENTORAMA_SIZE_AGENT_XYZ) {
+                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
                         char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
                         inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
@@ -567,11 +567,11 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
     /* push agent model geometry */
     {
         float *verts = 0;
-        if (group->shape == ENTORAMA_CUBE) {
+        if (group->shape == EM_CUBE) {
             verts_count = CUBE_VERTS_COUNT;
             verts = CUBE_VERTS;
         }
-        else if (group->shape == ENTORAMA_PYRAMID) {
+        else if (group->shape == EM_PYRAMID) {
             verts_count = PYRAMID_VERTS_COUNT;
             verts = PYRAMID_VERTS;
         }

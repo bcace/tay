@@ -128,10 +128,10 @@ void em_widgets_draw(struct mat4 projection) {
     }
 }
 
-static EmResponse _get_response(unsigned id, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
+static EmResponse _get_response(unsigned id, float min_x, float min_y, float max_x, float max_y, EmWidgetFlags flags) {
     EmResponse response = EM_RESPONSE_NONE;
 
-    int disabled = flags & EM_BUTTON_FLAGS_DISABLED;
+    int disabled = flags & EM_WIDGET_FLAGS_DISABLED;
 
     if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
         if (mouse_l) {
@@ -159,25 +159,25 @@ static EmResponse _get_response(unsigned id, float min_x, float min_y, float max
     return response;
 }
 
-EmResponse em_button(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
+EmResponse em_button(char *label, float min_x, float min_y, float max_x, float max_y, EmWidgetFlags flags) {
     unsigned id = ++available_widget_id;
 
-    unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
-    unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
+    unsigned label_w = font_text_width(EM_FONT_MEDIUM, label);
+    unsigned label_h = font_height(EM_FONT_MEDIUM);
     int label_x = (int)(min_x + button_label_offset); // (int)((min_x + max_x - label_w) * 0.5f);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
-    if (flags & EM_BUTTON_FLAGS_DISABLED)
-        font_draw_text(ENTORAMA_FONT_MEDIUM, label, label_x, label_y, color_fg_disabled(), &selected_layer->text_buffer);
+    if (flags & EM_WIDGET_FLAGS_DISABLED)
+        font_draw_text(EM_FONT_MEDIUM, label, label_x, label_y, color_fg_disabled(), &selected_layer->text_buffer);
     else
-        font_draw_text(ENTORAMA_FONT_MEDIUM, label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
+        font_draw_text(EM_FONT_MEDIUM, label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
 
     EmResponse response = _get_response(id, min_x, min_y, max_x, max_y, flags);
 
     vec2 *quad_pos = 0;
     vec4 *quad_col = 0;
 
-    if (pressed_widget_id == id || flags & EM_BUTTON_FLAGS_PRESSED) {
+    if (pressed_widget_id == id || flags & EM_WIDGET_FLAGS_PRESSED) {
         quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
         _init_quad(quad_pos, min_x, max_x, min_y, max_y);
         _init_color(quad_col, color_hi());
@@ -195,21 +195,21 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
 EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
     unsigned id = ++available_widget_id;
 
-    return _get_response(id, min_x, min_y, max_x, max_y, EM_BUTTON_FLAGS_NONE);
+    return _get_response(id, min_x, min_y, max_x, max_y, EM_WIDGET_FLAGS_NONE);
 }
 
-EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y, EmButtonFlags flags) {
+EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y, EmWidgetFlags flags) {
     unsigned id = ++available_widget_id;
 
-    unsigned label_w = font_text_width(ENTORAMA_FONT_MEDIUM, label);
-    unsigned label_h = font_height(ENTORAMA_FONT_MEDIUM);
+    unsigned label_w = font_text_width(EM_FONT_MEDIUM, label);
+    unsigned label_h = font_height(EM_FONT_MEDIUM);
     int label_x = (flags & EM_WIDGET_FLAGS_LEFT) ? (int)(min_x + button_label_offset) : (int)((min_x + max_x - label_w) * 0.5f);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
-    if (flags & EM_BUTTON_FLAGS_DISABLED)
-        font_draw_text(ENTORAMA_FONT_MEDIUM, label, label_x, label_y, color_fg_disabled(), &selected_layer->text_buffer);
+    if (flags & EM_WIDGET_FLAGS_DISABLED)
+        font_draw_text(EM_FONT_MEDIUM, label, label_x, label_y, color_fg_disabled(), &selected_layer->text_buffer);
     else
-        font_draw_text(ENTORAMA_FONT_MEDIUM, label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
+        font_draw_text(EM_FONT_MEDIUM, label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
 
     return EM_RESPONSE_NONE;
 }

@@ -6,9 +6,9 @@
 void drawing_init(int max_agents_per_group);
 void drawing_mouse_scroll(double y, int *redraw);
 void drawing_mouse_move(int button_l, int button_r, float dx, float dy, int *execute_draw_calls);
-void drawing_camera_setup(struct EntoramaModel *model, int window_w, int window_h);
-void drawing_draw_group(struct TayState *tay, struct EntoramaGroup *group, int group_i);
-void drawing_update_world_box(struct EntoramaModel *model);
+void drawing_camera_setup(struct EmModel *model, int window_w, int window_h);
+void drawing_draw_group(struct TayState *tay, struct EmGroup *group, int group_i);
+void drawing_update_world_box(struct EmModel *model);
 
 /* colors.c */
 void color_init();
@@ -23,7 +23,7 @@ struct vec4 color_palette(int index);
 void color_toggle_theme();
 
 /* model.c */
-void model_load(struct EntoramaModel *model, char *path);
+void model_load(struct EmModel *model, char *path);
 
 /* shapes.c */
 float PYRAMID_VERTS[];
@@ -36,6 +36,6 @@ int icosahedron_verts_count(unsigned subdivs);
 void icosahedron_verts(unsigned subdivs, float *verts);
 
 /* entorama.c */
-void entorama_init_model(struct EntoramaModel *model);
+void entorama_init_model(struct EmModel *model);
 
 #endif

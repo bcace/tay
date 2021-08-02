@@ -38,7 +38,7 @@ void font_init() {
 }
 
 static Font *_font_for_size(FontSize font_size) {
-    if (font_size == ENTORAMA_FONT_MEDIUM)
+    if (font_size == EM_FONT_MEDIUM)
         return &inconsolata13;
     else
         return 0;
@@ -46,7 +46,7 @@ static Font *_font_for_size(FontSize font_size) {
 
 void font_use_medium() {
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, _font_for_size(ENTORAMA_FONT_MEDIUM)->id);
+    glBindTexture(GL_TEXTURE_2D, _font_for_size(EM_FONT_MEDIUM)->id);
 }
 
 void font_draw_text(FontSize font_size, const char *text, int x, int y, vec4 color, TexQuadBuffer *buffer) {
@@ -95,21 +95,21 @@ void font_draw_text(FontSize font_size, const char *text, int x, int y, vec4 col
 }
 
 unsigned font_text_width(FontSize font_size, const char *text) {
-    if (font_size == ENTORAMA_FONT_MEDIUM)
+    if (font_size == EM_FONT_MEDIUM)
         return (unsigned)strlen(text) * (inconsolata13.w + HORZ_SPACING);
     else
         return 0;
 }
 
 unsigned font_text_height(FontSize font_size, const char *text) {
-    if (font_size == ENTORAMA_FONT_MEDIUM)
+    if (font_size == EM_FONT_MEDIUM)
         return inconsolata13.h;
     else
         return 0;
 }
 
 unsigned font_height(FontSize font_size) {
-    if (font_size == ENTORAMA_FONT_MEDIUM)
+    if (font_size == EM_FONT_MEDIUM)
         return inconsolata13.h;
     else
         return 0;

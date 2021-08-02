@@ -11,7 +11,7 @@ typedef struct Font {
 } Font;
 
 typedef enum FontSize {
-    ENTORAMA_FONT_MEDIUM,
+    EM_FONT_MEDIUM,
 } FontSize;
 
 void font_init();

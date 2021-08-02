@@ -35,7 +35,7 @@ static void _update_sph_context(SphContext *c, float m) {
     c->viscosity = -c->spiky;
 }
 
-static int _init(EntoramaModel *model, TayState *tay) {
+static int _init(EmModel *model, TayState *tay) {
     float particle_m = 0.05f;
     float fluid_density = 998.29f;
     float atmospheric_pressure = 101325.0f;
@@ -62,12 +62,12 @@ static int _init(EntoramaModel *model, TayState *tay) {
     float part_size = h * 1.0f;
 
     particles_group = tay_add_group(tay, sizeof(SphParticle), particles_count, TAY_TRUE);
-    EntoramaGroup *e_particles_group = model->add_group(model, "Particles", particles_group, particles_count, 1);
+    EmGroup *e_particles_group = model->add_group(model, "Particles", particles_group, particles_count, 1);
     e_particles_group->group = particles_group;
     e_particles_group->max_agents = particles_count;
-    e_particles_group->size_source = ENTORAMA_SIZE_UNIFORM_RADIUS;
+    e_particles_group->size_source = EM_SIZE_UNIFORM_RADIUS;
     e_particles_group->size_radius = 0.02f;
-    e_particles_group->shape = ENTORAMA_CUBE;
+    e_particles_group->shape = EM_CUBE;
     e_particles_group->configure_space(e_particles_group, TAY_CPU_Z_GRID, part_size, part_size, part_size, part_size);
 
     tay_add_see(tay, particles_group, particles_group, sph_particle_density, "sph_particle_density", (float4){h, h, h, h}, TAY_TRUE, &sph_context, sizeof(sph_context));
@@ -88,7 +88,7 @@ static int _init(EntoramaModel *model, TayState *tay) {
     return 0;
 }
 
-static int _reset(EntoramaModel *model, TayState *tay) {
+static int _reset(EmModel *model, TayState *tay) {
     tay_clear_all_agents(tay, particles_group);
 
     for (int i = 0; i < particles_count; ++i) {
@@ -105,7 +105,7 @@ static int _reset(EntoramaModel *model, TayState *tay) {
     return 0;
 }
 
-__declspec(dllexport) int entorama_main(EntoramaModel *model) {
+__declspec(dllexport) int entorama_main(EmModel *model) {
     model->init = _init;
     model->reset = _reset;
     return 0;

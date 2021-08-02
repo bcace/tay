@@ -24,7 +24,7 @@ static float STATUSBAR_H = 26;
 static float SIDEBAR_W = 300.0f;
 static float PROPERTIES_H = 400.0f;
 
-static EntoramaModel model;
+static EmModel model;
 static void *selected_model_element = 0;
 
 static int speed_mode = 0;
@@ -100,7 +100,7 @@ static double _smooth_ms_per_step(double ms) {
     return smooth;
 }
 
-static void _reconfigure_space(TayState *tay, EntoramaGroup *group) {
+static void _reconfigure_space(TayState *tay, EmGroup *group) {
     tay_configure_space(tay, group->group, group->space_type, 3, (float4){group->min_part_size_x, group->min_part_size_y, group->min_part_size_z, group->min_part_size_w}, 1000);
 }
 
@@ -195,7 +195,7 @@ int main() {
                 switch (em_button("Run",
                                   button_x, window_h - TOOLBAR_H,
                                   button_x + TOOLBAR_BUTTON_W, (float)window_h,
-                                  EM_BUTTON_FLAGS_NONE)) {
+                                  EM_WIDGET_FLAGS_NONE)) {
                     case EM_RESPONSE_CLICKED:
                         paused = !paused;
                     case EM_RESPONSE_HOVERED:
@@ -208,7 +208,7 @@ int main() {
                 switch (em_button("Reset",
                                   button_x, window_h - TOOLBAR_H,
                                   button_x + TOOLBAR_BUTTON_W, (float)window_h,
-                                  EM_BUTTON_FLAGS_NONE)) {
+                                  EM_WIDGET_FLAGS_NONE)) {
                     case EM_RESPONSE_CLICKED:
                         model.reset(&model, tay);
                     case EM_RESPONSE_HOVERED:
@@ -219,7 +219,7 @@ int main() {
                 if (em_button("Theme",
                               window_w - 60.0f, window_h - TOOLBAR_H,
                               (float)window_w, (float)window_h,
-                              EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                              EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                     color_toggle_theme();
             }
 
@@ -229,14 +229,14 @@ int main() {
                 if (em_button("",
                               SIDEBAR_W, STATUSBAR_H,
                               SIDEBAR_W + 6.0f, window_h - TOOLBAR_H,
-                              EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_PRESSED)
+                              EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_PRESSED)
                     SIDEBAR_W += mouse_dx;
 
                 /* properties pane size button */
                 if (em_button("",
                               0.0f, STATUSBAR_H + PROPERTIES_H,
                               SIDEBAR_W, STATUSBAR_H + PROPERTIES_H + 6.0f,
-                              EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_PRESSED)
+                              EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_PRESSED)
                     PROPERTIES_H += mouse_dy;
 
                 /* model elements list */
@@ -248,7 +248,7 @@ int main() {
                     em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, window_h - TOOLBAR_H, color_vd());
 
                     const float INDENT_W = 16.0f;
-                    const float SIDEBAR_BUTTON_H = font_height(ENTORAMA_FONT_MEDIUM) + 8.0f;
+                    const float SIDEBAR_BUTTON_H = font_height(EM_FONT_MEDIUM) + 8.0f;
                     float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
                     float x = 0.0f;
 
@@ -262,7 +262,7 @@ int main() {
                         if (em_button("Simulation",
                                       x, y,
                                       SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                      (selected_model_element == tay) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                      (selected_model_element == tay) ? EM_WIDGET_FLAGS_PRESSED : EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
                             selected_model_element = tay;
                             simulation_expanded = !simulation_expanded;
                         }
@@ -284,7 +284,7 @@ int main() {
                                 if (em_button("Devices",
                                               INDENT_W, y,
                                               SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                              EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                              EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
                                     devices_expanded = !devices_expanded;
                                 }
 
@@ -295,20 +295,20 @@ int main() {
                                     x += INDENT_W;
 
                                     {
-                                        EmButtonFlags flags = EM_BUTTON_FLAGS_NONE;
+                                        EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
                                         if (!model.ocl_enabled)
-                                            flags |= EM_BUTTON_FLAGS_PRESSED;
+                                            flags |= EM_WIDGET_FLAGS_PRESSED;
 
                                         if (em_button("CPU",
                                                       x, y,
                                                       SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
-                                                      EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                                      EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                             cpu_expanded = !cpu_expanded;
 
                                         if (em_button(model.ocl_enabled ? "o" : "x",
                                                       SIDEBAR_W - SIDEBAR_BUTTON_H, y,
                                                       SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                      EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                                      EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                             model.ocl_enabled = tay_switch_to_host(tay);
 
                                         y -= SIDEBAR_BUTTON_H;
@@ -331,12 +331,12 @@ int main() {
                                                     em_label(label_text_buffer,
                                                              SIDEBAR_W * 0.5f + SIDEBAR_BUTTON_H, y,
                                                              SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
-                                                             EM_BUTTON_FLAGS_NONE);
+                                                             EM_WIDGET_FLAGS_NONE);
 
                                                     if (em_button("-",
                                                                   SIDEBAR_W * 0.5f, y,
                                                                   SIDEBAR_W * 0.5f + SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
-                                                                  EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                                                  EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
                                                         tay_threads_stop();
                                                         tay_threads_start(--threads_count, thread_storage_size);
                                                     }
@@ -344,7 +344,7 @@ int main() {
                                                     if (em_button("+",
                                                                   SIDEBAR_W - SIDEBAR_BUTTON_H, y,
                                                                   SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                                  EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                                                  EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
                                                         tay_threads_stop();
                                                         tay_threads_start(++threads_count, thread_storage_size);
                                                     }
@@ -358,13 +358,13 @@ int main() {
                                     }
 
                                     {
-                                        EmButtonFlags flags = EM_BUTTON_FLAGS_NONE;
+                                        EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
                                         if (!model.ocl_enabled) {
                                             for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
-                                                EntoramaGroup *group = model.groups + group_i;
+                                                EmGroup *group = model.groups + group_i;
 
                                                 if (group->space_type != TAY_CPU_SIMPLE && group->space_type != TAY_CPU_Z_GRID) {
-                                                    flags = EM_BUTTON_FLAGS_DISABLED;
+                                                    flags = EM_WIDGET_FLAGS_DISABLED;
                                                     // TODO: set tooltip explanation
                                                     break;
                                                 }
@@ -374,7 +374,7 @@ int main() {
                                         if (em_button("GPU",
                                                       x, y,
                                                       SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
-                                                      EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                                      EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                             gpu_expanded = !gpu_expanded;
 
                                         if (em_button(model.ocl_enabled ? "x" : "o",
@@ -399,12 +399,12 @@ int main() {
                     /* group buttons */
                     {
                         for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
-                            EntoramaGroup *group = model.groups + group_i;
+                            EmGroup *group = model.groups + group_i;
 
                             if (em_button(group->name,
                                           0.0f, y,
                                           SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                          (selected_model_element == group) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                          (selected_model_element == group) ? EM_WIDGET_FLAGS_PRESSED : EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                 selected_model_element = group;
 
                             em_quad(bullet_offset - bullet_size * 0.5f, y + (SIDEBAR_BUTTON_H - bullet_size) * 0.5f,
@@ -421,11 +421,11 @@ int main() {
                         float top_bullet_y = 0.0f;
 
                         for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
-                            EntoramaPass *pass = model.passes + pass_i;
+                            EmPass *pass = model.passes + pass_i;
 
                             int pass_group_selected = 0;
 
-                            if (pass->type == ENTORAMA_PASS_ACT) {
+                            if (pass->type == EM_PASS_ACT) {
                                 sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%s act (%s)", pass->act_group->name, pass->name);
                                 pass_group_selected = selected_model_element == pass->act_group;
                             }
@@ -437,7 +437,7 @@ int main() {
                             if (em_button(label_text_buffer,
                                           0.0f, y,
                                           SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                          (selected_model_element == pass) ? EM_BUTTON_FLAGS_PRESSED : EM_BUTTON_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                          (selected_model_element == pass) ? EM_WIDGET_FLAGS_PRESSED : EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                 selected_model_element = pass;
 
                             float bullet_y = y + SIDEBAR_BUTTON_H * 0.5f;
@@ -478,12 +478,12 @@ int main() {
                     const float PROPERTY_LINE_H = 28.0f;
                     float property_line_y = STATUSBAR_H + PROPERTIES_H - PROPERTY_LINE_H;
 
-                    if ((EntoramaGroup *)selected_model_element >= model.groups && (EntoramaGroup *)selected_model_element < model.groups + model.groups_count) {
-                        EntoramaGroup *group = selected_model_element;
+                    if ((EmGroup *)selected_model_element >= model.groups && (EmGroup *)selected_model_element < model.groups + model.groups_count) {
+                        EmGroup *group = selected_model_element;
 
                         for (TaySpaceType space_type = TAY_CPU_SIMPLE; space_type < TAY_SPACE_COUNT; ++space_type) {
 
-                            EmButtonFlags flags = EM_BUTTON_FLAGS_NONE;
+                            EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
 
                             switch (space_type) {
                                 case TAY_CPU_SIMPLE:
@@ -492,28 +492,28 @@ int main() {
                                 case TAY_CPU_KD_TREE:
                                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Kd Tree");
                                     if (model.ocl_enabled)
-                                        flags |= EM_BUTTON_FLAGS_DISABLED;
+                                        flags |= EM_WIDGET_FLAGS_DISABLED;
                                     break;
                                 case TAY_CPU_AABB_TREE:
                                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU AABB Tree");
                                     if (group->is_point || model.ocl_enabled)
-                                        flags |= EM_BUTTON_FLAGS_DISABLED;
+                                        flags |= EM_WIDGET_FLAGS_DISABLED;
                                     break;
                                 case TAY_CPU_GRID:
                                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Grid");
                                     if (!group->is_point || model.ocl_enabled)
-                                        flags |= EM_BUTTON_FLAGS_DISABLED;
+                                        flags |= EM_WIDGET_FLAGS_DISABLED;
                                     break;
                                 case TAY_CPU_Z_GRID:
                                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Z-Order Grid");
                                     if (!group->is_point)
-                                        flags |= EM_BUTTON_FLAGS_DISABLED;
+                                        flags |= EM_WIDGET_FLAGS_DISABLED;
                                     break;
                                 default:;
                             }
 
                             if (space_type == group->space_type)
-                                flags |= EM_BUTTON_FLAGS_PRESSED;
+                                flags |= EM_WIDGET_FLAGS_PRESSED;
 
                             if (em_button(label_text_buffer,
                                           0.0f, property_line_y,
@@ -543,9 +543,9 @@ int main() {
                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%.1f ms", speed);
 
                 switch (em_button(label_text_buffer,
-                                  window_w - font_text_width(ENTORAMA_FONT_MEDIUM, label_text_buffer) - 20.0f, 0.0f,
+                                  window_w - font_text_width(EM_FONT_MEDIUM, label_text_buffer) - 20.0f, 0.0f,
                                   (float)window_w, STATUSBAR_H,
-                                  EM_BUTTON_FLAGS_NONE)) {
+                                  EM_WIDGET_FLAGS_NONE)) {
                     case EM_RESPONSE_CLICKED:
                         speed_mode = !speed_mode;
                     case EM_RESPONSE_HOVERED:
@@ -556,7 +556,7 @@ int main() {
                 em_label(tooltip_text_buffer,
                          0.0f, 0.0f,
                          (float)window_w, STATUSBAR_H,
-                         EM_BUTTON_FLAGS_NONE);
+                         EM_WIDGET_FLAGS_NONE);
             }
 
             em_quad(0.0f, STATUSBAR_H, (float)window_w, STATUSBAR_H + 1.0f, color_border());
@@ -580,7 +580,7 @@ int main() {
                 drawing_camera_setup(&model, (int)(window_w - SIDEBAR_W), (int)(window_h - TOOLBAR_H - STATUSBAR_H));
 
                 for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
-                    EntoramaGroup *group = model.groups + group_i;
+                    EmGroup *group = model.groups + group_i;
                     drawing_draw_group(tay, group, group_i);
                 }
             }

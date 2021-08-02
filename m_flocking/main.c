@@ -23,7 +23,7 @@ static float _rand(float min, float max) {
     return min + rand() * (max - min) / (float)RAND_MAX;
 }
 
-static int _init(EntoramaModel *model, TayState *tay) {
+static int _init(EmModel *model, TayState *tay) {
     const float4 see_radii = { radius, radius, radius, radius };
 
     model->set_world_box(model, -500.0f, -500.0f, -500.0f, 500.0f, 500.0f, 500.0f);
@@ -32,14 +32,14 @@ static int _init(EntoramaModel *model, TayState *tay) {
     see_context.separation_r = radius * 0.5f;
 
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE);
-    EntoramaGroup *e_boids_group = model->add_group(model, "Boids", boids_group, boids_count, 1);
-    e_boids_group->direction_source = ENTORAMA_DIRECTION_FWD;
+    EmGroup *e_boids_group = model->add_group(model, "Boids", boids_group, boids_count, 1);
+    e_boids_group->direction_source = EM_DIRECTION_FWD;
     e_boids_group->direction_fwd_x_offset = 16;
     e_boids_group->direction_fwd_y_offset = 20;
     e_boids_group->direction_fwd_z_offset = 24;
-    e_boids_group->color_source = ENTORAMA_COLOR_AGENT_PALETTE;
+    e_boids_group->color_source = EM_COLOR_AGENT_PALETTE;
     e_boids_group->color_palette_index_offset = 32;
-    e_boids_group->shape = ENTORAMA_PYRAMID;
+    e_boids_group->shape = EM_PYRAMID;
     e_boids_group->configure_space(e_boids_group, TAY_CPU_GRID, radius, radius, radius, radius);
 
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
@@ -56,7 +56,7 @@ static int _init(EntoramaModel *model, TayState *tay) {
     return 0;
 }
 
-static int _reset(EntoramaModel *model, TayState *tay) {
+static int _reset(EmModel *model, TayState *tay) {
     tay_clear_all_agents(tay, boids_group);
 
     for (int i = 0; i < boids_count; ++i) {
@@ -91,7 +91,7 @@ static int _reset(EntoramaModel *model, TayState *tay) {
     return 0;
 }
 
-__declspec(dllexport) int entorama_main(EntoramaModel *model) {
+__declspec(dllexport) int entorama_main(EmModel *model) {
     model->init = _init;
     model->reset = _reset;
     return 0;

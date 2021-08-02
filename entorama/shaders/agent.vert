@@ -64,12 +64,12 @@ vec3 _quat_rotate(vec4 q, vec3 v) {
 void main(void) {
     vec3 local_pos = pos;
 
-#ifdef ENTORAMA_DIRECTION_FWD
+#ifdef EM_DIRECTION_FWD
     vec4 rot1 = _rotation_between_vectors(vec3(0.0f, 0.0f, 1.0f), inst_dir_fwd);
     local_pos = _quat_rotate(rot1, local_pos);
 #endif
 
-#ifdef ENTORAMA_SIZE_AGENT
+#ifdef EM_SIZE_AGENT
     local_pos *= inst_size;
 #else
     local_pos *= uniform_size;
@@ -79,7 +79,7 @@ void main(void) {
 
     gl_Position = projection * global_pos;
 
-#ifdef ENTORAMA_COLOR_AGENT
+#ifdef EM_COLOR_AGENT
     _color = inst_color;
 #else
     _color = uniform_color;
