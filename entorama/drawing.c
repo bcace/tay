@@ -131,15 +131,17 @@ void drawing_mouse_scroll(double y) {
     }
 }
 
-void drawing_mouse_move(int button_l, int button_r, float dx, float dy) {
+void drawing_mouse_move(int button_l, int button_r, float dx, float dy, int *redraw) {
     if (camera.type == CAMERA_MODELING) {
         if (button_l) {
             camera.rot_x -= dy * 0.002f;
             camera.rot_y += dx * 0.002f;
+            *redraw = 1;
         }
         else if (button_r) {
             camera.pan_x -= dx;
             camera.pan_y -= dy;
+            *redraw = 1;
         }
     }
 }
@@ -558,9 +560,10 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
         shader_program_set_data_float(prog, 1, group->max_agents, 3, inst_pos);
     }
 
+    int verts_count = 0;
+
     /* push agent model geometry */
     {
-        int verts_count = 0;
         float *verts = 0;
         if (group->shape == ENTORAMA_CUBE) {
             verts_count = CUBE_VERTS_COUNT;
@@ -575,8 +578,10 @@ void drawing_draw_group(TayState *tay, EntoramaGroup *group, int group_i) {
             verts = SPHERE_VERTS;
         }
         shader_program_set_data_float(prog, 0, verts_count, 3, verts);
-        graphics_draw_triangles_instanced(verts_count, group->max_agents);
     }
+
+    /* draw agents */
+    graphics_draw_triangles_instanced(verts_count, group->max_agents);
 
     /* draw world box */
     {

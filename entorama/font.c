@@ -9,7 +9,6 @@
 
 
 Font inconsolata13;
-Font *font; /* currently used font */
 
 static unsigned HORZ_SPACING = 0;
 
@@ -38,13 +37,21 @@ void font_init() {
     font_raster_clear();
 }
 
-void font_use_medium() {
-    font = &inconsolata13;
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, font->id);
+static Font *_font_for_size(FontSize font_size) {
+    if (font_size == ENTORAMA_FONT_MEDIUM)
+        return &inconsolata13;
+    else
+        return 0;
 }
 
-void font_draw_text(const char *text, int x, int y, vec4 color, TexQuadBuffer *buffer) {
+void font_use_medium() {
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, _font_for_size(ENTORAMA_FONT_MEDIUM)->id);
+}
+
+void font_draw_text(FontSize font_size, const char *text, int x, int y, vec4 color, TexQuadBuffer *buffer) {
+    Font *font = _font_for_size(font_size);
+
     unsigned text_size = (unsigned)strlen(text);
 
     vec2 *pos = 0;
