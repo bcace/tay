@@ -116,17 +116,19 @@ void drawing_init(int max_agents_per_group) {
     icosahedron_verts(SPHERE_SUBDIVS, SPHERE_VERTS);
 }
 
-void drawing_mouse_scroll(double y) {
+void drawing_mouse_scroll(double y, int *redraw) {
     if (camera.type == CAMERA_MODELING) {
         if (y > 0.0) {
             camera.zoom *= 0.95f;
             camera.pan_x /= 0.95f;
             camera.pan_y /= 0.95f;
+            *redraw = 1;
         }
         else if (y < 0.0) {
             camera.zoom /= 0.95f;
             camera.pan_x *= 0.95f;
             camera.pan_y *= 0.95f;
+            *redraw = 1;
         }
     }
 }

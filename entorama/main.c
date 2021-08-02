@@ -42,7 +42,7 @@ static void _close_callback(GLFWwindow *window) {
 }
 
 static void _scroll_callback(GLFWwindow *glfw_window, double x, double y) {
-    drawing_mouse_scroll(y);
+    drawing_mouse_scroll(y, &redraw);
 }
 
 static void _mousebutton_callback(GLFWwindow *glfw_window, int button, int action, int mods) {
