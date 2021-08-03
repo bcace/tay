@@ -104,11 +104,11 @@ static void _reconfigure_space(TayState *tay, EmGroup *group) {
 
 static const char *_structure_name(TaySpaceType space_type) {
     switch (space_type) {
-        case TAY_CPU_SIMPLE: return "CPU Simple";
-        case TAY_CPU_KD_TREE: return "CPU Kd Tree";
-        case TAY_CPU_AABB_TREE: return "CPU AABB Tree";
-        case TAY_CPU_GRID: return "CPU Grid";
-        case TAY_CPU_Z_GRID: return "CPU Z-Order Grid";
+        case TAY_CPU_SIMPLE: return "Simple";
+        case TAY_CPU_KD_TREE: return "Kd Tree";
+        case TAY_CPU_AABB_TREE: return "AABB Tree";
+        case TAY_CPU_GRID: return "Grid";
+        case TAY_CPU_Z_GRID: return "Z-Order Grid";
         default: return "(unknown)";
     }
 }
@@ -491,11 +491,14 @@ int main() {
                                             model.ocl_enabled && !_structure_works_on_gpu(space_type))
                                             flags |= EM_WIDGET_FLAGS_DISABLED;
 
-                                        if (space_type == group->space_type)
-                                            flags |= EM_WIDGET_FLAGS_PRESSED;
-
                                         if (em_button(label_text_buffer,
                                                       x, y,
+                                                      SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                      EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                            ; // TODO: expand structure settings
+
+                                        if (em_button((space_type == group->space_type) ? "x" : "o",
+                                                      SIDEBAR_W - SIDEBAR_BUTTON_H, y,
                                                       SIDEBAR_W, y + SIDEBAR_BUTTON_H,
                                                       flags) == EM_RESPONSE_CLICKED) {
                                             group->space_type = space_type;
