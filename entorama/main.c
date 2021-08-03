@@ -205,7 +205,7 @@ int main() {
     TayState *tay = tay_create_state();
 
     entorama_init_model(&model);
-    model_load(&model, "m_sph.dll");
+    model_load(&model, "m_flocking.dll");
     model.init(&model, tay);
     model.reset(&model, tay);
 
@@ -326,6 +326,7 @@ int main() {
 
                                     x += INDENT_W;
 
+                                    /* cpu device */
                                     {
                                         EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
                                         if (!model.ocl_enabled)
@@ -361,13 +362,13 @@ int main() {
                                                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%d", threads_count);
 
                                                     em_label(label_text_buffer,
-                                                             SIDEBAR_W * 0.5f + SIDEBAR_BUTTON_H, y,
-                                                             SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                             SIDEBAR_W * 0.5f, y,
+                                                             SIDEBAR_W - SIDEBAR_BUTTON_H * 2.0f, y + SIDEBAR_BUTTON_H,
                                                              EM_WIDGET_FLAGS_NONE);
 
                                                     if (em_button("-",
-                                                                  SIDEBAR_W * 0.5f, y,
-                                                                  SIDEBAR_W * 0.5f + SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                                  SIDEBAR_W - SIDEBAR_BUTTON_H * 2.0f, y,
+                                                                  SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
                                                                   EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
                                                         tay_threads_stop();
                                                         tay_threads_start(--threads_count, thread_storage_size);
@@ -389,6 +390,7 @@ int main() {
                                         }
                                     }
 
+                                    /* gpu device */
                                     {
                                         EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
                                         if (!model.ocl_enabled) {
@@ -445,7 +447,6 @@ int main() {
 
                                 /* structures header */
                                 {
-
                                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "Structure types (%s)", _structure_name(group->space_type));
 
                                     if (em_button(label_text_buffer,
