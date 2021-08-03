@@ -192,12 +192,6 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
     return response;
 }
 
-EmResponse em_area(char *label, float min_x, float min_y, float max_x, float max_y) {
-    unsigned id = ++available_widget_id;
-
-    return _get_response(id, min_x, min_y, max_x, max_y, EM_WIDGET_FLAGS_NONE);
-}
-
 EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y, EmWidgetFlags flags) {
     unsigned id = ++available_widget_id;
 
