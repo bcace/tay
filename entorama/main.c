@@ -102,6 +102,61 @@ static void _reconfigure_space(TayState *tay, EmGroup *group) {
     tay_configure_space(tay, group->group, group->space_type, 3, (float4){group->min_part_size_x, group->min_part_size_y, group->min_part_size_z, group->min_part_size_w}, 1000);
 }
 
+static const char *_structure_name(TaySpaceType space_type) {
+    switch (space_type) {
+        case TAY_CPU_SIMPLE: return "CPU Simple";
+        case TAY_CPU_KD_TREE: return "CPU Kd Tree";
+        case TAY_CPU_AABB_TREE: return "CPU AABB Tree";
+        case TAY_CPU_GRID: return "CPU Grid";
+        case TAY_CPU_Z_GRID: return "CPU Z-Order Grid";
+        default: return "(unknown)";
+    }
+}
+
+static int _structure_works_on_cpu(TaySpaceType space_type) {
+    switch (space_type) {
+        case TAY_CPU_SIMPLE: return 1;
+        case TAY_CPU_KD_TREE: return 1;
+        case TAY_CPU_AABB_TREE: return 1;
+        case TAY_CPU_GRID: return 1;
+        case TAY_CPU_Z_GRID: return 1;
+        default: return 0;
+    }
+}
+
+static int _structure_works_on_gpu(TaySpaceType space_type) {
+    switch (space_type) {
+        case TAY_CPU_SIMPLE: return 1;
+        case TAY_CPU_KD_TREE: return 0;
+        case TAY_CPU_AABB_TREE: return 0;
+        case TAY_CPU_GRID: return 0;
+        case TAY_CPU_Z_GRID: return 1;
+        default: return 0;
+    }
+}
+
+static int _structure_works_with_points(TaySpaceType space_type) {
+    switch (space_type) {
+        case TAY_CPU_SIMPLE: return 1;
+        case TAY_CPU_KD_TREE: return 1;
+        case TAY_CPU_AABB_TREE: return 0;
+        case TAY_CPU_GRID: return 1;
+        case TAY_CPU_Z_GRID: return 1;
+        default: return 0;
+    }
+}
+
+static int _structure_works_with_non_points(TaySpaceType space_type) {
+    switch (space_type) {
+        case TAY_CPU_SIMPLE: return 1;
+        case TAY_CPU_KD_TREE: return 1;
+        case TAY_CPU_AABB_TREE: return 1;
+        case TAY_CPU_GRID: return 0;
+        case TAY_CPU_Z_GRID: return 0;
+        default: return 0;
+    }
+}
+
 int main() {
 
     if (!glfwInit()) {
@@ -408,7 +463,10 @@ int main() {
 
                                 /* structures header */
                                 {
-                                    if (em_button("Structure types",
+
+                                    sprintf_s(label_text_buffer, sizeof(label_text_buffer), "Structure types (%s)", _structure_name(group->space_type));
+
+                                    if (em_button(label_text_buffer,
                                                   x, y,
                                                   SIDEBAR_W, y + SIDEBAR_BUTTON_H,
                                                   EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
@@ -424,34 +482,14 @@ int main() {
 
                                     for (TaySpaceType space_type = TAY_CPU_SIMPLE; space_type < TAY_SPACE_COUNT; ++space_type) {
 
+                                        sprintf_s(label_text_buffer, sizeof(label_text_buffer), _structure_name(space_type));
+
                                         EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
 
-                                        switch (space_type) {
-                                            case TAY_CPU_SIMPLE:
-                                                sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Simple");
-                                                break;
-                                            case TAY_CPU_KD_TREE:
-                                                sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Kd Tree");
-                                                if (model.ocl_enabled)
-                                                    flags |= EM_WIDGET_FLAGS_DISABLED;
-                                                break;
-                                            case TAY_CPU_AABB_TREE:
-                                                sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU AABB Tree");
-                                                if (group->is_point || model.ocl_enabled)
-                                                    flags |= EM_WIDGET_FLAGS_DISABLED;
-                                                break;
-                                            case TAY_CPU_GRID:
-                                                sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Grid");
-                                                if (!group->is_point || model.ocl_enabled)
-                                                    flags |= EM_WIDGET_FLAGS_DISABLED;
-                                                break;
-                                            case TAY_CPU_Z_GRID:
-                                                sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Z-Order Grid");
-                                                if (!group->is_point)
-                                                    flags |= EM_WIDGET_FLAGS_DISABLED;
-                                                break;
-                                            default:;
-                                        }
+                                        if (group->is_point && !_structure_works_with_points(space_type) ||
+                                            !group->is_point && !_structure_works_with_non_points(space_type) ||
+                                            model.ocl_enabled && !_structure_works_on_gpu(space_type))
+                                            flags |= EM_WIDGET_FLAGS_DISABLED;
 
                                         if (space_type == group->space_type)
                                             flags |= EM_WIDGET_FLAGS_PRESSED;
