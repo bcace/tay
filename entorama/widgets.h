@@ -6,7 +6,7 @@ typedef enum EmWidgetFlags {
     EM_WIDGET_FLAGS_NONE = 0x0,
     EM_WIDGET_FLAGS_PRESSED = 0x1,
     EM_WIDGET_FLAGS_DISABLED = 0x2,
-    EM_WIDGET_FLAGS_LEFT = 0x4,
+    EM_WIDGET_FLAGS_CENTER = 0x4,
 } EmWidgetFlags;
 
 typedef enum EmResponse {
@@ -25,9 +25,6 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
 EmResponse em_label(char *label, float min_x, float min_y, float max_x, float max_y, EmWidgetFlags flags);
 
 void em_quad(float min_x, float min_y, float max_x, float max_y, struct vec4 color);
-
-void em_set_button_label_offset(float offset);
-void em_reset_button_label_offset();
 
 void em_select_layer(unsigned layer_index);
 void em_set_layer_scissor(float min_x, float min_y, float max_x, float max_y);

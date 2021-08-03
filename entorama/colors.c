@@ -24,8 +24,8 @@ void color_init() {
         .border = (vec4){EM_DARKEN(0.0664f, 0.18359f, 0.2539f, 0.5f), 1.0f},
         .vd = (vec4){EM_DARKEN(0.0664f, 0.18359f, 0.2539f, 0.8f), 1.0f},
         .bg = (vec4){0.0664f, 0.18359f, 0.2539f, 1.0f},
-        .fg = (vec4){0.99f, 0.99f, 0.99f, 1.0f},
-        .fg_hover = (vec4){0.99f, 0.99f, 0.99f, 0.1f},
+        .fg = (vec4){0.8f, 0.8f, 0.8f, 1.0f},
+        .fg_hover = (vec4){0.8f, 0.8f, 0.8f, 0.1f},
         .fg_disabled = (vec4){0.5f, 0.5f, 0.5f, 1.0f},
         .hi = (vec4){EM_LIGHTEN(0.0664f, 0.18359f, 0.2539f, 0.1f), 1.0f},
         .palette = {
@@ -52,7 +52,7 @@ void color_init() {
         },
     };
 
-    selected = &light;
+    selected = &dark;
 }
 
 void color_toggle_theme() {

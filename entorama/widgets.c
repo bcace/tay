@@ -38,8 +38,6 @@ static unsigned pressed_widget_id = 0;
 static unsigned hovered_widget_id = 0;
 static unsigned previous_hovered_widget_id = 0;
 
-static float button_label_offset = EM_BUTTON_DEFAULT_LABEL_OFFSET;
-
 void em_widgets_init() {
     shader_program_init(&prog, flat_vert, "flat.vert", "", flat_frag, "flat.frag", "");
     shader_program_define_in_float(&prog, 2);            /* vertex position */
@@ -164,7 +162,7 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
 
     unsigned label_w = font_text_width(EM_FONT_MEDIUM, label);
     unsigned label_h = font_height(EM_FONT_MEDIUM);
-    int label_x = (int)(min_x + button_label_offset); // (int)((min_x + max_x - label_w) * 0.5f);
+    int label_x = (flags & EM_WIDGET_FLAGS_CENTER) ? (int)((min_x + max_x - label_w) * 0.5f) : (int)(EM_BUTTON_DEFAULT_LABEL_OFFSET + min_x);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
     if (flags & EM_WIDGET_FLAGS_DISABLED)
@@ -197,7 +195,7 @@ EmResponse em_label(char *label, float min_x, float min_y, float max_x, float ma
 
     unsigned label_w = font_text_width(EM_FONT_MEDIUM, label);
     unsigned label_h = font_height(EM_FONT_MEDIUM);
-    int label_x = (flags & EM_WIDGET_FLAGS_LEFT) ? (int)(min_x + button_label_offset) : (int)((min_x + max_x - label_w) * 0.5f);
+    int label_x = (flags & EM_WIDGET_FLAGS_CENTER) ? (int)((min_x + max_x - label_w) * 0.5f) : (int)(EM_BUTTON_DEFAULT_LABEL_OFFSET + min_x);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
     if (flags & EM_WIDGET_FLAGS_DISABLED)
@@ -215,14 +213,6 @@ void em_quad(float min_x, float min_y, float max_x, float max_y, vec4 color) {
     quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
     _init_quad(quad_pos, min_x, max_x, min_y, max_y);
     _init_color(quad_col, color);
-}
-
-void em_set_button_label_offset(float offset) {
-    button_label_offset = offset;
-}
-
-void em_reset_button_label_offset() {
-    button_label_offset = EM_BUTTON_DEFAULT_LABEL_OFFSET;
 }
 
 void em_select_layer(unsigned layer_index) {
