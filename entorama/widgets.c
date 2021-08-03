@@ -133,7 +133,7 @@ static EmResponse _get_response(unsigned id, float min_x, float min_y, float max
 
     int disabled = flags & EM_WIDGET_FLAGS_DISABLED;
 
-    if (mouse_x >= min_x && mouse_x <= max_x && mouse_y >= min_y && mouse_y <= max_y) {
+    if (mouse_x > min_x && mouse_x <= max_x && mouse_y > min_y && mouse_y <= max_y) {
         if (mouse_l) {
             if (pressed_widget_id == 0 && !disabled) {
                 pressed_widget_id = id;
