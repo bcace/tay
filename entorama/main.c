@@ -406,49 +406,68 @@ int main() {
 
                                 x += INDENT_W;
 
-                                for (TaySpaceType space_type = TAY_CPU_SIMPLE; space_type < TAY_SPACE_COUNT; ++space_type) {
-
-                                    EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
-
-                                    switch (space_type) {
-                                        case TAY_CPU_SIMPLE:
-                                            sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Simple");
-                                            break;
-                                        case TAY_CPU_KD_TREE:
-                                            sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Kd Tree");
-                                            if (model.ocl_enabled)
-                                                flags |= EM_WIDGET_FLAGS_DISABLED;
-                                            break;
-                                        case TAY_CPU_AABB_TREE:
-                                            sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU AABB Tree");
-                                            if (group->is_point || model.ocl_enabled)
-                                                flags |= EM_WIDGET_FLAGS_DISABLED;
-                                            break;
-                                        case TAY_CPU_GRID:
-                                            sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Grid");
-                                            if (!group->is_point || model.ocl_enabled)
-                                                flags |= EM_WIDGET_FLAGS_DISABLED;
-                                            break;
-                                        case TAY_CPU_Z_GRID:
-                                            sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Z-Order Grid");
-                                            if (!group->is_point)
-                                                flags |= EM_WIDGET_FLAGS_DISABLED;
-                                            break;
-                                        default:;
-                                    }
-
-                                    if (space_type == group->space_type)
-                                        flags |= EM_WIDGET_FLAGS_PRESSED;
-
-                                    if (em_button(label_text_buffer,
+                                /* structures header */
+                                {
+                                    if (em_button("Structure types",
                                                   x, y,
                                                   SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                  flags) == EM_RESPONSE_CLICKED) {
-                                        group->space_type = space_type;
-                                        _reconfigure_space(tay, group);
-                                    }
+                                                  EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                        group->structures_expanded = !group->structures_expanded;
 
                                     y -= SIDEBAR_BUTTON_H;
+                                }
+
+                                /* individual structures */
+                                if (group->structures_expanded) {
+
+                                    x += INDENT_W;
+
+                                    for (TaySpaceType space_type = TAY_CPU_SIMPLE; space_type < TAY_SPACE_COUNT; ++space_type) {
+
+                                        EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
+
+                                        switch (space_type) {
+                                            case TAY_CPU_SIMPLE:
+                                                sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Simple");
+                                                break;
+                                            case TAY_CPU_KD_TREE:
+                                                sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Kd Tree");
+                                                if (model.ocl_enabled)
+                                                    flags |= EM_WIDGET_FLAGS_DISABLED;
+                                                break;
+                                            case TAY_CPU_AABB_TREE:
+                                                sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU AABB Tree");
+                                                if (group->is_point || model.ocl_enabled)
+                                                    flags |= EM_WIDGET_FLAGS_DISABLED;
+                                                break;
+                                            case TAY_CPU_GRID:
+                                                sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Grid");
+                                                if (!group->is_point || model.ocl_enabled)
+                                                    flags |= EM_WIDGET_FLAGS_DISABLED;
+                                                break;
+                                            case TAY_CPU_Z_GRID:
+                                                sprintf_s(label_text_buffer, sizeof(label_text_buffer), "CPU Z-Order Grid");
+                                                if (!group->is_point)
+                                                    flags |= EM_WIDGET_FLAGS_DISABLED;
+                                                break;
+                                            default:;
+                                        }
+
+                                        if (space_type == group->space_type)
+                                            flags |= EM_WIDGET_FLAGS_PRESSED;
+
+                                        if (em_button(label_text_buffer,
+                                                      x, y,
+                                                      SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                      flags) == EM_RESPONSE_CLICKED) {
+                                            group->space_type = space_type;
+                                            _reconfigure_space(tay, group);
+                                        }
+
+                                        y -= SIDEBAR_BUTTON_H;
+                                    }
+
+                                    x -= INDENT_W;
                                 }
 
                                 x -= INDENT_W;

@@ -35,6 +35,7 @@ static EmGroup *_add_group(EmModel *model, const char *name, TayGroup *tay_group
     group->is_point = is_point;
     group->configure_space = _configure_space;
     group->expanded = 0;
+    group->structures_expanded = 0;
     return group;
 }
 

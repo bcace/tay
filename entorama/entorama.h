@@ -85,6 +85,7 @@ typedef struct EmGroup {
 
     /* widget stuff */
     int expanded;
+    int structures_expanded;
 } EmGroup;
 
 typedef enum EmPassType {
