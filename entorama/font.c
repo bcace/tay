@@ -8,7 +8,7 @@
 #include <string.h>
 
 
-Font inconsolata13;
+Font font_medium;
 
 static unsigned HORZ_SPACING = 0;
 
@@ -31,15 +31,15 @@ static void _create_texture(Font *font, FontRaster *raster) {
 void font_init() {
     FontRaster *raster = font_raster_get();
 
-    font_raster_create_inconsolata13();
-    _create_texture(&inconsolata13, raster);
+    font_raster_create_iosevka7x16();
+    _create_texture(&font_medium, raster);
 
     font_raster_clear();
 }
 
 static Font *_font_for_size(FontSize font_size) {
     if (font_size == EM_FONT_MEDIUM)
-        return &inconsolata13;
+        return &font_medium;
     else
         return 0;
 }
@@ -96,21 +96,21 @@ void font_draw_text(FontSize font_size, const char *text, int x, int y, vec4 col
 
 unsigned font_text_width(FontSize font_size, const char *text) {
     if (font_size == EM_FONT_MEDIUM)
-        return (unsigned)strlen(text) * (inconsolata13.w + HORZ_SPACING);
+        return (unsigned)strlen(text) * (font_medium.w + HORZ_SPACING);
     else
         return 0;
 }
 
 unsigned font_text_height(FontSize font_size, const char *text) {
     if (font_size == EM_FONT_MEDIUM)
-        return inconsolata13.h;
+        return font_medium.h;
     else
         return 0;
 }
 
 unsigned font_height(FontSize font_size) {
     if (font_size == EM_FONT_MEDIUM)
-        return inconsolata13.h;
+        return font_medium.h;
     else
         return 0;
 }

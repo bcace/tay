@@ -15,6 +15,8 @@ typedef struct FontRaster {
 FontRaster *font_raster_get();
 void font_raster_clear();
 
-void font_raster_create_inconsolata13();
+void font_raster_create_inconsolata8x16();
+void font_raster_create_iosevka8x16();
+void font_raster_create_iosevka7x16();
 
 #endif
