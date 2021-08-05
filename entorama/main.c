@@ -234,7 +234,7 @@ int main() {
 
             em_widgets_begin();
 
-            em_select_layer(1);
+            em_select_layer(2);
 
             em_quad(0.0f, window_h - TOOLBAR_H, (float)window_w, (float)window_h, color_vd());
             em_quad(0.0f, 0.0f, (float)window_w, STATUSBAR_H, color_vd());
@@ -285,25 +285,30 @@ int main() {
                               EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_PRESSED)
                     SIDEBAR_W += mouse_dx;
 
-                /* model elements list */
+                /* root level */
                 {
                     em_select_layer(0);
                     em_set_layer_scissor(0.0f, STATUSBAR_H, SIDEBAR_W, window_h - TOOLBAR_H);
+
+                    em_select_layer(1);
+                    em_set_layer_scissor(0.0f, STATUSBAR_H, SIDEBAR_W, window_h - TOOLBAR_H);
+
+                    em_select_layer(0);
 
                     /* background */
                     em_quad(0.0f, STATUSBAR_H, SIDEBAR_W, window_h - TOOLBAR_H, color_vd());
 
                     const float INDENT_W = 16.0f;
-                    const float SIDEBAR_BUTTON_H = font_height(EM_FONT_MEDIUM) + 8.0f;
-                    float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H;
+                    const float SIDEBAR_BUTTON_H = font_height(EM_FONT_MEDIUM) + 6.0f;
+                    float y = window_h - TOOLBAR_H - SIDEBAR_BUTTON_H - 8.0f;
                     float x = 0.0f;
 
                     /* simulation tree */
                     {
-                        if (em_button("Simulation",
-                                      x, y,
-                                      SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                      EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                        if (em_button_with_icon("Simulation", simulation_expanded,
+                                                x, y,
+                                                SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                             simulation_expanded = !simulation_expanded;
 
                         y -= SIDEBAR_BUTTON_H;
@@ -314,10 +319,10 @@ int main() {
 
                             /* devices */
                             {
-                                if (em_button("Devices",
-                                              INDENT_W, y,
-                                              SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                              EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                if (em_button_with_icon("Devices", devices_expanded,
+                                                        INDENT_W, y,
+                                                        SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                        EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                     devices_expanded = !devices_expanded;
 
                                 y -= SIDEBAR_BUTTON_H;
@@ -332,17 +337,21 @@ int main() {
                                         if (!model.ocl_enabled)
                                             flags |= EM_WIDGET_FLAGS_PRESSED;
 
-                                        if (em_button("CPU",
-                                                      x, y,
-                                                      SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
-                                                      EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                        if (em_button_with_icon("CPU", cpu_expanded,
+                                                                x, y,
+                                                                SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                                EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                             cpu_expanded = !cpu_expanded;
 
-                                        if (em_button(model.ocl_enabled ? "o" : "x",
-                                                      SIDEBAR_W - SIDEBAR_BUTTON_H, y,
-                                                      SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                      EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                        em_select_layer(1);
+
+                                        if (em_button_with_icon("", model.ocl_enabled ? 2 : 3,
+                                                                SIDEBAR_W - SIDEBAR_BUTTON_H, y,
+                                                                SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                                EM_WIDGET_FLAGS_CENTER) == EM_RESPONSE_CLICKED)
                                             model.ocl_enabled = tay_switch_to_host(tay);
+
+                                        em_select_layer(0);
 
                                         y -= SIDEBAR_BUTTON_H;
 
@@ -392,30 +401,34 @@ int main() {
 
                                     /* gpu device */
                                     {
-                                        EmWidgetFlags flags = EM_WIDGET_FLAGS_NONE;
+                                        EmWidgetFlags flags = EM_WIDGET_FLAGS_CENTER;
                                         if (!model.ocl_enabled) {
                                             for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                                                 EmGroup *group = model.groups + group_i;
 
                                                 if (group->space_type != TAY_CPU_SIMPLE && group->space_type != TAY_CPU_Z_GRID) {
-                                                    flags = EM_WIDGET_FLAGS_DISABLED;
+                                                    flags |= EM_WIDGET_FLAGS_DISABLED;
                                                     // TODO: set tooltip explanation
                                                     break;
                                                 }
                                             }
                                         }
 
-                                        if (em_button("GPU",
-                                                      x, y,
-                                                      SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
-                                                      EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                        if (em_button_with_icon("GPU", gpu_expanded,
+                                                                x, y,
+                                                                SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                                EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                             gpu_expanded = !gpu_expanded;
 
-                                        if (em_button(model.ocl_enabled ? "x" : "o",
-                                                      SIDEBAR_W - SIDEBAR_BUTTON_H, y,
-                                                      SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                      flags) == EM_RESPONSE_CLICKED)
+                                        em_select_layer(1);
+
+                                        if (em_button_with_icon("", model.ocl_enabled ? 3 : 2,
+                                                                SIDEBAR_W - SIDEBAR_BUTTON_H, y,
+                                                                SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                                flags) == EM_RESPONSE_CLICKED)
                                             model.ocl_enabled = tay_switch_to_ocl(tay);
+
+                                        em_select_layer(0);
 
                                         y -= SIDEBAR_BUTTON_H;
                                     }
@@ -433,10 +446,10 @@ int main() {
                         for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                             EmGroup *group = model.groups + group_i;
 
-                            if (em_button(group->name,
-                                          0.0f, y,
-                                          SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                          EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                            if (em_button_with_icon(group->name, group->expanded,
+                                                    0.0f, y,
+                                                    SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                    EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                 group->expanded = !group->expanded;
 
                             y -= SIDEBAR_BUTTON_H;
@@ -449,10 +462,10 @@ int main() {
                                 {
                                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "Structure types (%s)", _structure_name(group->space_type));
 
-                                    if (em_button(label_text_buffer,
-                                                  x, y,
-                                                  SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                  EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                                    if (em_button_with_icon(label_text_buffer, group->structures_expanded,
+                                                            x, y,
+                                                            SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                            EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                         group->structures_expanded = !group->structures_expanded;
 
                                     y -= SIDEBAR_BUTTON_H;
@@ -479,10 +492,10 @@ int main() {
                                                  SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
                                                  flags);
 
-                                        if (em_button((space_type == group->space_type) ? "x" : "o",
-                                                      SIDEBAR_W - SIDEBAR_BUTTON_H, y,
-                                                      SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                      flags) == EM_RESPONSE_CLICKED) {
+                                        if (em_button_with_icon("", (space_type == group->space_type) ? 3 : 2,
+                                                                SIDEBAR_W - SIDEBAR_BUTTON_H, y,
+                                                                SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                                flags | EM_WIDGET_FLAGS_CENTER) == EM_RESPONSE_CLICKED) {
                                             group->space_type = space_type;
                                             _reconfigure_space(tay, group);
                                         }
@@ -527,7 +540,7 @@ int main() {
                     }
                 }
 
-                em_select_layer(1);
+                em_select_layer(2);
             }
 
             /* statusbar */

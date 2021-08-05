@@ -24,6 +24,7 @@ static Program text_prog;
 
 typedef struct {
     TexQuadBuffer text_buffer;
+    TexQuadBuffer icon_buffer;
     QuadBuffer quad_buffer;
     int scissor_enabled;
     int scissor_x, scissor_y;
@@ -84,6 +85,7 @@ void em_widgets_begin() {
         Layer *layer = layers + layer_i;
         quad_buffer_clear(&layer->quad_buffer);
         tex_quad_buffer_clear(&layer->text_buffer);
+        tex_quad_buffer_clear(&layer->icon_buffer);
     }
 }
 
@@ -119,6 +121,16 @@ void em_widgets_draw(struct mat4 projection) {
             shader_program_set_data_float(&text_prog, 2, layer->text_buffer.count * 4, 4, layer->text_buffer.col);
             shader_program_set_uniform_mat4(&text_prog, 0, &projection);
             graphics_draw_quads(layer->text_buffer.count * 4);
+        }
+
+        if (layer->icon_buffer.count) {
+            icons_use_medium();
+            shader_program_use(&text_prog);
+            shader_program_set_data_float(&text_prog, 0, layer->icon_buffer.count * 4, 2, layer->icon_buffer.pos);
+            shader_program_set_data_float(&text_prog, 1, layer->icon_buffer.count * 4, 2, layer->icon_buffer.tex);
+            shader_program_set_data_float(&text_prog, 2, layer->icon_buffer.count * 4, 4, layer->icon_buffer.col);
+            shader_program_set_uniform_mat4(&text_prog, 0, &projection);
+            graphics_draw_quads(layer->icon_buffer.count * 4);
         }
 
         if (layer->scissor_enabled)
@@ -180,6 +192,59 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
         _init_quad(quad_pos, min_x, max_x, min_y, max_y);
         _init_color(quad_col, color_hi());
     }
+    else if (flags & EM_WIDGET_FLAGS_BACKGROUND) {
+        quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
+        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+        _init_color(quad_col, color_bg());
+    }
+
+    if (hovered_widget_id == id) {
+        quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
+        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+        _init_color(quad_col, color_fg_hover());
+    }
+
+    return response;
+}
+
+EmResponse em_button_with_icon(char *label, unsigned index, float min_x, float min_y, float max_x, float max_y, EmWidgetFlags flags) {
+    unsigned id = ++available_widget_id;
+
+    unsigned icon_w = icons_size(EM_FONT_MEDIUM);
+    int icon_x = (flags & EM_WIDGET_FLAGS_CENTER) ? (int)((min_x + max_x - icon_w) * 0.5f) : (int)(min_x + EM_BUTTON_DEFAULT_LABEL_OFFSET);
+    int icon_y = (int)((min_y + max_y - icon_w) * 0.5f);
+
+    if (flags & EM_WIDGET_FLAGS_DISABLED)
+        font_draw_icon(EM_FONT_MEDIUM, index, icon_x, icon_y, color_fg_disabled(), &selected_layer->icon_buffer);
+    else
+        font_draw_icon(EM_FONT_MEDIUM, index, icon_x, icon_y, color_fg(), &selected_layer->icon_buffer);
+
+    if (!(flags & EM_WIDGET_FLAGS_CENTER)) {
+        unsigned label_h = font_height(EM_FONT_MEDIUM);
+        int label_x = (int)(EM_BUTTON_DEFAULT_LABEL_OFFSET + icon_w + min_x);
+        int label_y = (int)((min_y + max_y - label_h) * 0.5f);
+
+        if (flags & EM_WIDGET_FLAGS_DISABLED)
+            font_draw_text(EM_FONT_MEDIUM, label, label_x, label_y, color_fg_disabled(), &selected_layer->text_buffer);
+        else
+            font_draw_text(EM_FONT_MEDIUM, label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
+    }
+
+    EmResponse response = _get_response(id, min_x, min_y, max_x, max_y, flags);
+
+    vec2 *quad_pos = 0;
+    vec4 *quad_col = 0;
+
+    if (pressed_widget_id == id || flags & EM_WIDGET_FLAGS_PRESSED) {
+        quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
+        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+        _init_color(quad_col, color_hi());
+    }
+    else if (flags & EM_WIDGET_FLAGS_BACKGROUND) {
+        quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
+        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+        _init_color(quad_col, color_bg());
+    }
 
     if (hovered_widget_id == id) {
         quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
@@ -202,6 +267,15 @@ EmResponse em_label(char *label, float min_x, float min_y, float max_x, float ma
         font_draw_text(EM_FONT_MEDIUM, label, label_x, label_y, color_fg_disabled(), &selected_layer->text_buffer);
     else
         font_draw_text(EM_FONT_MEDIUM, label, label_x, label_y, color_fg(), &selected_layer->text_buffer);
+
+    vec2 *quad_pos = 0;
+    vec4 *quad_col = 0;
+
+    if (flags & EM_WIDGET_FLAGS_BACKGROUND) {
+        quad_buffer_add(&selected_layer->quad_buffer, 1, &quad_pos, &quad_col);
+        _init_quad(quad_pos, min_x, max_x, min_y, max_y);
+        _init_color(quad_col, color_bg());
+    }
 
     return EM_RESPONSE_NONE;
 }
