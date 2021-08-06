@@ -19,7 +19,7 @@ static int mouse_started_moving = 0;
 static float mouse_dx = 0.0f;
 static float mouse_dy = 0.0f;
 
-static float TOOLBAR_H = 40;
+static float TOOLBAR_H = 30;
 static float STATUSBAR_H = 26;
 static float SIDEBAR_W = 300.0f;
 
@@ -241,14 +241,14 @@ int main() {
 
             /* toolbar */
             {
-                const float TOOLBAR_BUTTON_W = 60.0f;
+                const float TOOLBAR_BUTTON_W = TOOLBAR_H;
 
                 float button_x = (window_w - TOOLBAR_BUTTON_W * 2.0f) * 0.5f;
 
-                switch (em_button("Run",
-                                  button_x, window_h - TOOLBAR_H,
-                                  button_x + TOOLBAR_BUTTON_W, (float)window_h,
-                                  EM_WIDGET_FLAGS_NONE)) {
+                switch (em_button_with_icon("", paused ? 4 : 5,
+                                            button_x, window_h - TOOLBAR_H,
+                                            button_x + TOOLBAR_BUTTON_W, (float)window_h,
+                                            EM_WIDGET_FLAGS_CENTER)) {
                     case EM_RESPONSE_CLICKED:
                         paused = !paused;
                     case EM_RESPONSE_HOVERED:
@@ -258,10 +258,10 @@ int main() {
 
                 button_x += TOOLBAR_BUTTON_W;
 
-                switch (em_button("Reset",
-                                  button_x, window_h - TOOLBAR_H,
-                                  button_x + TOOLBAR_BUTTON_W, (float)window_h,
-                                  EM_WIDGET_FLAGS_NONE)) {
+                switch (em_button_with_icon("", 6,
+                                            button_x, window_h - TOOLBAR_H,
+                                            button_x + TOOLBAR_BUTTON_W, (float)window_h,
+                                            EM_WIDGET_FLAGS_CENTER)) {
                     case EM_RESPONSE_CLICKED:
                         model.reset(&model, tay);
                     case EM_RESPONSE_HOVERED:
@@ -269,10 +269,10 @@ int main() {
                     default:;
                 }
 
-                if (em_button("Theme",
-                              window_w - 60.0f, window_h - TOOLBAR_H,
+                if (em_button_with_icon("", 7,
+                              window_w - TOOLBAR_BUTTON_W, window_h - TOOLBAR_H,
                               (float)window_w, (float)window_h,
-                              EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
+                              EM_WIDGET_FLAGS_CENTER) == EM_RESPONSE_CLICKED)
                     color_toggle_theme();
             }
 
