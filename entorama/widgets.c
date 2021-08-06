@@ -8,7 +8,8 @@
 #include <string.h>
 
 #define EM_MAX_LAYERS                   8
-#define EM_BUTTON_DEFAULT_LABEL_OFFSET  10.0f
+#define EM_BUTTON_LABEL_OFFSET          10.0f
+#define EM_BUTTON_ICON_LABEL_PADDING    4.0f
 
 
 int mouse_l = 0;
@@ -174,7 +175,7 @@ EmResponse em_button(char *label, float min_x, float min_y, float max_x, float m
 
     unsigned label_w = font_text_width(EM_FONT_MEDIUM, label);
     unsigned label_h = font_height(EM_FONT_MEDIUM);
-    int label_x = (flags & EM_WIDGET_FLAGS_CENTER) ? (int)((min_x + max_x - label_w) * 0.5f) : (int)(EM_BUTTON_DEFAULT_LABEL_OFFSET + min_x);
+    int label_x = (flags & EM_WIDGET_FLAGS_CENTER) ? (int)((min_x + max_x - label_w) * 0.5f) : (int)(EM_BUTTON_LABEL_OFFSET + min_x);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
     if (flags & EM_WIDGET_FLAGS_DISABLED)
@@ -211,7 +212,7 @@ EmResponse em_button_with_icon(char *label, unsigned index, float min_x, float m
     unsigned id = ++available_widget_id;
 
     unsigned icon_w = icons_size(EM_FONT_MEDIUM);
-    int icon_x = (flags & EM_WIDGET_FLAGS_CENTER) ? (int)((min_x + max_x - icon_w) * 0.5f) : (int)(min_x + EM_BUTTON_DEFAULT_LABEL_OFFSET);
+    int icon_x = (flags & EM_WIDGET_FLAGS_CENTER) ? (int)((min_x + max_x - icon_w) * 0.5f) : (int)(min_x + EM_BUTTON_LABEL_OFFSET);
     int icon_y = (int)((min_y + max_y - icon_w) * 0.5f);
 
     if (flags & EM_WIDGET_FLAGS_DISABLED)
@@ -221,7 +222,7 @@ EmResponse em_button_with_icon(char *label, unsigned index, float min_x, float m
 
     if (!(flags & EM_WIDGET_FLAGS_CENTER)) {
         unsigned label_h = font_height(EM_FONT_MEDIUM);
-        int label_x = (int)(EM_BUTTON_DEFAULT_LABEL_OFFSET + icon_w + min_x);
+        int label_x = (int)(min_x + EM_BUTTON_LABEL_OFFSET + icon_w + EM_BUTTON_ICON_LABEL_PADDING);
         int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
         if (flags & EM_WIDGET_FLAGS_DISABLED)
@@ -260,7 +261,7 @@ EmResponse em_label(char *label, float min_x, float min_y, float max_x, float ma
 
     unsigned label_w = font_text_width(EM_FONT_MEDIUM, label);
     unsigned label_h = font_height(EM_FONT_MEDIUM);
-    int label_x = (flags & EM_WIDGET_FLAGS_CENTER) ? (int)((min_x + max_x - label_w) * 0.5f) : (int)(EM_BUTTON_DEFAULT_LABEL_OFFSET + min_x);
+    int label_x = (flags & EM_WIDGET_FLAGS_CENTER) ? (int)((min_x + max_x - label_w) * 0.5f) : (int)(EM_BUTTON_LABEL_OFFSET + min_x);
     int label_y = (int)((min_y + max_y - label_h) * 0.5f);
 
     if (flags & EM_WIDGET_FLAGS_DISABLED)

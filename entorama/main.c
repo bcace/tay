@@ -345,7 +345,7 @@ int main() {
 
                                         em_select_layer(1);
 
-                                        if (em_button_with_icon("", model.ocl_enabled ? 2 : 3,
+                                        if (em_button_with_icon("", model.ocl_enabled ? 3 : 2,
                                                                 SIDEBAR_W - SIDEBAR_BUTTON_H, y,
                                                                 SIDEBAR_W, y + SIDEBAR_BUTTON_H,
                                                                 EM_WIDGET_FLAGS_CENTER) == EM_RESPONSE_CLICKED)
@@ -422,7 +422,7 @@ int main() {
 
                                         em_select_layer(1);
 
-                                        if (em_button_with_icon("", model.ocl_enabled ? 3 : 2,
+                                        if (em_button_with_icon("", model.ocl_enabled ? 2 : 3,
                                                                 SIDEBAR_W - SIDEBAR_BUTTON_H, y,
                                                                 SIDEBAR_W, y + SIDEBAR_BUTTON_H,
                                                                 flags) == EM_RESPONSE_CLICKED)
@@ -492,7 +492,7 @@ int main() {
                                                  SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
                                                  flags);
 
-                                        if (em_button_with_icon("", (space_type == group->space_type) ? 3 : 2,
+                                        if (em_button_with_icon("", (space_type == group->space_type) ? 2 : 3,
                                                                 SIDEBAR_W - SIDEBAR_BUTTON_H, y,
                                                                 SIDEBAR_W, y + SIDEBAR_BUTTON_H,
                                                                 flags | EM_WIDGET_FLAGS_CENTER) == EM_RESPONSE_CLICKED) {
