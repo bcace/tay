@@ -22,6 +22,7 @@ void font_draw_icon(FontSize font_size, unsigned index, int x, int y, struct vec
 unsigned font_text_width(FontSize font_size, const char *text);
 unsigned font_text_height(FontSize font_size, const char *text);
 unsigned font_height(FontSize font_size);
+unsigned font_width(FontSize font_size);
 unsigned icons_size(FontSize font_size);
 
 #endif

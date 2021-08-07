@@ -167,6 +167,13 @@ unsigned font_height(FontSize font_size) {
         return 0;
 }
 
+unsigned font_width(FontSize font_size) {
+    if (font_size == EM_FONT_MEDIUM)
+        return font_medium.w;
+    else
+        return 0;
+}
+
 unsigned icons_size(FontSize font_size) {
     if (font_size == EM_FONT_MEDIUM)
         return icons_medium.h;

@@ -370,22 +370,30 @@ int main() {
                                                     unsigned threads_count = tay_get_number_of_threads();
                                                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%d", threads_count);
 
-                                                    em_label(label_text_buffer,
-                                                             SIDEBAR_W * 0.5f, y,
-                                                             SIDEBAR_W - SIDEBAR_BUTTON_H * 2.0f, y + SIDEBAR_BUTTON_H,
-                                                             EM_WIDGET_FLAGS_NONE);
+                                                    float x = SIDEBAR_W * 0.5f;
 
                                                     if (em_button("-",
-                                                                  SIDEBAR_W - SIDEBAR_BUTTON_H * 2.0f, y,
-                                                                  SIDEBAR_W - SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                                  x, y,
+                                                                  SIDEBAR_W * 0.5f + SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
                                                                   EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
                                                         tay_threads_stop();
                                                         tay_threads_start(--threads_count, thread_storage_size);
                                                     }
 
+                                                    float label_w = font_width(EM_FONT_MEDIUM) * 5.0f;
+
+                                                    x += SIDEBAR_BUTTON_H;
+
+                                                    em_label(label_text_buffer,
+                                                             x, y,
+                                                             x + label_w, y + SIDEBAR_BUTTON_H,
+                                                             EM_WIDGET_FLAGS_ICON_ONLY);
+
+                                                    x += label_w;
+
                                                     if (em_button("+",
-                                                                  SIDEBAR_W - SIDEBAR_BUTTON_H, y,
-                                                                  SIDEBAR_W, y + SIDEBAR_BUTTON_H,
+                                                                  x, y,
+                                                                  x + SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
                                                                   EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
                                                         tay_threads_stop();
                                                         tay_threads_start(++threads_count, thread_storage_size);
