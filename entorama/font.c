@@ -32,7 +32,7 @@ static void _create_texture(Font *font, FontRaster *raster) {
 void font_init() {
     FontRaster *raster = font_raster_get();
 
-    font_raster_create_iosevka7x16();
+    font_raster_create_iosevka8x16();
     _create_texture(&font_medium, raster);
 
     font_raster_create_icons16x16();

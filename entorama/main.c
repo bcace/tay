@@ -245,7 +245,7 @@ int main() {
 
                 float button_x = (window_w - TOOLBAR_BUTTON_W * 2.0f) * 0.5f;
 
-                switch (em_button_with_icon("", paused ? 4 : 5,
+                switch (em_button_with_icon("", paused ? 6 : 7,
                                             button_x, window_h - TOOLBAR_H,
                                             button_x + TOOLBAR_BUTTON_W, (float)window_h,
                                             EM_WIDGET_FLAGS_ICON_ONLY)) {
@@ -258,7 +258,7 @@ int main() {
 
                 button_x += TOOLBAR_BUTTON_W;
 
-                switch (em_button_with_icon("", 6,
+                switch (em_button_with_icon("", 8,
                                             button_x, window_h - TOOLBAR_H,
                                             button_x + TOOLBAR_BUTTON_W, (float)window_h,
                                             EM_WIDGET_FLAGS_ICON_ONLY)) {
@@ -269,7 +269,7 @@ int main() {
                     default:;
                 }
 
-                if (em_button_with_icon("", 7,
+                if (em_button_with_icon("", 9,
                               window_w - TOOLBAR_BUTTON_W, window_h - TOOLBAR_H,
                               (float)window_w, (float)window_h,
                               EM_WIDGET_FLAGS_ICON_ONLY) == EM_RESPONSE_CLICKED)
@@ -372,10 +372,10 @@ int main() {
 
                                                     float x = SIDEBAR_W * 0.5f;
 
-                                                    if (em_button("-",
-                                                                  x, y,
-                                                                  SIDEBAR_W * 0.5f + SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
-                                                                  EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                                    if (em_button_with_icon("", 5,
+                                                                            x, y,
+                                                                            SIDEBAR_W * 0.5f + SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                                            EM_WIDGET_FLAGS_ICON_ONLY) == EM_RESPONSE_CLICKED) {
                                                         tay_threads_stop();
                                                         tay_threads_start(--threads_count, thread_storage_size);
                                                     }
@@ -391,10 +391,10 @@ int main() {
 
                                                     x += label_w;
 
-                                                    if (em_button("+",
-                                                                  x, y,
-                                                                  x + SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
-                                                                  EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED) {
+                                                    if (em_button_with_icon("", 4,
+                                                                            x, y,
+                                                                            x + SIDEBAR_BUTTON_H, y + SIDEBAR_BUTTON_H,
+                                                                            EM_WIDGET_FLAGS_ICON_ONLY) == EM_RESPONSE_CLICKED) {
                                                         tay_threads_stop();
                                                         tay_threads_start(++threads_count, thread_storage_size);
                                                     }
