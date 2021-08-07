@@ -6,8 +6,7 @@ typedef enum EmWidgetFlags {
     EM_WIDGET_FLAGS_NONE = 0x0,
     EM_WIDGET_FLAGS_PRESSED = 0x1,
     EM_WIDGET_FLAGS_DISABLED = 0x2,
-    EM_WIDGET_FLAGS_CENTER = 0x4,
-    EM_WIDGET_FLAGS_BACKGROUND = 0x8,
+    EM_WIDGET_FLAGS_ICON_ONLY = 0x4,
 } EmWidgetFlags;
 
 typedef enum EmResponse {

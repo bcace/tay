@@ -248,7 +248,7 @@ int main() {
                 switch (em_button_with_icon("", paused ? 4 : 5,
                                             button_x, window_h - TOOLBAR_H,
                                             button_x + TOOLBAR_BUTTON_W, (float)window_h,
-                                            EM_WIDGET_FLAGS_CENTER)) {
+                                            EM_WIDGET_FLAGS_ICON_ONLY)) {
                     case EM_RESPONSE_CLICKED:
                         paused = !paused;
                     case EM_RESPONSE_HOVERED:
@@ -261,7 +261,7 @@ int main() {
                 switch (em_button_with_icon("", 6,
                                             button_x, window_h - TOOLBAR_H,
                                             button_x + TOOLBAR_BUTTON_W, (float)window_h,
-                                            EM_WIDGET_FLAGS_CENTER)) {
+                                            EM_WIDGET_FLAGS_ICON_ONLY)) {
                     case EM_RESPONSE_CLICKED:
                         model.reset(&model, tay);
                     case EM_RESPONSE_HOVERED:
@@ -272,7 +272,7 @@ int main() {
                 if (em_button_with_icon("", 7,
                               window_w - TOOLBAR_BUTTON_W, window_h - TOOLBAR_H,
                               (float)window_w, (float)window_h,
-                              EM_WIDGET_FLAGS_CENTER) == EM_RESPONSE_CLICKED)
+                              EM_WIDGET_FLAGS_ICON_ONLY) == EM_RESPONSE_CLICKED)
                     color_toggle_theme();
             }
 
@@ -348,7 +348,7 @@ int main() {
                                         if (em_button_with_icon("", model.ocl_enabled ? 3 : 2,
                                                                 SIDEBAR_W - SIDEBAR_BUTTON_H, y,
                                                                 SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                                EM_WIDGET_FLAGS_CENTER) == EM_RESPONSE_CLICKED)
+                                                                EM_WIDGET_FLAGS_ICON_ONLY) == EM_RESPONSE_CLICKED)
                                             model.ocl_enabled = tay_switch_to_host(tay);
 
                                         em_select_layer(0);
@@ -401,7 +401,7 @@ int main() {
 
                                     /* gpu device */
                                     {
-                                        EmWidgetFlags flags = EM_WIDGET_FLAGS_CENTER;
+                                        EmWidgetFlags flags = EM_WIDGET_FLAGS_ICON_ONLY;
                                         if (!model.ocl_enabled) {
                                             for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                                                 EmGroup *group = model.groups + group_i;
@@ -495,7 +495,7 @@ int main() {
                                         if (em_button_with_icon("", (space_type == group->space_type) ? 2 : 3,
                                                                 SIDEBAR_W - SIDEBAR_BUTTON_H, y,
                                                                 SIDEBAR_W, y + SIDEBAR_BUTTON_H,
-                                                                flags | EM_WIDGET_FLAGS_CENTER) == EM_RESPONSE_CLICKED) {
+                                                                flags | EM_WIDGET_FLAGS_ICON_ONLY) == EM_RESPONSE_CLICKED) {
                                             group->space_type = space_type;
                                             _reconfigure_space(tay, group);
                                         }
