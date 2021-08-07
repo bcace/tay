@@ -452,6 +452,10 @@ int main() {
                                                     EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                 group->expanded = !group->expanded;
 
+                            em_quad(0.0f, y,
+                                    4.0f, y + SIDEBAR_BUTTON_H,
+                                    color_palette(group_i));
+
                             y -= SIDEBAR_BUTTON_H;
 
                             if (group->expanded) {
@@ -513,9 +517,6 @@ int main() {
 
                     /* pass buttons */
                     {
-                        float bottom_bullet_y = 0.0f;
-                        float top_bullet_y = 0.0f;
-
                         for (unsigned pass_i = 0; pass_i < model.passes_count; ++pass_i) {
                             EmPass *pass = model.passes + pass_i;
 
@@ -529,11 +530,6 @@ int main() {
                                           SIDEBAR_W, y + SIDEBAR_BUTTON_H,
                                           EM_WIDGET_FLAGS_NONE) == EM_RESPONSE_CLICKED)
                                 pass->expanded = !pass->expanded;
-
-                            float bullet_y = y + SIDEBAR_BUTTON_H * 0.5f;
-                            if (pass_i == 0)
-                                top_bullet_y = bullet_y;
-                            bottom_bullet_y = bullet_y;
 
                             y -= SIDEBAR_BUTTON_H;
                         }
