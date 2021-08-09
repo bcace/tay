@@ -205,7 +205,7 @@ int main() {
     TayState *tay = tay_create_state();
 
     entorama_init_model(&model);
-    model_load(&model, "m_flocking.dll");
+    model_load(&model, "m_sph.dll");
     model.init(&model, tay);
     model.reset(&model, tay);
 

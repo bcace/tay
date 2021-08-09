@@ -110,7 +110,7 @@ void drawing_init(int max_agents_per_group) {
     inst_color = malloc(sizeof(vec4) * max_agents_per_group);
     inst_size = malloc(sizeof(vec3) * max_agents_per_group);
 
-    const unsigned SPHERE_SUBDIVS = 0;
+    const unsigned SPHERE_SUBDIVS = 2;
     SPHERE_VERTS_COUNT = icosahedron_verts_count(SPHERE_SUBDIVS);
     SPHERE_VERTS = malloc(SPHERE_VERTS_COUNT * 3 * sizeof(float));
     icosahedron_verts(SPHERE_SUBDIVS, SPHERE_VERTS);
