@@ -63,6 +63,11 @@ typedef enum EmDirectionSource {
     EM_DIRECTION_FWD,
 } EmDirectionSource;
 
+typedef enum EmPassType {
+    EM_PASS_ACT,
+    EM_PASS_SEE,
+} EmPassType;
+
 typedef struct EmGroup {
     struct TayGroup *group;
     unsigned max_agents;
@@ -112,15 +117,10 @@ typedef struct EmGroup {
 
     enum EmShape shape;
 
-    /* widget stuff */
+    /* widget related */
     int expanded;
     int structures_expanded;
 } EmGroup;
-
-typedef enum EmPassType {
-    EM_PASS_ACT,
-    EM_PASS_SEE,
-} EmPassType;
 
 typedef struct EmPass {
     EmPassType type;
@@ -131,21 +131,20 @@ typedef struct EmPass {
     };
     EmGroup *seen_group;
 
-    /* widget stuff */
+    /* widget related */
     int expanded;
 } EmPass;
 
 typedef struct EmModel {
-    /* private */
-    int ocl_enabled;
-
-    /* filled by member functions */
     EmGroup groups[EM_MAX_GROUPS];
     unsigned groups_count;
     EmPass passes[EM_MAX_PASSES];
     unsigned passes_count;
     float min_x, min_y, min_z;
     float max_x, max_y, max_z;
+
+    /* private */
+    int ocl_enabled;
 } EmModel;
 
 #endif
