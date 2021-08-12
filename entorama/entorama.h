@@ -44,7 +44,6 @@ typedef struct EmGroup {
     float min_part_size_y;
     float min_part_size_z;
     float min_part_size_w;
-    void (*configure_space)(struct EmGroup *group, enum TaySpaceType space_type, float min_part_size_x, float min_part_size_y, float min_part_size_z, float min_part_size_w);
 
     /* drawing info */
 
@@ -107,6 +106,7 @@ typedef struct EmPass {
 } EmPass;
 
 typedef struct EmModel {
+    /* private */
     int ocl_enabled;
 
     /* filled by member functions */
@@ -116,17 +116,19 @@ typedef struct EmModel {
     unsigned passes_count;
     float min_x, min_y, min_z;
     float max_x, max_y, max_z;
-
-    /* member functions */
-    void (*set_world_box)(struct EmModel *model, float min_x, float min_y, float min_z, float max_x, float max_y, float max_z);
-    EmGroup *(*add_group)(struct EmModel *model, const char *name, struct TayGroup *group, unsigned max_agents, int is_point);
-    EmPass *(*add_see)(struct EmModel *model, const char *name, EmGroup *seer_group, EmGroup *seen_group);
-    EmPass *(*add_act)(struct EmModel *model, const char *name, EmGroup *group);
 } EmModel;
 
 typedef struct EmIface {
+    /* model interface functions */
     int (*init)(struct EmModel *model, struct TayState *tay);
     int (*reset)(struct EmModel *model, struct TayState *tay);
+
+    /* entorama interface functions */
+    void (*set_world_box)(struct EmModel *model, float min_x, float min_y, float min_z, float max_x, float max_y, float max_z);
+    void (*configure_space)(struct EmGroup *group, enum TaySpaceType space_type, float min_part_size_x, float min_part_size_y, float min_part_size_z, float min_part_size_w);
+    EmGroup *(*add_group)(struct EmModel *model, const char *name, struct TayGroup *group, unsigned max_agents, int is_point);
+    EmPass *(*add_see)(struct EmModel *model, const char *name, EmGroup *seer_group, EmGroup *seen_group);
+    EmPass *(*add_act)(struct EmModel *model, const char *name, EmGroup *group);
 } EmIface;
 
 typedef int (*EM_MAIN)(EmIface *iface);

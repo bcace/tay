@@ -6,6 +6,8 @@
 #include <stdlib.h>
 
 
+static EmIface *entorama;
+
 static TayGroup *boids_group;
 
 static ActContext act_context;
@@ -26,13 +28,13 @@ static float _rand(float min, float max) {
 static int _init(EmModel *model, TayState *tay) {
     const float4 see_radii = { radius, radius, radius, radius };
 
-    model->set_world_box(model, -500.0f, -500.0f, -500.0f, 500.0f, 500.0f, 500.0f);
+    entorama->set_world_box(model, -500.0f, -500.0f, -500.0f, 500.0f, 500.0f, 500.0f);
 
     see_context.r = radius;
     see_context.separation_r = radius * 0.5f;
 
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE);
-    EmGroup *e_boids_group = model->add_group(model, "Boids", boids_group, boids_count, 1);
+    EmGroup *e_boids_group = entorama->add_group(model, "Boids", boids_group, boids_count, 1);
     e_boids_group->direction_source = EM_DIRECTION_FWD;
     e_boids_group->direction_fwd_x_offset = 16;
     e_boids_group->direction_fwd_y_offset = 20;
@@ -40,13 +42,13 @@ static int _init(EmModel *model, TayState *tay) {
     e_boids_group->color_source = EM_COLOR_AGENT_PALETTE;
     e_boids_group->color_palette_index_offset = 32;
     e_boids_group->shape = EM_PYRAMID;
-    e_boids_group->configure_space(e_boids_group, TAY_CPU_GRID, radius, radius, radius, radius);
+    entorama->configure_space(e_boids_group, TAY_CPU_GRID, radius, radius, radius, radius);
 
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
     tay_add_act(tay, boids_group, agent_act, "agent_act", &act_context, sizeof(act_context));
 
-    model->add_see(model, "Perception", e_boids_group, e_boids_group);
-    model->add_act(model, "Action", e_boids_group);
+    entorama->add_see(model, "Perception", e_boids_group, e_boids_group);
+    entorama->add_act(model, "Action", e_boids_group);
 
     ocl_add_source(tay, agent_ocl_h);
     ocl_add_source(tay, taystd_ocl_h);
@@ -92,6 +94,7 @@ static int _reset(EmModel *model, TayState *tay) {
 }
 
 __declspec(dllexport) int entorama_main(EmIface *iface) {
+    entorama = iface;
     iface->init = _init;
     iface->reset = _reset;
     return 0;

@@ -8,6 +8,8 @@
 #define F_PI 3.14159265358979323846f
 
 
+static EmIface *entorama;
+
 static TayGroup *particles_group;
 
 static SphContext sph_context;
@@ -54,7 +56,7 @@ static int _init(EmModel *model, TayState *tay) {
     sph_context.min = (float4){-3.0f, -2.0f, -1.0f, 0.0f};
     sph_context.max = (float4){3.0f, 2.0f, 1.0f, 0.0f};
 
-    model->set_world_box(model, sph_context.min.x, sph_context.min.y, sph_context.min.z, sph_context.max.x, sph_context.max.y, sph_context.max.z);
+    entorama->set_world_box(model, sph_context.min.x, sph_context.min.y, sph_context.min.z, sph_context.max.x, sph_context.max.y, sph_context.max.z);
 
     _update_sph_context(&sph_context, particle_m);
 
@@ -62,23 +64,23 @@ static int _init(EmModel *model, TayState *tay) {
     float part_size = h * 1.0f;
 
     particles_group = tay_add_group(tay, sizeof(SphParticle), particles_count, TAY_TRUE);
-    EmGroup *e_particles_group = model->add_group(model, "Particles", particles_group, particles_count, 1);
+    EmGroup *e_particles_group = entorama->add_group(model, "Particles", particles_group, particles_count, 1);
     e_particles_group->group = particles_group;
     e_particles_group->max_agents = particles_count;
     e_particles_group->size_source = EM_SIZE_UNIFORM_RADIUS;
     e_particles_group->size_radius = 0.02f;
     e_particles_group->shape = EM_SPHERE;
-    e_particles_group->configure_space(e_particles_group, TAY_CPU_Z_GRID, part_size, part_size, part_size, part_size);
+    entorama->configure_space(e_particles_group, TAY_CPU_Z_GRID, part_size, part_size, part_size, part_size);
 
     tay_add_see(tay, particles_group, particles_group, sph_particle_density, "sph_particle_density", (float4){h, h, h, h}, TAY_TRUE, &sph_context, sizeof(sph_context));
     tay_add_act(tay, particles_group, sph_particle_pressure, "sph_particle_pressure", &sph_context, sizeof(sph_context));
     tay_add_see(tay, particles_group, particles_group, sph_force_terms, "sph_force_terms", (float4){h, h, h, h}, TAY_FALSE, &sph_context, sizeof(sph_context));
     tay_add_act(tay, particles_group, sph_particle_leapfrog, "sph_particle_leapfrog", &sph_context, sizeof(sph_context));
 
-    model->add_see(model, "Density", e_particles_group, e_particles_group);
-    model->add_act(model, "Pressure", e_particles_group);
-    model->add_see(model, "Forces", e_particles_group, e_particles_group);
-    model->add_act(model, "Leapfrog", e_particles_group);
+    entorama->add_see(model, "Density", e_particles_group, e_particles_group);
+    entorama->add_act(model, "Pressure", e_particles_group);
+    entorama->add_see(model, "Forces", e_particles_group, e_particles_group);
+    entorama->add_act(model, "Leapfrog", e_particles_group);
 
     ocl_add_source(tay, agent_ocl_h);
     ocl_add_source(tay, taystd_ocl_h);
@@ -106,7 +108,8 @@ static int _reset(EmModel *model, TayState *tay) {
 }
 
 __declspec(dllexport) int entorama_main(EmIface *iface) {
-    iface->init = _init;
-    iface->reset = _reset;
+    entorama = iface;
+    entorama->init = _init;
+    entorama->reset = _reset;
     return 0;
 }

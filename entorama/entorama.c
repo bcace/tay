@@ -34,7 +34,6 @@ static EmGroup *_add_group(EmModel *model, const char *name, TayGroup *tay_group
     group->size_source = EM_SIZE_AUTO;
     group->shape = EM_CUBE;
     group->is_point = is_point;
-    group->configure_space = _configure_space;
     group->expanded = 0;
     group->structures_expanded = 0;
     return group;
@@ -62,10 +61,6 @@ EmPass *_add_act(EmModel *model, const char *name, EmGroup *group) {
 void entorama_load_model_dll(EmIface *iface, EmModel *model, char *path) {
     model->groups_count = 0;
     model->passes_count = 0;
-    model->set_world_box = _set_world_box;
-    model->add_group = _add_group;
-    model->add_see = _add_see;
-    model->add_act = _add_act;
     model->min_x = -100.0f;
     model->min_y = -100.0f;
     model->min_z = -100.0f;
@@ -76,6 +71,11 @@ void entorama_load_model_dll(EmIface *iface, EmModel *model, char *path) {
 
     iface->init = 0;
     iface->reset = 0;
+    iface->set_world_box = _set_world_box;
+    iface->add_group = _add_group;
+    iface->add_see = _add_see;
+    iface->add_act = _add_act;
+    iface->configure_space = _configure_space;
 
     void *lib = platform_load_library(path);
     EM_MAIN entorama_main = platform_load_library_function(lib, "entorama_main");
