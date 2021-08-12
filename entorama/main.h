@@ -36,6 +36,6 @@ int icosahedron_verts_count(unsigned subdivs);
 void icosahedron_verts(unsigned subdivs, float *verts);
 
 /* entorama.c */
-void entorama_init_model(struct EmModel *model);
+void entorama_load_model_dll(struct EmModel *model, char *path);
 
 #endif

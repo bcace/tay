@@ -1,5 +1,6 @@
 #include "entorama.h"
 #include "tay.h"
+#include "platform.h"
 #include <string.h>
 
 
@@ -58,7 +59,7 @@ EmPass *_add_act(EmModel *model, const char *name, EmGroup *group) {
     return pass;
 }
 
-void entorama_init_model(EmModel *model) {
+void entorama_load_model_dll(EmModel *model, char *path) {
     model->init = 0;
     model->groups_count = 0;
     model->passes_count = 0;
@@ -73,4 +74,7 @@ void entorama_init_model(EmModel *model) {
     model->max_y = 100.0f;
     model->max_z = 100.0f;
     model->ocl_enabled = 0;
+    void *lib = platform_load_library(path);
+    EM_MAIN entorama_main = platform_load_library_function(lib, "entorama_main");
+    int r = entorama_main(model);
 }
