@@ -65,11 +65,8 @@ static int _init(EmModel *model, TayState *tay) {
 
     particles_group = tay_add_group(tay, sizeof(SphParticle), particles_count, TAY_TRUE);
     EmGroup *e_particles_group = entorama->add_group(model, "Particles", particles_group, particles_count, 1);
-    e_particles_group->group = particles_group;
-    e_particles_group->max_agents = particles_count;
-    e_particles_group->size_source = EM_SIZE_UNIFORM_RADIUS;
-    e_particles_group->size_radius = 0.02f;
-    e_particles_group->shape = EM_SPHERE;
+    entorama->set_size_uniform_radius(e_particles_group, 0.02f);
+    entorama->set_shape(e_particles_group, EM_SPHERE);
     entorama->configure_space(e_particles_group, TAY_CPU_Z_GRID, part_size, part_size, part_size, part_size);
 
     tay_add_see(tay, particles_group, particles_group, sph_particle_density, "sph_particle_density", (float4){h, h, h, h}, TAY_TRUE, &sph_context, sizeof(sph_context));

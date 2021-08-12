@@ -205,7 +205,7 @@ int main() {
 
     TayState *tay = tay_create_state();
 
-    entorama_load_model_dll(&iface, &model, "m_sph.dll");
+    entorama_load_model_dll(&iface, &model, "m_flocking.dll");
     iface.init(&model, tay);
     iface.reset(&model, tay);
 

@@ -35,13 +35,9 @@ static int _init(EmModel *model, TayState *tay) {
 
     boids_group = tay_add_group(tay, sizeof(Agent), boids_count, TAY_TRUE);
     EmGroup *e_boids_group = entorama->add_group(model, "Boids", boids_group, boids_count, 1);
-    e_boids_group->direction_source = EM_DIRECTION_FWD;
-    e_boids_group->direction_fwd_x_offset = 16;
-    e_boids_group->direction_fwd_y_offset = 20;
-    e_boids_group->direction_fwd_z_offset = 24;
-    e_boids_group->color_source = EM_COLOR_AGENT_PALETTE;
-    e_boids_group->color_palette_index_offset = 32;
-    e_boids_group->shape = EM_PYRAMID;
+    entorama->set_direction_forward(e_boids_group, 16, 20, 24);
+    entorama->set_color_agent_palette(e_boids_group, 32);
+    entorama->set_shape(e_boids_group, EM_PYRAMID);
     entorama->configure_space(e_boids_group, TAY_CPU_GRID, radius, radius, radius, radius);
 
     tay_add_see(tay, boids_group, boids_group, agent_see, "agent_see", see_radii, TAY_FALSE, &see_context, sizeof(see_context));
