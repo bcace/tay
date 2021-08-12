@@ -117,10 +117,6 @@ typedef struct EmModel {
     float min_x, min_y, min_z;
     float max_x, max_y, max_z;
 
-    /* registered model functions */
-    int (*init)(struct EmModel *model, struct TayState *tay);
-    int (*reset)(struct EmModel *model, struct TayState *tay);
-
     /* member functions */
     void (*set_world_box)(struct EmModel *model, float min_x, float min_y, float min_z, float max_x, float max_y, float max_z);
     EmGroup *(*add_group)(struct EmModel *model, const char *name, struct TayGroup *group, unsigned max_agents, int is_point);
@@ -128,6 +124,11 @@ typedef struct EmModel {
     EmPass *(*add_act)(struct EmModel *model, const char *name, EmGroup *group);
 } EmModel;
 
-typedef int (*EM_MAIN)(EmModel *model);
+typedef struct EmIface {
+    int (*init)(struct EmModel *model, struct TayState *tay);
+    int (*reset)(struct EmModel *model, struct TayState *tay);
+} EmIface;
+
+typedef int (*EM_MAIN)(EmIface *iface);
 
 #endif

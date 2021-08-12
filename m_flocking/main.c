@@ -91,8 +91,8 @@ static int _reset(EmModel *model, TayState *tay) {
     return 0;
 }
 
-__declspec(dllexport) int entorama_main(EmModel *model) {
-    model->init = _init;
-    model->reset = _reset;
+__declspec(dllexport) int entorama_main(EmIface *iface) {
+    iface->init = _init;
+    iface->reset = _reset;
     return 0;
 }

@@ -24,6 +24,7 @@ static float STATUSBAR_H = 26;
 static float SIDEBAR_W = 300.0f;
 
 static EmModel model;
+static EmIface iface;
 
 static int speed_mode = 0;
 static unsigned thread_storage_size = 100000;
@@ -204,9 +205,9 @@ int main() {
 
     TayState *tay = tay_create_state();
 
-    entorama_load_model_dll(&model, "m_sph.dll");
-    model.init(&model, tay);
-    model.reset(&model, tay);
+    entorama_load_model_dll(&iface, &model, "m_sph.dll");
+    iface.init(&model, tay);
+    iface.reset(&model, tay);
 
     redraw = 1;
 
@@ -262,7 +263,7 @@ int main() {
                                             button_x + TOOLBAR_BUTTON_W, (float)window_h,
                                             EM_WIDGET_FLAGS_ICON_ONLY)) {
                     case EM_RESPONSE_CLICKED:
-                        model.reset(&model, tay);
+                        iface.reset(&model, tay);
                     case EM_RESPONSE_HOVERED:
                         sprintf_s(tooltip_text_buffer, sizeof(tooltip_text_buffer), "Reset simulation");
                     default:;
