@@ -1,4 +1,5 @@
 #include "entorama.h"
+#include "main.h"
 #include "tay.h"
 #include "platform.h"
 #include <string.h>
@@ -104,6 +105,6 @@ void entorama_load_model_dll(EmIface *iface, EmModel *model, char *path) {
     iface->set_direction_forward = _set_direction_forward;
 
     void *lib = platform_load_library(path);
-    EM_MAIN entorama_main = platform_load_library_function(lib, "entorama_main");
+    int (*entorama_main)(EmIface *) = platform_load_library_function(lib, "entorama_main");
     int r = entorama_main(iface);
 }
