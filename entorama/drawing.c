@@ -51,9 +51,12 @@ static vec4 *inst_color;
 static vec3 *inst_size;
 static int SPHERE_VERTS_COUNT;
 static float *SPHERE_VERTS;
+
 static vec3 world_box_verts[24];
 static vec4 world_box_colors[24];
-static int world_box_verts_count;
+static int world_box_verts_count = 24;
+static unsigned world_box_pos_buffer;
+static unsigned world_box_col_buffer;
 
 static void _init_shader_program(Program *prog, const char *vert_defines) {
     shader_program_init(prog, agent_vert, "agent.vert", vert_defines, agent_frag, "agent.frag", "#version 450\n");
@@ -95,8 +98,8 @@ void drawing_init(int max_agents_per_group) {
     _init_shader_program(&program_color_direction_size, "#version 450\n#define EM_COLOR_AGENT\n#define EM_DIRECTION_FWD\n#define EM_SIZE_AGENT\n");
 
     shader_program_init(&program_tools, tools_vert, "tools.vert", "", tools_frag, "tools.frag", "");
-    shader_program_define_in_float(&program_tools, 3);  /* vertex position */
-    shader_program_define_in_float(&program_tools, 4);  /* vertex color */
+    world_box_pos_buffer = graphics_create_buffer(0, world_box_verts_count, 3);
+    world_box_col_buffer = graphics_create_buffer(1, world_box_verts_count, 4);
     shader_program_define_uniform(&program_tools, "projection");
     shader_program_define_uniform(&program_tools, "modelview");
 
@@ -202,7 +205,6 @@ void drawing_update_world_box(EmModel *model) {
     world_box_verts[22] = (vec3){model->min_x, model->max_y, model->min_z};
     world_box_verts[23] = (vec3){model->min_x, model->max_y, model->max_z};
 
-    world_box_verts_count = 24;
     vec4 color = color_fg();
     color.w = 0.1f;
     for (int i = 0; i < world_box_verts_count; ++i)
@@ -637,8 +639,8 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
         shader_program_set_uniform_mat4(&program_tools, 0, &camera.projection);
         shader_program_set_uniform_mat4(&program_tools, 1, &camera.modelview);
 
-        shader_program_set_data_float(&program_tools, 0, world_box_verts_count, 3, world_box_verts);
-        shader_program_set_data_float(&program_tools, 1, world_box_verts_count, 4, world_box_colors);
+        graphics_copy_to_buffer(world_box_pos_buffer, world_box_verts, world_box_verts_count, 3);
+        graphics_copy_to_buffer(world_box_col_buffer, world_box_colors, world_box_verts_count, 4);
 
         graphics_draw_lines(world_box_verts_count);
 
