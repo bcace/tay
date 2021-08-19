@@ -205,7 +205,7 @@ int main() {
 
     TayState *tay = tay_create_state();
 
-    entorama_load_model_dll(&iface, &model, "m_flocking.dll");
+    entorama_load_model_dll(&iface, &model, "m_sph.dll");
     iface.init(&model, tay);
     iface.reset(&model, tay);
 
@@ -218,6 +218,9 @@ int main() {
     tay_simulation_start(tay);
 
     drawing_init(1000000);
+
+    for (unsigned group_i = 0; group_i < model.groups_count; ++group_i)
+        drawing_init_group_drawing(model.groups + group_i);
 
     drawing_update_world_box(&model);
 

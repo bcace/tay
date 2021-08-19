@@ -57,11 +57,6 @@ static int world_box_verts_count;
 
 static void _init_shader_program(Program *prog, const char *vert_defines) {
     shader_program_init(prog, agent_vert, "agent.vert", vert_defines, agent_frag, "agent.frag", "#version 450\n");
-    shader_program_define_in_float(prog, 3);            /* vertex position */
-    shader_program_define_instanced_in_float(prog, 3);  /* instance position */
-    shader_program_define_instanced_in_float(prog, 3);  /* instance direction fwd */
-    shader_program_define_instanced_in_float(prog, 4);  /* instance color */
-    shader_program_define_instanced_in_float(prog, 3);  /* instance size */
     shader_program_define_uniform(prog, "projection");
     shader_program_define_uniform(prog, "modelview");
     shader_program_define_uniform(prog, "uniform_color");
@@ -214,40 +209,89 @@ void drawing_update_world_box(EmModel *model) {
         world_box_colors[i] = color;
 }
 
+// TODO: do buffer cleanup on repeated calls
+void drawing_init_group_drawing(EmGroup *group) {
+
+    if (group->direction_source) {
+        if (group->color_source == EM_COLOR_AGENT_PALETTE || group->color_source == EM_COLOR_AGENT_RGB) {
+            if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ) {
+                group->program = &program_color_direction_size;
+                shader_program_use(group->program);
+                group->vert_buffer = graphics_create_buffer(0, 5000, 3);
+                group->pos_buffer = graphics_create_buffer_instanced(1, group->max_agents, 3);
+                group->dir_fwd_buffer = graphics_create_buffer_instanced(2, group->max_agents, 3);
+                group->color_buffer = graphics_create_buffer_instanced(3, group->max_agents, 4);
+                group->size_buffer = graphics_create_buffer_instanced(4, group->max_agents, 3);
+            }
+            else {
+                group->program = &program_color_direction;
+                shader_program_use(group->program);
+                group->vert_buffer = graphics_create_buffer(0, 5000, 3);
+                group->pos_buffer = graphics_create_buffer_instanced(1, group->max_agents, 3);
+                group->dir_fwd_buffer = graphics_create_buffer_instanced(2, group->max_agents, 3);
+                group->color_buffer = graphics_create_buffer_instanced(3, group->max_agents, 4);
+            }
+        }
+        else {
+            if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ) {
+                group->program = &program_direction_size;
+                shader_program_use(group->program);
+                group->vert_buffer = graphics_create_buffer(0, 5000, 3);
+                group->pos_buffer = graphics_create_buffer_instanced(1, group->max_agents, 3);
+                group->dir_fwd_buffer = graphics_create_buffer_instanced(2, group->max_agents, 3);
+                group->size_buffer = graphics_create_buffer_instanced(4, group->max_agents, 3);
+            }
+            else {
+                group->program = &program_direction;
+                shader_program_use(group->program);
+                group->vert_buffer = graphics_create_buffer(0, 5000, 3);
+                group->pos_buffer = graphics_create_buffer_instanced(1, group->max_agents, 3);
+                group->dir_fwd_buffer = graphics_create_buffer_instanced(2, group->max_agents, 3);
+            }
+        }
+    }
+    else {
+        if (group->color_source == EM_COLOR_AGENT_PALETTE || group->color_source == EM_COLOR_AGENT_RGB) {
+            if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ) {
+                group->program = &program_color_size;
+                shader_program_use(group->program);
+                group->vert_buffer = graphics_create_buffer(0, 5000, 3);
+                group->pos_buffer = graphics_create_buffer_instanced(1, group->max_agents, 3);
+                group->color_buffer = graphics_create_buffer_instanced(3, group->max_agents, 4);
+                group->size_buffer = graphics_create_buffer_instanced(4, group->max_agents, 3);
+            }
+            else {
+                group->program = &program_color;
+                shader_program_use(group->program);
+                group->vert_buffer = graphics_create_buffer(0, 5000, 3);
+                group->pos_buffer = graphics_create_buffer_instanced(1, group->max_agents, 3);
+                group->color_buffer = graphics_create_buffer_instanced(3, group->max_agents, 4);
+            }
+        }
+        else {
+            if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ) {
+                group->program = &program_size;
+                shader_program_use(group->program);
+                group->vert_buffer = graphics_create_buffer(0, 5000, 3);
+                group->pos_buffer = graphics_create_buffer_instanced(1, group->max_agents, 3);
+                group->size_buffer = graphics_create_buffer_instanced(4, group->max_agents, 3);
+            }
+            else {
+                group->program = &program_basic;
+                shader_program_use(group->program);
+                group->vert_buffer = graphics_create_buffer(0, 5000, 3);
+                group->pos_buffer = graphics_create_buffer_instanced(1, group->max_agents, 3);
+            }
+        }
+    }
+}
+
 void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
     Program *prog = 0;
 
     /* select the agent drawing shader program */
     {
-        if (group->direction_source) {
-            if (group->color_source == EM_COLOR_AGENT_PALETTE || group->color_source == EM_COLOR_AGENT_RGB) {
-                if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ)
-                    prog = &program_color_direction_size;
-                else
-                    prog = &program_color_direction;
-            }
-            else {
-                if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ)
-                    prog = &program_direction_size;
-                else
-                    prog = &program_direction;
-            }
-        }
-        else {
-            if (group->color_source == EM_COLOR_AGENT_PALETTE || group->color_source == EM_COLOR_AGENT_RGB) {
-                if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ)
-                    prog = &program_color_size;
-                else
-                    prog = &program_color;
-            }
-            else {
-                if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ)
-                    prog = &program_size;
-                else
-                    prog = &program_basic;
-            }
-        }
-
+        prog = group->program;
         shader_program_use(prog);
         shader_program_set_uniform_mat4(prog, 0, &camera.projection);
         shader_program_set_uniform_mat4(prog, 1, &camera.modelview);
@@ -293,7 +337,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -310,7 +354,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -325,7 +369,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                     }
                 }
 
-                shader_program_set_data_float(prog, 3, group->max_agents, 4, inst_color);
+                graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
             }
             else if (group->color_source == EM_COLOR_AGENT_RGB) {
                 if (group->size_source == EM_SIZE_AGENT_RADIUS) {
@@ -345,7 +389,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -365,7 +409,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -383,7 +427,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                     }
                 }
 
-                shader_program_set_data_float(prog, 3, group->max_agents, 4, inst_color);
+                graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
             }
             else {
                 if (group->size_source == EM_SIZE_AGENT_RADIUS) {
@@ -399,7 +443,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -415,7 +459,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -430,7 +474,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                 }
             }
 
-            shader_program_set_data_float(prog, 2, group->max_agents, 3, inst_dir_fwd);
+            graphics_copy_to_buffer(group->dir_fwd_buffer, inst_dir_fwd, group->max_agents, 3);
         }
         else {
             if (group->color_source == EM_COLOR_AGENT_PALETTE) {
@@ -445,7 +489,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_size[agent_i] = (vec3){radius, radius, radius};
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -459,7 +503,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -471,7 +515,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                     }
                 }
 
-                shader_program_set_data_float(prog, 3, group->max_agents, 4, inst_color);
+                graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
             }
             else if (group->color_source == EM_COLOR_AGENT_RGB) {
                 if (group->size_source == EM_SIZE_AGENT_RADIUS) {
@@ -488,7 +532,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_size[agent_i] = (vec3){radius, radius, radius};
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -505,7 +549,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -520,7 +564,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                     }
                 }
 
-                shader_program_set_data_float(prog, 3, group->max_agents, 4, inst_color);
+                graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
             }
             else {
                 if (group->size_source == EM_SIZE_AGENT_RADIUS) {
@@ -533,7 +577,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_size[agent_i] = (vec3){radius, radius, radius};
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else if (group->size_source == EM_SIZE_AGENT_XYZ) {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -546,7 +590,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
                         inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
                     }
 
-                    shader_program_set_data_float(prog, 4, group->max_agents, 3, inst_size);
+                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
                 }
                 else {
                     for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
@@ -559,7 +603,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
             }
         }
 
-        shader_program_set_data_float(prog, 1, group->max_agents, 3, inst_pos);
+        graphics_copy_to_buffer(group->pos_buffer, inst_pos, group->max_agents, 3);
     }
 
     int verts_count = 0;
@@ -579,7 +623,7 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
             verts_count = SPHERE_VERTS_COUNT;
             verts = SPHERE_VERTS;
         }
-        shader_program_set_data_float(prog, 0, verts_count, 3, verts);
+        graphics_copy_to_buffer(group->vert_buffer, verts, verts_count, 3);
     }
 
     /* draw agents */
