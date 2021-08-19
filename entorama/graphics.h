@@ -100,4 +100,10 @@ void quad_buffer_add(QuadBuffer *buffer, unsigned count, vec2 **pos, vec4 **col)
 void tex_quad_buffer_clear(TexQuadBuffer *buffer);
 void tex_quad_buffer_add(TexQuadBuffer *buffer, unsigned count, vec2 **pos, vec2 **tex, vec4 **col);
 
+unsigned graphics_create_buffer(unsigned location, unsigned max_count, unsigned components);
+unsigned graphics_create_buffer_instanced(unsigned location, unsigned max_count, unsigned components);
+void graphics_copy_to_buffer(unsigned buffer_id, void *data, unsigned count, unsigned components);
+
+void graphics_print_error();
+
 #endif

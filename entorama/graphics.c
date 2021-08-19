@@ -74,8 +74,18 @@ void shader_program_define_in_float(Program *p, int components) {
     int vbo_index = p->vbo_count++; /* this assumes vertex buffer index and attribute index (layout) are the same thing */
     glGenBuffers(1, &p->vbos[vbo_index]);
     glBindBuffer(GL_ARRAY_BUFFER, p->vbos[vbo_index]);
-    glVertexAttribPointer(vbo_index, components, GL_FLOAT, GL_FALSE, 0, (void *)0);
     glEnableVertexAttribArray(vbo_index);
+    glVertexAttribPointer(vbo_index, components, GL_FLOAT, GL_FALSE, 0, (void *)0);
+}
+
+unsigned graphics_create_buffer(unsigned location, unsigned max_count, unsigned components) {
+    unsigned buffer_id;
+    glGenBuffers(1, &buffer_id);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
+    glEnableVertexAttribArray(location);
+    glVertexAttribPointer(location, components, GL_FLOAT, GL_FALSE, 0, 0);
+    glBufferData(GL_ARRAY_BUFFER, max_count * components * sizeof(float), 0, GL_STATIC_DRAW);
+    return buffer_id;
 }
 
 void shader_program_define_instanced_in_float(Program *p, int components) {
@@ -86,6 +96,22 @@ void shader_program_define_instanced_in_float(Program *p, int components) {
     glEnableVertexAttribArray(vbo_index);
     glVertexAttribPointer(vbo_index, components, GL_FLOAT, GL_FALSE, 0, (void *)0);
     glVertexAttribDivisor(vbo_index, 1);
+}
+
+unsigned graphics_create_buffer_instanced(unsigned location, unsigned max_count, unsigned components) {
+    unsigned buffer_id;
+    glGenBuffers(1, &buffer_id);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
+    glEnableVertexAttribArray(location);
+    glVertexAttribPointer(location, components, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribDivisor(location, 1);
+    glBufferData(GL_ARRAY_BUFFER, max_count * components * sizeof(float), 0, GL_STATIC_DRAW);
+    return buffer_id;
+}
+
+void graphics_copy_to_buffer(unsigned buffer_id, void *data, unsigned count, unsigned components) {
+    glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, count * components * sizeof(float), data);
 }
 
 void shader_program_set_data_float(Program *p, int vbo_index, int count, int components, void *data) {
@@ -399,4 +425,10 @@ void tex_quad_buffer_add(TexQuadBuffer *buffer, unsigned count, vec2 **pos, vec2
     *tex = buffer->tex + buffer->count * 4;
     *col = buffer->col + buffer->count * 4;
     buffer->count += count;
+}
+
+void graphics_print_error() {
+    int err = glGetError();
+    if (err)
+        printf("OpenGL error: %d\n", err);
 }
