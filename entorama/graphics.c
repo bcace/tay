@@ -114,6 +114,10 @@ void graphics_copy_to_buffer(unsigned buffer_id, void *data, unsigned count, uns
     glBufferSubData(GL_ARRAY_BUFFER, 0, count * components * sizeof(float), data);
 }
 
+void graphics_delete_buffer(unsigned buffer_id) {
+    glDeleteBuffers(1, &buffer_id);
+}
+
 void shader_program_set_data_float(Program *p, int vbo_index, int count, int components, void *data) {
     assert(vbo_index < p->vbo_count);
     glBindBuffer(GL_ARRAY_BUFFER, p->vbos[vbo_index]);

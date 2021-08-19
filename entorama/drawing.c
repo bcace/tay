@@ -214,6 +214,27 @@ void drawing_update_world_box(EmModel *model) {
 // TODO: do buffer cleanup on repeated calls
 void drawing_init_group_drawing(EmGroup *group) {
 
+    if (group->vert_buffer) {
+        graphics_delete_buffer(group->vert_buffer);
+        group->vert_buffer = 0;
+    }
+    if (group->pos_buffer) {
+        graphics_delete_buffer(group->pos_buffer);
+        group->pos_buffer = 0;
+    }
+    if (group->dir_fwd_buffer) {
+        graphics_delete_buffer(group->dir_fwd_buffer);
+        group->dir_fwd_buffer = 0;
+    }
+    if (group->color_buffer) {
+        graphics_delete_buffer(group->color_buffer);
+        group->color_buffer = 0;
+    }
+    if (group->size_buffer) {
+        graphics_delete_buffer(group->size_buffer);
+        group->size_buffer = 0;
+    }
+
     if (group->direction_source) {
         if (group->color_source == EM_COLOR_AGENT_PALETTE || group->color_source == EM_COLOR_AGENT_RGB) {
             if (group->size_source == EM_SIZE_AGENT_RADIUS || group->size_source == EM_SIZE_AGENT_XYZ) {

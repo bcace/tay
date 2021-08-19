@@ -103,6 +103,7 @@ void tex_quad_buffer_add(TexQuadBuffer *buffer, unsigned count, vec2 **pos, vec2
 unsigned graphics_create_buffer(unsigned location, unsigned max_count, unsigned components);
 unsigned graphics_create_buffer_instanced(unsigned location, unsigned max_count, unsigned components);
 void graphics_copy_to_buffer(unsigned buffer_id, void *data, unsigned count, unsigned components);
+void graphics_delete_buffer(unsigned buffer_id);
 
 void graphics_print_error();
 
