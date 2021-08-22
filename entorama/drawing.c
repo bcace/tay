@@ -211,9 +211,7 @@ void drawing_update_world_box(EmModel *model) {
         world_box_colors[i] = color;
 }
 
-// TODO: do buffer cleanup on repeated calls
-void drawing_init_group_drawing(EmGroup *group) {
-
+void drawing_delete_group_buffers(EmGroup *group) {
     if (group->vert_buffer) {
         graphics_delete_buffer(group->vert_buffer);
         group->vert_buffer = 0;
@@ -234,6 +232,9 @@ void drawing_init_group_drawing(EmGroup *group) {
         graphics_delete_buffer(group->size_buffer);
         group->size_buffer = 0;
     }
+}
+
+void drawing_create_group_buffers(EmGroup *group) {
 
     if (group->direction_source) {
         if (group->color_source == EM_COLOR_AGENT_PALETTE || group->color_source == EM_COLOR_AGENT_RGB) {
@@ -309,7 +310,293 @@ void drawing_init_group_drawing(EmGroup *group) {
     }
 }
 
-void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
+void drawing_fill_group_buffers(EmGroup *group, TayState *tay) {
+    if (group->direction_source) {
+        if (group->color_source == EM_COLOR_AGENT_PALETTE) {
+            if (group->size_source == EM_SIZE_AGENT_RADIUS) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
+                    float radius = *(float *)(data + group->size_radius_offset);
+                    inst_size[agent_i] = (vec3){radius, radius, radius};
+                    inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
+                    inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
+                    inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else if (group->size_source == EM_SIZE_AGENT_XYZ) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
+                    inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
+                    inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
+                    inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
+                    inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
+                    inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
+                    inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
+                    inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
+                    inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
+                    inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
+                }
+            }
+
+            graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
+        }
+        else if (group->color_source == EM_COLOR_AGENT_RGB) {
+            if (group->size_source == EM_SIZE_AGENT_RADIUS) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
+                    inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
+                    inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
+                    inst_color[agent_i].w = 1.0f;
+                    float radius = *(float *)(data + group->size_radius_offset);
+                    inst_size[agent_i] = (vec3){radius, radius, radius};
+                    inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
+                    inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
+                    inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else if (group->size_source == EM_SIZE_AGENT_XYZ) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
+                    inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
+                    inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
+                    inst_color[agent_i].w = 1.0f;
+                    inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
+                    inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
+                    inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
+                    inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
+                    inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
+                    inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
+                    inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
+                    inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
+                    inst_color[agent_i].w = 1.0f;
+                    inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
+                    inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
+                    inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
+                }
+            }
+
+            graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
+        }
+        else {
+            if (group->size_source == EM_SIZE_AGENT_RADIUS) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    float radius = *(float *)(data + group->size_radius_offset);
+                    inst_size[agent_i] = (vec3){radius, radius, radius};
+                    inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
+                    inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
+                    inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else if (group->size_source == EM_SIZE_AGENT_XYZ) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
+                    inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
+                    inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
+                    inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
+                    inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
+                    inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
+                    inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
+                    inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
+                }
+            }
+        }
+
+        graphics_copy_to_buffer(group->dir_fwd_buffer, inst_dir_fwd, group->max_agents, 3);
+    }
+    else {
+        if (group->color_source == EM_COLOR_AGENT_PALETTE) {
+            if (group->size_source == EM_SIZE_AGENT_RADIUS) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
+                    float radius = *(float *)(data + group->size_radius_offset);
+                    inst_size[agent_i] = (vec3){radius, radius, radius};
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else if (group->size_source == EM_SIZE_AGENT_XYZ) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
+                    inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
+                    inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
+                    inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
+                }
+            }
+
+            graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
+        }
+        else if (group->color_source == EM_COLOR_AGENT_RGB) {
+            if (group->size_source == EM_SIZE_AGENT_RADIUS) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
+                    inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
+                    inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
+                    inst_color[agent_i].w = 1.0f;
+                    float radius = *(float *)(data + group->size_radius_offset);
+                    inst_size[agent_i] = (vec3){radius, radius, radius};
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else if (group->size_source == EM_SIZE_AGENT_XYZ) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
+                    inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
+                    inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
+                    inst_color[agent_i].w = 1.0f;
+                    inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
+                    inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
+                    inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
+                    inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
+                    inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
+                    inst_color[agent_i].w = 1.0f;
+                }
+            }
+
+            graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
+        }
+        else {
+            if (group->size_source == EM_SIZE_AGENT_RADIUS) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    float radius = *(float *)(data + group->size_radius_offset);
+                    inst_size[agent_i] = (vec3){radius, radius, radius};
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else if (group->size_source == EM_SIZE_AGENT_XYZ) {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                    inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
+                    inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
+                    inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
+                }
+
+                graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
+            }
+            else {
+                for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
+                    char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
+                    inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
+                    inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
+                    inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
+                }
+            }
+        }
+    }
+
+    graphics_copy_to_buffer(group->pos_buffer, inst_pos, group->max_agents, 3);
+}
+
+void drawing_draw_group(EmGroup *group, int group_i) {
     Program *prog = 0;
 
     /* select the agent drawing shader program */
@@ -340,293 +627,6 @@ void drawing_draw_group(TayState *tay, EmGroup *group, int group_i) {
 
         shader_program_set_uniform_vec4(prog, 2, &uniform_color);
         shader_program_set_uniform_vec3(prog, 3, &uniform_size);
-    }
-
-    /* push agent data */
-    {
-        if (group->direction_source) {
-            if (group->color_source == EM_COLOR_AGENT_PALETTE) {
-                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
-                        float radius = *(float *)(data + group->size_radius_offset);
-                        inst_size[agent_i] = (vec3){radius, radius, radius};
-                        inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
-                        inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
-                        inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
-                        inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
-                        inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
-                        inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
-                        inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
-                        inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
-                        inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
-                        inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
-                        inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
-                        inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
-                    }
-                }
-
-                graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
-            }
-            else if (group->color_source == EM_COLOR_AGENT_RGB) {
-                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
-                        inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
-                        inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
-                        inst_color[agent_i].w = 1.0f;
-                        float radius = *(float *)(data + group->size_radius_offset);
-                        inst_size[agent_i] = (vec3){radius, radius, radius};
-                        inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
-                        inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
-                        inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
-                        inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
-                        inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
-                        inst_color[agent_i].w = 1.0f;
-                        inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
-                        inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
-                        inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
-                        inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
-                        inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
-                        inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
-                        inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
-                        inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
-                        inst_color[agent_i].w = 1.0f;
-                        inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
-                        inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
-                        inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
-                    }
-                }
-
-                graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
-            }
-            else {
-                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        float radius = *(float *)(data + group->size_radius_offset);
-                        inst_size[agent_i] = (vec3){radius, radius, radius};
-                        inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
-                        inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
-                        inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
-                        inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
-                        inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
-                        inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
-                        inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
-                        inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_dir_fwd[agent_i].x = *(float *)(data + group->direction_fwd_x_offset);
-                        inst_dir_fwd[agent_i].y = *(float *)(data + group->direction_fwd_y_offset);
-                        inst_dir_fwd[agent_i].z = *(float *)(data + group->direction_fwd_z_offset);
-                    }
-                }
-            }
-
-            graphics_copy_to_buffer(group->dir_fwd_buffer, inst_dir_fwd, group->max_agents, 3);
-        }
-        else {
-            if (group->color_source == EM_COLOR_AGENT_PALETTE) {
-                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
-                        float radius = *(float *)(data + group->size_radius_offset);
-                        inst_size[agent_i] = (vec3){radius, radius, radius};
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
-                        inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
-                        inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
-                        inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i] = color_palette(*(unsigned *)(data + group->color_palette_index_offset) % 4);
-                    }
-                }
-
-                graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
-            }
-            else if (group->color_source == EM_COLOR_AGENT_RGB) {
-                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
-                        inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
-                        inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
-                        inst_color[agent_i].w = 1.0f;
-                        float radius = *(float *)(data + group->size_radius_offset);
-                        inst_size[agent_i] = (vec3){radius, radius, radius};
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
-                        inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
-                        inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
-                        inst_color[agent_i].w = 1.0f;
-                        inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
-                        inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
-                        inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_color[agent_i].x = *(float *)(data + group->color_r_offset);
-                        inst_color[agent_i].y = *(float *)(data + group->color_g_offset);
-                        inst_color[agent_i].z = *(float *)(data + group->color_b_offset);
-                        inst_color[agent_i].w = 1.0f;
-                    }
-                }
-
-                graphics_copy_to_buffer(group->color_buffer, inst_color, group->max_agents, 4);
-            }
-            else {
-                if (group->size_source == EM_SIZE_AGENT_RADIUS) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        float radius = *(float *)(data + group->size_radius_offset);
-                        inst_size[agent_i] = (vec3){radius, radius, radius};
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else if (group->size_source == EM_SIZE_AGENT_XYZ) {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                        inst_size[agent_i].x = *(float *)(data + group->size_x_offset);
-                        inst_size[agent_i].y = *(float *)(data + group->size_y_offset);
-                        inst_size[agent_i].z = *(float *)(data + group->size_z_offset);
-                    }
-
-                    graphics_copy_to_buffer(group->size_buffer, inst_size, group->max_agents, 3);
-                }
-                else {
-                    for (unsigned agent_i = 0; agent_i < group->max_agents; ++agent_i) {
-                        char *data = (char *)tay_get_agent(tay, group->group, agent_i) + sizeof(TayAgentTag);
-                        inst_pos[agent_i].x = *(float *)(data + group->position_x_offset);
-                        inst_pos[agent_i].y = *(float *)(data + group->position_y_offset);
-                        inst_pos[agent_i].z = *(float *)(data + group->position_z_offset);
-                    }
-                }
-            }
-        }
-
-        graphics_copy_to_buffer(group->pos_buffer, inst_pos, group->max_agents, 3);
     }
 
     int verts_count = 0;

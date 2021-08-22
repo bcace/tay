@@ -220,7 +220,7 @@ int main() {
     drawing_init(1000000);
 
     for (unsigned group_i = 0; group_i < model.groups_count; ++group_i)
-        drawing_init_group_drawing(model.groups + group_i);
+        drawing_create_group_buffers(model.groups + group_i);
 
     drawing_update_world_box(&model);
 
@@ -597,7 +597,8 @@ int main() {
 
                 for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                     EmGroup *group = model.groups + group_i;
-                    drawing_draw_group(tay, group, group_i);
+                    drawing_fill_group_buffers(group, tay);
+                    drawing_draw_group(group, group_i);
                 }
             }
 

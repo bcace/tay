@@ -11,8 +11,10 @@ void drawing_init(int max_agents_per_group);
 void drawing_mouse_scroll(double y, int *redraw);
 void drawing_mouse_move(int button_l, int button_r, float dx, float dy, int *execute_draw_calls);
 void drawing_camera_setup(struct EmModel *model, int window_w, int window_h);
-void drawing_init_group_drawing(struct EmGroup *group);
-void drawing_draw_group(struct TayState *tay, struct EmGroup *group, int group_i);
+void drawing_delete_group_buffers(struct EmGroup *group);
+void drawing_create_group_buffers(struct EmGroup *group);
+void drawing_fill_group_buffers(struct EmGroup *group, struct TayState *tay);
+void drawing_draw_group(struct EmGroup *group, int group_i);
 void drawing_update_world_box(struct EmModel *model);
 
 /* colors.c */
