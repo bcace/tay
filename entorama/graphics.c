@@ -69,15 +69,6 @@ void shader_program_set_uniform_vec3(Program *p, int uniform_index, vec3 *vec) {
     glUniform3f(p->uniforms[uniform_index], vec->x, vec->y, vec->z);
 }
 
-void shader_program_define_in_float(Program *p, int components) {
-    assert(p->vbo_count < GRAPH_MAX_VBOS);
-    int vbo_index = p->vbo_count++; /* this assumes vertex buffer index and attribute index (layout) are the same thing */
-    glGenBuffers(1, &p->vbos[vbo_index]);
-    glBindBuffer(GL_ARRAY_BUFFER, p->vbos[vbo_index]);
-    glEnableVertexAttribArray(vbo_index);
-    glVertexAttribPointer(vbo_index, components, GL_FLOAT, GL_FALSE, 0, (void *)0);
-}
-
 unsigned graphics_create_buffer(unsigned location, unsigned max_count, unsigned components) {
     unsigned buffer_id;
     glGenBuffers(1, &buffer_id);
@@ -86,16 +77,6 @@ unsigned graphics_create_buffer(unsigned location, unsigned max_count, unsigned 
     glVertexAttribPointer(location, components, GL_FLOAT, GL_FALSE, 0, 0);
     glBufferData(GL_ARRAY_BUFFER, max_count * components * sizeof(float), 0, GL_STATIC_DRAW);
     return buffer_id;
-}
-
-void shader_program_define_instanced_in_float(Program *p, int components) {
-    assert(p->vbo_count < GRAPH_MAX_VBOS);
-    int vbo_index = p->vbo_count++; /* this assumes vertex buffer index and attribute index (layout) are the same thing */
-    glGenBuffers(1, &p->vbos[vbo_index]);
-    glBindBuffer(GL_ARRAY_BUFFER, p->vbos[vbo_index]);
-    glEnableVertexAttribArray(vbo_index);
-    glVertexAttribPointer(vbo_index, components, GL_FLOAT, GL_FALSE, 0, (void *)0);
-    glVertexAttribDivisor(vbo_index, 1);
 }
 
 unsigned graphics_create_buffer_instanced(unsigned location, unsigned max_count, unsigned components) {
@@ -109,6 +90,11 @@ unsigned graphics_create_buffer_instanced(unsigned location, unsigned max_count,
     return buffer_id;
 }
 
+void graphics_copy_to_buffer_with_resize(unsigned buffer_id, void *data, unsigned count, unsigned components) {
+    glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
+    glBufferData(GL_ARRAY_BUFFER, count * components * sizeof(float), data, GL_STATIC_DRAW);
+}
+
 void graphics_copy_to_buffer(unsigned buffer_id, void *data, unsigned count, unsigned components) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer_id);
     glBufferSubData(GL_ARRAY_BUFFER, 0, count * components * sizeof(float), data);
@@ -116,12 +102,6 @@ void graphics_copy_to_buffer(unsigned buffer_id, void *data, unsigned count, uns
 
 void graphics_delete_buffer(unsigned buffer_id) {
     glDeleteBuffers(1, &buffer_id);
-}
-
-void shader_program_set_data_float(Program *p, int vbo_index, int count, int components, void *data) {
-    assert(vbo_index < p->vbo_count);
-    glBindBuffer(GL_ARRAY_BUFFER, p->vbos[vbo_index]);
-    glBufferData(GL_ARRAY_BUFFER, count * components * sizeof(float), data, GL_STATIC_DRAW);
 }
 
 void graphics_enable_depth_test(int enable) {

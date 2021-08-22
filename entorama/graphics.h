@@ -51,10 +51,6 @@ void shader_program_set_uniform_mat4(Program *p, int uniform_index, mat4 *mat);
 void shader_program_set_uniform_vec4(Program *p, int uniform_index, vec4 *vec);
 void shader_program_set_uniform_vec3(Program *p, int uniform_index, vec3 *vec);
 
-void shader_program_define_in_float(Program *p, int components);
-void shader_program_define_instanced_in_float(Program *p, int components);
-void shader_program_set_data_float(Program *p, int vbo_index, int count, int components, void *data);
-
 void graphics_enable_depth_test(int enable);
 void graphics_enable_blend(int enable);
 void graphics_enable_smooth_line(int enable);
@@ -102,6 +98,7 @@ void tex_quad_buffer_add(TexQuadBuffer *buffer, unsigned count, vec2 **pos, vec2
 
 unsigned graphics_create_buffer(unsigned location, unsigned max_count, unsigned components);
 unsigned graphics_create_buffer_instanced(unsigned location, unsigned max_count, unsigned components);
+void graphics_copy_to_buffer_with_resize(unsigned buffer_id, void *data, unsigned count, unsigned components);
 void graphics_copy_to_buffer(unsigned buffer_id, void *data, unsigned count, unsigned components);
 void graphics_delete_buffer(unsigned buffer_id);
 
