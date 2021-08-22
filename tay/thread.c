@@ -14,7 +14,7 @@ static void _thread_work(TayThread *thread) {
     thread->task_func(thread->task, &thread->context);
 }
 
-unsigned int WINAPI _thread_func(TayThread *thread) {
+static unsigned int WINAPI _thread_func(TayThread *thread) {
     while (1) {
         WaitForSingleObject(thread->beg_semaphore, INFINITE);
         if (thread->run == 0) {
