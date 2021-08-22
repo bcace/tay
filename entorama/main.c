@@ -8,10 +8,11 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #include <stdio.h>
+#include <windows.h>
 
 
 static int quit = 0;
-static int paused = 1;
+static int running = 0;
 static int window_w = 1600;
 static int window_h = 800;
 
@@ -35,6 +36,23 @@ static int gpu_expanded = 0;
 
 static char label_text_buffer[512];
 static char tooltip_text_buffer[512];
+
+static HANDLE run_thread;
+static HANDLE run_thread_semaphore;
+static HANDLE main_thread_semaphore;
+
+static double run_thread_ms = 0.0;
+static double main_thread_ms = 0.0;
+
+static TayState *tay;
+
+typedef enum {
+    COMM_NONE,
+    COMM_RUN,
+    COMM_STOP,
+} Command;
+
+static Command command;
 
 static void _close_callback(GLFWwindow *window) {
     quit = 1;
@@ -80,8 +98,12 @@ static void _mousepos_callback(GLFWwindow *glfw_window, double x, double y) {
 static void _key_callback(GLFWwindow *glfw_window, int key, int code, int action, int mods) {
     if (key == GLFW_KEY_Q && mods & GLFW_MOD_CONTROL)
         quit = 1;
-    else if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
-        paused = !paused;
+    else if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) {
+        if (running)
+            command = COMM_STOP;
+        else
+            command = COMM_RUN;
+    }
 }
 
 static void _size_callback(GLFWwindow *glfw_window, int w, int h) {
@@ -158,6 +180,24 @@ static int _structure_works_with_non_points(TaySpaceType space_type) {
     }
 }
 
+static unsigned int WINAPI _thread_func(void *data) {
+    while (1) {
+        WaitForSingleObject(run_thread_semaphore, INFINITE);
+        if (quit) {
+            ReleaseSemaphore(main_thread_semaphore, 1, 0);
+            return 0;
+        }
+        double sum_ms = 0.0;
+        while (sum_ms < 9.0) {
+            tay_run(tay, 10);
+            run_thread_ms = tay_get_ms_per_step_for_last_run(tay);
+            sum_ms += run_thread_ms;
+        }
+        ReleaseSemaphore(main_thread_semaphore, 1, 0);
+    }
+    return 0;
+}
+
 int main() {
 
     if (!glfwInit()) {
@@ -203,7 +243,7 @@ int main() {
     font_init();
     em_widgets_init();
 
-    TayState *tay = tay_create_state();
+    tay = tay_create_state();
 
     entorama_load_model_dll(&iface, &model, "m_sph.dll");
     iface.init(&model, tay);
@@ -219,16 +259,49 @@ int main() {
 
     drawing_init(1000000);
 
-    for (unsigned group_i = 0; group_i < model.groups_count; ++group_i)
-        drawing_create_group_buffers(model.groups + group_i);
+    for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
+        EmGroup *group = model.groups + group_i;
+        drawing_create_group_buffers(group);
+        drawing_fill_group_buffers(group, tay);
+    }
 
     drawing_update_world_box(&model);
 
+    main_thread_semaphore = CreateSemaphore(0, 0, 1, 0);
+    run_thread_semaphore = CreateSemaphore(0, 0, 1, 0);
+    run_thread = CreateThread(0, 0, _thread_func, 0, 0, 0);
+
+    command = COMM_NONE;
+
     while (!quit) {
 
-        if (!paused) {
-            tay_run(tay, 1);
+        DWORD unblock_reason = WaitForSingleObject(main_thread_semaphore, 10);
+
+        if (unblock_reason == WAIT_OBJECT_0) {
+
+            /* copy drawing data from agents */
+            for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
+                EmGroup *group = model.groups + group_i;
+                drawing_fill_group_buffers(group, tay);
+            }
+
+            main_thread_ms = run_thread_ms;
             redraw = 1;
+
+            /* process run command */
+            if (command == COMM_STOP) {
+                command = COMM_NONE;
+                running = 0;
+            }
+            else
+                ReleaseSemaphore(run_thread_semaphore, 1, 0);
+        }
+        else {
+            if (command == COMM_RUN) {
+                ReleaseSemaphore(run_thread_semaphore, 1, 0);
+                command = COMM_NONE;
+                running = 1;
+            }
         }
 
         /* widgets */
@@ -248,12 +321,16 @@ int main() {
 
                 float button_x = (window_w - TOOLBAR_BUTTON_W * 2.0f) * 0.5f;
 
-                switch (em_button_with_icon("", paused ? 6 : 7,
+                switch (em_button_with_icon("", running ? 7 : 6,
                                             button_x, window_h - TOOLBAR_H,
                                             button_x + TOOLBAR_BUTTON_W, (float)window_h,
                                             EM_WIDGET_FLAGS_ICON_ONLY)) {
-                    case EM_RESPONSE_CLICKED:
-                        paused = !paused;
+                    case EM_RESPONSE_CLICKED: {
+                        if (running)
+                            command = COMM_STOP;
+                        else
+                            command = COMM_RUN;
+                    }
                     case EM_RESPONSE_HOVERED:
                         sprintf_s(tooltip_text_buffer, sizeof(tooltip_text_buffer), "Run / pause simulation");
                     default:;
@@ -552,7 +629,7 @@ int main() {
 
             /* statusbar */
             {
-                double speed = _smooth_ms_per_step(tay_get_ms_per_step_for_last_run(tay));
+                double speed = _smooth_ms_per_step(main_thread_ms);
                 if (speed_mode)
                     sprintf_s(label_text_buffer, sizeof(label_text_buffer), "%.1f fps", 1000.0 / speed);
                 else
@@ -597,7 +674,6 @@ int main() {
 
                 for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
                     EmGroup *group = model.groups + group_i;
-                    drawing_fill_group_buffers(group, tay);
                     drawing_draw_group(group, group_i);
                 }
             }
@@ -617,9 +693,14 @@ int main() {
             glfwSwapBuffers(window);
         }
 
-        platform_sleep(10);
         glfwPollEvents();
     }
+
+    ReleaseSemaphore(run_thread_semaphore, 1, 0);
+    WaitForSingleObject(main_thread_semaphore, INFINITE);
+    CloseHandle(main_thread_semaphore);
+    CloseHandle(run_thread_semaphore);
+    CloseHandle(run_thread);
 
     tay_simulation_end(tay);
     tay_threads_stop();
