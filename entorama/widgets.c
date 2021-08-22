@@ -40,17 +40,23 @@ static unsigned pressed_widget_id = 0;
 static unsigned hovered_widget_id = 0;
 static unsigned previous_hovered_widget_id = 0;
 
+static unsigned quad_pos_buffer;
+static unsigned quad_col_buffer;
+static unsigned text_pos_buffer;
+static unsigned text_col_buffer;
+static unsigned text_tex_buffer;
+
 void em_widgets_init() {
     shader_program_init(&prog, flat_vert, "flat.vert", "", flat_frag, "flat.frag", "");
-    shader_program_define_in_float(&prog, 2);            /* vertex position */
-    shader_program_define_in_float(&prog, 4);            /* vertex color */
     shader_program_define_uniform(&prog, "projection");
+    quad_pos_buffer = graphics_create_buffer(0, 0, 2);
+    quad_col_buffer = graphics_create_buffer(1, 0, 4);
 
     shader_program_init(&text_prog, text_vert, "text.vert", "", text_frag, "text.frag", "");
-    shader_program_define_in_float(&text_prog, 2);            /* vertex position */
-    shader_program_define_in_float(&text_prog, 2);            /* vertex texture position */
-    shader_program_define_in_float(&text_prog, 4);            /* vertex color */
     shader_program_define_uniform(&text_prog, "projection");
+    text_pos_buffer = graphics_create_buffer(0, 0, 2);
+    text_tex_buffer = graphics_create_buffer(1, 0, 2);
+    text_col_buffer = graphics_create_buffer(2, 0, 4);
 }
 
 static void _init_quad(vec2 *quad, float min_x, float max_x, float min_y, float max_y) {
@@ -109,17 +115,17 @@ void em_widgets_draw(struct mat4 projection) {
         if (layer->quad_buffer.count) {
             shader_program_use(&prog);
             shader_program_set_uniform_mat4(&prog, 0, &projection);
-            shader_program_set_data_float(&prog, 0, layer->quad_buffer.count * 4, 2, layer->quad_buffer.pos);
-            shader_program_set_data_float(&prog, 1, layer->quad_buffer.count * 4, 4, layer->quad_buffer.col);
+            graphics_copy_to_buffer_with_resize(quad_pos_buffer, layer->quad_buffer.pos, layer->quad_buffer.count * 4, 2);
+            graphics_copy_to_buffer_with_resize(quad_col_buffer, layer->quad_buffer.col, layer->quad_buffer.count * 4, 4);
             graphics_draw_quads(layer->quad_buffer.count * 4);
         }
 
         if (layer->text_buffer.count) {
             font_use_medium();
             shader_program_use(&text_prog);
-            shader_program_set_data_float(&text_prog, 0, layer->text_buffer.count * 4, 2, layer->text_buffer.pos);
-            shader_program_set_data_float(&text_prog, 1, layer->text_buffer.count * 4, 2, layer->text_buffer.tex);
-            shader_program_set_data_float(&text_prog, 2, layer->text_buffer.count * 4, 4, layer->text_buffer.col);
+            graphics_copy_to_buffer_with_resize(text_pos_buffer, layer->text_buffer.pos, layer->text_buffer.count * 4, 2);
+            graphics_copy_to_buffer_with_resize(text_tex_buffer, layer->text_buffer.tex, layer->text_buffer.count * 4, 2);
+            graphics_copy_to_buffer_with_resize(text_col_buffer, layer->text_buffer.col, layer->text_buffer.count * 4, 4);
             shader_program_set_uniform_mat4(&text_prog, 0, &projection);
             graphics_draw_quads(layer->text_buffer.count * 4);
         }
@@ -127,9 +133,9 @@ void em_widgets_draw(struct mat4 projection) {
         if (layer->icon_buffer.count) {
             icons_use_medium();
             shader_program_use(&text_prog);
-            shader_program_set_data_float(&text_prog, 0, layer->icon_buffer.count * 4, 2, layer->icon_buffer.pos);
-            shader_program_set_data_float(&text_prog, 1, layer->icon_buffer.count * 4, 2, layer->icon_buffer.tex);
-            shader_program_set_data_float(&text_prog, 2, layer->icon_buffer.count * 4, 4, layer->icon_buffer.col);
+            graphics_copy_to_buffer_with_resize(text_pos_buffer, layer->icon_buffer.pos, layer->icon_buffer.count * 4, 2);
+            graphics_copy_to_buffer_with_resize(text_tex_buffer, layer->icon_buffer.tex, layer->icon_buffer.count * 4, 2);
+            graphics_copy_to_buffer_with_resize(text_col_buffer, layer->icon_buffer.col, layer->icon_buffer.count * 4, 4);
             shader_program_set_uniform_mat4(&text_prog, 0, &projection);
             graphics_draw_quads(layer->icon_buffer.count * 4);
         }
