@@ -50,6 +50,7 @@ typedef enum {
     COMM_NONE,
     COMM_RUN,
     COMM_STOP,
+    COMM_RELOAD,
 } Command;
 
 static Command command;
@@ -189,13 +190,20 @@ static unsigned int WINAPI _thread_func(void *data) {
         }
         double sum_ms = 0.0;
         while (sum_ms < 9.0) {
-            tay_run(tay, 10);
+            tay_run(tay, 1);
             run_thread_ms = tay_get_ms_per_step_for_last_run(tay);
             sum_ms += run_thread_ms;
         }
         ReleaseSemaphore(main_thread_semaphore, 1, 0);
     }
     return 0;
+}
+
+static void _copy_drawing_data_from_agents(EmModel *model, TayState *tay) {
+    for (unsigned group_i = 0; group_i < model->groups_count; ++group_i) {
+        EmGroup *group = model->groups + group_i;
+        drawing_fill_group_buffers(group, tay);
+    }
 }
 
 int main() {
@@ -279,28 +287,39 @@ int main() {
 
         if (unblock_reason == WAIT_OBJECT_0) { /* unblocked because run thread was done */
 
-            /* copy drawing data from agents */
-            for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
-                EmGroup *group = model.groups + group_i;
-                drawing_fill_group_buffers(group, tay);
-            }
-
             main_thread_ms = run_thread_ms;
-            redraw = 1;
 
-            /* process run command */
+            /* process commands while running */
             if (command == COMM_STOP) {
                 command = COMM_NONE;
                 running = 0;
             }
+            else if (command == COMM_RELOAD) {
+                iface.reset(&model, tay);
+                ReleaseSemaphore(run_thread_semaphore, 1, 0);
+                command = COMM_NONE;
+            }
             else
                 ReleaseSemaphore(run_thread_semaphore, 1, 0);
+
+            _copy_drawing_data_from_agents(&model, tay);
+            redraw = 1;
         }
         else { /* unblocked because of timeout */
+
+            /* process commands while paused */
             if (command == COMM_RUN) {
                 ReleaseSemaphore(run_thread_semaphore, 1, 0);
                 command = COMM_NONE;
                 running = 1;
+            }
+            else if (command == COMM_RELOAD) {
+                if (!running) {
+                    iface.reset(&model, tay);
+                    _copy_drawing_data_from_agents(&model, tay);
+                    redraw = 1;
+                    command = COMM_NONE;
+                }
             }
         }
 
@@ -341,9 +360,9 @@ int main() {
                 switch (em_button_with_icon("", 8,
                                             button_x, window_h - TOOLBAR_H,
                                             button_x + TOOLBAR_BUTTON_W, (float)window_h,
-                                            EM_WIDGET_FLAGS_ICON_ONLY)) {
+                                            EM_WIDGET_FLAGS_ICON_ONLY | ((command == COMM_NONE) ? EM_WIDGET_FLAGS_NONE : EM_WIDGET_FLAGS_DISABLED))) {
                     case EM_RESPONSE_CLICKED:
-                        iface.reset(&model, tay);
+                        command = COMM_RELOAD;
                     case EM_RESPONSE_HOVERED:
                         sprintf_s(tooltip_text_buffer, sizeof(tooltip_text_buffer), "Reset simulation");
                     default:;
