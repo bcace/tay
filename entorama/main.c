@@ -277,7 +277,7 @@ int main() {
 
         DWORD unblock_reason = WaitForSingleObject(main_thread_semaphore, 10);
 
-        if (unblock_reason == WAIT_OBJECT_0) {
+        if (unblock_reason == WAIT_OBJECT_0) { /* unblocked because run thread was done */
 
             /* copy drawing data from agents */
             for (unsigned group_i = 0; group_i < model.groups_count; ++group_i) {
@@ -296,7 +296,7 @@ int main() {
             else
                 ReleaseSemaphore(run_thread_semaphore, 1, 0);
         }
-        else {
+        else { /* unblocked because of timeout */
             if (command == COMM_RUN) {
                 ReleaseSemaphore(run_thread_semaphore, 1, 0);
                 command = COMM_NONE;
@@ -324,7 +324,7 @@ int main() {
                 switch (em_button_with_icon("", running ? 7 : 6,
                                             button_x, window_h - TOOLBAR_H,
                                             button_x + TOOLBAR_BUTTON_W, (float)window_h,
-                                            EM_WIDGET_FLAGS_ICON_ONLY)) {
+                                            EM_WIDGET_FLAGS_ICON_ONLY | ((command == COMM_NONE) ? EM_WIDGET_FLAGS_NONE : EM_WIDGET_FLAGS_DISABLED))) {
                     case EM_RESPONSE_CLICKED: {
                         if (running)
                             command = COMM_STOP;
@@ -350,9 +350,9 @@ int main() {
                 }
 
                 if (em_button_with_icon("", 9,
-                              window_w - TOOLBAR_BUTTON_W, window_h - TOOLBAR_H,
-                              (float)window_w, (float)window_h,
-                              EM_WIDGET_FLAGS_ICON_ONLY) == EM_RESPONSE_CLICKED)
+                                        window_w - TOOLBAR_BUTTON_W, window_h - TOOLBAR_H,
+                                        (float)window_w, (float)window_h,
+                                        EM_WIDGET_FLAGS_ICON_ONLY) == EM_RESPONSE_CLICKED)
                     color_toggle_theme();
             }
 
